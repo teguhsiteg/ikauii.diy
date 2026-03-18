@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "suratdigitalv2"
+  },
+  "targets": {
+    "suratdigitalv2": {
+      "hosting": {
+        "sim-app": [
+          "dpw-ikadiy"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
