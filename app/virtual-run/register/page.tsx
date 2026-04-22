@@ -1,0 +1,988 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, doc, getDoc } from "firebase/firestore";
+import Link from "next/link";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+
+export default function VirtualRunRegisterPage() {
+  const router = useRouter();
+
+  // --- STATE PENGATURAN DARI ADMIN ---
+  const [settings, setSettings] = useState<any>(null);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+
+  const { executeRecaptcha } = useGoogleReCaptcha();
+
+  // --- STATE FORMULIR ---
+  const [formData, setFormData] = useState({
+    tipePeserta: "alumni", // 'alumni' | 'umum'
+    nama: "",
+    namaBib: "",
+    email: "",
+    whatsapp: "",
+    fakultas: "",
+    angkatan: "",
+    jarak: "10K",
+    paket: "basic",
+    ukuranJersey: "L",
+    alamat: "",
+    isDonasi: false,
+    nominalDonasi: "",
+  });
+
+  // --- STATE PERSETUJUAN (SYARAT & KETENTUAN) ---
+  const [isSyaratChecked, setIsSyaratChecked] = useState(false);
+  const [isAsuransiChecked, setIsAsuransiChecked] = useState(false);
+  const [isGrupChecked, setIsGrupChecked] = useState(false);
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // --- 1. AMBIL DATA SETTING ADMIN & LOAD MIDTRANS JIKA DIPERLUKAN ---
+  useEffect(() => {
+    const fetchSettingsAndLoadMidtrans = async () => {
+      try {
+        const docRef = doc(db, "settings", "virtual_run");
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setSettings(data);
+
+          // Cek otomatis grup WA kalau admin tidak mengisi link-nya
+          if (!data.urlGrupWa) {
+            setIsGrupChecked(true);
+          }
+
+          if (data.metodePembayaran === "midtrans" && data.midtransClientKey) {
+            const scriptUrl = data.isProduction
+              ? "https://app.midtrans.com/snap/snap.js"
+              : "https://app.sandbox.midtrans.com/snap/snap.js";
+
+            if (!document.getElementById("midtrans-script")) {
+              const scriptTag = document.createElement("script");
+              scriptTag.id = "midtrans-script";
+              scriptTag.src = scriptUrl;
+              scriptTag.setAttribute("data-client-key", data.midtransClientKey);
+              scriptTag.async = true;
+              document.body.appendChild(scriptTag);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Gagal mengambil pengaturan:", error);
+      } finally {
+        setIsLoadingSettings(false);
+      }
+    };
+
+    fetchSettingsAndLoadMidtrans();
+  }, []);
+
+  // --- KALKULASI BIAYA SECARA LIVE ---
+  const hargaBasic = settings?.hargaBasic || 0;
+  const hargaStandard = settings?.hargaStandard || 0;
+  const hargaFull = settings?.hargaFull || 0;
+  const ongkirFlat = settings?.ongkirFlat || 0;
+  const minCharity = settings?.minCharity || 25000;
+
+  const hargaPaketAktif =
+    formData.paket === "basic"
+      ? hargaBasic
+      : formData.paket === "standard"
+        ? hargaStandard
+        : hargaFull;
+
+  const perluOngkir =
+    formData.paket === "standard" || formData.paket === "full";
+  const totalOngkir = perluOngkir ? ongkirFlat : 0;
+
+  const donasi =
+    settings?.isCharityActive && formData.isDonasi
+      ? Number(formData.nominalDonasi) || 0
+      : 0;
+  const grandTotal = hargaPaketAktif + totalOngkir + donasi;
+
+  // --- VALIDASI TOMBOL SUBMIT ---
+  const isFormLengkap = isSyaratChecked && isAsuransiChecked && isGrupChecked;
+
+  const handleChange = (e: any) => {
+    const { name, value, type, checked } = e.target;
+    let finalValue = value;
+    if (name === "namaBib") finalValue = value.toUpperCase();
+
+    setFormData({
+      ...formData,
+      [name]: type === "checkbox" ? checked : finalValue,
+    });
+  };
+
+  // --- 2. SUBMIT DATA & LOGIKA PEMBAYARAN DINAMIS ---
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!isFormLengkap) {
+      alert(
+        "⚠️ Mohon centang semua kotak persetujuan pendaftaran di bagian bawah form.",
+      );
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      alert("⚠️ Format email tidak valid.");
+      return;
+    }
+
+    const kontak = formData.whatsapp.trim();
+    if (kontak.startsWith("@")) {
+      if (kontak.length < 3) {
+        alert("⚠️ Username Instagram tidak valid.");
+        return;
+      }
+    } else {
+      const waRegex = /^(\+62|62|0)8[1-9][0-9]{6,12}$/;
+      if (!waRegex.test(kontak)) {
+        alert(
+          "⚠️ Format Kontak tidak valid. Masukkan nomor HP (awalan 08/628).",
+        );
+        return;
+      }
+    }
+
+    if (formData.namaBib.length > 15) {
+      alert("⚠️ Nama pada e-BIB maksimal 15 karakter.");
+      return;
+    }
+
+    if (settings?.isCharityActive && formData.isDonasi && donasi < minCharity) {
+      alert(
+        `⚠️ Nominal donasi minimal adalah Rp ${minCharity.toLocaleString("id-ID")}`,
+      );
+      return;
+    }
+
+    if (perluOngkir && formData.alamat.trim().length < 15) {
+      alert("⚠️ Mohon isi alamat pengiriman dengan detail.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      if (!executeRecaptcha) {
+        alert("Sistem keamanan belum siap. Silakan refresh halaman.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const token = await executeRecaptcha("virtual_run_registration");
+      const recaptchaResponse = await fetch("/api/verify-recaptcha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+
+      const recaptchaResult = await recaptchaResponse.json();
+      if (!recaptchaResult.success) {
+        alert("⚠️ Pendaftaran ditolak. Aktivitas mencurigakan terdeteksi.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const namaDepan = formData.nama
+        .split(" ")[0]
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+      const kodeAcak = Math.random().toString(36).substring(2, 7);
+      const userSlug = `${namaDepan}-${kodeAcak}`;
+
+      const finalDataToSave = {
+        ...formData,
+        fakultas: formData.tipePeserta === "umum" ? "-" : formData.fakultas,
+        angkatan: formData.tipePeserta === "umum" ? "-" : formData.angkatan,
+        nominalDonasi: donasi,
+        totalTagihan: grandTotal,
+        statusPembayaran: "Pending",
+        waktuDaftar: new Date().toISOString(),
+        approvedKm: 0,
+        resiPengiriman: "",
+        buktiBayarUrl: "",
+        slug: userSlug,
+      };
+
+      const docRef = await addDoc(
+        collection(db, "vr_participants"),
+        finalDataToSave,
+      );
+
+      fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "registration",
+          email: formData.email,
+          nama: formData.nama,
+          detail: {
+            id: userSlug,
+            totalTagihan: grandTotal,
+          },
+        }),
+      }).catch((err) => console.error("Background Email Error:", err));
+
+      if (settings?.metodePembayaran === "midtrans") {
+        const response = await fetch("/api/vr-midtrans", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId: docRef.id,
+            grossAmount: grandTotal,
+            customerName: formData.nama,
+            customerEmail: formData.email,
+            customerPhone: kontak,
+          }),
+        });
+
+        const resData = await response.json();
+        if (!response.ok)
+          throw new Error(resData.error || "Gagal server Midtrans.");
+
+        // @ts-ignore
+        window.snap.pay(resData.token, {
+          onSuccess: function () {
+            router.push("/virtual-run/dashboard");
+          },
+          onPending: function () {
+            alert("Silakan selesaikan pembayaran.");
+            router.push("/virtual-run/dashboard");
+          },
+          onError: function () {
+            alert("Terjadi kesalahan.");
+            setIsSubmitting(false);
+          },
+          onClose: function () {
+            router.push("/virtual-run/dashboard");
+          },
+        });
+      } else {
+        alert(
+          "Data Pendaftaran Disimpan! Silakan selesaikan pembayaran di Dashboard.",
+        );
+        router.push("/virtual-run/dashboard");
+      }
+    } catch (error: any) {
+      console.error(error);
+      alert(error.message || "Terjadi kesalahan sistem, silakan coba lagi.");
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoadingSettings) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (settings?.statusPendaftaran === "Tutup") {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-20 h-20 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-4xl mb-6">
+          🔒
+        </div>
+        <h1 className="text-3xl font-black text-slate-900 mb-2">
+          Pendaftaran Ditutup
+        </h1>
+        <p className="text-slate-500 mb-8 max-w-md">
+          Mohon maaf, kuota pendaftaran event Virtual Run ini telah habis atau
+          ditutup.
+        </p>
+        <button
+          onClick={() => router.back()}
+          className="bg-blue-600 text-white font-bold px-6 py-3 rounded-xl shadow-md hover:bg-blue-700 transition-colors"
+        >
+          Kembali ke Beranda
+        </button>
+      </div>
+    );
+  }
+
+  const isMetodeMidtrans = settings?.metodePembayaran === "midtrans";
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] font-sans selection:bg-blue-100 selection:text-blue-900 pb-20">
+      <div className="bg-blue-950 pt-10 pb-28 px-4 sm:px-6 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+        <div className="max-w-5xl mx-auto relative z-10">
+          <Link
+            href="/virtual-run"
+            className="text-blue-300 hover:text-white font-semibold text-xs sm:text-sm flex items-center gap-1.5 mb-6 transition-colors w-fit"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"
+              />
+            </svg>{" "}
+            Kembali
+          </Link>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-2 tracking-tight">
+            Registrasi {settings?.eventName || "Virtual Run"}
+          </h1>
+          <p className="text-blue-200 text-sm max-w-xl leading-relaxed">
+            Lengkapi identitas diri, pilih jarak lari, dan tentukan paket race
+            pack pilihan Anda.
+          </p>
+        </div>
+      </div>
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-16 relative z-10">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col lg:flex-row gap-6 items-start"
+        >
+          {/* KOLOM KIRI (DATA & PAKET) */}
+          <div className="w-full lg:w-2/3 space-y-5">
+            {/* CARD 1: IDENTITAS */}
+            <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200">
+              <h3 className="text-base font-bold text-slate-800 mb-6 border-b border-slate-100 pb-3 flex items-center gap-3">
+                <span className="bg-blue-100 text-blue-700 w-7 h-7 rounded-full flex items-center justify-center text-xs font-black">
+                  1
+                </span>{" "}
+                Identitas Pelari
+              </h3>
+
+              <div className="space-y-5">
+                <div className="bg-slate-50 p-1.5 rounded-xl border border-slate-200 flex gap-1">
+                  <label
+                    className={`flex-1 text-center py-2.5 rounded-lg text-sm font-bold cursor-pointer transition-all ${formData.tipePeserta === "alumni" ? "bg-white text-blue-700 shadow-sm ring-1 ring-slate-200" : "text-slate-500 hover:text-slate-700"}`}
+                  >
+                    <input
+                      type="radio"
+                      name="tipePeserta"
+                      value="alumni"
+                      checked={formData.tipePeserta === "alumni"}
+                      onChange={handleChange}
+                      className="hidden"
+                    />{" "}
+                    Alumni UII
+                  </label>
+                  <label
+                    className={`flex-1 text-center py-2.5 rounded-lg text-sm font-bold cursor-pointer transition-all ${formData.tipePeserta === "umum" ? "bg-white text-blue-700 shadow-sm ring-1 ring-slate-200" : "text-slate-500 hover:text-slate-700"}`}
+                  >
+                    <input
+                      type="radio"
+                      name="tipePeserta"
+                      value="umum"
+                      checked={formData.tipePeserta === "umum"}
+                      onChange={handleChange}
+                      className="hidden"
+                    />{" "}
+                    Umum / Non-Alumni
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Nama Lengkap (Sesuai Sertifikat)
+                  </label>
+                  <input
+                    type="text"
+                    name="nama"
+                    value={formData.nama}
+                    onChange={handleChange}
+                    required
+                    placeholder="Contoh: Budi Santoso, S.T."
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none text-sm transition-all text-slate-800 font-bold"
+                  />
+                </div>
+
+                <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                  <label className="block text-[11px] font-bold text-blue-700 uppercase tracking-wider mb-1.5 flex justify-between">
+                    <span>Nama Pendek (Untuk e-BIB)</span>
+                    <span
+                      className={`text-[10px] font-mono ${formData.namaBib.length === 15 ? "text-rose-500" : "text-blue-400"}`}
+                    >
+                      {formData.namaBib.length}/15 Max
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    name="namaBib"
+                    value={formData.namaBib}
+                    onChange={handleChange}
+                    required
+                    maxLength={15}
+                    placeholder="Contoh: BUDI S."
+                    className="w-full px-4 py-3 bg-white border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all text-slate-800 font-black tracking-wide placeholder:font-normal placeholder:lowercase uppercase shadow-inner"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-2">
+                    Nama mencolok yang akan dicetak di nomor dada pelari Anda.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                      Email (Wajib Valid)
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      placeholder="budi@gmail.com"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none text-sm transition-all text-slate-800 font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                      No. WhatsApp / Akun IG
+                    </label>
+                    <input
+                      type="text"
+                      name="whatsapp"
+                      value={formData.whatsapp}
+                      onChange={handleChange}
+                      required
+                      placeholder="0812... atau @akun_ig"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none text-sm transition-all text-slate-800 font-mono"
+                    />
+                  </div>
+                </div>
+
+                {formData.tipePeserta === "alumni" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 animate-in fade-in slide-in-from-top-2">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                        Fakultas Asal UII
+                      </label>
+                      <input
+                        type="text"
+                        name="fakultas"
+                        value={formData.fakultas}
+                        onChange={handleChange}
+                        required={formData.tipePeserta === "alumni"}
+                        placeholder="Contoh: FTI / FMIPA"
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none text-sm transition-all text-slate-800 font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                        Angkatan
+                      </label>
+                      <input
+                        type="number"
+                        name="angkatan"
+                        value={formData.angkatan}
+                        onChange={handleChange}
+                        required={formData.tipePeserta === "alumni"}
+                        placeholder="Contoh: 2015"
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none text-sm transition-all text-slate-800 font-medium"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* CARD 2: KATEGORI & PAKET */}
+            <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200">
+              <h3 className="text-base font-bold text-slate-800 mb-6 border-b border-slate-100 pb-3 flex items-center gap-3">
+                <span className="bg-blue-100 text-blue-700 w-7 h-7 rounded-full flex items-center justify-center text-xs font-black">
+                  2
+                </span>{" "}
+                Jarak & Race Pack
+              </h3>
+
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">
+                Pilih Jarak Lari (Multiple Run)
+              </label>
+              <div className="grid grid-cols-3 gap-3 mb-8">
+                {["5K", "10K", "21K"].map((km) => (
+                  <label
+                    key={km}
+                    className={`cursor-pointer border rounded-2xl text-center py-4 transition-all ${formData.jarak === km ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-600" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
+                  >
+                    <input
+                      type="radio"
+                      name="jarak"
+                      value={km}
+                      checked={formData.jarak === km}
+                      onChange={handleChange}
+                      className="hidden"
+                    />
+                    <span className="block text-xl font-black">{km}</span>
+                  </label>
+                ))}
+              </div>
+
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">
+                Pilihan Paket Pendaftaran
+              </label>
+              <div className="space-y-3 mb-6">
+                <label
+                  className={`block cursor-pointer border rounded-2xl p-4 transition-all ${formData.paket === "basic" ? "border-blue-600 bg-blue-50 ring-1 ring-blue-600" : "border-slate-200 hover:bg-slate-50"}`}
+                >
+                  <div className="flex flex-row items-center justify-between gap-2">
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="radio"
+                        name="paket"
+                        value="basic"
+                        checked={formData.paket === "basic"}
+                        onChange={handleChange}
+                        className="w-5 h-5 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">
+                          Paket Digital (Basic)
+                        </p>
+                        <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5">
+                          e-BIB & e-Certificate
+                        </p>
+                      </div>
+                    </div>
+                    <span className="font-black text-slate-800 text-sm">
+                      {(hargaBasic / 1000).toLocaleString("id-ID")}k
+                    </span>
+                  </div>
+                </label>
+
+                <label
+                  className={`block cursor-pointer border rounded-2xl p-4 transition-all ${formData.paket === "standard" ? "border-blue-600 bg-blue-50 ring-1 ring-blue-600" : "border-slate-200 hover:bg-slate-50"}`}
+                >
+                  <div className="flex flex-row items-center justify-between gap-2">
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="radio"
+                        name="paket"
+                        value="standard"
+                        checked={formData.paket === "standard"}
+                        onChange={handleChange}
+                        className="w-5 h-5 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">
+                          Paket Jersey (Standard)
+                        </p>
+                        <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5">
+                          e-BIB, e-Cert, +{" "}
+                          <span className="font-bold text-blue-600">
+                            Jersey Eksklusif
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                    <span className="font-black text-slate-800 text-sm">
+                      {(hargaStandard / 1000).toLocaleString("id-ID")}k
+                    </span>
+                  </div>
+                </label>
+
+                <label
+                  className={`block cursor-pointer border rounded-2xl p-4 transition-all relative overflow-hidden ${formData.paket === "full" ? "border-yellow-500 bg-yellow-50/50 ring-1 ring-yellow-500" : "border-slate-200 hover:bg-slate-50"}`}
+                >
+                  <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-[9px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-widest shadow-sm">
+                    Komplit
+                  </div>
+                  <div className="flex flex-row items-center justify-between gap-2">
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="radio"
+                        name="paket"
+                        value="full"
+                        checked={formData.paket === "full"}
+                        onChange={handleChange}
+                        className="w-5 h-5 text-yellow-500 focus:ring-yellow-500"
+                      />
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">
+                          Full Finisher
+                        </p>
+                        <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5">
+                          <span className="font-bold text-blue-600">
+                            Jersey
+                          </span>{" "}
+                          +{" "}
+                          <span className="font-bold text-amber-600">
+                            Medali Fisik
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                    <span className="font-black text-slate-800 text-sm">
+                      {(hargaFull / 1000).toLocaleString("id-ID")}k
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              {perluOngkir && (
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 animate-in fade-in slide-in-from-top-4 space-y-4">
+                  <div className="flex items-center gap-2 mb-2 border-b border-slate-200/50 pb-3">
+                    <span className="text-xl">📦</span>
+                    <h4 className="font-bold text-slate-800 text-sm">
+                      Detail Pengiriman Race Pack
+                    </h4>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <div className="sm:col-span-1">
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                        Ukuran Baju
+                      </label>
+                      <select
+                        name="ukuranJersey"
+                        value={formData.ukuranJersey}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all font-bold text-slate-800 cursor-pointer"
+                      >
+                        <option value="S">S (Small)</option>
+                        <option value="M">M (Medium)</option>
+                        <option value="L">L (Large)</option>
+                        <option value="XL">XL (Extra Large)</option>
+                        <option value="XXL">XXL (Double XL)</option>
+                      </select>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                        Alamat Lengkap Pengiriman
+                      </label>
+                      <textarea
+                        name="alamat"
+                        value={formData.alamat}
+                        onChange={handleChange}
+                        rows={2}
+                        required
+                        placeholder="Detail Jalan, RT/RW, Kelurahan, Kecamatan, Kota/Kab, Kode Pos"
+                        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all custom-scrollbar text-slate-800"
+                      ></textarea>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* --- CARD 3: CHARITY --- */}
+            {settings?.isCharityActive && (
+              <div className="bg-gradient-to-br from-emerald-50 to-teal-50/30 rounded-3xl p-6 sm:p-8 shadow-sm border border-emerald-100">
+                <div className="flex items-start gap-4 mb-5">
+                  <div className="w-12 h-12 bg-white text-emerald-500 rounded-2xl flex items-center justify-center text-2xl shrink-0 shadow-sm border border-emerald-100">
+                    💖
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-emerald-900">
+                      {settings.charityTitle || "Virtual Run & Charity"}
+                    </h3>
+                    <p className="text-xs text-emerald-700 mt-1 leading-relaxed font-medium">
+                      {settings.charityDesc ||
+                        "Berlari sambil berbagi. Tambahkan donasi Anda untuk disalurkan 100% ke Panti Asuhan yatim piatu."}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 bg-white p-4 rounded-xl border border-emerald-200 mb-3 hover:shadow-md transition-shadow">
+                  <input
+                    type="checkbox"
+                    id="isDonasi"
+                    name="isDonasi"
+                    checked={formData.isDonasi}
+                    onChange={handleChange}
+                    className="w-5 h-5 text-emerald-600 rounded border-emerald-300 focus:ring-emerald-500 cursor-pointer"
+                  />
+                  <label
+                    htmlFor="isDonasi"
+                    className="text-sm font-bold text-emerald-900 cursor-pointer select-none flex-grow"
+                  >
+                    Ya, saya ingin melipatgandakan kebaikan!
+                  </label>
+                </div>
+                {formData.isDonasi && (
+                  <div className="animate-in fade-in slide-in-from-top-2 mt-4 relative">
+                    <label className="block text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1.5">
+                      Nominal Donasi Tambahan (Min. Rp{" "}
+                      {minCharity.toLocaleString("id-ID")})
+                    </label>
+                    <span className="absolute left-4 top-[29px] text-emerald-900 font-bold text-sm">
+                      Rp
+                    </span>
+                    <input
+                      type="number"
+                      name="nominalDonasi"
+                      value={formData.nominalDonasi}
+                      onChange={handleChange}
+                      placeholder={minCharity.toString()}
+                      min={minCharity}
+                      className="w-full pl-12 pr-4 py-3 bg-white border border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-emerald-900 font-black text-base transition-all font-mono shadow-inner"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* --- 🔥 CARD 4: PERSETUJUAN & DOKUMEN 🔥 --- */}
+            <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200">
+              <h3 className="text-base font-bold text-slate-800 mb-6 border-b border-slate-100 pb-3 flex items-center gap-3">
+                <span className="bg-blue-100 text-blue-700 w-7 h-7 rounded-full flex items-center justify-center text-xs font-black">
+                  3
+                </span>{" "}
+                Persetujuan Pendaftaran
+              </h3>
+
+              {/* Area Dokumen Scrollable (Baca S&K) */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6 max-h-48 overflow-y-auto custom-scrollbar">
+                <h4 className="font-bold text-slate-700 text-xs mb-2">
+                  SYARAT & KETENTUAN (VIRTUAL RUN)
+                </h4>
+                <div className="text-xs text-slate-600 space-y-3 leading-relaxed">
+                  {settings?.syaratKetentuan || (
+                    <>
+                      <p>
+                        1. KETENTUAN UMUM: IKA UII DIY Virtual Run adalah
+                        kegiatan berlari mandiri di lokasi masing-masing sesuai
+                        jadwal.
+                      </p>
+                      <p>
+                        2. PELACAKAN: Peserta wajib melacak jarak lari
+                        menggunakan aplikasi GPS (Strava, Garmin, dll) lalu
+                        mengunggah screenshot buktinya ke Dashboard.
+                      </p>
+                    </>
+                  )}
+                </div>
+                <h4 className="font-bold text-slate-700 text-xs mt-4 mb-2">
+                  INFORMASI ASURANSI (WAIVER OF LIABILITY)
+                </h4>
+                <div className="text-xs text-slate-600 space-y-3 leading-relaxed">
+                  {settings?.infoAsuransi || (
+                    <>
+                      <p>
+                        Mengingat sifat pelaksanaan Virtual Run, pihak
+                        penyelenggara TIDAK MENYEDIAKAN asuransi kecelakaan diri
+                        maupun kesehatan.
+                      </p>
+                      <p>
+                        Dengan mendaftar, peserta sadar dan melepaskan panitia
+                        dari segala tuntutan hukum jika terjadi cedera atau
+                        kerugian selama berlari.
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Checklist Persetujuan */}
+              <div className="space-y-3">
+                {/* Wajib Gabung Grup WA (Hanya muncul jika URL diisi Admin) */}
+                {settings?.urlGrupWa && (
+                  <div className="flex items-start gap-3 bg-[#e6f4ea]/50 p-4 rounded-xl border border-[#ceead6] hover:bg-[#e6f4ea] transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={isGrupChecked}
+                      onChange={(e) => setIsGrupChecked(e.target.checked)}
+                      className="mt-0.5 w-5 h-5 text-[#1A73E8] rounded border-slate-300 focus:ring-[#1A73E8] cursor-pointer"
+                    />
+                    <label
+                      className="text-sm font-semibold text-slate-700 cursor-pointer flex-1"
+                      onClick={() => setIsGrupChecked(!isGrupChecked)}
+                    >
+                      Saya sudah bergabung ke{" "}
+                      <a
+                        href={settings.urlGrupWa}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#137333] hover:underline font-bold"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Channel WhatsApp Resmi
+                      </a>{" "}
+                      yang diwajibkan.
+                    </label>
+                  </div>
+                )}
+                <div className="flex items-start gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={isSyaratChecked}
+                    onChange={(e) => setIsSyaratChecked(e.target.checked)}
+                    className="mt-0.5 w-5 h-5 text-[#1A73E8] rounded border-slate-300 focus:ring-[#1A73E8] cursor-pointer"
+                  />
+                  <label
+                    className="text-sm font-semibold text-slate-700 cursor-pointer flex-1"
+                    onClick={() => setIsSyaratChecked(!isSyaratChecked)}
+                  >
+                    Bersedia mematuhi{" "}
+                    <span className="text-[#1A73E8] font-bold">
+                      Syarat & Ketentuan
+                    </span>{" "}
+                    Virtual Run beserta sanksinya.
+                  </label>
+                </div>
+                <div className="flex items-start gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={isAsuransiChecked}
+                    onChange={(e) => setIsAsuransiChecked(e.target.checked)}
+                    className="mt-0.5 w-5 h-5 text-[#1A73E8] rounded border-slate-300 focus:ring-[#1A73E8] cursor-pointer"
+                  />
+                  <label
+                    className="text-sm font-semibold text-slate-700 cursor-pointer flex-1"
+                    onClick={() => setIsAsuransiChecked(!isAsuransiChecked)}
+                  >
+                    Saya telah membaca dan menyetujui{" "}
+                    <span className="text-[#1A73E8] font-bold">
+                      Informasi Asuransi / Waiver of Liability
+                    </span>{" "}
+                    yang berlaku.
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* KOLOM KANAN (RINGKASAN & SUBMIT - STICKY) */}
+          <div className="w-full lg:w-1/3 lg:sticky lg:top-24">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-200/50 border border-slate-200">
+              <h3 className="text-base font-black text-slate-800 mb-5 border-b border-slate-100 pb-4">
+                Ringkasan Biaya
+              </h3>
+
+              <div className="space-y-3.5 text-sm text-slate-600 mb-6">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-slate-500">
+                    Paket ({formData.paket.toUpperCase()})
+                  </span>
+                  <span className="font-bold text-slate-800">
+                    Rp {hargaPaketAktif.toLocaleString("id-ID")}
+                  </span>
+                </div>
+
+                {perluOngkir && (
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-slate-500">
+                      Ongkos Kirim (Flat)
+                    </span>
+                    <span className="font-bold text-slate-800">
+                      Rp {totalOngkir.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                )}
+
+                {settings?.isCharityActive &&
+                  formData.isDonasi &&
+                  donasi > 0 && (
+                    <div className="flex justify-between items-center text-emerald-700 bg-emerald-50 p-2.5 -mx-2.5 rounded-lg border border-emerald-100/50">
+                      <span className="font-bold text-xs flex items-center gap-1">
+                        <span className="text-[10px]">💖</span> Donasi Amal
+                      </span>
+                      <span className="font-black">
+                        Rp {donasi.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                  )}
+              </div>
+
+              <div className="border-t border-dashed border-slate-300 pt-5 mb-6">
+                <div className="flex justify-between items-end">
+                  <span className="font-bold text-slate-400 text-[11px] uppercase tracking-wider mb-1">
+                    Total Tagihan
+                  </span>
+                  <span className="text-3xl font-black text-blue-700 tracking-tighter">
+                    Rp {grandTotal.toLocaleString("id-ID")}
+                  </span>
+                </div>
+              </div>
+
+              {/* Info Lencana Keamanan */}
+              <div className="text-[9px] text-slate-400 text-center mb-4 leading-relaxed">
+                Dilindungi oleh reCAPTCHA dan tunduk pada{" "}
+                <a
+                  href="https://policies.google.com/privacy"
+                  className="text-blue-500 hover:underline"
+                >
+                  Privasi
+                </a>{" "}
+                serta{" "}
+                <a
+                  href="https://policies.google.com/terms"
+                  className="text-blue-500 hover:underline"
+                >
+                  Persyaratan
+                </a>{" "}
+                Google.
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting || !isFormLengkap}
+                className="w-full bg-[#1A73E8] hover:bg-[#1557b0] text-white font-black py-4 rounded-2xl text-sm transition-all shadow-lg shadow-blue-600/30 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5 active:translate-y-0"
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Memverifikasi & Mengirim...
+                  </span>
+                ) : !isFormLengkap ? (
+                  "Centang Persetujuan"
+                ) : (
+                  <>
+                    {isMetodeMidtrans
+                      ? "Lanjut ke Pembayaran"
+                      : "Selesaikan Pendaftaran"}
+                    <span className="font-normal text-blue-300">&rarr;</span>
+                  </>
+                )}
+              </button>
+
+              {isMetodeMidtrans ? (
+                <div className="mt-5 flex items-center justify-center gap-1.5 text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
+                  </svg>{" "}
+                  Aman Terenkripsi via Midtrans
+                </div>
+              ) : (
+                <div className="mt-5 flex items-center justify-center gap-1.5 text-[9px] text-slate-400 font-bold uppercase tracking-widest text-center px-4">
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>{" "}
+                  Instruksi transfer ada di halaman berikutnya
+                </div>
+              )}
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

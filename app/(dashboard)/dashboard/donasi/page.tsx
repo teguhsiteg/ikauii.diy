@@ -12,10 +12,77 @@ import {
   getDoc,
   addDoc,
   updateDoc,
-  deleteDoc,
   where,
 } from "firebase/firestore";
 import * as XLSX from "xlsx";
+
+// --- IKON PROFESIONAL ---
+const IconClose = () => (
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M6 18L18 6M6 6l12 12"
+    />
+  </svg>
+);
+const IconPlus = () => (
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2.5}
+      d="M12 4.5v15m7.5-7.5h-15"
+    />
+  </svg>
+);
+const IconDownload = () => (
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2.5}
+      d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+    />
+  </svg>
+);
+const IconWallet = () => (
+  <svg
+    className="w-10 h-10"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.5}
+      d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H4.5A2.25 2.25 0 002.25 12v6.75A2.25 2.25 0 004.5 21h15a2.25 2.25 0 002.25-2.25V12z"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.5}
+      d="M4.5 10.5h15M4.5 10.5a2.25 2.25 0 00-2.25-2.25h15A2.25 2.25 0 0019.5 6h-15A2.25 2.25 0 002.25 8.25v2.25"
+    />
+  </svg>
+);
 
 export default function PengelolaanDonasiPage() {
   // --- STATE PROTEKSI HALAMAN ---
@@ -42,6 +109,8 @@ export default function PengelolaanDonasiPage() {
     doa: "",
     metode: "Transfer Bank",
   });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // FORMAT RUPIAH
   const formatRp = (angka: number) => {
@@ -72,7 +141,6 @@ export default function PengelolaanDonasiPage() {
                 setHasAccess(false);
               }
             } else {
-              // Jika data user belum ada di Firestore (belum onboarding)
               setHasAccess(false);
             }
           } catch (error) {
@@ -80,7 +148,7 @@ export default function PengelolaanDonasiPage() {
             setHasAccess(false);
           }
         } else {
-          setHasAccess(false); // Tidak login
+          setHasAccess(false);
         }
       });
       return () => unsubscribe();
@@ -88,7 +156,7 @@ export default function PengelolaanDonasiPage() {
     checkAccess();
   }, []);
 
-  // 1. FETCH DAFTAR PERIODE (Hanya jalan jika punya akses)
+  // 1. FETCH DAFTAR PERIODE
   const fetchPeriode = async () => {
     if (!hasAccess) return;
     try {
@@ -100,7 +168,7 @@ export default function PengelolaanDonasiPage() {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setPeriodeList(data);
       if (data.length > 0 && !selectedPeriode) {
-        setSelectedPeriode(data[0]); // Auto select periode terbaru
+        setSelectedPeriode(data[0]);
       }
     } catch (error) {
       console.error("Gagal load periode:", error);
@@ -113,7 +181,7 @@ export default function PengelolaanDonasiPage() {
     if (hasAccess) {
       fetchPeriode();
     }
-  }, [hasAccess]); // Trigger fetch saat hasAccess bernilai true
+  }, [hasAccess]);
 
   // 2. FETCH TRANSAKSI BERDASARKAN PERIODE TERPILIH
   useEffect(() => {
@@ -127,7 +195,6 @@ export default function PengelolaanDonasiPage() {
         );
         const snap = await getDocs(q);
         const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        // Sort manual by date desc
         data.sort(
           (a: any, b: any) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
@@ -145,6 +212,7 @@ export default function PengelolaanDonasiPage() {
   // 3. FUNGSI BUAT PERIODE BARU
   const handleBuatPeriode = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       const docRef = await addDoc(collection(db, "donasi_periode"), {
         judul: newPeriode.judul,
@@ -163,6 +231,8 @@ export default function PengelolaanDonasiPage() {
       });
     } catch (error) {
       alert("Gagal membuat periode baru.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -186,6 +256,7 @@ export default function PengelolaanDonasiPage() {
   const handleInputDonasi = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPeriode) return;
+    setIsSubmitting(true);
     try {
       const nominalNum = Number(newDonasi.nominal);
       await addDoc(collection(db, "donasi_transaksi"), {
@@ -194,13 +265,12 @@ export default function PengelolaanDonasiPage() {
         nominal: nominalNum,
         doa: newDonasi.doa || "-",
         metode: newDonasi.metode,
-        statusValidasi: true, // Input manual admin otomatis valid
+        statusValidasi: true,
         createdAt: new Date().toISOString(),
       });
       setIsModalDonasiOpen(false);
       setNewDonasi({ nama: "", nominal: "", doa: "", metode: "Transfer Bank" });
 
-      // Refresh list
       const q = query(
         collection(db, "donasi_transaksi"),
         where("periodeId", "==", selectedPeriode.id),
@@ -214,6 +284,8 @@ export default function PengelolaanDonasiPage() {
       setTransaksiList(data);
     } catch (error) {
       alert("Gagal menginput donasi.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -233,7 +305,6 @@ export default function PengelolaanDonasiPage() {
       Status: p.statusValidasi ? "Tervalidasi" : "Menunggu",
     }));
 
-    // Tambahkan baris total di bawah
     dataToExport.push({
       No: "",
       Tanggal: "",
@@ -282,29 +353,46 @@ export default function PengelolaanDonasiPage() {
   // ==========================================
   if (hasAccess === null) {
     return (
-      <div className="p-10 text-center animate-pulse text-slate-400 font-bold mt-20">
-        Memverifikasi Keamanan Akses...
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6">
+        <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+        <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] animate-pulse">
+          Memverifikasi Otoritas Akses...
+        </p>
       </div>
     );
   }
 
   if (hasAccess === false) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center text-center animate-in zoom-in duration-300">
-        <span className="text-6xl mb-4">⛔</span>
-        <h2 className="text-3xl font-black text-blue-950 mb-2">
+      <div className="min-h-[70vh] flex flex-col items-center justify-center text-center px-4">
+        <div className="bg-rose-50 p-6 rounded-full mb-6 ring-8 ring-rose-50/50">
+          <svg
+            className="w-16 h-16 text-rose-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+            />
+          </svg>
+        </div>
+        <h2 className="text-3xl font-extrabold text-slate-900 mb-3 tracking-tight">
           Akses Ditolak
         </h2>
         <p className="text-slate-500 font-medium leading-relaxed max-w-md">
-          Halaman Rekapitulasi Donasi ini adalah area terbatas. <br />
-          Hanya dapat diakses oleh <b>Super Admin</b> atau Koordinator{" "}
+          Halaman Manajemen Donasi adalah area finansial terbatas. Akses hanya
+          diberikan kepada <b>Super Admin</b> atau Koordinator{" "}
           <b>Bidang Sosial dan Keagamaan</b>.
         </p>
         <button
           onClick={() => window.history.back()}
-          className="mt-8 bg-blue-900 hover:bg-blue-950 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-md"
+          className="mt-8 bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-sm"
         >
-          &larr; Kembali ke Halaman Sebelumnya
+          Kembali ke Dashboard
         </button>
       </div>
     );
@@ -312,32 +400,348 @@ export default function PengelolaanDonasiPage() {
 
   if (isLoadingPeriode) {
     return (
-      <div className="p-10 text-center animate-pulse text-slate-400 font-bold mt-20">
-        Memuat Sistem Rekapitulasi Donasi...
+      <div className="min-h-[70vh] flex flex-col items-center justify-center text-center px-4">
+        <div className="w-8 h-8 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin mb-4"></div>
+        <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] animate-pulse">
+          Memuat Sistem Rekapitulasi...
+        </p>
       </div>
     );
   }
 
   // JIKA AKSES DIBERIKAN, RENDER HALAMAN UTAMA
   return (
-    <div className="max-w-7xl animate-in fade-in duration-500 pb-12 flex flex-col lg:flex-row gap-8">
+    <div className="min-h-screen bg-[#F8FAFC] pb-12 font-sans selection:bg-blue-100 selection:text-blue-900">
+      <div className="max-w-[1400px] mx-auto animate-in fade-in duration-500 pt-4 px-4 sm:px-6 lg:px-8">
+        {/* --- HEADER --- */}
+        <div className="mb-8">
+          <div className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold px-3 py-1 rounded-full mb-3 uppercase tracking-widest border border-emerald-200">
+            <svg
+              className="w-3.5 h-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            Finance & Donation Module
+          </div>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-2">
+            Manajemen Donasi
+          </h1>
+          <p className="text-slate-500 text-sm md:text-base max-w-2xl">
+            Kelola pendanaan, catat transaksi manual, dan pantau progres
+            pencapaian target donasi secara real-time.
+          </p>
+        </div>
+
+        <div className="grid lg:grid-cols-12 gap-8 items-start">
+          {/* ======================================= */}
+          {/* KOLOM KIRI: LIST PERIODE / EDISI        */}
+          {/* ======================================= */}
+          <div className="lg:col-span-4 xl:col-span-3 flex flex-col gap-6">
+            {/* Panel Buka Periode */}
+            <div className="bg-slate-900 p-6 rounded-2xl shadow-lg shadow-slate-900/10 relative overflow-hidden text-white border border-slate-800">
+              <div className="absolute -right-10 -top-10 w-32 h-32 bg-emerald-500 rounded-full blur-3xl opacity-20 pointer-events-none"></div>
+              <h3 className="text-base font-bold mb-1 relative z-10">
+                Buka Edisi Baru
+              </h3>
+              <p className="text-xs text-slate-400 mb-5 relative z-10 leading-relaxed">
+                Buat sesi donasi baru untuk pekan atau program khusus.
+              </p>
+              <button
+                onClick={() => setIsModalPeriodeOpen(true)}
+                className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2.5 rounded-xl shadow-md transition-colors relative z-10 flex items-center justify-center gap-2 text-sm"
+              >
+                <IconPlus /> Buat Edisi
+              </button>
+            </div>
+
+            {/* List Riwayat Edisi */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col max-h-[600px]">
+              <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+                <h3 className="font-bold text-slate-700 text-xs uppercase tracking-widest">
+                  Riwayat Edisi Donasi
+                </h3>
+              </div>
+              <div className="p-3 overflow-y-auto custom-scrollbar flex-grow space-y-2">
+                {periodeList.length === 0 ? (
+                  <p className="text-center text-xs text-slate-400 py-8">
+                    Belum ada edisi dibuka.
+                  </p>
+                ) : (
+                  periodeList.map((p) => (
+                    <div
+                      key={p.id}
+                      onClick={() => setSelectedPeriode(p)}
+                      className={`p-4 rounded-xl cursor-pointer transition-all border ${
+                        selectedPeriode?.id === p.id
+                          ? "bg-blue-50 border-blue-200 ring-1 ring-blue-500 shadow-sm"
+                          : "bg-white border-transparent hover:bg-slate-50 border-slate-100"
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-1.5">
+                        <h4
+                          className={`font-bold text-sm leading-tight pr-2 ${selectedPeriode?.id === p.id ? "text-blue-900" : "text-slate-800"}`}
+                        >
+                          {p.judul}
+                        </h4>
+                      </div>
+                      <div className="flex items-center justify-between mt-2">
+                        <p className="text-[10px] text-slate-400 font-medium">
+                          {new Date(p.createdAt).toLocaleDateString("id-ID", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </p>
+                        <span
+                          className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${p.status === "Aktif" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
+                        >
+                          {p.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ======================================= */}
+          {/* KOLOM KANAN: DETAIL REKAP & TRANSAKSI   */}
+          {/* ======================================= */}
+          <div className="lg:col-span-8 xl:col-span-9 flex flex-col gap-6">
+            {!selectedPeriode ? (
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center justify-center h-[500px]">
+                <div className="w-16 h-16 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mb-4">
+                  <IconWallet />
+                </div>
+                <p className="text-slate-500 font-medium text-sm">
+                  Pilih salah satu edisi di samping untuk melihat rekapitulasi.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* KARTU STATISTIK ATAS */}
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 relative overflow-hidden">
+                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                          {selectedPeriode.judul}
+                        </h2>
+                        <button
+                          onClick={() =>
+                            handleTutupPeriode(
+                              selectedPeriode.id,
+                              selectedPeriode.status,
+                            )
+                          }
+                          className={`text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border transition-all ${selectedPeriode.status === "Aktif" ? "bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100" : "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"}`}
+                        >
+                          {selectedPeriode.status === "Aktif"
+                            ? "Tutup Donasi"
+                            : "Buka Kembali"}
+                        </button>
+                      </div>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-6 mb-1">
+                        Total Dana Terkumpul
+                      </p>
+                      <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tighter">
+                        {formatRp(totalTerkumpul)}
+                      </h1>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                      <button
+                        onClick={() => setIsModalDonasiOpen(true)}
+                        className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center justify-center gap-2"
+                      >
+                        <IconPlus /> Input Manual
+                      </button>
+                      <button
+                        onClick={downloadExcel}
+                        disabled={transaksiList.length === 0}
+                        className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <IconDownload /> Export Excel
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* PROGRESS BAR */}
+                  {selectedPeriode.targetDana > 0 && (
+                    <div className="mt-8 relative z-10 pt-6 border-t border-slate-100">
+                      <div className="flex justify-between items-end mb-2">
+                        <div className="text-xs font-semibold text-slate-500 uppercase tracking-widest">
+                          Pencapaian Target
+                        </div>
+                        <div className="text-right">
+                          <span className="text-lg font-bold text-emerald-600">
+                            {persentase}%
+                          </span>
+                          <span className="text-xs font-medium text-slate-400 ml-2">
+                            dari {formatRp(selectedPeriode.targetDana)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200/50">
+                        <div
+                          className="bg-emerald-500 h-full rounded-full transition-all duration-1000 ease-out relative"
+                          style={{ width: `${persentase}%` }}
+                        >
+                          <div className="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite]"></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* TABEL RINCIAN DONATUR */}
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-grow">
+                  <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                    <h3 className="font-bold text-slate-800 text-sm">
+                      Rincian Transaksi Masuk
+                    </h3>
+                    <span className="bg-white border border-slate-200 text-slate-600 font-semibold text-xs py-1 px-3 rounded-lg shadow-sm">
+                      {transaksiList.length} Transaksi
+                    </span>
+                  </div>
+
+                  {isLoadingTransaksi ? (
+                    <div className="p-16 flex justify-center">
+                      <div className="w-8 h-8 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
+                    </div>
+                  ) : transaksiList.length === 0 ? (
+                    <div className="p-20 text-center flex flex-col items-center">
+                      <div className="w-16 h-16 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mb-4">
+                        <IconWallet />
+                      </div>
+                      <h3 className="font-semibold text-slate-700">
+                        Belum ada transaksi
+                      </h3>
+                      <p className="text-sm text-slate-500 mt-1">
+                        Gunakan tombol "Input Manual" untuk mencatat dana.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse whitespace-nowrap">
+                        <thead>
+                          <tr className="bg-white border-b border-slate-100 text-[10px] uppercase tracking-widest text-slate-400">
+                            <th className="px-6 py-4 font-bold">Waktu</th>
+                            <th className="px-6 py-4 font-bold">
+                              Donatur & Metode
+                            </th>
+                            <th className="px-6 py-4 font-bold text-right">
+                              Nominal
+                            </th>
+                            <th className="px-6 py-4 font-bold">
+                              Titipan Pesan/Doa
+                            </th>
+                            <th className="px-6 py-4 font-bold text-center">
+                              Status
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                          {transaksiList.map((t) => (
+                            <tr
+                              key={t.id}
+                              className="hover:bg-slate-50 transition-colors text-sm group"
+                            >
+                              <td className="px-6 py-4 text-xs text-slate-500 align-top">
+                                {new Date(t.createdAt).toLocaleDateString(
+                                  "id-ID",
+                                  { day: "2-digit", month: "short" },
+                                )}
+                                <span className="text-[10px] text-slate-400 block mt-0.5">
+                                  {new Date(t.createdAt).toLocaleTimeString(
+                                    "id-ID",
+                                    { hour: "2-digit", minute: "2-digit" },
+                                  )}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 align-top">
+                                <p className="font-bold text-slate-800 mb-0.5">
+                                  {t.nama}
+                                </p>
+                                <p className="text-[10px] text-slate-500 font-medium inline-block bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                                  {t.metode}
+                                </p>
+                              </td>
+                              <td className="px-6 py-4 font-bold text-slate-900 text-right align-top tracking-tight">
+                                {formatRp(t.nominal)}
+                              </td>
+                              <td
+                                className="px-6 py-4 text-xs text-slate-600 max-w-[200px] truncate align-top"
+                                title={t.doa}
+                              >
+                                {t.doa === "-" ? (
+                                  <span className="text-slate-300 italic">
+                                    Tidak ada pesan
+                                  </span>
+                                ) : (
+                                  t.doa
+                                )}
+                              </td>
+                              <td className="px-6 py-4 text-center align-top">
+                                {t.statusValidasi ? (
+                                  <span className="inline-flex items-center bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">
+                                    Sah
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">
+                                    Pending
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ======================================= */}
+      {/* MODAL AREA                              */}
+      {/* ======================================= */}
+
       {/* MODAL BUAT PERIODE BARU */}
       {isModalPeriodeOpen && (
-        <div className="fixed inset-0 bg-blue-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 font-sans">
+          <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative animate-in zoom-in-95 duration-200 border border-slate-100">
             <button
               onClick={() => setIsModalPeriodeOpen(false)}
-              className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200"
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors"
             >
-              ✕
+              <IconClose />
             </button>
-            <h3 className="text-xl font-black text-blue-950 mb-6">
-              Buka Pekan Donasi Baru
-            </h3>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-emerald-50 text-emerald-600 p-2 rounded-xl border border-emerald-100">
+                <IconPlus />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 tracking-tight">
+                Buka Edisi Baru
+              </h3>
+            </div>
+
             <form onSubmit={handleBuatPeriode} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Nama Edisi / Pekan
+                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">
+                  Nama Edisi / Program
                 </label>
                 <input
                   type="text"
@@ -346,29 +750,38 @@ export default function PengelolaanDonasiPage() {
                   onChange={(e) =>
                     setNewPeriode({ ...newPeriode, judul: e.target.value })
                   }
-                  placeholder="Cth: Jum'at Berkah Pekan 2 Maret"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-500 outline-none"
+                  placeholder="Cth: Jum'at Berkah Pekan 2"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none text-sm transition-all"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Target Dana (Opsional, isi 0 jika tidak ada)
+                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">
+                  Target Dana (Opsional)
                 </label>
-                <input
-                  type="number"
-                  value={newPeriode.targetDana}
-                  onChange={(e) =>
-                    setNewPeriode({ ...newPeriode, targetDana: e.target.value })
-                  }
-                  placeholder="Cth: 5000000"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-500 outline-none"
-                />
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">
+                    Rp
+                  </span>
+                  <input
+                    type="number"
+                    value={newPeriode.targetDana}
+                    onChange={(e) =>
+                      setNewPeriode({
+                        ...newPeriode,
+                        targetDana: e.target.value,
+                      })
+                    }
+                    placeholder="5000000"
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none text-sm font-mono transition-all"
+                  />
+                </div>
               </div>
               <button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-all mt-4"
+                disabled={isSubmitting}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition-colors mt-6 shadow-sm disabled:opacity-50 text-sm"
               >
-                Buka Periode Sekarang
+                {isSubmitting ? "Memproses..." : "Buka Periode Sekarang"}
               </button>
             </form>
           </div>
@@ -377,24 +790,41 @@ export default function PengelolaanDonasiPage() {
 
       {/* MODAL INPUT DONASI MANUAL */}
       {isModalDonasiOpen && (
-        <div className="fixed inset-0 bg-blue-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 font-sans">
+          <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative animate-in zoom-in-95 duration-200 border border-slate-100">
             <button
               onClick={() => setIsModalDonasiOpen(false)}
-              className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200"
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors"
             >
-              ✕
+              <IconClose />
             </button>
-            <h3 className="text-xl font-black text-blue-950 mb-2">
-              Input Donasi Manual
-            </h3>
-            <p className="text-xs text-slate-500 mb-6">
-              Tambahkan data jika ada alumni yang menitipkan dana secara tunai
-              (cash) ke panitia.
+            <div className="flex items-center gap-3 mb-2">
+              <div className="bg-blue-50 text-blue-600 p-2 rounded-xl border border-blue-100">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 tracking-tight">
+                Input Donasi Manual
+              </h3>
+            </div>
+            <p className="text-xs text-slate-500 mb-6 font-medium">
+              Catat dana titipan tunai (cash) ke dalam sistem.
             </p>
+
             <form onSubmit={handleInputDonasi} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">
                   Nama Donatur
                 </label>
                 <input
@@ -404,27 +834,32 @@ export default function PengelolaanDonasiPage() {
                     setNewDonasi({ ...newDonasi, nama: e.target.value })
                   }
                   placeholder="Biarkan kosong untuk Hamba Allah"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-500 outline-none"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm transition-all"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Nominal (Rp)
+                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">
+                  Nominal Tunai
                 </label>
-                <input
-                  type="number"
-                  required
-                  value={newDonasi.nominal}
-                  onChange={(e) =>
-                    setNewDonasi({ ...newDonasi, nominal: e.target.value })
-                  }
-                  placeholder="Cth: 500000"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-500 outline-none"
-                />
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">
+                    Rp
+                  </span>
+                  <input
+                    type="number"
+                    required
+                    value={newDonasi.nominal}
+                    onChange={(e) =>
+                      setNewDonasi({ ...newDonasi, nominal: e.target.value })
+                    }
+                    placeholder="500000"
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm font-mono transition-all"
+                  />
+                </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Titipan Doa / Pesan
+                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">
+                  Titipan Pesan / Doa
                 </label>
                 <textarea
                   value={newDonasi.doa}
@@ -432,253 +867,20 @@ export default function PengelolaanDonasiPage() {
                     setNewDonasi({ ...newDonasi, doa: e.target.value })
                   }
                   rows={2}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-500 outline-none"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm transition-all custom-scrollbar"
                 ></textarea>
               </div>
               <button
                 type="submit"
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 rounded-xl transition-all mt-2"
+                disabled={isSubmitting}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 rounded-xl transition-colors mt-6 shadow-sm disabled:opacity-50 text-sm"
               >
-                Simpan Transaksi
+                {isSubmitting ? "Menyimpan..." : "Simpan Transaksi"}
               </button>
             </form>
           </div>
         </div>
       )}
-
-      {/* ======================================= */}
-      {/* KOLOM KIRI: LIST PERIODE / EDISI        */}
-      {/* ======================================= */}
-      <div className="w-full lg:w-1/3 flex flex-col gap-4">
-        <div className="bg-blue-950 p-6 rounded-3xl shadow-lg relative overflow-hidden text-white">
-          <div className="absolute -right-6 -top-6 w-32 h-32 bg-blue-800 rounded-full blur-2xl opacity-50"></div>
-          <h2 className="text-xl font-black mb-1 relative z-10">
-            Manajemen Donasi
-          </h2>
-          <p className="text-xs text-blue-200 mb-6 relative z-10">
-            Kelola pendanaan per pekan/edisi agar laporan lebih rapi dan
-            transparan.
-          </p>
-          <button
-            onClick={() => setIsModalPeriodeOpen(true)}
-            className="w-full bg-yellow-500 hover:bg-yellow-400 text-blue-950 font-black py-3 rounded-xl shadow-md transition-all relative z-10 flex items-center justify-center gap-2"
-          >
-            <span>+</span> Buka Edisi Baru
-          </button>
-        </div>
-
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 flex-grow max-h-[600px] overflow-y-auto no-scrollbar">
-          <h3 className="font-bold text-slate-700 mb-4 px-2 text-sm uppercase tracking-widest">
-            Riwayat Edisi
-          </h3>
-          {periodeList.length === 0 ? (
-            <p className="text-center text-xs text-slate-400 py-10">
-              Belum ada edisi donasi yang dibuka.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {periodeList.map((p) => (
-                <div
-                  key={p.id}
-                  onClick={() => setSelectedPeriode(p)}
-                  className={`p-4 rounded-2xl cursor-pointer border-2 transition-all ${selectedPeriode?.id === p.id ? "border-blue-600 bg-blue-50/50 shadow-sm" : "border-slate-100 bg-white hover:border-blue-300"}`}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h4
-                      className={`font-bold text-sm leading-snug pr-2 ${selectedPeriode?.id === p.id ? "text-blue-900" : "text-slate-700"}`}
-                    >
-                      {p.judul}
-                    </h4>
-                    <span
-                      className={`text-[9px] font-black px-2 py-1 rounded uppercase tracking-widest shrink-0 ${p.status === "Aktif" ? "bg-green-100 text-green-700" : "bg-slate-200 text-slate-500"}`}
-                    >
-                      {p.status}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 font-medium">
-                    Dibuka: {new Date(p.createdAt).toLocaleDateString("id-ID")}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ======================================= */}
-      {/* KOLOM KANAN: DETAIL REKAP & TRANSAKSI   */}
-      {/* ======================================= */}
-      <div className="w-full lg:w-2/3 flex flex-col gap-6">
-        {!selectedPeriode ? (
-          <div className="bg-white rounded-3xl shadow-sm border border-slate-200 flex items-center justify-center h-full min-h-[400px]">
-            <p className="text-slate-400 font-bold">
-              Pilih salah satu edisi di samping untuk melihat rekapitulasi.
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* KARTU STATISTIK ATAS */}
-            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 md:p-8 relative overflow-hidden">
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
-                <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-2xl font-black text-blue-950">
-                      {selectedPeriode.judul}
-                    </h2>
-                    <button
-                      onClick={() =>
-                        handleTutupPeriode(
-                          selectedPeriode.id,
-                          selectedPeriode.status,
-                        )
-                      }
-                      className={`text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border transition-all ${selectedPeriode.status === "Aktif" ? "border-red-200 text-red-600 hover:bg-red-50" : "border-green-200 text-green-600 hover:bg-green-50"}`}
-                    >
-                      {selectedPeriode.status === "Aktif"
-                        ? "Tutup Donasi"
-                        : "Buka Kembali"}
-                    </button>
-                  </div>
-                  <p className="text-sm text-slate-500 font-medium">
-                    Total Terkumpul Pekan Ini:
-                  </p>
-                  <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-blue-900 mt-1">
-                    {formatRp(totalTerkumpul)}
-                  </h1>
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setIsModalDonasiOpen(true)}
-                    className="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm"
-                  >
-                    + Input Manual
-                  </button>
-                  <button
-                    onClick={downloadExcel}
-                    disabled={transaksiList.length === 0}
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2 disabled:opacity-50"
-                  >
-                    Export Excel
-                  </button>
-                </div>
-              </div>
-
-              {/* PROGRESS BAR JIKA ADA TARGET */}
-              {selectedPeriode.targetDana > 0 && (
-                <div className="mt-8 relative z-10">
-                  <div className="flex justify-between text-xs font-bold mb-2">
-                    <span className="text-blue-900">
-                      Tercapai {persentase}%
-                    </span>
-                    <span className="text-slate-500">
-                      Target: {formatRp(selectedPeriode.targetDana)}
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-yellow-400 to-yellow-500 h-3 rounded-full transition-all duration-1000"
-                      style={{ width: `${persentase}%` }}
-                    ></div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* TABEL RINCIAN DONATUR */}
-            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex-grow">
-              <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-                <h3 className="font-bold text-blue-950 flex items-center gap-2">
-                  <span className="text-lg">🧾</span> Rincian Transaksi Masuk
-                  <span className="bg-blue-100 text-blue-800 text-xs py-0.5 px-2 rounded-full ml-2">
-                    {transaksiList.length} Donatur
-                  </span>
-                </h3>
-              </div>
-
-              {isLoadingTransaksi ? (
-                <div className="p-16 text-center animate-pulse text-slate-400 font-bold">
-                  Memuat rincian transaksi...
-                </div>
-              ) : transaksiList.length === 0 ? (
-                <div className="p-20 text-center">
-                  <span className="text-5xl block opacity-30 mb-4">💸</span>
-                  <h3 className="font-bold text-slate-700">
-                    Belum ada donasi masuk
-                  </h3>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Bagikan link / poster donasi untuk pekan ini.
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-white border-b border-slate-100 text-[10px] uppercase tracking-widest text-slate-400">
-                        <th className="p-4 font-bold">Waktu</th>
-                        <th className="p-4 font-bold">Donatur</th>
-                        <th className="p-4 font-bold">Nominal</th>
-                        <th className="p-4 font-bold">Titipan Doa</th>
-                        <th className="p-4 font-bold text-center">Validasi</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {transaksiList.map((t) => (
-                        <tr
-                          key={t.id}
-                          className="hover:bg-slate-50 transition-colors text-sm"
-                        >
-                          <td className="p-4 text-xs text-slate-500 whitespace-nowrap">
-                            {new Date(t.createdAt).toLocaleDateString("id-ID", {
-                              day: "2-digit",
-                              month: "short",
-                            })}{" "}
-                            <br />
-                            <span className="text-[10px]">
-                              {new Date(t.createdAt).toLocaleTimeString(
-                                "id-ID",
-                                { hour: "2-digit", minute: "2-digit" },
-                              )}
-                            </span>
-                          </td>
-                          <td className="p-4">
-                            <p className="font-bold text-blue-950 mb-0.5">
-                              {t.nama}
-                            </p>
-                            <p className="text-[10px] text-slate-400 font-medium">
-                              {t.metode}
-                            </p>
-                          </td>
-                          <td className="p-4 font-black text-green-600 whitespace-nowrap">
-                            {formatRp(t.nominal)}
-                          </td>
-                          <td
-                            className="p-4 text-xs text-slate-600 max-w-[200px] truncate"
-                            title={t.doa}
-                          >
-                            {t.doa}
-                          </td>
-                          <td className="p-4 text-center">
-                            {t.statusValidasi ? (
-                              <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 border border-green-200 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider">
-                                ✓ Sah
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 bg-yellow-50 text-yellow-700 border border-yellow-200 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider">
-                                Pending
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
     </div>
   );
 }

@@ -94,7 +94,7 @@ export default function FooterPublic() {
                 </p>
                 <div className="bg-white p-4 rounded-xl text-center">
                   <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">
-                    Bank BPD DIY 
+                    Bank BPD DIY
                   </p>
                   <p className="text-xl font-extrabold text-blue-950 tracking-wider mb-1">
                     00 1111 00 1200
@@ -111,11 +111,8 @@ export default function FooterPublic() {
         {/* Copyright */}
         <div className="border-t border-white/10 bg-black/40 relative z-10">
           <div className="max-w-7xl mx-auto px-4 py-5 text-center text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-2">
-            <p>
-              &copy; {new Date().getFullYear()} DPW IKA UII DIY. Hak Cipta
-              Dilindungi.
-            </p>
-            <p>Dikembangkan oleh Bidang Media & Publikasi</p>
+            <p>&copy; {new Date().getFullYear()} DPW IKA UII DIY.</p>
+            <p>Dikembangkan oleh Media & Publikasi - PT Guwigo Teknologi.</p>
           </div>
         </div>
       </footer>

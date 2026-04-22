@@ -10,7 +10,7 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
-import NavbarPublic from "@/components/layout/NavbarPublic";
+//import NavbarPublic from "@/components/layout/NavbarPublic";
 import FooterPublic from "@/components/layout/FooterPublic";
 import Link from "next/link";
 
@@ -136,8 +136,6 @@ export default function BeritaPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <NavbarPublic />
-
       <section className="pt-32 pb-12 bg-blue-950 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <h1 className="text-3xl md:text-4xl font-black text-white mb-4">
@@ -150,7 +148,7 @@ export default function BeritaPage() {
         </div>
       </section>
 
-      <section className="sticky top-[88px] z-30 bg-white border-b border-slate-200 py-4 shadow-sm">
+      <section className="top-[88px] z-30 bg-white border-b border-slate-200 py-4 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row gap-4 justify-between items-center">
           <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto no-scrollbar">
             {categories.map((cat) => (

@@ -64,6 +64,12 @@ export default function MasterDataOrmawa() {
     bidang: "",
     linkTTD: "",
     isInti: false,
+    fotoUrl: "",
+    linkedinUrl: "",
+    instagramUrl: "",
+    isTampilBeranda: false,
+    // --- STATE BARU UNTUK NOMOR URUT ---
+    noUrut: "",
   });
   const [searchPengurus, setSearchPengurus] = useState("");
 
@@ -150,6 +156,7 @@ export default function MasterDataOrmawa() {
     setView("form");
   };
 
+  // --- 🔥 LOGIKA SAVE DIUBAH UNTUK NO URUT 🔥 ---
   const saveData = async (
     e: React.FormEvent,
     koleksi: string,
@@ -163,15 +170,22 @@ export default function MasterDataOrmawa() {
     e.preventDefault();
     setIsSaving(true);
     try {
+      let finalData = { ...formData };
+
+      // Kalau yang disave adalah pengurus, konversi noUrut jadi angka, jika kosong set 99
+      if (koleksi === "pengurus") {
+        finalData.noUrut = formData.noUrut ? Number(formData.noUrut) : 99;
+      }
+
       if (id) {
         await updateDoc(doc(db, koleksi, id), {
-          ...formData,
+          ...finalData,
           updatedAt: new Date().toISOString(),
         });
         handleShowMessage("success", `Data tersimpan.`);
       } else {
         await addDoc(collection(db, koleksi), {
-          ...formData,
+          ...finalData,
           createdAt: new Date().toISOString(),
         });
         handleShowMessage("success", `Data baru ditambahkan.`);
@@ -274,9 +288,14 @@ export default function MasterDataOrmawa() {
           Nama: "Budi Santoso",
           WA: "08123456",
           Email: "budi@uii.ac.id",
-          Jabatan: "Anggota",
-          Bidang: "Dewan Pakar",
-          Pengurus_Inti: "TIDAK",
+          Jabatan: "Wakil Ketua 1", // Contoh yang butuh no urut
+          Bidang: "Pengurus Harian",
+          Pengurus_Inti: "Ya",
+          Tampil_Beranda: "YA",
+          Nomor_Urut: 1, // --- TAMBAHAN KOLOM NO URUT EXCEL ---
+          Foto_URL: "",
+          LinkedIn: "",
+          Instagram: "",
         },
       ];
     else if (type === "dpd")
@@ -326,14 +345,15 @@ export default function MasterDataOrmawa() {
             });
             count++;
           } else if (type === "pengurus" && row.Nama) {
-            const intiValue = (
-              row["Pengurus Inti (Ya/Tidak)"] ||
-              row["Pengurus_Inti"] ||
-              ""
-            )
-              .toString()
-              .toLowerCase();
-            const isInti = ["ya", "yes", "true", "1", "y"].includes(intiValue);
+            const isInti = ["ya", "yes", "true", "1", "y"].includes(
+              (row["Pengurus Inti (Ya/Tidak)"] || row["Pengurus_Inti"] || "")
+                .toString()
+                .toLowerCase(),
+            );
+            const isTampilBeranda = ["ya", "yes", "true", "1", "y"].includes(
+              (row["Tampil_Beranda"] || "").toString().toLowerCase(),
+            );
+
             await addDoc(collection(db, "pengurus"), {
               nama: row.Nama,
               wa: row.WA ? row.WA.toString() : "",
@@ -342,6 +362,12 @@ export default function MasterDataOrmawa() {
               bidang: row.Bidang || "Belum Ditentukan",
               linkTTD: "",
               isInti: isInti,
+              isTampilBeranda: isTampilBeranda,
+              fotoUrl: row.Foto_URL || "",
+              linkedinUrl: row.LinkedIn || "",
+              instagramUrl: row.Instagram || "",
+              // --- TANGKAP NO URUT DARI EXCEL ---
+              noUrut: row.Nomor_Urut ? Number(row.Nomor_Urut) : 99,
               createdAt: new Date().toISOString(),
             });
             count++;
@@ -392,7 +418,12 @@ export default function MasterDataOrmawa() {
         Email: d.email,
         Jabatan: d.jabatan,
         Bidang: d.bidang,
+        Nomor_Urut: d.noUrut || 99, // Tambah ke export
         Pengurus_Inti: d.isInti ? "Ya" : "Tidak",
+        Tampil_Beranda: d.isTampilBeranda ? "Ya" : "Tidak",
+        Foto_URL: d.fotoUrl || "",
+        LinkedIn: d.linkedinUrl || "",
+        Instagram: d.instagramUrl || "",
       }));
     else if (type === "dpd")
       formattedData = data.map((d) => ({
@@ -419,7 +450,7 @@ export default function MasterDataOrmawa() {
     );
   }, [searchPengurus, pengurusList]);
 
-  // KOMPONEN TOMBOL AKSI ATAS TABEL (DIBUAT SERAGAM)
+  // KOMPONEN TOMBOL AKSI ATAS TABEL
   const TableActions = ({ type, dataToExport, onAdd }: any) => (
     <div className="flex flex-wrap gap-2 items-center justify-end">
       {selectedIds.length > 0 && (
@@ -854,6 +885,11 @@ export default function MasterDataOrmawa() {
                       bidang: bidangList[0]?.namaBidang || "",
                       linkTTD: "",
                       isInti: false,
+                      fotoUrl: "",
+                      linkedinUrl: "",
+                      instagramUrl: "",
+                      isTampilBeranda: false,
+                      noUrut: "", // Reset no urut
                     });
                   }}
                 />
@@ -900,13 +936,13 @@ export default function MasterDataOrmawa() {
                       />
                     </th>
                     <th className="px-4 py-3 font-medium text-xs">
-                      Nama & Kontak
+                      Nama & Profil
                     </th>
                     <th className="px-4 py-3 font-medium text-xs">
                       Bidang & Jabatan
                     </th>
                     <th className="px-4 py-3 font-medium text-xs text-center">
-                      Status Profil
+                      Status Tampil
                     </th>
                     <th className="px-4 py-3 font-medium text-xs text-right">
                       Aksi
@@ -938,11 +974,26 @@ export default function MasterDataOrmawa() {
                         />
                       </td>
                       <td className="px-4 py-3">
-                        <div className="font-medium text-slate-800">
-                          {p.nama}
-                        </div>
-                        <div className="text-[10px] text-slate-500 mt-0.5 font-mono">
-                          {p.wa || "-"} • {p.email || "-"}
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={p.fotoUrl || "/logo-dpp-ika.png"}
+                            alt={p.nama}
+                            className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-sm bg-white"
+                          />
+                          <div>
+                            <div className="font-medium text-slate-800 flex items-center gap-2">
+                              {p.nama}
+                              {/* --- BADGE NO URUT DI TABEL --- */}
+                              {p.noUrut && p.noUrut !== 99 && (
+                                <span className="bg-slate-100 text-slate-500 text-[9px] px-1.5 rounded-sm border font-mono">
+                                  Urutan: {p.noUrut}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-slate-500 mt-0.5 font-mono">
+                              {p.wa || "-"} • {p.email || "-"}
+                            </div>
+                          </div>
                         </div>
                       </td>
                       <td className="px-4 py-3">
@@ -954,16 +1005,22 @@ export default function MasterDataOrmawa() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        {p.isInti ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-medium bg-yellow-50 text-yellow-700 border border-yellow-200 px-2 py-0.5 rounded-md">
-                            <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>{" "}
-                            Inti
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-slate-400">
-                            Standar
-                          </span>
-                        )}
+                        <div className="flex flex-col items-center gap-1.5">
+                          {p.isInti ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium bg-yellow-50 text-yellow-700 border border-yellow-200 px-2 py-0.5 rounded-md">
+                              SK Inti
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400">
+                              Anggota
+                            </span>
+                          )}
+                          {p.isTampilBeranda && (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded-md uppercase">
+                              🌐 Beranda
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-right space-x-3">
                         <button
@@ -978,6 +1035,14 @@ export default function MasterDataOrmawa() {
                           className="text-xs font-medium text-blue-600 hover:text-blue-800"
                         >
                           Edit
+                        </button>
+                        <button
+                          onClick={() =>
+                            requestDelete("pengurus", p.id, p.nama)
+                          }
+                          className="text-xs font-medium text-red-600 hover:text-red-800"
+                        >
+                          Hapus
                         </button>
                       </td>
                     </tr>
@@ -1003,6 +1068,11 @@ export default function MasterDataOrmawa() {
                   bidang: bidangList[0]?.namaBidang || "",
                   linkTTD: "",
                   isInti: false,
+                  fotoUrl: "",
+                  linkedinUrl: "",
+                  instagramUrl: "",
+                  isTampilBeranda: false,
+                  noUrut: "", // Reset no urut
                 },
                 setViewPengurus,
                 setEditPengurusId,
@@ -1013,7 +1083,56 @@ export default function MasterDataOrmawa() {
             <h3 className="font-semibold mb-5 text-sm pb-3 border-b border-slate-100">
               {editPengurusId ? "Edit Personalia" : "Input Personalia Baru"}
             </h3>
+
             <div className="space-y-4">
+              {/* KOTAK FOTO */}
+              <div className="flex flex-col sm:flex-row gap-5 items-start bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <div className="shrink-0 w-24 h-24 rounded-full border-4 border-white shadow-md overflow-hidden bg-slate-200 flex items-center justify-center">
+                  {pengurusForm.fotoUrl ? (
+                    <img
+                      src={pengurusForm.fotoUrl}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      No Image
+                    </span>
+                  )}
+                </div>
+                <div className="flex-grow w-full">
+                  <label className="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">
+                    Link URL Foto Profil (Opsional)
+                  </label>
+                  <input
+                    type="url"
+                    name="fotoUrl"
+                    value={pengurusForm.fotoUrl || ""}
+                    onChange={handleFormChange(setPengurusForm, pengurusForm)}
+                    placeholder="https://contoh.com/foto.jpg"
+                    className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm outline-none focus:border-blue-500 mb-3 bg-white"
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      name="linkedinUrl"
+                      value={pengurusForm.linkedinUrl || ""}
+                      onChange={handleFormChange(setPengurusForm, pengurusForm)}
+                      placeholder="Link LinkedIn"
+                      className="w-full border border-slate-200 px-3 py-2 rounded-lg text-[11px] outline-none focus:border-blue-500 bg-white"
+                    />
+                    <input
+                      type="url"
+                      name="instagramUrl"
+                      value={pengurusForm.instagramUrl || ""}
+                      onChange={handleFormChange(setPengurusForm, pengurusForm)}
+                      placeholder="Link Instagram"
+                      className="w-full border border-slate-200 px-3 py-2 rounded-lg text-[11px] outline-none focus:border-blue-500 bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">
@@ -1040,6 +1159,7 @@ export default function MasterDataOrmawa() {
                   >
                     <option value="Ketua Umum">Ketua Umum</option>
                     <option value="Ketua">Ketua</option>
+                    <option value="Wakil Ketua Umum">Wakil Ketua Umum</option>
                     <option value="Wakil Ketua">Wakil Ketua</option>
                     <option value="Sekretaris Wilayah">
                       Sekretaris Wilayah
@@ -1054,6 +1174,7 @@ export default function MasterDataOrmawa() {
                   </select>
                 </div>
               </div>
+
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">
@@ -1099,39 +1220,81 @@ export default function MasterDataOrmawa() {
                   </div>
                 </div>
               </div>
-              <div className="pt-3">
-                <label className="flex items-start gap-3 p-4 border border-blue-100 bg-blue-50/50 rounded-xl cursor-pointer hover:bg-blue-50 transition-colors">
+
+              {/* --- TOGGLE INTI & BERANDA --- */}
+              <div className="grid sm:grid-cols-2 gap-4 pt-3">
+                <label className="flex items-start gap-3 p-4 border border-slate-200 bg-white hover:bg-slate-50 rounded-xl cursor-pointer transition-colors shadow-sm">
                   <input
                     type="checkbox"
                     name="isInti"
                     checked={pengurusForm.isInti || false}
                     onChange={handleFormChange(setPengurusForm, pengurusForm)}
-                    className="mt-0.5 w-4 h-4 text-blue-700 bg-white border-slate-300 rounded focus:ring-blue-600 cursor-pointer"
+                    className="mt-0.5 w-4 h-4 text-blue-600 bg-white border-slate-300 rounded focus:ring-blue-600 cursor-pointer"
                   />
                   <div>
-                    <span className="block text-sm font-semibold text-blue-950">
-                      Tampilkan di Beranda Utama (Pengurus Inti)
+                    <span className="block text-sm font-bold text-slate-800">
+                      SK Pengurus Inti
                     </span>
-                    <span className="block text-[11px] font-medium text-blue-700/80 mt-0.5">
-                      Centang jika orang ini menjabat sebagai pimpinan teras
-                      yang berhak tampil di halaman depan website.
+                    <span className="block text-[10px] font-medium text-slate-500 mt-0.5">
+                      Centang jika orang ini masuk jajaran inti SK.
+                    </span>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-3 p-4 border border-blue-100 bg-blue-50/50 hover:bg-blue-50 rounded-xl cursor-pointer transition-colors shadow-sm">
+                  <input
+                    type="checkbox"
+                    name="isTampilBeranda"
+                    checked={pengurusForm.isTampilBeranda || false}
+                    onChange={handleFormChange(setPengurusForm, pengurusForm)}
+                    className="mt-0.5 w-4 h-4 text-blue-700 bg-white border-blue-300 rounded focus:ring-blue-600 cursor-pointer"
+                  />
+                  <div>
+                    <span className="block text-sm font-bold text-blue-900">
+                      Tampil di Beranda Web
+                    </span>
+                    <span className="block text-[10px] font-medium text-blue-700 mt-0.5">
+                      Centang agar muncul di deretan foto Landing Page.
                     </span>
                   </div>
                 </label>
               </div>
+
+              {/* --- 🔥 INPUT NOMOR URUT BARU 🔥 --- */}
+              <div className="pt-2">
+                <label className="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">
+                  Nomor Urut Tampil (Opsional)
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    name="noUrut"
+                    value={pengurusForm.noUrut || ""}
+                    onChange={handleFormChange(setPengurusForm, pengurusForm)}
+                    placeholder="Cth: 1"
+                    className="w-32 border border-slate-200 px-3 py-2 rounded-lg text-sm outline-none focus:border-blue-500 font-bold text-slate-800"
+                  />
+                  <span className="text-[10px] text-slate-400 leading-tight">
+                    Gunakan angka untuk mengurutkan pengurus yang jabatannya
+                    sama (contoh: sesama Wakil Ketua). <br />
+                    Biarkan kosong jika ingin diurutkan otomatis sesuai abjad.
+                  </span>
+                </div>
+              </div>
             </div>
+
             <div className="flex gap-2 mt-6 pt-4 border-t border-slate-100">
               <button
                 type="submit"
                 disabled={isSaving}
-                className="flex-1 bg-blue-900 font-medium text-white text-sm py-2 rounded-lg hover:bg-blue-800"
+                className="flex-1 bg-blue-900 font-medium text-white text-sm py-2.5 rounded-lg hover:bg-blue-800 transition-colors shadow-sm"
               >
                 Simpan Profil
               </button>
               <button
                 type="button"
                 onClick={() => setViewPengurus("list")}
-                className="flex-1 bg-slate-100 font-medium text-slate-600 text-sm py-2 rounded-lg hover:bg-slate-200"
+                className="flex-1 bg-slate-100 font-medium text-slate-600 text-sm py-2.5 rounded-lg hover:bg-slate-200 transition-colors"
               >
                 Batal
               </button>

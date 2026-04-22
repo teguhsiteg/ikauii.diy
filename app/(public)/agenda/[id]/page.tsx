@@ -11,7 +11,6 @@ import {
   where,
   getDocs,
 } from "firebase/firestore";
-import NavbarPublic from "@/components/layout/NavbarPublic";
 import FooterPublic from "@/components/layout/FooterPublic";
 
 export default function DetailAgendaPage({
@@ -47,14 +46,22 @@ export default function DetailAgendaPage({
   } | null>(null);
 
   // ==========================================
-  // STATE & LOGIKA TWIBBON (1080x1920) + ZOOM & DRAG
+  // STATE & LOGIKA TWIBBON (DINAMIS 9:16 & 4:5) + ZOOM & DRAG
   // ==========================================
   const [isTwibbonModalOpen, setIsTwibbonModalOpen] = useState(false);
   const [twibbonName, setTwibbonName] = useState("");
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [imageObj, setImageObj] = useState<HTMLImageElement | null>(null);
 
-  // State untuk Drag & Zoom
+  const [twibbonSuccess, setTwibbonSuccess] = useState(false);
+
+  const [frameType, setFrameType] = useState<"story" | "post">("story");
+  const frameConfig = {
+    story: { width: 1080, height: 1920, aspectClass: "aspect-[9/16]" },
+    post: { width: 1080, height: 1350, aspectClass: "aspect-[4/5]" },
+  };
+  const currentFrame = frameConfig[frameType];
+
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -62,7 +69,6 @@ export default function DetailAgendaPage({
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Reset state saat modal ditutup
   const resetTwibbonState = () => {
     setIsTwibbonModalOpen(false);
     setUserPhoto(null);
@@ -70,6 +76,8 @@ export default function DetailAgendaPage({
     setTwibbonName("");
     setScale(1);
     setPosition({ x: 0, y: 0 });
+    setFrameType("story");
+    setTwibbonSuccess(false);
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,7 +88,6 @@ export default function DetailAgendaPage({
         const result = event.target?.result as string;
         setUserPhoto(result);
 
-        // Buat object gambar untuk digambar ulang saat di-drag
         const img = new Image();
         img.onload = () => {
           setImageObj(img);
@@ -93,7 +100,6 @@ export default function DetailAgendaPage({
     }
   };
 
-  // Dragging Handlers
   const handlePointerDown = (e: React.MouseEvent | React.TouchEvent) => {
     if (!userPhoto) return;
     setIsDragging(true);
@@ -106,7 +112,7 @@ export default function DetailAgendaPage({
 
   const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
     if (!isDragging || !canvasRef.current) return;
-    e.preventDefault(); // Mencegah scrolling saat nge-drag di HP
+    e.preventDefault();
 
     // @ts-ignore
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -114,9 +120,8 @@ export default function DetailAgendaPage({
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
     const rect = canvasRef.current.getBoundingClientRect();
-    // Kalkulasi pergerakan mouse ke skala asli kanvas (1080x1920)
-    const scaleX = 1080 / rect.width;
-    const scaleY = 1920 / rect.height;
+    const scaleX = currentFrame.width / rect.width;
+    const scaleY = currentFrame.height / rect.height;
 
     const dx = (clientX - dragStart.x) * scaleX;
     const dy = (clientY - dragStart.y) * scaleY;
@@ -129,31 +134,27 @@ export default function DetailAgendaPage({
     setIsDragging(false);
   };
 
-  // Logika Menggambar di Canvas secara Real-time
   useEffect(() => {
     if (imageObj && agenda?.twibbonUrl && canvasRef.current) {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      // Resolusi Twibbon Portrait (Story/Reels Size)
-      canvas.width = 1080;
-      canvas.height = 1920;
-
-      // Bersihkan kanvas
+      canvas.width = currentFrame.width;
+      canvas.height = currentFrame.height;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Gambar foto user dengan posisi dan skala
-      // Hitung baseScale agar gambar setidaknya menutupi layar secara proporsional
-      const baseScale = Math.max(1080 / imageObj.width, 1920 / imageObj.height);
+      const baseScale = Math.max(
+        currentFrame.width / imageObj.width,
+        currentFrame.height / imageObj.height,
+      );
       const finalScale = baseScale * scale;
 
       const drawWidth = imageObj.width * finalScale;
       const drawHeight = imageObj.height * finalScale;
 
-      // Default: posisikan di tengah
-      const defaultX = (1080 - drawWidth) / 2;
-      const defaultY = (1920 - drawHeight) / 2;
+      const defaultX = (currentFrame.width - drawWidth) / 2;
+      const defaultY = (currentFrame.height - drawHeight) / 2;
 
       ctx.drawImage(
         imageObj,
@@ -163,23 +164,39 @@ export default function DetailAgendaPage({
         drawHeight,
       );
 
-      // Gambar Template Twibbon di atasnya
       const imgTemplate = new Image();
       imgTemplate.crossOrigin = "anonymous";
       imgTemplate.onload = () => {
-        ctx.drawImage(imgTemplate, 0, 0, 1080, 1920);
+        ctx.drawImage(
+          imgTemplate,
+          0,
+          0,
+          currentFrame.width,
+          currentFrame.height,
+        );
       };
-      imgTemplate.src = agenda.twibbonUrl;
-    }
-  }, [imageObj, agenda?.twibbonUrl, scale, position]);
 
-  // --- PERBAIKAN: METODE BLOB UNTUK MENCEGAH CRASH DI MOBILE ---
+      imgTemplate.src =
+        frameType === "post" && agenda.twibbonUrlSquare
+          ? agenda.twibbonUrlSquare
+          : agenda.twibbonUrl;
+    }
+  }, [
+    imageObj,
+    agenda?.twibbonUrl,
+    agenda?.twibbonUrlSquare,
+    scale,
+    position,
+    frameType,
+    currentFrame.width,
+    currentFrame.height,
+  ]);
+
   const handleDownloadTwibbon = async () => {
     if (!twibbonName) return alert("Silakan isi nama Anda terlebih dahulu!");
     if (!userPhoto) return alert("Silakan pilih foto Anda terlebih dahulu!");
     if (!canvasRef.current) return;
 
-    // Gunakan toBlob() sebagai ganti toDataURL()
     canvasRef.current.toBlob(
       async (blob) => {
         if (!blob) {
@@ -191,39 +208,35 @@ export default function DetailAgendaPage({
         const link = document.createElement("a");
         link.style.display = "none";
         link.href = url;
-        link.download = `Twibbon-${twibbonName.replace(/\s+/g, "-")}.png`;
+        link.download = `Twibbon-${frameType}-${twibbonName.replace(/\s+/g, "-")}.png`;
 
         document.body.appendChild(link);
         link.click();
 
-        // Bersihkan URL dari memori
         setTimeout(() => {
           document.body.removeChild(link);
           window.URL.revokeObjectURL(url);
         }, 100);
 
-        // 2. Simpan Riwayat
         try {
           await addDoc(collection(db, "twibbon_logs"), {
             nama: twibbonName,
             agendaId: agenda?.id || "unknown",
+            tipe: frameType,
             downloadedAt: new Date().toISOString(),
           });
         } catch (error) {
           console.error("Gagal menyimpan riwayat twibbon:", error);
         }
 
-        // Reset & Tutup Modal
         setTimeout(() => {
-          alert("Twibbon berhasil diunduh! Terima kasih sudah meramaikan.");
-          resetTwibbonState();
+          setTwibbonSuccess(true);
         }, 500);
       },
       "image/png",
       1.0,
     );
   };
-  // ==========================================
 
   // ==========================================
   // STATE & LOGIKA DONASI
@@ -309,20 +322,28 @@ export default function DetailAgendaPage({
       });
     }, 300);
   };
-  // ==========================================
 
+  // ==========================================
+  // FETCH DETAIL AGENDA
+  // ==========================================
   useEffect(() => {
     const fetchAgendaDetail = async () => {
       try {
-        const safeId = id || "";
-        const firestoreId = safeId.split("-").pop() || safeId;
-        const docRef = doc(db, "agenda", firestoreId);
-        const docSnap = await getDoc(docRef);
+        const safeId = decodeURIComponent(id || "");
+
+        let docRef = doc(db, "agenda", safeId);
+        let docSnap = await getDoc(docRef);
+
+        if (!docSnap.exists() && safeId.includes("-")) {
+          const firestoreId = safeId.split("-").pop() || "";
+          docRef = doc(db, "agenda", firestoreId);
+          docSnap = await getDoc(docRef);
+        }
 
         if (docSnap.exists()) {
           setAgenda({ id: docSnap.id, ...docSnap.data() });
         } else {
-          console.log("Agenda tidak ditemukan!");
+          console.log("Agenda tidak ditemukan di database!");
         }
       } catch (error) {
         console.error("Gagal mengambil detail agenda:", error);
@@ -380,24 +401,6 @@ export default function DetailAgendaPage({
     }
   };
 
-  const getGoogleCalendarUrl = () => {
-    if (!agenda.tanggal || !agenda.waktu) return "#";
-    const dateStr = agenda.tanggal.replace(/-/g, "");
-    const timeStr = agenda.waktu.replace(/:/g, "") + "00";
-    const startDateTime = `${dateStr}T${timeStr}`;
-    const endDateTime = `${dateStr}T${(parseInt(agenda.waktu.split(":")[0]) + 2).toString().padStart(2, "0")}${agenda.waktu.split(":")[1]}00`;
-    const text = encodeURIComponent(agenda.judul);
-    const details = encodeURIComponent(
-      `Acara: ${agenda.judul}\nTiket untuk: ${formData.jumlahTiket} Orang\n\nMohon tunjukkan QR Code pendaftaran Anda di lokasi.`,
-    );
-    const location = encodeURIComponent(
-      agenda.format === "Offline (Luring)"
-        ? "Lihat Google Maps / Lokasi Acara"
-        : "Online (Zoom)",
-    );
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${startDateTime}/${endDateTime}&details=${details}&location=${location}`;
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -428,11 +431,13 @@ export default function DetailAgendaPage({
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans relative">
       {/* ========================================== */}
-      {/* MODAL TWIBBON (VERSI DRAG & ZOOM) */}
+      {/* MODAL TWIBBON (TERMASUK STATE SUKSES)      */}
       {/* ========================================== */}
       {isTwibbonModalOpen && (
         <div className="fixed inset-0 bg-blue-950/90 backdrop-blur-sm z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-          <div className="bg-white rounded-[2rem] p-6 md:p-8 max-w-4xl w-full shadow-2xl relative animate-in zoom-in-95 flex flex-col md:flex-row gap-8">
+          <div
+            className={`bg-white rounded-[2rem] p-6 md:p-8 w-full shadow-2xl relative transition-all duration-300 animate-in zoom-in-95 ${twibbonSuccess ? "max-w-md" : "max-w-4xl flex flex-col md:flex-row gap-8"}`}
+          >
             <button
               onClick={resetTwibbonState}
               className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-red-100 hover:text-red-500 transition-colors z-10"
@@ -440,119 +445,171 @@ export default function DetailAgendaPage({
               ✕
             </button>
 
-            {/* Kolom Kiri: Input */}
-            <div className="flex-1 space-y-5">
-              <div>
-                <h3 className="text-3xl font-black text-blue-950 mb-2">
-                  Pasang Twibbon
+            {twibbonSuccess ? (
+              <div className="flex flex-col items-center justify-center text-center py-8 animate-in fade-in duration-500">
+                <div className="w-20 h-20 bg-green-500 text-white rounded-full flex items-center justify-center text-4xl mb-6 shadow-lg shadow-green-200">
+                  ✓
+                </div>
+                <h3 className="text-2xl font-black text-blue-950 mb-3">
+                  Yeay, Berhasil! 🎉
                 </h3>
-                <p className="text-sm text-slate-600">
-                  Pilih foto terbaikmu, atur posisi dan ukurannya, lalu bagikan
-                  di Story/Reels!
+                <p className="text-sm text-slate-600 mb-8 leading-relaxed px-4">
+                  Foto Twibbon kamu sudah tersimpan ke galeri/perangkat. Terima
+                  kasih <b>{twibbonName}</b> sudah berpartisipasi meramaikan
+                  acara ini. Jangan lupa <i>share</i> ke media sosial kamu, ya!
                 </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Nama Anda (Untuk Riwayat)
-                </label>
-                <input
-                  type="text"
-                  value={twibbonName}
-                  onChange={(e) => setTwibbonName(e.target.value)}
-                  placeholder="Contoh: Budi Santoso"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-900 outline-none transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Pilih Foto Anda
-                </label>
-                <div className="border-2 border-dashed border-slate-300 rounded-xl p-4 bg-slate-50 hover:bg-blue-50 transition-colors">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    className="w-full text-sm text-slate-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-blue-950 file:text-white hover:file:bg-blue-800 file:cursor-pointer cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              {/* Slider Zoom */}
-              {userPhoto && (
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    🔍 Perbesar / Perkecil Foto
-                  </label>
-                  <input
-                    type="range"
-                    min="0.5"
-                    max="3"
-                    step="0.05"
-                    value={scale}
-                    onChange={(e) => setScale(parseFloat(e.target.value))}
-                    className="w-full accent-blue-900"
-                  />
-                  <p className="text-[10px] text-slate-500 mt-2 text-center">
-                    Tahan dan geser gambar pada kotak preview untuk memindahkan
-                    posisi.
-                  </p>
-                </div>
-              )}
-
-              <button
-                onClick={handleDownloadTwibbon}
-                className="w-full bg-yellow-500 hover:bg-yellow-400 text-blue-950 font-black py-4 rounded-xl transition-all shadow-md mt-4 flex items-center justify-center gap-2"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+                <button
+                  onClick={resetTwibbonState}
+                  className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 rounded-xl transition-all"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                  />
-                </svg>
-                Download Twibbon
-              </button>
-            </div>
+                  Tutup & Kembali
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Kolom Kiri: Input */}
+                <div className="flex-1 space-y-5">
+                  <div>
+                    <h3 className="text-3xl font-black text-blue-950 mb-2">
+                      Pasang Twibbon
+                    </h3>
+                    <p className="text-sm text-slate-600">
+                      Pilih foto terbaikmu, atur posisi dan ukurannya, lalu
+                      bagikan di Story/Reels!
+                    </p>
+                  </div>
 
-            {/* Kolom Kanan: Preview Canvas (Rasio 9:16) */}
-            <div className="flex-1 flex flex-col items-center justify-center bg-slate-100 rounded-2xl p-4 border border-slate-200 relative min-h-[300px]">
-              {!userPhoto ? (
-                <div className="text-center opacity-40">
-                  <span className="text-6xl block mb-4">🖼️</span>
-                  <p className="text-lg font-black text-slate-700">
-                    Preview Area (9:16)
-                  </p>
-                  <p className="text-sm">
-                    Pilih foto dari perangkatmu <br />
-                    untuk melihat hasil.
-                  </p>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Nama Anda (Untuk Riwayat)
+                    </label>
+                    <input
+                      type="text"
+                      value={twibbonName}
+                      onChange={(e) => setTwibbonName(e.target.value)}
+                      placeholder="Contoh: Budi Santoso"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-900 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Pilih Format Bingkai
+                    </label>
+                    <div className="flex bg-slate-100 p-1.5 rounded-xl gap-1">
+                      <button
+                        onClick={() => setFrameType("story")}
+                        className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                          frameType === "story"
+                            ? "bg-white text-blue-700 shadow-sm"
+                            : "text-slate-500 hover:text-slate-700"
+                        }`}
+                      >
+                        IG Story (9:16)
+                      </button>
+                      <button
+                        onClick={() => setFrameType("post")}
+                        className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                          frameType === "post"
+                            ? "bg-white text-blue-700 shadow-sm"
+                            : "text-slate-500 hover:text-slate-700"
+                        }`}
+                      >
+                        IG Post (4:5)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Pilih Foto Anda
+                    </label>
+                    <div className="border-2 border-dashed border-slate-300 rounded-xl p-4 bg-slate-50 hover:bg-blue-50 transition-colors">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        className="w-full text-sm text-slate-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-blue-950 file:text-white hover:file:bg-blue-800 file:cursor-pointer cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Slider Zoom */}
+                  {userPhoto && (
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                        🔍 Perbesar / Perkecil Foto
+                      </label>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="3"
+                        step="0.05"
+                        value={scale}
+                        onChange={(e) => setScale(parseFloat(e.target.value))}
+                        className="w-full accent-blue-900"
+                      />
+                      <p className="text-[10px] text-slate-500 mt-2 text-center">
+                        Tahan dan geser gambar pada kotak preview untuk
+                        memindahkan posisi.
+                      </p>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleDownloadTwibbon}
+                    className="w-full bg-yellow-500 hover:bg-yellow-400 text-blue-950 font-black py-4 rounded-xl transition-all shadow-md mt-4 flex items-center justify-center gap-2"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                      />
+                    </svg>
+                    Download Twibbon
+                  </button>
                 </div>
-              ) : (
-                <div
-                  className="w-full max-w-[280px] aspect-[9/16] bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden relative cursor-move touch-none"
-                  onMouseDown={handlePointerDown}
-                  onMouseMove={handlePointerMove}
-                  onMouseUp={handlePointerUp}
-                  onMouseLeave={handlePointerUp}
-                  onTouchStart={handlePointerDown}
-                  onTouchMove={handlePointerMove}
-                  onTouchEnd={handlePointerUp}
-                >
-                  <canvas
-                    ref={canvasRef}
-                    className="w-full h-full object-cover pointer-events-none"
-                  ></canvas>
+
+                {/* Kolom Kanan: Preview Canvas */}
+                <div className="flex-1 flex flex-col items-center justify-center bg-slate-100 rounded-2xl p-4 border border-slate-200 relative min-h-[300px] transition-all">
+                  {!userPhoto ? (
+                    <div className="text-center opacity-40">
+                      <span className="text-6xl block mb-4">🖼️</span>
+                      <p className="text-lg font-black text-slate-700">
+                        Preview Area ({frameType === "story" ? "9:16" : "4:5"})
+                      </p>
+                      <p className="text-sm">
+                        Pilih foto dari perangkatmu <br />
+                        untuk melihat hasil.
+                      </p>
+                    </div>
+                  ) : (
+                    <div
+                      className={`w-full max-w-[280px] ${currentFrame.aspectClass} bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden relative cursor-move touch-none transition-all duration-300 mx-auto`}
+                      onMouseDown={handlePointerDown}
+                      onMouseMove={handlePointerMove}
+                      onMouseUp={handlePointerUp}
+                      onMouseLeave={handlePointerUp}
+                      onTouchStart={handlePointerDown}
+                      onTouchMove={handlePointerMove}
+                      onTouchEnd={handlePointerUp}
+                    >
+                      <canvas
+                        ref={canvasRef}
+                        className="w-full h-full object-cover pointer-events-none"
+                      ></canvas>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -575,7 +632,6 @@ export default function DetailAgendaPage({
                 <h3 className="text-2xl font-black text-blue-950 mb-2">
                   Formulir Donasi
                 </h3>
-                {/* --- PERBAIKAN: Deskripsi donasi memanggil dari CMS Admin --- */}
                 <p className="text-sm text-slate-600 mb-6 whitespace-pre-wrap">
                   {agenda.deskripsiDonasi ||
                     "Dukungan Anda sangat berarti untuk kesuksesan acara kita bersama."}
@@ -729,7 +785,6 @@ export default function DetailAgendaPage({
                       <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                         Kirim Barang Ke Alamat:
                       </p>
-                      {/* --- PERBAIKAN: Alamat donasi memanggil dari CMS Admin --- */}
                       <p className="font-bold text-blue-950 text-sm whitespace-pre-wrap mb-4">
                         {agenda.alamatDonasi ||
                           "Sekretariat DPW IKA UII\n(Silakan hubungi admin via WhatsApp untuk alamat lengkap pengiriman)"}
@@ -807,8 +862,6 @@ export default function DetailAgendaPage({
         </div>
       )}
 
-      <NavbarPublic />
-
       {/* HEADER AGENDA */}
       <div className="bg-blue-950 pt-32 pb-12">
         <div className="max-w-7xl mx-auto px-6">
@@ -839,8 +892,8 @@ export default function DetailAgendaPage({
               📍 {agenda.format}
             </span>
             {isPastEvent && (
-              <span className="flex items-center gap-2 bg-red-500 text-white px-3 py-1 rounded-lg font-bold">
-                🔒 Acara Selesai
+              <span className="flex items-center gap-2 bg-red-500 text-white px-3 py-1 rounded-lg font-bold shadow-sm border border-red-400">
+                🔒 Acara Telah Berlalu
               </span>
             )}
           </div>
@@ -851,13 +904,13 @@ export default function DetailAgendaPage({
         <div className="flex flex-col lg:flex-row gap-10 items-start">
           {/* KOLOM KIRI: POSTER & DESKRIPSI */}
           <div className="w-full lg:w-3/5 space-y-8">
-            <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex justify-center">
+            <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex justify-center relative">
               <div className="aspect-[4/5] w-full max-w-lg rounded-2xl overflow-hidden bg-slate-50 relative border border-slate-100 shadow-inner">
                 {agenda.imgUrl || agenda.posterUrl ? (
                   <img
                     src={agenda.imgUrl || agenda.posterUrl}
                     alt="Poster Agenda"
-                    className="w-full h-full object-cover"
+                    className={`w-full h-full object-cover transition-all ${isPastEvent ? "grayscale" : ""}`}
                   />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center opacity-30">
@@ -1058,7 +1111,41 @@ export default function DetailAgendaPage({
             <div className="bg-white rounded-3xl p-8 shadow-xl border border-slate-100 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-400/10 rounded-bl-full -z-0 pointer-events-none"></div>
 
-              {agenda.isComingSoon ? (
+              {/* 🌟 LOGIKA BARU: CEK LINK EKSTERNAL / VIRTUAL RUN 🌟 */}
+              {agenda.linkEksternal ? (
+                <>
+                  <h3 className="text-2xl font-black text-blue-950 mb-4 relative z-10">
+                    Pendaftaran Khusus
+                  </h3>
+                  <div className="bg-blue-50 border border-blue-200 rounded-2xl p-8 text-center relative z-10 flex flex-col items-center justify-center gap-5 shadow-sm">
+                    <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-md">
+                      <span className="text-4xl">🏃‍♂️</span>
+                    </div>
+                    <div>
+                      <h4 className="font-black text-blue-900 text-lg mb-2">
+                        Pendaftaran via Portal Khusus
+                      </h4>
+                      <p className="text-sm text-slate-600 leading-relaxed">
+                        Registrasi dan pengelolaan aktivitas untuk kegiatan ini
+                        dilakukan melalui website / portal khusus yang telah
+                        kami sediakan.
+                      </p>
+                    </div>
+                    <a
+                      href={
+                        agenda.linkEksternal.startsWith("http")
+                          ? agenda.linkEksternal
+                          : `https://${agenda.linkEksternal}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 flex items-center justify-center gap-2"
+                    >
+                      Kunjungi Website Pendaftaran &rarr;
+                    </a>
+                  </div>
+                </>
+              ) : agenda.isComingSoon ? (
                 <>
                   <h3 className="text-2xl font-black text-blue-950 mb-6 relative z-10">
                     Form Registrasi
@@ -1071,15 +1158,20 @@ export default function DetailAgendaPage({
                   </div>
                 </>
               ) : isPastEvent ? (
+                // TAMPILAN JIKA ACARA SUDAH LEWAT
                 <>
                   <h3 className="text-2xl font-black text-blue-950 mb-6 relative z-10">
-                    Status Registrasi
+                    Status Pendaftaran
                   </h3>
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center relative z-10">
-                    <span className="text-4xl block mb-3">🔒</span>
-                    <h4 className="font-black text-slate-800 text-lg mb-1">
+                  <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center relative z-10 shadow-sm">
+                    <span className="text-5xl block mb-4">🔒</span>
+                    <h4 className="font-black text-red-800 text-xl mb-2">
                       Pendaftaran Ditutup
                     </h4>
+                    <p className="text-red-600 font-medium text-sm px-4">
+                      Terima kasih atas antusiasme Anda. Registrasi telah
+                      ditutup karena waktu acara telah berlalu.
+                    </p>
                   </div>
                 </>
               ) : isSuccess ? (

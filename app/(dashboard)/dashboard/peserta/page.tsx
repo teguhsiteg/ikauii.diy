@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { db, auth } from "@/lib/firebase";
 import {
   collection,
@@ -16,6 +16,7 @@ import {
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import * as XLSX from "xlsx";
+import Link from "next/link";
 
 export default function PesertaAgendaPage() {
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -26,51 +27,38 @@ export default function PesertaAgendaPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingPeserta, setIsLoadingPeserta] = useState(false);
 
-  // Fitur Hapus Masal
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
-  // Fitur Scanner QR Code & Kamera
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [scanMode, setScanMode] = useState<"kamera" | "manual">("kamera");
-  const [scanInput, setScanInput] = useState("");
-  const [scanMessage, setScanMessage] = useState({ type: "", text: "" });
-
-  // --- STATE Tampilkan QR Code Peserta ---
   const [selectedQR, setSelectedQR] = useState<any>(null);
 
-  // --- STATE FITUR IMPORT EXCEL & PREVIEW ---
+  // Modal Import
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [importStep, setImportStep] = useState(1); // 1: Upload, 2: Preview
+  const [importStep, setImportStep] = useState(1);
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [isImportingData, setIsImportingData] = useState(false);
-  const [autoCheckInImport, setAutoCheckInImport] = useState(true); // Opsi otomatis hadir
+  const [autoCheckInImport, setAutoCheckInImport] = useState(true);
+
+  // STATE UNTUK SORTING TABEL
+  const [sortConfig, setSortConfig] = useState<{
+    key: string;
+    direction: "asc" | "desc";
+  } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const pesertaListRef = useRef<any[]>([]);
-  const isProcessingRef = useRef(false);
 
-  useEffect(() => {
-    pesertaListRef.current = pesertaList;
-  }, [pesertaList]);
-
-  // 1. Cek User & Role
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
           const userDoc = await getDoc(doc(db, "users", user.uid));
-          if (userDoc.exists()) {
-            setUserProfile(userDoc.data());
-          }
+          if (userDoc.exists()) setUserProfile(userDoc.data());
         } catch (error) {
-          console.error("Gagal ambil profil:", error);
+          console.log("Gagal ambil profil:", error);
         }
       }
     });
     return () => unsubscribe();
   }, []);
 
-  // 2. Fetch Agenda berdasarkan Role
   useEffect(() => {
     const fetchAgendas = async () => {
       if (!userProfile) return;
@@ -92,7 +80,7 @@ export default function PesertaAgendaPage() {
         }
         setAgendaList(agendas);
       } catch (error) {
-        console.error("Gagal load agenda:", error);
+        console.log("Gagal load agenda:", error);
       } finally {
         setIsLoading(false);
       }
@@ -100,36 +88,122 @@ export default function PesertaAgendaPage() {
     fetchAgendas();
   }, [userProfile]);
 
-  // 3. Load Peserta saat Agenda Diklik
   const handleSelectAgenda = async (agenda: any) => {
     setSelectedAgenda(agenda);
     setIsLoadingPeserta(true);
     setSelectedIds([]);
+    setSortConfig(null);
     try {
       const q = query(
         collection(db, "agenda_peserta"),
         where("agendaId", "==", agenda.id),
       );
       const snap = await getDocs(q);
-
       const rawData = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      rawData.sort(
-        (a: any, b: any) =>
-          new Date(b.waktuDaftar).getTime() - new Date(a.waktuDaftar).getTime(),
-      );
+
+      rawData.sort((a: any, b: any) => {
+        const timeA = a.waktuDaftar ? new Date(a.waktuDaftar).getTime() : 0;
+        const timeB = b.waktuDaftar ? new Date(b.waktuDaftar).getTime() : 0;
+        return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
+      });
 
       setPesertaList(rawData);
-    } catch (error) {
-      console.error("Gagal load peserta:", error);
+    } catch (error: any) {
+      console.log("Error Firebase:", error);
+      alert(
+        "Gagal memuat daftar peserta. Cek koneksi internet atau Rules Firebase Anda. \nPesan Sistem: " +
+          error.message,
+      );
     } finally {
       setIsLoadingPeserta(false);
     }
   };
 
-  // --- FITUR HAPUS 1 / MASAL ---
+  const handleSort = (key: string) => {
+    let direction: "asc" | "desc" = "asc";
+    if (
+      sortConfig &&
+      sortConfig.key === key &&
+      sortConfig.direction === "asc"
+    ) {
+      direction = "desc";
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedPesertaList = useMemo(() => {
+    let sortableItems = [...pesertaList];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+
+        if (aValue == null) aValue = "";
+        if (bValue == null) bValue = "";
+
+        if (typeof aValue === "string") aValue = aValue.toLowerCase();
+        if (typeof bValue === "string") bValue = bValue.toLowerCase();
+
+        if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [pesertaList, sortConfig]);
+
+  const renderSortIcon = (columnKey: string) => {
+    if (sortConfig?.key !== columnKey) {
+      return (
+        <svg
+          className="w-3 h-3 text-slate-300 ml-1 inline-block"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+          />
+        </svg>
+      );
+    }
+    return sortConfig.direction === "asc" ? (
+      <svg
+        className="w-3 h-3 text-blue-600 ml-1 inline-block"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={3}
+          d="M5 15l7-7 7 7"
+        />
+      </svg>
+    ) : (
+      <svg
+        className="w-3 h-3 text-blue-600 ml-1 inline-block"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={3}
+          d="M19 9l-7 7-7-7"
+        />
+      </svg>
+    );
+  };
+
   const handleSelectAll = (e: any) => {
     if (e.target.checked) {
-      setSelectedIds(pesertaList.map((p) => p.id));
+      setSelectedIds(sortedPesertaList.map((p) => p.id));
     } else {
       setSelectedIds([]);
     }
@@ -178,109 +252,22 @@ export default function PesertaAgendaPage() {
         ),
       );
     } catch (error) {
-      console.error("Gagal update check-in", error);
+      console.log("Gagal update check-in", error);
     }
   };
 
-  // --- FUNGSI INTI PROSES CHECK-IN ---
-  const processCheckIn = async (scannedId: string) => {
-    if (isProcessingRef.current) return;
-    isProcessingRef.current = true;
-
-    const id = scannedId.trim();
-    if (!id) {
-      isProcessingRef.current = false;
-      return;
-    }
-
-    const peserta = pesertaListRef.current.find((p) => p.id === id);
-
-    if (!peserta) {
-      setScanMessage({ type: "error", text: "❌ ID Tiket Tidak Ditemukan!" });
-    } else if (peserta.statusCheckIn) {
-      setScanMessage({
-        type: "warning",
-        text: `⚠️ Tiket ${peserta.nama} SUDAH DIGUNAKAN!`,
-      });
-    } else {
-      await updateDoc(doc(db, "agenda_peserta", id), { statusCheckIn: true });
-      setPesertaList((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, statusCheckIn: true } : p)),
-      );
-
-      const rombonganText =
-        peserta.jumlahTiket > 1 ? ` (${peserta.jumlahTiket} Orang)` : "";
-      setScanMessage({
-        type: "success",
-        text: `✅ Berhasil Check-In: ${peserta.nama}${rombonganText}`,
-      });
-    }
-
-    setScanInput("");
-
-    setTimeout(() => {
-      setScanMessage({ type: "", text: "" });
-      isProcessingRef.current = false;
-    }, 3000);
-  };
-
-  const handleManualSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    processCheckIn(scanInput);
-  };
-
-  // --- ENGINE KAMERA ---
-  useEffect(() => {
-    let scanner: any = null;
-    let isMounted = true;
-
-    const startCamera = async () => {
-      if (isScannerOpen && scanMode === "kamera") {
-        await new Promise((resolve) => setTimeout(resolve, 200));
-
-        const readerElement = document.getElementById("reader");
-        if (!readerElement || !isMounted) return;
-
-        readerElement.innerHTML = "";
-
-        try {
-          const { Html5QrcodeScanner } = await import("html5-qrcode");
-          scanner = new Html5QrcodeScanner(
-            "reader",
-            { qrbox: { width: 250, height: 250 }, fps: 5 },
-            false,
-          );
-
-          scanner.render(
-            (decodedText: string) => {
-              processCheckIn(decodedText);
-            },
-            (errorMessage: any) => {},
-          );
-        } catch (error) {
-          console.error("Gagal inisiasi kamera:", error);
-        }
-      }
-    };
-
-    startCamera();
-
-    return () => {
-      isMounted = false;
-      if (scanner) {
-        scanner
-          .clear()
-          .catch((error: any) => console.error("Gagal matikan kamera:", error));
-      }
-    };
-  }, [isScannerOpen, scanMode]);
-
-  // --- EXPORT EXCEL ---
   const downloadExcel = () => {
-    const dataToExport = pesertaList.map((p, index) => ({
+    const dataToExport = sortedPesertaList.map((p, index) => ({
       No: index + 1,
       Status: p.statusCheckIn ? "Hadir" : "Belum Hadir",
-      "Waktu Daftar": new Date(p.waktuDaftar).toLocaleString("id-ID"),
+      "Waktu Daftar":
+        p.waktuDaftar && !isNaN(new Date(p.waktuDaftar).getTime())
+          ? new Date(p.waktuDaftar).toLocaleString("id-ID")
+          : "-",
+      "Waktu Hadir": p.waktuCheckIn
+        ? new Date(p.waktuCheckIn).toLocaleString("id-ID")
+        : "-",
+      "Petugas Gate": p.diScanOleh || "-",
       "Tipe Daftar": p.tipeDaftar || "Individu",
       "Jml Tiket": p.jumlahTiket || 1,
       "Nama Lengkap": p.nama,
@@ -294,9 +281,12 @@ export default function PesertaAgendaPage() {
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+
     const wscols = [
       { wch: 5 },
       { wch: 15 },
+      { wch: 20 },
+      { wch: 20 },
       { wch: 20 },
       { wch: 15 },
       { wch: 10 },
@@ -320,7 +310,6 @@ export default function PesertaAgendaPage() {
     XLSX.writeFile(workbook, `Data_Peserta_${safeFileName}.xlsx`);
   };
 
-  // --- IMPORT EXCEL (DENGAN PREVIEW) ---
   const downloadTemplateImport = () => {
     const templateData = [
       {
@@ -351,14 +340,24 @@ export default function PesertaAgendaPage() {
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws);
 
-        // Hanya ambil data yang minimal kolom Nama-nya tidak kosong
-        const validData = data.filter(
-          (row: any) => row.Nama && row.Nama.toString().trim() !== "",
-        );
-        setPreviewData(validData);
-        setImportStep(2); // Pindah ke tab Preview
+        const dbNames = pesertaList.map((p) => p.nama?.toLowerCase().trim());
+        const excelNamesSeen = new Set();
+
+        const processedData = data
+          .filter((row: any) => row.Nama && row.Nama.toString().trim() !== "")
+          .map((row: any) => {
+            const rawName = row.Nama.toString().trim();
+            const nameKey = rawName.toLowerCase();
+            const isDuplicate =
+              dbNames.includes(nameKey) || excelNamesSeen.has(nameKey);
+            excelNamesSeen.add(nameKey);
+            return { ...row, isDuplicate };
+          });
+
+        setPreviewData(processedData);
+        setImportStep(2);
       } catch (error) {
-        console.error("Error baca excel:", error);
+        console.log("Error baca excel:", error);
         alert("Gagal membaca file Excel. Pastikan formatnya benar.");
       } finally {
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -369,11 +368,19 @@ export default function PesertaAgendaPage() {
 
   const processImportSave = async () => {
     if (previewData.length === 0 || !selectedAgenda) return;
-    setIsImportingData(true);
+    const dataReadyToSave = previewData.filter((row) => !row.isDuplicate);
 
+    if (dataReadyToSave.length === 0) {
+      alert(
+        "⚠️ Semua data dalam file adalah duplikat. Tidak ada data baru yang ditambahkan.",
+      );
+      return;
+    }
+
+    setIsImportingData(true);
     try {
       let successCount = 0;
-      const promises = previewData.map(async (row: any) => {
+      const promises = dataReadyToSave.map(async (row: any) => {
         const newPeserta = {
           agendaId: selectedAgenda.id,
           agendaJudul: selectedAgenda.judul,
@@ -389,18 +396,18 @@ export default function PesertaAgendaPage() {
           statusCheckIn: autoCheckInImport,
           waktuDaftar: new Date().toISOString(),
         };
-
         await addDoc(collection(db, "agenda_peserta"), newPeserta);
         successCount++;
       });
 
       await Promise.all(promises);
-
-      alert(`Berhasil menyimpan ${successCount} data peserta ke database!`);
+      alert(
+        `✅ Berhasil! ${successCount} data pendaftar BARU telah ditambahkan.`,
+      );
       closeImportModal();
-      handleSelectAgenda(selectedAgenda); // Refresh Data Table
+      handleSelectAgenda(selectedAgenda);
     } catch (error) {
-      console.error("Gagal simpan import:", error);
+      console.log("Gagal simpan import:", error);
       alert("Terjadi kesalahan saat memproses data ke server.");
     } finally {
       setIsImportingData(false);
@@ -413,7 +420,6 @@ export default function PesertaAgendaPage() {
     setPreviewData([]);
   };
 
-  // Menghitung total tiket sebenarnya
   const totalTiket = pesertaList.reduce(
     (acc, curr) => acc + (Number(curr.jumlahTiket) || 1),
     0,
@@ -421,6 +427,8 @@ export default function PesertaAgendaPage() {
   const totalHadir = pesertaList
     .filter((p) => p.statusCheckIn)
     .reduce((acc, curr) => acc + (Number(curr.jumlahTiket) || 1), 0);
+  const validDataCount = previewData.filter((r) => !r.isDuplicate).length;
+  const duplicateDataCount = previewData.length - validDataCount;
 
   if (isLoading || !userProfile) {
     return (
@@ -430,7 +438,6 @@ export default function PesertaAgendaPage() {
     );
   }
 
-  // TAMPILAN 1: DAFTAR AGENDA
   if (!selectedAgenda) {
     return (
       <div className="max-w-7xl animate-in fade-in duration-500 pb-12">
@@ -492,12 +499,9 @@ export default function PesertaAgendaPage() {
     );
   }
 
-  // TAMPILAN 2: DAFTAR PESERTA SPESIFIK AGENDA
   return (
     <div className="max-w-7xl animate-in slide-in-from-right-8 duration-300 pb-12 relative">
-      {/* ======================================= */}
-      {/* MODAL IMPORT EXCEL (BARU) */}
-      {/* ======================================= */}
+      {/* MODAL IMPORT EXCEL */}
       {isImportModalOpen && (
         <div className="fixed inset-0 bg-blue-950/80 backdrop-blur-sm z-[120] flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-4xl w-full shadow-2xl relative animate-in zoom-in-95 max-h-[90vh] flex flex-col">
@@ -507,7 +511,6 @@ export default function PesertaAgendaPage() {
             >
               ✕
             </button>
-
             {importStep === 1 ? (
               <div className="text-center py-6">
                 <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
@@ -520,7 +523,6 @@ export default function PesertaAgendaPage() {
                   Punya banyak data peserta dari WhatsApp atau form eksternal?
                   Masukkan ke template Excel kami dan upload di sini.
                 </p>
-
                 <div className="grid sm:grid-cols-2 gap-4 max-w-lg mx-auto">
                   <button
                     onClick={downloadTemplateImport}
@@ -536,7 +538,6 @@ export default function PesertaAgendaPage() {
                       Unduh format kolom
                     </span>
                   </button>
-
                   <div className="relative flex flex-col items-center justify-center p-6 border-2 border-dashed border-blue-300 bg-blue-50 rounded-2xl hover:bg-blue-100 transition-all group cursor-pointer overflow-hidden">
                     <span className="text-2xl mb-2 group-hover:-translate-y-1 transition-transform">
                       📤
@@ -563,12 +564,17 @@ export default function PesertaAgendaPage() {
                   <h3 className="text-xl font-black text-blue-950">
                     Preview Data ({previewData.length} Baris)
                   </h3>
-                  <p className="text-sm text-slate-500">
-                    Periksa kembali data di bawah ini sebelum disimpan ke
-                    database.
-                  </p>
+                  <div className="flex flex-wrap gap-3 mt-2">
+                    <span className="text-xs bg-green-50 text-green-700 font-bold px-3 py-1 rounded-md border border-green-200">
+                      {validDataCount} Data Baru Sesuai
+                    </span>
+                    {duplicateDataCount > 0 && (
+                      <span className="text-xs bg-red-50 text-red-600 font-bold px-3 py-1 rounded-md border border-red-200">
+                        {duplicateDataCount} Data Duplikat (Akan Diabaikan)
+                      </span>
+                    )}
+                  </div>
                 </div>
-
                 <div className="flex-grow overflow-auto border border-slate-200 rounded-xl mb-4 custom-scrollbar">
                   <table className="w-full text-left text-sm whitespace-nowrap">
                     <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm">
@@ -577,7 +583,7 @@ export default function PesertaAgendaPage() {
                           No
                         </th>
                         <th className="p-3 font-bold text-slate-600 border-b">
-                          Nama
+                          Nama Lengkap
                         </th>
                         <th className="p-3 font-bold text-slate-600 border-b">
                           WhatsApp
@@ -589,15 +595,31 @@ export default function PesertaAgendaPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {previewData.slice(0, 100).map((row, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50">
+                        <tr
+                          key={idx}
+                          className={
+                            row.isDuplicate
+                              ? "bg-red-50/40"
+                              : "hover:bg-slate-50"
+                          }
+                        >
                           <td className="p-3 text-slate-500">{idx + 1}</td>
-                          <td className="p-3 font-bold text-blue-900">
+                          <td className="p-3 font-bold text-blue-900 flex items-center gap-2">
                             {row.Nama}
+                            {row.isDuplicate && (
+                              <span className="text-[9px] bg-red-100 text-red-600 px-2 py-0.5 rounded font-black uppercase tracking-wider">
+                                Duplikat
+                              </span>
+                            )}
                           </td>
-                          <td className="p-3 text-slate-600">
+                          <td
+                            className={`p-3 ${row.isDuplicate ? "text-red-400" : "text-slate-600"}`}
+                          >
                             {row.WhatsApp || "-"}
                           </td>
-                          <td className="p-3 text-slate-600 text-xs">
+                          <td
+                            className={`p-3 text-xs ${row.isDuplicate ? "text-red-400" : "text-slate-600"}`}
+                          >
                             {row.Instansi || "-"}
                           </td>
                         </tr>
@@ -611,7 +633,6 @@ export default function PesertaAgendaPage() {
                     </div>
                   )}
                 </div>
-
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 shrink-0">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -621,10 +642,9 @@ export default function PesertaAgendaPage() {
                       className="w-4 h-4 rounded border-gray-300 text-blue-600"
                     />
                     <span className="text-sm font-bold text-slate-700">
-                      Otomatis tandai semua sebagai "Hadir (Check-In)"
+                      Otomatis tandai semua data baru sebagai "Hadir"
                     </span>
                   </label>
-
                   <div className="flex gap-3 w-full sm:w-auto">
                     <button
                       onClick={() => setImportStep(1)}
@@ -635,12 +655,12 @@ export default function PesertaAgendaPage() {
                     </button>
                     <button
                       onClick={processImportSave}
-                      disabled={isImportingData}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 shadow-md transition-colors flex items-center gap-2"
+                      disabled={isImportingData || validDataCount === 0}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 shadow-md transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isImportingData
                         ? "Menyimpan..."
-                        : "💾 Simpan ke Database"}
+                        : `💾 Simpan ${validDataCount} Data Baru`}
                     </button>
                   </div>
                 </div>
@@ -650,9 +670,7 @@ export default function PesertaAgendaPage() {
         </div>
       )}
 
-      {/* ======================================= */}
-      {/* MODAL LIHAT QR CODE PESERTA */}
-      {/* ======================================= */}
+      {/* MODAL TIKET QR PESERTA - BERSIH DARI PITA */}
       {selectedQR && (
         <div className="fixed inset-0 bg-blue-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl relative text-center animate-in zoom-in-95">
@@ -668,20 +686,14 @@ export default function PesertaAgendaPage() {
             <p className="text-sm font-bold text-slate-500 mb-6">
               {selectedQR.nama}
             </p>
-
             <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl p-6 mx-auto inline-block w-full max-w-[200px] mb-4 shadow-sm relative overflow-hidden">
-              {selectedQR.jumlahTiket > 1 && (
-                <div className="absolute top-3 right-[-35px] bg-blue-600 text-white text-[10px] font-black py-1 px-10 transform rotate-45 shadow-sm">
-                  ROMBONGAN
-                </div>
-              )}
+              {/* PITA ROMBONGAN TELAH DIHAPUS DI SINI AGAR QR CODE BERSIH */}
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${selectedQR.id}`}
                 alt="QR Code Tiket"
                 className="w-full aspect-square mix-blend-multiply"
               />
             </div>
-
             <p className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 py-2.5 rounded-lg mx-4 mb-2 tracking-widest uppercase">
               ID TIKET: {selectedQR.id.slice(0, 8)}
             </p>
@@ -690,98 +702,12 @@ export default function PesertaAgendaPage() {
                 Berlaku untuk {selectedQR.jumlahTiket} Orang
               </p>
             )}
-
             <button
               onClick={() => setSelectedQR(null)}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-md mt-2"
             >
               Tutup Tiket
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL SCANNER QR */}
-      {isScannerOpen && (
-        <div className="fixed inset-0 bg-blue-950/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-[2rem] p-6 max-w-md w-full shadow-2xl relative max-h-[90vh] overflow-y-auto no-scrollbar">
-            <button
-              onClick={() => setIsScannerOpen(false)}
-              className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200 hover:text-red-500 transition-colors z-20"
-            >
-              ✕
-            </button>
-            <div className="text-center mb-6 pt-2">
-              <h3 className="text-2xl font-black text-blue-950">
-                Gate Kehadiran
-              </h3>
-              <p className="text-slate-500 text-sm mt-1">
-                Verifikasi tiket peserta dengan cepat.
-              </p>
-            </div>
-
-            <div className="flex bg-slate-100 p-1.5 rounded-xl mb-6">
-              <button
-                onClick={() => setScanMode("kamera")}
-                className={`flex-1 py-2.5 font-bold text-sm rounded-lg transition-all ${
-                  scanMode === "kamera"
-                    ? "bg-white shadow-sm text-blue-900"
-                    : "text-slate-400 hover:text-slate-600"
-                }`}
-              >
-                📸 Kamera HP
-              </button>
-              <button
-                onClick={() => setScanMode("manual")}
-                className={`flex-1 py-2.5 font-bold text-sm rounded-lg transition-all ${
-                  scanMode === "manual"
-                    ? "bg-white shadow-sm text-blue-900"
-                    : "text-slate-400 hover:text-slate-600"
-                }`}
-              >
-                ⌨️ Manual / Alat
-              </button>
-            </div>
-
-            {scanMessage.text && (
-              <div
-                className={`p-4 rounded-xl mb-4 font-bold text-sm text-center border animate-in zoom-in ${
-                  scanMessage.type === "success"
-                    ? "bg-green-50 border-green-200 text-green-700 shadow-[0_0_20px_rgba(22,163,74,0.2)]"
-                    : scanMessage.type === "error"
-                      ? "bg-red-50 border-red-200 text-red-700"
-                      : "bg-yellow-50 border-yellow-200 text-yellow-700"
-                }`}
-              >
-                {scanMessage.text}
-              </div>
-            )}
-
-            {scanMode === "kamera" ? (
-              <div className="rounded-2xl overflow-hidden border-4 border-slate-100 bg-slate-100 relative min-h-[250px] flex items-center justify-center">
-                <div id="reader" className="w-full h-full"></div>
-              </div>
-            ) : (
-              <form onSubmit={handleManualSubmit} className="space-y-4">
-                <input
-                  type="text"
-                  autoFocus
-                  value={scanInput}
-                  onChange={(e) => setScanInput(e.target.value)}
-                  placeholder="Ketik ID atau gunakan Scanner USB..."
-                  className="w-full text-center font-mono font-bold text-lg px-6 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
-                />
-                <button
-                  type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all"
-                >
-                  Proses Check-In
-                </button>
-              </form>
-            )}
-            <p className="text-[10px] text-slate-400 text-center mt-6 uppercase tracking-widest font-bold">
-              Sistem Cerdas SIM DPW
-            </p>
           </div>
         </div>
       )}
@@ -810,19 +736,17 @@ export default function PesertaAgendaPage() {
             </p>
           </div>
         </div>
-
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => setIsScannerOpen(true)}
+          <Link
+            href="/dashboard/scanner"
             className="bg-blue-950 hover:bg-blue-900 text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg flex items-center gap-2 transition-all group"
           >
             <span className="text-lg group-hover:scale-110 transition-transform">
               📷
-            </span>
+            </span>{" "}
             Buka Gate Scanner
-          </button>
+          </Link>
 
-          {/* GRUP TOMBOL EXPORT & IMPORT SEJAJAR */}
           <div className="flex items-center bg-slate-100 p-1 rounded-xl">
             <button
               onClick={() => setIsImportModalOpen(true)}
@@ -844,7 +768,6 @@ export default function PesertaAgendaPage() {
 
       {/* TABEL DATA PESERTA */}
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-        {/* ACTION BAR BULK DELETE */}
         {selectedIds.length > 0 && (
           <div className="bg-red-50 px-6 py-4 border-b border-red-100 flex items-center justify-between animate-in slide-in-from-top-2">
             <p className="text-red-700 font-bold text-sm">
@@ -879,35 +802,54 @@ export default function PesertaAgendaPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] uppercase tracking-widest text-slate-500">
-                  <th className="p-4 w-10 text-center">
+                  <th className="p-4 w-10 text-center border-r border-slate-100">
                     <input
                       type="checkbox"
                       onChange={handleSelectAll}
                       checked={
-                        selectedIds.length === pesertaList.length &&
-                        pesertaList.length > 0
+                        selectedIds.length === sortedPesertaList.length &&
+                        sortedPesertaList.length > 0
                       }
                       className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600 cursor-pointer"
                     />
                   </th>
-                  <th className="p-4 font-bold">Status Hadir</th>
-                  <th className="p-4 font-bold">Data Peserta</th>
-                  <th className="p-4 font-bold">Kontak</th>
-                  <th className="p-4 font-bold">Profil Alumni</th>
-                  <th className="p-4 font-bold text-right">Aksi</th>
+                  <th className="p-4 w-12 text-center font-black">No.</th>
+                  <th
+                    className="p-4 font-black cursor-pointer hover:bg-slate-200 transition-colors group"
+                    onClick={() => handleSort("statusCheckIn")}
+                  >
+                    Status Hadir {renderSortIcon("statusCheckIn")}
+                  </th>
+                  <th
+                    className="p-4 font-black cursor-pointer hover:bg-slate-200 transition-colors group"
+                    onClick={() => handleSort("nama")}
+                  >
+                    Data Peserta {renderSortIcon("nama")}
+                  </th>
+                  <th
+                    className="p-4 font-black cursor-pointer hover:bg-slate-200 transition-colors group"
+                    onClick={() => handleSort("whatsapp")}
+                  >
+                    Kontak {renderSortIcon("whatsapp")}
+                  </th>
+                  <th
+                    className="p-4 font-black cursor-pointer hover:bg-slate-200 transition-colors group"
+                    onClick={() => handleSort("fakultas")}
+                  >
+                    Profil Alumni {renderSortIcon("fakultas")}
+                  </th>
+                  <th className="p-4 font-black text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {pesertaList.map((p) => {
+                {sortedPesertaList.map((p, index) => {
                   const isSelected = selectedIds.includes(p.id);
                   return (
                     <tr
                       key={p.id}
-                      className={`hover:bg-blue-50/30 transition-colors text-sm text-slate-700 ${
-                        isSelected ? "bg-blue-50/50" : ""
-                      }`}
+                      className={`hover:bg-blue-50/30 transition-colors text-sm text-slate-700 ${isSelected ? "bg-blue-50/50" : ""}`}
                     >
-                      <td className="p-4 text-center border-l-4 border-transparent align-top">
+                      <td className="p-4 text-center border-r border-slate-100 align-top">
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -915,7 +857,9 @@ export default function PesertaAgendaPage() {
                           className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600 cursor-pointer mt-1"
                         />
                       </td>
-
+                      <td className="p-4 text-center align-top font-bold text-slate-400 mt-1">
+                        {index + 1}
+                      </td>
                       <td className="p-4 align-top">
                         <button
                           onClick={() => toggleCheckIn(p.id, p.statusCheckIn)}
@@ -926,16 +870,11 @@ export default function PesertaAgendaPage() {
                           }`}
                         >
                           <div
-                            className={`w-2 h-2 rounded-full ${
-                              p.statusCheckIn
-                                ? "bg-green-500 animate-pulse"
-                                : "bg-slate-400"
-                            }`}
+                            className={`w-2 h-2 rounded-full ${p.statusCheckIn ? "bg-green-500 animate-pulse" : "bg-slate-400"}`}
                           ></div>
                           {p.statusCheckIn ? "Telah Hadir" : "Belum Hadir"}
                         </button>
                       </td>
-
                       <td className="p-4 align-top">
                         <div className="flex items-center gap-2 mb-1">
                           <p className="font-bold text-blue-950 text-base">
@@ -947,7 +886,6 @@ export default function PesertaAgendaPage() {
                             </span>
                           )}
                         </div>
-
                         {p.tipeDaftar === "Kelompok" && p.namaAnggota && (
                           <div className="mt-2 mb-3 bg-slate-50/80 p-2.5 rounded-lg border border-slate-100">
                             <p className="text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
@@ -974,19 +912,17 @@ export default function PesertaAgendaPage() {
                             </ul>
                           </div>
                         )}
-
                         <p
                           className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mt-1"
                           title={p.id}
                         >
-                          ID: {p.id.slice(0, 8)} •{" "}
-                          {new Date(p.waktuDaftar).toLocaleDateString("id-ID", {
-                            day: "2-digit",
-                            month: "short",
-                          })}
+                          ID: {p.id.slice(0, 8)}
+                          {p.waktuDaftar &&
+                          !isNaN(new Date(p.waktuDaftar).getTime())
+                            ? ` • ${new Date(p.waktuDaftar).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })}`
+                            : ""}
                         </p>
                       </td>
-
                       <td className="p-4 align-top">
                         <a
                           href={`https://wa.me/${p.whatsapp?.replace(/^0/, "62")}`}
@@ -1000,7 +936,6 @@ export default function PesertaAgendaPage() {
                           {p.email || "-"}
                         </p>
                       </td>
-
                       <td className="p-4 align-top">
                         <p className="font-bold text-xs text-slate-700 mt-1">
                           {p.fakultas || "-"}{" "}
@@ -1010,7 +945,6 @@ export default function PesertaAgendaPage() {
                           {p.instansi || "-"}
                         </p>
                       </td>
-
                       <td className="p-4 text-right align-top">
                         <div className="flex items-center justify-end gap-1 mt-0.5">
                           <button

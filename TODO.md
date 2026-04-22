@@ -1,1 +1,14 @@
-# PDF Print Layout Fix\n\n## Status: Build FIXED, now PDF messy → crisp A4\n\n### Approved Plan:\n✅ 1. Edit ProkerClient.tsx (html2canvas scale=3 + precise A4)\n⏳ 2. Test print dashboard/proker\n⏳ 3. Build + dev\n\n**ProkerClient.tsx changes:**\n- scale: 3 (sharp text/tables)\n- letterRendering: true\n- loggingSize: true (debug)\n- timeout: 1200ms\n\n**Test:** localhost:3000/dashboard/proker/[slug] → Print → Perfect A4 PDF
+# TODO - Surat Tugas Dynamic Personnel (FMIPA UII)
+
+- [x] Refactor form state to use `personnelRoles` dynamic structure
+- [x] Add helper mappers for backward compatibility from legacy fields
+- [x] Implement dynamic role repeater UI (`+ Add Role`, remove role)
+- [x] Implement hybrid member input per role (search existing `pengurusList` + custom add)
+- [x] Integrate new fields `unitKerja` and `durasiBulan` in form
+- [x] Update save/edit flow to persist/read new payload shape cleanly
+- [ ] Refine personnel section UX layout to responsive multi-column cards
+- [ ] Move `+ Add Role` action to bottom area of personnel section
+- [ ] Implement preview-first save flow (Back/Edit + Confirm & Save)
+- [ ] Unify preview and PDF document layout rendering
+- [ ] Ensure dynamic personnel list alignment (single vs multiple members)
+- [ ] Run targeted lint/type check and verify no new feature-scope errors
