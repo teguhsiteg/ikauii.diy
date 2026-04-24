@@ -15,7 +15,7 @@ import {
 } from "firebase/firestore";
 import * as XLSX from "xlsx";
 
-// --- SVG Icons ---
+// --- SVG Icons (Menggantikan Emoji) ---
 const IconTimer = () => (
   <svg
     className="w-5 h-5"
@@ -76,11 +76,101 @@ const IconExternal = () => (
     />
   </svg>
 );
+const IconFlag = () => (
+  <svg
+    className="w-8 h-8 text-slate-400"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.5}
+      d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
+    />
+  </svg>
+);
+const IconBox = () => (
+  <svg
+    className="w-5 h-5 text-amber-500"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+    />
+  </svg>
+);
+const IconDice = () => (
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
+    />
+  </svg>
+);
+const IconUsers = () => (
+  <svg
+    className="w-5 h-5 text-[#1A73E8]"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+    />
+  </svg>
+);
+const IconTrophy = () => (
+  <svg
+    className="w-5 h-5 text-[#D4AF37]"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
+    />
+  </svg>
+);
+const IconLink = () => (
+  <svg
+    className="w-5 h-5 text-[#1A73E8]"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+    />
+  </svg>
+);
 
 // Pilihan Warna Dinamis untuk Kartu Jarak
 const colorThemes = [
   {
-    border: "border-blue-100",
+    border: "border-blue-200",
     bgBlur: "bg-blue-50",
     hoverBgBlur: "group-hover:bg-blue-100",
     textMain: "text-[#152B5B]",
@@ -90,30 +180,30 @@ const colorThemes = [
     inputFocus: "focus:border-[#1A73E8]",
   },
   {
-    border: "border-purple-100",
+    border: "border-purple-200",
     bgBlur: "bg-purple-50",
     hoverBgBlur: "group-hover:bg-purple-100",
-    textMain: "text-[#152B5B]",
+    textMain: "text-purple-900",
     textSub: "text-purple-600",
     btnBg: "bg-purple-600",
     btnHover: "hover:bg-purple-700",
     inputFocus: "focus:border-purple-500",
   },
   {
-    border: "border-emerald-100",
+    border: "border-emerald-200",
     bgBlur: "bg-emerald-50",
     hoverBgBlur: "group-hover:bg-emerald-100",
-    textMain: "text-[#152B5B]",
+    textMain: "text-emerald-900",
     textSub: "text-emerald-600",
     btnBg: "bg-emerald-600",
     btnHover: "hover:bg-emerald-700",
     inputFocus: "focus:border-emerald-500",
   },
   {
-    border: "border-orange-100",
+    border: "border-orange-200",
     bgBlur: "bg-orange-50",
     hoverBgBlur: "group-hover:bg-orange-100",
-    textMain: "text-[#152B5B]",
+    textMain: "text-orange-900",
     textSub: "text-orange-600",
     btnBg: "bg-orange-500",
     btnHover: "hover:bg-orange-600",
@@ -161,6 +251,17 @@ export default function RaceManagementPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const bibInputRef = useRef<HTMLInputElement>(null);
 
+  // 🔥 CUSTOM CONFIRMATION MODAL STATE 🔥
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+    onConfirm: () => {},
+    confirmText: "Ya, Lanjutkan",
+  });
+
+  // Live Clock Ticker
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -184,14 +285,13 @@ export default function RaceManagementPage() {
         const data = docSnap.data();
         setSettings(data);
 
-        // Ekstrak Kategori Jarak dari offlinePackages
+        // Ekstrak Kategori Jarak Langsung Dari Inputan Admin (offlinePackages)
         let availDistances: string[] = [];
         if (data.offlinePackages && data.offlinePackages.length > 0) {
           availDistances = Array.from(
             new Set(data.offlinePackages.map((p: any) => p.jarak)),
           ) as string[];
         } else if (data.virtualPackages && data.virtualPackages.length > 0) {
-          // Fallback kalau offline kosong, intip virtual
           availDistances = Array.from(
             new Set(data.virtualPackages.map((p: any) => p.jarak)),
           ) as string[];
@@ -199,11 +299,13 @@ export default function RaceManagementPage() {
 
         setDistances(availDistances);
 
-        // Inisialisasi state input COT
+        // Inisialisasi input COT
         setCotInputs((prev) => {
           const newCot = { ...prev };
           availDistances.forEach((dist) => {
-            if (!newCot[dist]) newCot[dist] = data[`cot${dist}`] || "120";
+            const safeDistKey = dist.replace(/\./g, "_"); // 🔥 PERBAIKAN 1: Bersihkan nama jarak
+            if (!newCot[dist])
+              newCot[dist] = data[`cot${safeDistKey}`] || "120";
           });
           return newCot;
         });
@@ -222,7 +324,7 @@ export default function RaceManagementPage() {
         source: "offline",
         ...d.data(),
       }));
-      const lunasOffline = allOffline.filter((p) => {
+      const lunasOffline = allOffline.filter((p: any) => {
         const status = (
           p.statusPembayaran ||
           p.statusBayar ||
@@ -236,8 +338,8 @@ export default function RaceManagementPage() {
       setOfflineParticipants(lunasOffline);
 
       const finished = lunasOffline
-        .filter((p) => p.waktuFinish)
-        .sort((a, b) => b.waktuFinish - a.waktuFinish);
+        .filter((p: any) => p.waktuFinish)
+        .sort((a: any, b: any) => b.waktuFinish - a.waktuFinish);
       setFinishers(finished);
 
       const snapVR = await getDocs(collection(db, "vr_participants"));
@@ -246,7 +348,7 @@ export default function RaceManagementPage() {
         source: "vr",
         ...d.data(),
       }));
-      const lunasVR = allVR.filter((p) => {
+      const lunasVR = allVR.filter((p: any) => {
         const status = (
           p.statusPembayaran ||
           p.statusBayar ||
@@ -261,7 +363,7 @@ export default function RaceManagementPage() {
 
       showMsg(
         "success",
-        `Ditemukan ${lunasOffline.length} pelari Offline & ${lunasVR.length} pelari VR.`,
+        `Ditemukan ${lunasOffline.length} pelari Offline & ${lunasVR.length} VR.`,
       );
     } catch (error) {
       showMsg("error", "Gagal menarik data dari database.");
@@ -408,19 +510,29 @@ export default function RaceManagementPage() {
     setIsProcessing(false);
   };
 
-  const handleClearPrizes = async () => {
-    if (!confirm("Yakin hapus semua database hadiah?")) return;
-    setIsProcessing(true);
-    try {
-      await Promise.all(
-        prizeList.map((p) => deleteDoc(doc(db, "doorprize_items", p.id))),
-      );
-      setSelectedPrizeId("");
-      showMsg("success", "Database hadiah dikosongkan.");
-    } catch (e) {
-      showMsg("error", "Gagal menghapus hadiah.");
-    }
-    setIsProcessing(false);
+  const handleClearPrizes = () => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Hapus Semua Hadiah?",
+      message:
+        "Tindakan ini akan mengosongkan seluruh database hadiah doorprize. Lanjutkan?",
+      type: "danger",
+      confirmText: "Ya, Kosongkan",
+      onConfirm: async () => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        setIsProcessing(true);
+        try {
+          await Promise.all(
+            prizeList.map((p) => deleteDoc(doc(db, "doorprize_items", p.id))),
+          );
+          setSelectedPrizeId("");
+          showMsg("success", "Database hadiah dikosongkan.");
+        } catch (e) {
+          showMsg("error", "Gagal menghapus hadiah.");
+        }
+        setIsProcessing(false);
+      },
+    });
   };
 
   const handleAddManualParticipant = () => {
@@ -441,30 +553,56 @@ export default function RaceManagementPage() {
     showMsg("success", `${manualInput.nama} masuk ke Kolam Undian!`);
   };
 
-  // --- 🔥 AKSI GUN TIME & COT DINAMIS 🔥 ---
-  const handleStartRace = async (dist: string) => {
-    if (!confirm(`Mulai Race ${dist} sekarang?`)) return;
-    try {
-      await updateDoc(doc(db, "settings", "virtual_run"), {
-        [`gunTime${dist}`]: Date.now(),
-      });
-      showMsg("success", `RACE ${dist} DIMULAI`);
-    } catch (error) {}
+  // --- 🔥 AKSI GUN TIME DENGAN CUSTOM MODAL 🔥 ---
+  const handleStartRace = (dist: string) => {
+    const safeDistKey = dist.replace(/\./g, "_"); // 🔥 PERBAIKAN 2: Hilangkan titik di keys
+    setConfirmDialog({
+      isOpen: true,
+      title: `Mulai Race ${dist}?`,
+      message: `Timer (Stopwatch) untuk kategori jarak ${dist} akan mulai dihitung secara Live. Lanjutkan?`,
+      type: "info",
+      confirmText: "Start Sekarang",
+      onConfirm: async () => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        try {
+          await updateDoc(doc(db, "settings", "virtual_run"), {
+            [`gunTime${safeDistKey}`]: Date.now(),
+          });
+          showMsg("success", `RACE ${dist} DIMULAI!`);
+        } catch (error) {
+          showMsg("error", "Gagal memulai race.");
+        }
+      },
+    });
   };
 
-  const handleResetGunTime = async (dist: string) => {
-    if (!confirm(`Yakin reset waktu mulai ${dist}?`)) return;
-    try {
-      await updateDoc(doc(db, "settings", "virtual_run"), {
-        [`gunTime${dist}`]: null,
-      });
-    } catch (error) {}
+  const handleResetGunTime = (dist: string) => {
+    const safeDistKey = dist.replace(/\./g, "_"); // 🔥 PERBAIKAN 3: Hilangkan titik di keys
+    setConfirmDialog({
+      isOpen: true,
+      title: `Reset Timer ${dist}?`,
+      message: `Ini akan menghentikan dan mereset waktu berjalan untuk kategori ${dist}. Lanjutkan?`,
+      type: "danger",
+      confirmText: "Ya, Reset",
+      onConfirm: async () => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        try {
+          await updateDoc(doc(db, "settings", "virtual_run"), {
+            [`gunTime${safeDistKey}`]: null,
+          });
+          showMsg("success", `Timer ${dist} direset.`);
+        } catch (error) {
+          showMsg("error", "Gagal mereset timer.");
+        }
+      },
+    });
   };
 
   const handleUpdateCOT = async (dist: string) => {
+    const safeDistKey = dist.replace(/\./g, "_"); // 🔥 PERBAIKAN 4: Hilangkan titik di keys
     try {
       await updateDoc(doc(db, "settings", "virtual_run"), {
-        [`cot${dist}`]: Number(cotInputs[dist]),
+        [`cot${safeDistKey}`]: Number(cotInputs[dist]),
       });
       showMsg("success", `COT ${dist} disimpan.`);
     } catch (error) {}
@@ -483,11 +621,16 @@ export default function RaceManagementPage() {
       if (!peserta) {
         showMsg("error", `BIB ${bibInput} tidak valid/belum lunas!`);
       } else if (peserta.waktuFinish) {
-        showMsg("error", `BIB ${bibInput} sudah finish!`);
+        showMsg("error", `BIB ${bibInput} sudah finish sebelumnya!`);
       } else {
-        const gunTime = settings[`gunTime${peserta.jarak}`];
+        const safeDistKey = peserta.jarak.replace(/\./g, "_"); // 🔥 PERBAIKAN 5: Validasi saat finish
+        const gunTime = settings[`gunTime${safeDistKey}`];
+
         if (!gunTime) {
-          showMsg("error", `Race ${peserta.jarak} belum dimulai!`);
+          showMsg(
+            "error",
+            `Race ${peserta.jarak} belum dimulai! Tekan tombol START dulu.`,
+          );
         } else {
           await updateDoc(doc(db, "offline_participants", peserta.id), {
             waktuFinish: Date.now(),
@@ -496,6 +639,7 @@ export default function RaceManagementPage() {
         }
       }
     } catch (error) {
+      showMsg("error", "Gagal mencatat waktu finish.");
     } finally {
       setBibInput("");
       setIsProcessing(false);
@@ -503,10 +647,11 @@ export default function RaceManagementPage() {
     }
   };
 
+  // Fungsi mengubah durasi Ms ke Format HH:MM:SS
   const formatDuration = (start: number, end: number) => {
     if (!start || !end) return "--:--:--";
     const diffMs = end - start;
-    if (diffMs < 0) return "--:--:--";
+    if (diffMs < 0) return "00:00:00";
     const hrs = Math.floor(diffMs / 3600000);
     const mins = Math.floor((diffMs % 3600000) / 60000);
     const secs = Math.floor((diffMs % 60000) / 1000);
@@ -516,7 +661,8 @@ export default function RaceManagementPage() {
   const isOverCOT = (jarak: string, start: number, end: number) => {
     if (!start || !end) return false;
     const diffMins = (end - start) / 60000;
-    const cotLimit = settings[`cot${jarak}`] || 120;
+    const safeDistKey = jarak.replace(/\./g, "_"); // 🔥 PERBAIKAN 6: Validasi COT
+    const cotLimit = settings[`cot${safeDistKey}`] || 120;
     return diffMins > cotLimit;
   };
 
@@ -615,40 +761,48 @@ export default function RaceManagementPage() {
     }
   };
 
-  const handleCancelWinner = async (peserta: any) => {
-    if (!confirm(`Batalkan kemenangan ${peserta.namaLengkap || peserta.nama}?`))
-      return;
-    try {
-      if (peserta.source === "manual") {
-        setManualParticipants((prev) =>
-          prev.map((p) =>
-            p.id === peserta.id
-              ? { ...p, doorprizeWon: null, waktuMenang: null }
-              : p,
-          ),
-        );
-      } else {
-        const collectionName =
-          peserta.source === "offline"
-            ? "offline_participants"
-            : "vr_participants";
-        await updateDoc(doc(db, collectionName, peserta.id), {
-          doorprizeWon: null,
-          waktuMenang: null,
-        });
-      }
-      const prize = prizeList.find(
-        (pr) => pr.namaHadiah === peserta.doorprizeWon,
-      );
-      if (prize && prize.terundi > 0) {
-        await updateDoc(doc(db, "doorprize_items", prize.id), {
-          terundi: prize.terundi - 1,
-        });
-      }
-      showMsg("success", "Kemenangan dibatalkan.");
-    } catch (error) {
-      showMsg("error", "Gagal membatalkan.");
-    }
+  const handleCancelWinner = (peserta: any) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Batalkan Pemenang?",
+      message: `Apakah Anda yakin ingin membatalkan kemenangan ${peserta.namaLengkap || peserta.nama}? Status hadiah akan dikembalikan.`,
+      type: "danger",
+      confirmText: "Ya, Batalkan",
+      onConfirm: async () => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        try {
+          if (peserta.source === "manual") {
+            setManualParticipants((prev) =>
+              prev.map((p) =>
+                p.id === peserta.id
+                  ? { ...p, doorprizeWon: null, waktuMenang: null }
+                  : p,
+              ),
+            );
+          } else {
+            const collectionName =
+              peserta.source === "offline"
+                ? "offline_participants"
+                : "vr_participants";
+            await updateDoc(doc(db, collectionName, peserta.id), {
+              doorprizeWon: null,
+              waktuMenang: null,
+            });
+          }
+          const prize = prizeList.find(
+            (pr) => pr.namaHadiah === peserta.doorprizeWon,
+          );
+          if (prize && prize.terundi > 0) {
+            await updateDoc(doc(db, "doorprize_items", prize.id), {
+              terundi: prize.terundi - 1,
+            });
+          }
+          showMsg("success", "Kemenangan dibatalkan.");
+        } catch (error) {
+          showMsg("error", "Gagal membatalkan.");
+        }
+      },
+    });
   };
 
   const handleUpdateSetting = async (key: string, value: any) => {
@@ -657,6 +811,75 @@ export default function RaceManagementPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col selection:bg-blue-100">
+      {/* 🔥 CUSTOM MODAL KONFIRMASI 🔥 */}
+      {confirmDialog.isOpen && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            <div
+              className={`p-6 text-center border-b border-slate-100 ${confirmDialog.type === "danger" ? "bg-rose-50" : "bg-blue-50"}`}
+            >
+              <div
+                className={`w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-3 shadow-sm border bg-white ${confirmDialog.type === "danger" ? "text-rose-500 border-rose-200" : "text-[#1A73E8] border-blue-200"}`}
+              >
+                {confirmDialog.type === "danger" ? (
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M13 10V3L4 14h7v7l9-11h-7z"
+                    />
+                  </svg>
+                )}
+              </div>
+              <h3 className="text-lg font-black text-slate-800 tracking-tight">
+                {confirmDialog.title}
+              </h3>
+            </div>
+            <div className="p-6 text-center">
+              <p className="text-sm text-slate-600 leading-relaxed mb-6 font-medium">
+                {confirmDialog.message}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() =>
+                    setConfirmDialog({ ...confirmDialog, isOpen: false })
+                  }
+                  className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-xl transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={confirmDialog.onConfirm}
+                  className={`w-full font-bold py-3 rounded-xl transition-colors text-white shadow-md ${confirmDialog.type === "danger" ? "bg-rose-500 hover:bg-rose-600" : "bg-[#1A73E8] hover:bg-[#1557b0]"}`}
+                >
+                  {confirmDialog.confirmText}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="bg-white/90 backdrop-blur-xl border-b border-slate-200 px-8 py-5 flex justify-between items-center shrink-0 z-20 sticky top-0 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="w-3 h-3 rounded-full bg-[#1A73E8] shadow-[0_0_10px_rgba(26,115,232,0.5)] animate-pulse"></div>
@@ -701,15 +924,17 @@ export default function RaceManagementPage() {
             {/* 🔥 KARTU GUN TIME DINAMIS 🔥 */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 shrink-0">
               {distances.length === 0 && (
-                <div className="col-span-full text-center py-6 text-slate-400 font-medium italic border border-dashed border-slate-300 rounded-xl">
-                  Belum ada paket jarak lari yang di-setting.
+                <div className="col-span-full text-center py-6 text-slate-400 font-medium italic border border-dashed border-slate-300 rounded-xl flex flex-col items-center gap-2">
+                  <IconFlag />
+                  Belum ada paket jarak lari yang di-setting dari menu Admin.
                 </div>
               )}
               {distances.map((dist, index) => {
                 const theme = colorThemes[index % colorThemes.length];
-                const gunTime = settings[`gunTime${dist}`];
+                const safeDistKey = dist.replace(/\./g, "_"); // Mencegah bug titik di nama field
+                const gunTime = settings[`gunTime${safeDistKey}`];
                 const cotValue =
-                  cotInputs[dist] || settings[`cot${dist}`] || "120";
+                  cotInputs[dist] || settings[`cot${safeDistKey}`] || "120";
 
                 return (
                   <div
@@ -719,41 +944,57 @@ export default function RaceManagementPage() {
                     <div
                       className={`absolute top-0 right-0 w-32 h-32 ${theme.bgBlur} rounded-full blur-2xl transition-all ${theme.hoverBgBlur}`}
                     ></div>
+
                     <div className="flex justify-between items-start relative z-10">
-                      <div>
+                      <div className="flex-grow">
                         <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                          Gun Time {dist}
+                          KATEGORI {dist}
                         </h3>
-                        <div
-                          className={`text-3xl font-black ${theme.textMain} mt-1`}
-                        >
-                          {dist}
-                        </div>
-                        <div
-                          className={`text-sm font-mono ${theme.textSub} mt-2 font-bold`}
-                        >
-                          {gunTime
-                            ? `Mulai: ${new Date(gunTime).toLocaleTimeString("id-ID")}`
-                            : "Menunggu Start..."}
-                        </div>
+
+                        {/* 🔥 LOGIKA LIVE TIMER (STOPWATCH) 🔥 */}
+                        {gunTime ? (
+                          <>
+                            <div
+                              className={`text-4xl md:text-5xl font-black font-mono ${theme.textMain} mt-2 tracking-tight`}
+                            >
+                              {formatDuration(gunTime, currentTime.getTime())}
+                            </div>
+                            <div
+                              className={`text-xs font-bold ${theme.textSub} mt-1`}
+                            >
+                              Waktu Mulai:{" "}
+                              {new Date(gunTime).toLocaleTimeString("id-ID")}
+                            </div>
+                          </>
+                        ) : (
+                          <div
+                            className={`text-sm font-bold ${theme.textSub} mt-2 py-3`}
+                          >
+                            Menunggu Start...
+                          </div>
+                        )}
                       </div>
-                      {gunTime ? (
-                        <button
-                          onClick={() => handleResetGunTime(dist)}
-                          className="text-xs font-bold text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-4 py-2 rounded-lg transition-colors shadow-sm"
-                        >
-                          Reset
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleStartRace(dist)}
-                          className={`px-6 py-3 ${theme.btnBg} ${theme.btnHover} text-white text-sm font-black uppercase tracking-wider rounded-xl shadow-md transition-all`}
-                        >
-                          Start {dist}
-                        </button>
-                      )}
+
+                      <div className="shrink-0 flex flex-col gap-2">
+                        {gunTime ? (
+                          <button
+                            onClick={() => handleResetGunTime(dist)}
+                            className="text-[10px] font-bold text-rose-500 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-200 px-4 py-2 rounded-lg transition-colors shadow-sm uppercase tracking-widest"
+                          >
+                            Reset
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleStartRace(dist)}
+                            className={`px-6 py-3 ${theme.btnBg} ${theme.btnHover} text-white text-sm font-black uppercase tracking-wider rounded-xl shadow-md transition-all`}
+                          >
+                            Start
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-100 relative z-10">
+
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-100 relative z-10 mt-auto">
                       <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                         Batas Waktu (COT):
                       </label>
@@ -769,12 +1010,12 @@ export default function RaceManagementPage() {
                           }
                           className={`w-14 bg-white border border-slate-200 rounded text-center text-sm font-bold text-slate-800 focus:outline-none ${theme.inputFocus}`}
                         />
-                        <span className="text-xs text-slate-500 font-medium">
+                        <span className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">
                           menit
                         </span>
                         <button
                           onClick={() => handleUpdateCOT(dist)}
-                          className="text-[10px] bg-slate-200 font-bold px-3 py-1.5 rounded-md text-slate-600 hover:bg-slate-300 transition-colors uppercase"
+                          className="text-[9px] bg-slate-200 font-bold px-3 py-1.5 rounded text-slate-600 hover:bg-slate-300 transition-colors uppercase"
                         >
                           Set
                         </button>
@@ -790,7 +1031,7 @@ export default function RaceManagementPage() {
               <div className="xl:col-span-1 bg-white border border-slate-200 rounded-2xl p-8 flex flex-col shadow-sm text-center relative overflow-hidden">
                 <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-emerald-50 rounded-full blur-3xl pointer-events-none"></div>
                 <div className="w-16 h-16 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center text-3xl mx-auto mb-6 relative z-10">
-                  🏁
+                  <IconFlag />
                 </div>
                 <h2 className="text-lg font-black text-[#152B5B] mb-2 uppercase tracking-widest relative z-10">
                   Scanner Finish
@@ -800,7 +1041,6 @@ export default function RaceManagementPage() {
                   <span className="text-slate-700 font-bold bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
                     Enter
                   </span>
-                  .
                 </p>
                 <form
                   onSubmit={handleSubmitFinish}
@@ -819,9 +1059,16 @@ export default function RaceManagementPage() {
                   <button
                     type="submit"
                     disabled={isProcessing || !bibInput}
-                    className="w-full mt-6 bg-[#1A73E8] hover:bg-[#1557b0] text-white text-sm font-black py-4 rounded-xl disabled:opacity-50 transition-all uppercase tracking-widest shadow-md"
+                    className="w-full mt-6 bg-[#1A73E8] hover:bg-[#1557b0] text-white text-sm font-black py-4 rounded-xl disabled:opacity-50 transition-all uppercase tracking-widest shadow-md flex justify-center items-center gap-2"
                   >
-                    {isProcessing ? "Menyimpan..." : "Catat Waktu"}
+                    {isProcessing ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>{" "}
+                        Menyimpan...
+                      </>
+                    ) : (
+                      "Catat Waktu"
+                    )}
                   </button>
                 </form>
               </div>
@@ -870,7 +1117,8 @@ export default function RaceManagementPage() {
                         </tr>
                       )}
                       {finishers.map((p) => {
-                        const gunTime = settings[`gunTime${p.jarak}`];
+                        const safeDistKey = p.jarak.replace(/\./g, "_");
+                        const gunTime = settings[`gunTime${safeDistKey}`];
                         const overCOT = isOverCOT(
                           p.jarak,
                           gunTime,
@@ -893,9 +1141,7 @@ export default function RaceManagementPage() {
                               {p.namaLengkap || p.nama}
                             </td>
                             <td className="px-5 py-4">
-                              <span
-                                className={`text-[9px] font-bold px-2 py-1 rounded-md uppercase tracking-wider bg-slate-100 text-slate-500 border border-slate-200`}
-                              >
+                              <span className="text-[9px] font-bold px-2 py-1 rounded-md uppercase tracking-wider bg-slate-100 text-slate-500 border border-slate-200">
                                 {p.jarak}
                               </span>
                             </td>
@@ -931,7 +1177,7 @@ export default function RaceManagementPage() {
               <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm shrink-0">
                 <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-100">
                   <h2 className="text-xs font-black text-[#152B5B] uppercase tracking-widest flex items-center gap-2">
-                    <span className="text-amber-500">📦</span> Database Hadiah
+                    <IconBox /> Database Hadiah
                   </h2>
                   <div className="flex gap-2">
                     <button
@@ -1034,7 +1280,7 @@ export default function RaceManagementPage() {
                 <div className="absolute top-0 right-0 w-40 h-40 bg-amber-50 rounded-full blur-3xl pointer-events-none"></div>
                 <h2 className="text-xs font-black text-[#152B5B] mb-5 uppercase tracking-widest flex items-center justify-between relative z-10">
                   <span className="flex items-center gap-2">
-                    <span className="text-amber-500">🕹️</span> Layar Studio
+                    <IconBroadcast /> Layar Studio
                   </span>
                   <a
                     href="/doorprize-screen"
@@ -1053,7 +1299,7 @@ export default function RaceManagementPage() {
                   >
                     {isProcessing
                       ? "Menarik Data..."
-                      : "🔄 Sinkronisasi Data Peserta Lunas"}
+                      : "Sinkronisasi Data Peserta Lunas"}
                   </button>
 
                   <div>
@@ -1105,9 +1351,18 @@ export default function RaceManagementPage() {
                     <button
                       onClick={() => handleRemoteDoorprize("spin")}
                       disabled={isSpinning}
-                      className={`w-full text-white text-sm font-black py-4 rounded-xl transition-all uppercase tracking-widest shadow-md ${isSpinning ? "bg-slate-400 animate-pulse cursor-not-allowed" : "bg-[#D4AF37] hover:bg-yellow-600 hover:scale-105"}`}
+                      className={`w-full text-white text-sm font-black py-4 rounded-xl transition-all uppercase tracking-widest shadow-md flex items-center justify-center gap-2 ${isSpinning ? "bg-slate-400 cursor-not-allowed" : "bg-[#D4AF37] hover:bg-yellow-600 hover:scale-105"}`}
                     >
-                      {isSpinning ? "Mengundi..." : "🎲 Putar & Undi Otomatis"}
+                      {isSpinning ? (
+                        <>
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>{" "}
+                          Mengundi...
+                        </>
+                      ) : (
+                        <>
+                          <IconDice /> Putar & Undi Otomatis
+                        </>
+                      )}
                     </button>
                   </div>
                   <button
@@ -1125,7 +1380,7 @@ export default function RaceManagementPage() {
               <div className="bg-white border border-slate-200 rounded-2xl flex flex-col min-h-0 overflow-hidden shadow-sm">
                 <div className="p-4 border-b border-slate-100 flex justify-between items-center shrink-0 bg-slate-50">
                   <h3 className="font-bold text-slate-700 text-xs uppercase tracking-widest flex items-center gap-2">
-                    <span className="text-[#1A73E8]">👥</span> Kolam Undian
+                    <IconUsers /> Kolam Undian
                   </h3>
                   <span className="text-[10px] font-bold uppercase text-[#152B5B] bg-blue-50 border border-blue-200 px-2 py-1 rounded">
                     {candidates.length} Orang
@@ -1218,7 +1473,7 @@ export default function RaceManagementPage() {
               <div className="bg-white border border-[#D4AF37]/30 rounded-2xl flex flex-col min-h-0 overflow-hidden shadow-sm">
                 <div className="p-4 border-b border-slate-100 flex justify-between items-center shrink-0 bg-slate-50">
                   <h3 className="font-bold text-slate-700 text-xs uppercase tracking-widest flex items-center gap-2">
-                    <span className="text-[#D4AF37]">🏆</span> Pemenang
+                    <IconTrophy /> Pemenang
                   </h3>
                   <span className="text-[10px] font-bold uppercase text-[#152B5B] bg-amber-50 border border-amber-200 px-2 py-1 rounded">
                     {winners.length} Orang
@@ -1253,8 +1508,8 @@ export default function RaceManagementPage() {
                             <div className="text-xs font-bold text-slate-800 truncate max-w-[150px]">
                               {p.namaLengkap || p.nama}
                             </div>
-                            <div className="text-[10px] font-bold text-[#D4AF37] mt-0.5 truncate max-w-[150px]">
-                              🎁 {p.doorprizeWon}
+                            <div className="text-[10px] font-bold text-[#D4AF37] mt-0.5 truncate max-w-[150px] flex items-center gap-1">
+                              <IconGift /> {p.doorprizeWon}
                             </div>
                           </td>
                           <td className="px-4 py-3 text-right align-top">
@@ -1283,8 +1538,7 @@ export default function RaceManagementPage() {
             <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm relative overflow-hidden">
               <div className="absolute top-0 left-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl pointer-events-none"></div>
               <h2 className="text-xs font-black text-[#152B5B] mb-5 uppercase tracking-widest border-b border-slate-100 pb-4 flex items-center gap-2 relative z-10">
-                <span className="text-[#1A73E8]">🔗</span> Tautan Video Call
-                Pemenang
+                <IconLink /> Tautan Video Call Pemenang
               </h2>
               <input
                 type="url"
@@ -1304,8 +1558,8 @@ export default function RaceManagementPage() {
             <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-rose-50 rounded-full blur-3xl pointer-events-none"></div>
               <h2 className="text-xs font-black text-[#152B5B] mb-5 uppercase tracking-widest border-b border-slate-100 pb-4 flex items-center gap-2 relative z-10">
-                <span className="text-rose-500 animate-pulse">●</span> YouTube
-                Live Streaming
+                <span className="w-3 h-3 rounded-full bg-rose-500 animate-pulse border-2 border-rose-200"></span>{" "}
+                YouTube Live Streaming
               </h2>
               <input
                 type="url"

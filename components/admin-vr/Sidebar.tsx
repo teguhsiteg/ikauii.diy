@@ -20,6 +20,7 @@ export default function Sidebar({
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     "Data & Registrasi": true, // Default terbuka
     "Operasi Lapangan": true,
+    "Konfigurasi Sistem": true, // Buka default biar gampang cari menu Sponsor
   });
 
   // Fungsi toggle Dropdown
@@ -121,6 +122,7 @@ export default function Sidebar({
       ),
       subItems: [
         { name: "Pengaturan Umum", path: "/admin-vr/pengaturan" },
+        { name: "Manajemen Sponsor", path: "/admin-vr/sponsor" }, // 🔥 MENU BARU KITA 🔥
         { name: "Kontrol Akses", path: "/admin-vr/kontrol" },
         { name: "Legal & Aturan", path: "/admin-vr/legal" },
       ],

@@ -293,7 +293,7 @@ export default function DashboardLayout({
       access: "all",
     },
     {
-      name: "E-Office (Persuratan)",
+      name: "Registri Surat",
       path: "/dashboard/e-office",
       icon: "M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z",
       access: "all",
@@ -414,7 +414,7 @@ export default function DashboardLayout({
                 DPW IKA UII
               </h2>
               <p className="text-[9px] text-blue-400 font-bold uppercase tracking-[0.2em] mt-0.5">
-                E-Office Admin
+                UII JAYA ALUMNI BERDAYA
               </p>
             </div>
           </div>

@@ -648,12 +648,20 @@ export default function PengurusPage() {
                     onClick={() => setSelectedDpd(dpd)}
                     className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-lg hover:-translate-y-1 hover:border-blue-300 transition-all duration-300 cursor-pointer group flex items-center gap-4"
                   >
-                    <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-slate-100 bg-slate-50 shrink-0 group-hover:border-blue-300 transition-colors flex items-center justify-center">
-                      <img
-                        src={dpd.fotoUrl || "/logo-dpp-ika.png"}
-                        alt={dpd.ketua || "Logo"}
-                        className={`w-full h-full ${dpd.fotoUrl ? "object-cover" : "object-contain p-2 opacity-40"}`}
-                      />
+                    <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-slate-100 bg-slate-50 shrink-0 group-hover:border-blue-300 transition-colors flex items-center justify-center relative">
+                      {dpd.fotoUrl ? (
+                        <img
+                          src={dpd.fotoUrl}
+                          alt={dpd.ketua || "Foto DPD"}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <img
+                          src="/logo-dpp-ika.png"
+                          alt="Logo Placeholder"
+                          className="w-3/4 h-3/4 object-contain opacity-30 grayscale"
+                        />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-sm text-blue-950 group-hover:text-blue-700 transition-colors truncate mb-0.5">
@@ -694,11 +702,19 @@ export default function PengurusPage() {
               <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-800/50 rounded-full blur-3xl"></div>
 
               <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white shadow-xl bg-slate-50 relative z-10 mb-4 flex items-center justify-center">
-                <img
-                  src={selectedDpd.fotoUrl || "/logo-dpp-ika.png"}
-                  alt={selectedDpd.ketua}
-                  className={`w-full h-full ${selectedDpd.fotoUrl ? "object-cover" : "object-contain p-5 opacity-40"}`}
-                />
+                {selectedDpd.fotoUrl ? (
+                  <img
+                    src={selectedDpd.fotoUrl}
+                    alt={selectedDpd.ketua || "Foto Profil"}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src="/logo-dpp-ika.png"
+                    alt="Logo Placeholder"
+                    className="w-16 h-16 object-contain opacity-30 grayscale"
+                  />
+                )}
               </div>
 
               <h3 className="text-xl font-black text-white relative z-10 leading-tight">

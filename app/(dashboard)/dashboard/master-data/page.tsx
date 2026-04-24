@@ -68,7 +68,6 @@ export default function MasterDataOrmawa() {
     linkedinUrl: "",
     instagramUrl: "",
     isTampilBeranda: false,
-    // --- STATE BARU UNTUK NOMOR URUT ---
     noUrut: "",
   });
   const [searchPengurus, setSearchPengurus] = useState("");
@@ -81,6 +80,7 @@ export default function MasterDataOrmawa() {
     nama: "",
     status: "Aktif",
     ketua: "",
+    fotoUrl: "", // 🔥 TAMBAHAN STATE FOTO DPD
   });
 
   // --- FETCH DATA ---
@@ -156,7 +156,6 @@ export default function MasterDataOrmawa() {
     setView("form");
   };
 
-  // --- 🔥 LOGIKA SAVE DIUBAH UNTUK NO URUT 🔥 ---
   const saveData = async (
     e: React.FormEvent,
     koleksi: string,
@@ -172,7 +171,6 @@ export default function MasterDataOrmawa() {
     try {
       let finalData = { ...formData };
 
-      // Kalau yang disave adalah pengurus, konversi noUrut jadi angka, jika kosong set 99
       if (koleksi === "pengurus") {
         finalData.noUrut = formData.noUrut ? Number(formData.noUrut) : 99;
       }
@@ -269,7 +267,7 @@ export default function MasterDataOrmawa() {
     }
   };
 
-  // --- EXCEL HANDLERS (ALL TABS) ---
+  // --- EXCEL HANDLERS ---
   const downloadTemplateExcel = (type: string) => {
     let wsData: any[] = [];
     if (type === "periode")
@@ -288,11 +286,11 @@ export default function MasterDataOrmawa() {
           Nama: "Budi Santoso",
           WA: "08123456",
           Email: "budi@uii.ac.id",
-          Jabatan: "Wakil Ketua 1", // Contoh yang butuh no urut
+          Jabatan: "Wakil Ketua 1",
           Bidang: "Pengurus Harian",
           Pengurus_Inti: "Ya",
           Tampil_Beranda: "YA",
-          Nomor_Urut: 1, // --- TAMBAHAN KOLOM NO URUT EXCEL ---
+          Nomor_Urut: 1,
           Foto_URL: "",
           LinkedIn: "",
           Instagram: "",
@@ -304,6 +302,7 @@ export default function MasterDataOrmawa() {
           Nama_Daerah: "DPD Kabupaten Sleman",
           Ketua: "Ahmad Dahlan",
           Status: "Aktif",
+          Foto_URL: "", // 🔥 TAMBAHAN TEMPLATE EXCEL DPD
         },
       ];
 
@@ -366,7 +365,6 @@ export default function MasterDataOrmawa() {
               fotoUrl: row.Foto_URL || "",
               linkedinUrl: row.LinkedIn || "",
               instagramUrl: row.Instagram || "",
-              // --- TANGKAP NO URUT DARI EXCEL ---
               noUrut: row.Nomor_Urut ? Number(row.Nomor_Urut) : 99,
               createdAt: new Date().toISOString(),
             });
@@ -376,6 +374,7 @@ export default function MasterDataOrmawa() {
               nama: row.Nama_Daerah,
               ketua: row.Ketua || "",
               status: row.Status || "Aktif",
+              fotoUrl: row.Foto_URL || "", // 🔥 SIMPAN FOTO URL DARI EXCEL DPD
               createdAt: new Date().toISOString(),
             });
             count++;
@@ -418,7 +417,7 @@ export default function MasterDataOrmawa() {
         Email: d.email,
         Jabatan: d.jabatan,
         Bidang: d.bidang,
-        Nomor_Urut: d.noUrut || 99, // Tambah ke export
+        Nomor_Urut: d.noUrut || 99,
         Pengurus_Inti: d.isInti ? "Ya" : "Tidak",
         Tampil_Beranda: d.isTampilBeranda ? "Ya" : "Tidak",
         Foto_URL: d.fotoUrl || "",
@@ -430,6 +429,7 @@ export default function MasterDataOrmawa() {
         Nama_Daerah: d.nama,
         Ketua: d.ketua,
         Status: d.status,
+        Foto_URL: d.fotoUrl || "", // 🔥 EXPORT FOTO URL DPD
       }));
 
     const ws = XLSX.utils.json_to_sheet(formattedData);
@@ -889,7 +889,7 @@ export default function MasterDataOrmawa() {
                       linkedinUrl: "",
                       instagramUrl: "",
                       isTampilBeranda: false,
-                      noUrut: "", // Reset no urut
+                      noUrut: "",
                     });
                   }}
                 />
@@ -983,7 +983,6 @@ export default function MasterDataOrmawa() {
                           <div>
                             <div className="font-medium text-slate-800 flex items-center gap-2">
                               {p.nama}
-                              {/* --- BADGE NO URUT DI TABEL --- */}
                               {p.noUrut && p.noUrut !== 99 && (
                                 <span className="bg-slate-100 text-slate-500 text-[9px] px-1.5 rounded-sm border font-mono">
                                   Urutan: {p.noUrut}
@@ -1072,7 +1071,7 @@ export default function MasterDataOrmawa() {
                   linkedinUrl: "",
                   instagramUrl: "",
                   isTampilBeranda: false,
-                  noUrut: "", // Reset no urut
+                  noUrut: "",
                 },
                 setViewPengurus,
                 setEditPengurusId,
@@ -1085,7 +1084,6 @@ export default function MasterDataOrmawa() {
             </h3>
 
             <div className="space-y-4">
-              {/* KOTAK FOTO */}
               <div className="flex flex-col sm:flex-row gap-5 items-start bg-slate-50 p-4 rounded-xl border border-slate-100">
                 <div className="shrink-0 w-24 h-24 rounded-full border-4 border-white shadow-md overflow-hidden bg-slate-200 flex items-center justify-center">
                   {pengurusForm.fotoUrl ? (
@@ -1221,7 +1219,6 @@ export default function MasterDataOrmawa() {
                 </div>
               </div>
 
-              {/* --- TOGGLE INTI & BERANDA --- */}
               <div className="grid sm:grid-cols-2 gap-4 pt-3">
                 <label className="flex items-start gap-3 p-4 border border-slate-200 bg-white hover:bg-slate-50 rounded-xl cursor-pointer transition-colors shadow-sm">
                   <input
@@ -1260,7 +1257,6 @@ export default function MasterDataOrmawa() {
                 </label>
               </div>
 
-              {/* --- 🔥 INPUT NOMOR URUT BARU 🔥 --- */}
               <div className="pt-2">
                 <label className="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">
                   Nomor Urut Tampil (Opsional)
@@ -1316,6 +1312,12 @@ export default function MasterDataOrmawa() {
                 onAdd={() => {
                   setViewDpd("form");
                   setEditDpdId(null);
+                  setDpdForm({
+                    nama: "",
+                    status: "Aktif",
+                    ketua: "",
+                    fotoUrl: "",
+                  });
                 }}
               />
             </div>
@@ -1335,7 +1337,7 @@ export default function MasterDataOrmawa() {
                       />
                     </th>
                     <th className="px-4 py-3 font-medium text-xs">
-                      Nama DPD & Status
+                      Profil DPD & Status
                     </th>
                     <th className="px-4 py-3 font-medium text-xs text-right">
                       Aksi
@@ -1367,16 +1369,25 @@ export default function MasterDataOrmawa() {
                         />
                       </td>
                       <td className="px-4 py-3">
-                        <div className="font-medium text-sm text-slate-800 flex items-center gap-2">
-                          {d.nama}{" "}
-                          <span
-                            className={`text-[9px] px-1.5 py-0.5 rounded-md font-semibold border ${d.status === "Aktif" ? "bg-green-50 text-green-700 border-green-200" : "bg-orange-50 text-orange-700 border-orange-200"}`}
-                          >
-                            {d.status}
-                          </span>
-                        </div>
-                        <div className="text-xs text-slate-500 mt-1">
-                          Ketua: {d.ketua || "-"}
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={d.fotoUrl || "/logo-dpp-ika.png"}
+                            alt={d.nama}
+                            className={`w-10 h-10 rounded-full border border-slate-200 shadow-sm bg-slate-50 ${d.fotoUrl ? "object-cover" : "object-contain p-1.5 opacity-40 grayscale"}`}
+                          />
+                          <div>
+                            <div className="font-medium text-sm text-slate-800 flex items-center gap-2">
+                              {d.nama}{" "}
+                              <span
+                                className={`text-[9px] px-1.5 py-0.5 rounded-md font-semibold border ${d.status === "Aktif" ? "bg-green-50 text-green-700 border-green-200" : "bg-orange-50 text-orange-700 border-orange-200"}`}
+                              >
+                                {d.status}
+                              </span>
+                            </div>
+                            <div className="text-xs text-slate-500 mt-1">
+                              Ketua: {d.ketua || "-"}
+                            </div>
+                          </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -1404,46 +1415,80 @@ export default function MasterDataOrmawa() {
                 editDpdId,
                 dpdForm,
                 setDpdForm,
-                { nama: "", status: "Aktif", ketua: "" },
+                { nama: "", status: "Aktif", ketua: "", fotoUrl: "" },
                 setViewDpd,
                 setEditDpdId,
               )
             }
             className="bg-white rounded-xl border border-slate-200 p-5 max-w-md mx-auto shadow-sm"
           >
-            <h3 className="font-semibold mb-4 text-sm">
+            <h3 className="font-semibold mb-4 text-sm border-b border-slate-100 pb-3">
               {editDpdId ? "Edit DPD" : "Registrasi DPD Baru"}
             </h3>
             <div className="space-y-3">
-              <input
-                type="text"
-                name="nama"
-                value={dpdForm.nama}
-                onChange={handleFormChange(setDpdForm, dpdForm)}
-                required
-                placeholder="Nama Daerah (Cth: DPD Sleman)"
-                className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm outline-none focus:border-blue-500"
-              />
-              <input
-                type="text"
-                name="ketua"
-                value={dpdForm.ketua}
-                onChange={handleFormChange(setDpdForm, dpdForm)}
-                placeholder="Nama Ketua DPD"
-                className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm outline-none focus:border-blue-500"
-              />
-              <select
-                name="status"
-                value={dpdForm.status}
-                onChange={handleFormChange(setDpdForm, dpdForm)}
-                className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm outline-none focus:border-blue-500"
-              >
-                <option value="Aktif">Aktif</option>
-                <option value="Konsolidasi">Konsolidasi (Pembaruan SK)</option>
-                <option value="Vakum">Vakum</option>
-              </select>
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">
+                  Nama Daerah
+                </label>
+                <input
+                  type="text"
+                  name="nama"
+                  value={dpdForm.nama}
+                  onChange={handleFormChange(setDpdForm, dpdForm)}
+                  required
+                  placeholder="Cth: DPD Kabupaten Sleman"
+                  className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">
+                  Nama Ketua DPD
+                </label>
+                <input
+                  type="text"
+                  name="ketua"
+                  value={dpdForm.ketua}
+                  onChange={handleFormChange(setDpdForm, dpdForm)}
+                  placeholder="Nama Lengkap Ketua"
+                  className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">
+                  URL Foto Profil DPD (Opsional)
+                </label>
+                <input
+                  type="url"
+                  name="fotoUrl"
+                  value={dpdForm.fotoUrl || ""}
+                  onChange={handleFormChange(setDpdForm, dpdForm)}
+                  placeholder="https://contoh.com/foto-dpd.jpg"
+                  className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">
+                  Status DPD
+                </label>
+                <select
+                  name="status"
+                  value={dpdForm.status}
+                  onChange={handleFormChange(setDpdForm, dpdForm)}
+                  className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm outline-none focus:border-blue-500 bg-slate-50"
+                >
+                  <option value="Aktif">Aktif</option>
+                  <option value="Konsolidasi">
+                    Konsolidasi (Pembaruan SK)
+                  </option>
+                  <option value="Vakum">Vakum</option>
+                </select>
+              </div>
             </div>
-            <div className="flex gap-2 mt-5">
+
+            <div className="flex gap-2 mt-6 pt-4 border-t border-slate-100">
               <button
                 type="submit"
                 disabled={isSaving}

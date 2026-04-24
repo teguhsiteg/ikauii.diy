@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { db } from "@/lib/firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import Link from "next/link";
 import NavbarPublic from "@/components/layout/NavbarPublic";
 import FooterPublic from "@/components/layout/FooterPublic";
@@ -95,6 +95,48 @@ export default function BergabungPage() {
     setIsSubmitting(true);
 
     try {
+      // 🔥 CEK DATA DUPLIKAT DI FIREBASE (ANTI SPAM/DOBEL) 🔥
+      const pendaftarRef = collection(db, "pendaftar");
+      const [cekEmail, cekWA, cekNIM] = await Promise.all([
+        getDocs(query(pendaftarRef, where("email", "==", formData.email))),
+        getDocs(query(pendaftarRef, where("noWA", "==", formData.noWA))),
+        getDocs(query(pendaftarRef, where("nim", "==", formData.nim))),
+      ]);
+
+      if (!cekEmail.empty) {
+        setModal({
+          isOpen: true,
+          type: "warning",
+          title: "Email Sudah Terdaftar",
+          message: `Alamat email ${formData.email} sudah pernah didaftarkan. Status Anda mungkin sedang dalam proses.`,
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!cekWA.empty) {
+        setModal({
+          isOpen: true,
+          type: "warning",
+          title: "Nomor WhatsApp Terpakai",
+          message: `Nomor WhatsApp ${formData.noWA} sudah terdaftar di sistem kami.`,
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!cekNIM.empty) {
+        setModal({
+          isOpen: true,
+          type: "warning",
+          title: "NIM Ditemukan",
+          message: `NIM ${formData.nim} sudah digunakan oleh pendaftar lain. Hubungi admin jika ini adalah kesalahan.`,
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      // ==========================================
+
       // 🔥 3. PROSES VALIDASI ANTI-BOT RECAPTCHA 🔥
       if (!executeRecaptcha) {
         setModal({
@@ -133,12 +175,24 @@ export default function BergabungPage() {
       }
       // ==========================================
 
-      // 4. JIKA LOLOS RECAPTCHA, BARU SIMPAN KE FIREBASE
+      // 4. JIKA LOLOS SEMUA VALIDASI, BARU SIMPAN KE FIREBASE
       await addDoc(collection(db, "pendaftar"), {
         ...formData,
         status: "Dalam Proses",
         tanggalDaftar: new Date().toISOString(),
       });
+
+      // 🔥 5. TRIGGER EMAIL OTOMATIS (MEMBER PENDING) 🔥
+      fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "member_pending",
+          email: formData.email,
+          nama: formData.namaLengkap,
+        }),
+      }).catch((err) => console.error("Gagal trigger email notifikasi:", err));
+      // ==========================================
 
       setIsSuccess(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -495,7 +549,6 @@ export default function BergabungPage() {
                     </div>
 
                     <div className="pt-6">
-                      {/* Lencana reCAPTCHA */}
                       <div className="text-[10px] text-slate-400 text-center mb-4 leading-relaxed px-4">
                         Formulir ini dilindungi oleh reCAPTCHA dan tunduk pada{" "}
                         <a

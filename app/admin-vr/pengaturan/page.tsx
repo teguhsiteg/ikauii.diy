@@ -1179,8 +1179,6 @@ export default function PengaturanAdminPage() {
                     name="isCharityActive"
                     checked={vrSettings.isCharityActive || false}
                     onChange={(e) => {
-                      // Jika handleSettingChange bawaanmu belum support checkbox,
-                      // pastikan dia mengambil nilai dari e.target.checked
                       handleSettingChange({
                         target: {
                           name: "isCharityActive",
@@ -1249,26 +1247,46 @@ export default function PengaturanAdminPage() {
                 >
                   <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-5h3v5zm0-7H7V7h3v3zm7 7h-5V7h5v10z" />
                 </svg>
-                Aset Desain & Mockup
+                Aset Desain & Teks
               </h3>
               <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                Kelola URL gambar untuk preview Medali, Jersey, dan Sertifikat.
+                Kelola URL gambar dan kalimat sertifikat untuk masing-masing
+                modul (Virtual & Offline).
               </p>
             </div>
 
             <div className="lg:col-span-8 space-y-6">
+              {/* ======================================= */}
+              {/* KOTAK ASET: VIRTUAL RUN */}
+              {/* ======================================= */}
               {vrSettings.isVirtualRunEnabled && (
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-5">
-                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-widest mb-2 border-b border-slate-100 pb-2">
-                    Aset Virtual Run
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-5 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-2 h-full bg-[#1A73E8]"></div>
+                  <h4 className="text-xs font-bold text-[#1A73E8] uppercase tracking-widest mb-2 border-b border-slate-100 pb-2 flex items-center gap-2">
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                      />
+                    </svg>
+                    Aset & Sertifikat Virtual Run
                   </h4>
+
+                  {/* URL Gambar VR */}
                   <div className="grid grid-cols-2 gap-5">
                     <div>
                       <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
                         URL Jersey Virtual
                       </label>
                       <input
-                        type="text"
+                        type="url"
                         name="urlJerseyVirtual"
                         value={vrSettings.urlJerseyVirtual || ""}
                         onChange={handleSettingChange}
@@ -1281,7 +1299,7 @@ export default function PengaturanAdminPage() {
                         URL Medali Virtual
                       </label>
                       <input
-                        type="text"
+                        type="url"
                         name="urlMedaliVirtual"
                         value={vrSettings.urlMedaliVirtual || ""}
                         onChange={handleSettingChange}
@@ -1291,49 +1309,137 @@ export default function PengaturanAdminPage() {
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
-                        URL Template E-BIB
+                        URL Template E-BIB Virtual
                       </label>
                       <input
-                        type="text"
+                        type="url"
                         name="urlBibVirtual"
                         value={vrSettings.urlBibVirtual || ""}
                         onChange={handleSettingChange}
+                        placeholder="https://..."
                         className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-[#1A73E8] outline-none text-sm font-mono text-slate-800"
                       />
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
-                        URL Template E-Cert
+                        URL Template E-Cert Virtual
                       </label>
                       <input
-                        type="text"
+                        type="url"
                         name="urlSertifikatVirtual"
                         value={vrSettings.urlSertifikatVirtual || ""}
                         onChange={handleSettingChange}
+                        placeholder="https://..."
                         className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-[#1A73E8] outline-none text-sm font-mono text-slate-800"
                       />
+                    </div>
+                  </div>
+
+                  {/* Teks Sertifikat VR */}
+                  <div className="pt-4 border-t border-slate-100 mt-2">
+                    <label className="block text-[10px] font-bold text-blue-600 mb-3 uppercase tracking-widest bg-blue-50 w-fit px-2 py-1 rounded">
+                      Teks Sertifikat Virtual
+                    </label>
+                    <div className="grid grid-cols-2 gap-5 mb-4">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                          Judul Utama
+                        </label>
+                        <input
+                          type="text"
+                          name="certTitle"
+                          value={vrSettings.certTitle || ""}
+                          onChange={handleSettingChange}
+                          placeholder="E-CERTIFICATE"
+                          className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:border-[#1A73E8] outline-none text-sm font-bold text-slate-800"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                          Sub Judul
+                        </label>
+                        <input
+                          type="text"
+                          name="certSubtitle"
+                          value={vrSettings.certSubtitle || ""}
+                          onChange={handleSettingChange}
+                          placeholder="Virtual Run Finisher"
+                          className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:border-[#1A73E8] outline-none text-sm text-slate-800"
+                        />
+                      </div>
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                        Kalimat Pengantar (Atas Nama)
+                      </label>
+                      <input
+                        type="text"
+                        name="certOpening"
+                        value={vrSettings.certOpening || ""}
+                        onChange={handleSettingChange}
+                        placeholder="Diberikan kepada:"
+                        className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:border-[#1A73E8] outline-none text-sm text-slate-800 italic"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                        Kalimat Penutup (Bawah Nama)
+                      </label>
+                      <textarea
+                        name="certFooter"
+                        value={vrSettings.certFooter || ""}
+                        onChange={handleSettingChange}
+                        rows={2}
+                        placeholder="Atas keberhasilannya menyelesaikan lari secara virtual."
+                        className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:border-[#1A73E8] outline-none text-sm text-slate-800 custom-scrollbar"
+                      ></textarea>
                     </div>
                   </div>
                 </div>
               )}
 
+              {/* ======================================= */}
+              {/* KOTAK ASET: OFFLINE RUN */}
+              {/* ======================================= */}
               {vrSettings.isOfflineRunEnabled && (
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-5">
-                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-widest mb-2 border-b border-slate-100 pb-2">
-                    Aset Offline Run
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-5 relative overflow-hidden mt-4">
+                  <div className="absolute top-0 right-0 w-2 h-full bg-emerald-500"></div>
+                  <h4 className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-2 border-b border-slate-100 pb-2 flex items-center gap-2">
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.242-4.243a8 8 0 1111.314 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                    Aset & Sertifikat Offline Run
                   </h4>
+
+                  {/* URL Gambar Offline */}
                   <div className="grid grid-cols-2 gap-5">
                     <div>
                       <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
                         URL Jersey Offline
                       </label>
                       <input
-                        type="text"
+                        type="url"
                         name="urlJerseyOffline"
                         value={vrSettings.urlJerseyOffline || ""}
                         onChange={handleSettingChange}
                         placeholder="https://..."
-                        className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-[#1A73E8] outline-none text-sm font-mono text-slate-800"
+                        className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-500 outline-none text-sm font-mono text-slate-800"
                       />
                     </div>
                     <div>
@@ -1341,80 +1447,91 @@ export default function PengaturanAdminPage() {
                         URL Medali Offline
                       </label>
                       <input
-                        type="text"
+                        type="url"
                         name="urlMedaliOffline"
                         value={vrSettings.urlMedaliOffline || ""}
                         onChange={handleSettingChange}
                         placeholder="https://..."
-                        className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-[#1A73E8] outline-none text-sm font-mono text-slate-800"
+                        className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-500 outline-none text-sm font-mono text-slate-800"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase flex justify-between">
+                        <span>URL E-Sertifikat Offline</span>
+                        <span className="text-amber-500 lowercase normal-case italic">
+                          *Fallback ke sertifikat virtual jika kosong
+                        </span>
+                      </label>
+                      <input
+                        type="url"
+                        name="urlSertifikatOffline"
+                        value={vrSettings.urlSertifikatOffline || ""}
+                        onChange={handleSettingChange}
+                        placeholder="https://..."
+                        className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-500 outline-none text-sm font-mono text-slate-800"
                       />
                     </div>
                   </div>
-                </div>
-              )}
 
-              {/* Teks Sertifikat */}
-              {vrSettings.isVirtualRunEnabled && (
-                <div className="bg-[#F8F9FA] p-6 rounded-xl border border-slate-200 shadow-sm space-y-5">
-                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-widest mb-2 border-b border-slate-200 pb-2 flex items-center gap-2">
-                    <svg
-                      className="w-4 h-4 text-slate-400"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z" />
-                    </svg>
-                    Teks Sertifikat Kelulusan
-                  </h4>
-                  <div className="grid grid-cols-2 gap-5">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
-                        Judul Utama
+                  {/* Teks Sertifikat Offline */}
+                  <div className="pt-4 border-t border-slate-100 mt-2">
+                    <label className="block text-[10px] font-bold text-emerald-600 mb-3 uppercase tracking-widest bg-emerald-50 w-fit px-2 py-1 rounded">
+                      Teks Sertifikat Offline
+                    </label>
+                    <div className="grid grid-cols-2 gap-5 mb-4">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                          Judul Utama
+                        </label>
+                        <input
+                          type="text"
+                          name="offlineCertTitle"
+                          value={vrSettings.offlineCertTitle || ""}
+                          onChange={handleSettingChange}
+                          placeholder="E-CERTIFICATE"
+                          className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:border-emerald-500 outline-none text-sm font-bold text-slate-800"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                          Sub Judul
+                        </label>
+                        <input
+                          type="text"
+                          name="offlineCertSubtitle"
+                          value={vrSettings.offlineCertSubtitle || ""}
+                          onChange={handleSettingChange}
+                          placeholder="Offline Run Finisher"
+                          className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:border-emerald-500 outline-none text-sm text-slate-800"
+                        />
+                      </div>
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                        Kalimat Pengantar (Atas Nama)
                       </label>
                       <input
                         type="text"
-                        name="certTitle"
-                        value={vrSettings.certTitle || ""}
+                        name="offlineCertOpening"
+                        value={vrSettings.offlineCertOpening || ""}
                         onChange={handleSettingChange}
-                        className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:border-[#1A73E8] outline-none text-sm font-bold text-slate-800"
+                        placeholder="Diberikan dengan bangga kepada:"
+                        className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:border-emerald-500 outline-none text-sm text-slate-800 italic"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
-                        Sub Judul
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                        Kalimat Penutup (Bawah Nama)
                       </label>
-                      <input
-                        type="text"
-                        name="certSubtitle"
-                        value={vrSettings.certSubtitle || ""}
+                      <textarea
+                        name="offlineCertFooter"
+                        value={vrSettings.offlineCertFooter || ""}
                         onChange={handleSettingChange}
-                        className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:border-[#1A73E8] outline-none text-sm text-slate-800"
-                      />
+                        rows={2}
+                        placeholder="Atas keberhasilannya mencapai garis finish pada gelaran IKA UII RUN."
+                        className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:border-emerald-500 outline-none text-sm text-slate-800 custom-scrollbar"
+                      ></textarea>
                     </div>
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
-                      Kalimat Pengantar (Atas Nama)
-                    </label>
-                    <input
-                      type="text"
-                      name="certOpening"
-                      value={vrSettings.certOpening || ""}
-                      onChange={handleSettingChange}
-                      className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:border-[#1A73E8] outline-none text-sm text-slate-800 italic"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
-                      Kalimat Penutup (Bawah Nama)
-                    </label>
-                    <textarea
-                      name="certFooter"
-                      value={vrSettings.certFooter || ""}
-                      onChange={handleSettingChange}
-                      rows={2}
-                      className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:border-[#1A73E8] outline-none text-sm text-slate-800 custom-scrollbar"
-                    ></textarea>
                   </div>
                 </div>
               )}

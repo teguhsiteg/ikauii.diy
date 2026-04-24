@@ -1152,9 +1152,7 @@ export default function PengaturanWebPage() {
                           <option value="Offline (Luring)">
                             Offline (Luring)
                           </option>
-                          <option value="Online (Zoom/YT)">
-                            Online (Zoom/YT)
-                          </option>
+                          <option value="Online event">Online event</option>
                         </select>
                       </div>
                     </div>
@@ -1208,7 +1206,7 @@ export default function PengaturanWebPage() {
                         }
                       >
                         <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                          Link Gmaps / Zoom
+                          Link
                         </label>
                         <input
                           type="text"

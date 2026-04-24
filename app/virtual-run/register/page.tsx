@@ -25,7 +25,7 @@ export default function VirtualRunRegisterPage() {
     whatsapp: "",
     fakultas: "",
     angkatan: "",
-    jarak: "10K",
+    jarak: "", // Dikosongkan dulu, nanti diisi otomatis dari setting admin
     paket: "basic",
     ukuranJersey: "L",
     alamat: "",
@@ -56,6 +56,13 @@ export default function VirtualRunRegisterPage() {
             setIsGrupChecked(true);
           }
 
+          // 🔥 PERBAIKAN: SET DEFAULT JARAK OTOMATIS DARI DB 🔥
+          let defaultJarak = "10K";
+          if (data.virtualPackages && data.virtualPackages.length > 0) {
+            defaultJarak = data.virtualPackages[0].jarak || "10K";
+          }
+          setFormData((prev) => ({ ...prev, jarak: defaultJarak }));
+
           if (data.metodePembayaran === "midtrans" && data.midtransClientKey) {
             const scriptUrl = data.isProduction
               ? "https://app.midtrans.com/snap/snap.js"
@@ -81,12 +88,19 @@ export default function VirtualRunRegisterPage() {
     fetchSettingsAndLoadMidtrans();
   }, []);
 
-  // --- KALKULASI BIAYA SECARA LIVE ---
-  const hargaBasic = settings?.hargaBasic || 0;
-  const hargaStandard = settings?.hargaStandard || 0;
-  const hargaFull = settings?.hargaFull || 0;
-  const ongkirFlat = settings?.ongkirFlat || 0;
-  const minCharity = settings?.minCharity || 25000;
+  // --- 🔥 PERBAIKAN: KALKULASI BIAYA SECARA LIVE & PASTI NUMBER 🔥 ---
+  const hargaBasic = Number(settings?.hargaBasic) || 0;
+  const hargaStandard = Number(settings?.hargaStandard) || 0;
+  const hargaFull = Number(settings?.hargaFull) || 0;
+  const ongkirFlat = Number(settings?.ongkirFlat) || 0;
+  const minCharity = Number(settings?.minCharity) || 25000;
+
+  // Sedot jarak dinamis dari virtualPackages (jika ada), jika tidak pakai default
+  const daftarJarakLari = settings?.virtualPackages
+    ? (Array.from(
+        new Set(settings.virtualPackages.map((p: any) => p.jarak)),
+      ) as string[])
+    : ["5K", "10K", "21K"];
 
   const hargaPaketAktif =
     formData.paket === "basic"
@@ -507,10 +521,12 @@ export default function VirtualRunRegisterPage() {
               </h3>
 
               <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">
-                Pilih Jarak Lari (Multiple Run)
+                Pilih Jarak Lari
               </label>
+
+              {/* 🔥 PERBAIKAN: LOOPING JARAK SECARA DINAMIS 🔥 */}
               <div className="grid grid-cols-3 gap-3 mb-8">
-                {["5K", "10K", "21K"].map((km) => (
+                {daftarJarakLari.map((km) => (
                   <label
                     key={km}
                     className={`cursor-pointer border rounded-2xl text-center py-4 transition-all ${formData.jarak === km ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-600" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
@@ -674,7 +690,7 @@ export default function VirtualRunRegisterPage() {
               )}
             </div>
 
-            {/* --- CARD 3: CHARITY --- */}
+            {/* CARD 3: CHARITY */}
             {settings?.isCharityActive && (
               <div className="bg-gradient-to-br from-emerald-50 to-teal-50/30 rounded-3xl p-6 sm:p-8 shadow-sm border border-emerald-100">
                 <div className="flex items-start gap-4 mb-5">
@@ -730,7 +746,7 @@ export default function VirtualRunRegisterPage() {
               </div>
             )}
 
-            {/* --- 🔥 CARD 4: PERSETUJUAN & DOKUMEN 🔥 --- */}
+            {/* CARD 4: PERSETUJUAN */}
             <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200">
               <h3 className="text-base font-bold text-slate-800 mb-6 border-b border-slate-100 pb-3 flex items-center gap-3">
                 <span className="bg-blue-100 text-blue-700 w-7 h-7 rounded-full flex items-center justify-center text-xs font-black">
@@ -739,7 +755,6 @@ export default function VirtualRunRegisterPage() {
                 Persetujuan Pendaftaran
               </h3>
 
-              {/* Area Dokumen Scrollable (Baca S&K) */}
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6 max-h-48 overflow-y-auto custom-scrollbar">
                 <h4 className="font-bold text-slate-700 text-xs mb-2">
                   SYARAT & KETENTUAN (VIRTUAL RUN)
@@ -781,9 +796,7 @@ export default function VirtualRunRegisterPage() {
                 </div>
               </div>
 
-              {/* Checklist Persetujuan */}
               <div className="space-y-3">
-                {/* Wajib Gabung Grup WA (Hanya muncul jika URL diisi Admin) */}
                 {settings?.urlGrupWa && (
                   <div className="flex items-start gap-3 bg-[#e6f4ea]/50 p-4 rounded-xl border border-[#ceead6] hover:bg-[#e6f4ea] transition-colors">
                     <input
@@ -903,7 +916,6 @@ export default function VirtualRunRegisterPage() {
                 </div>
               </div>
 
-              {/* Info Lencana Keamanan */}
               <div className="text-[9px] text-slate-400 text-center mb-4 leading-relaxed">
                 Dilindungi oleh reCAPTCHA dan tunduk pada{" "}
                 <a

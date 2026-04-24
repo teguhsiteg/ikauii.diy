@@ -67,8 +67,8 @@ export default function OfflineRunCheckoutPage() {
           return;
         }
 
-        // Ambil Settings & Load Script Midtrans
-        const sRef = doc(db, "settings", "virtual_run");
+        // Ambil Settings (DIPERBAIKI KE offline_run)
+        const sRef = doc(db, "settings", "offline_run");
         const sSnap = await getDoc(sRef);
         if (sSnap.exists()) {
           const sData = sSnap.data();
@@ -191,18 +191,31 @@ export default function OfflineRunCheckoutPage() {
         buktiBayarUrl: data.secure_url,
         statusPembayaran: "Pending",
       }));
+
       setModal({
         isOpen: true,
         type: "success",
         title: "Berhasil!",
         message: "Bukti terkirim, tunggu verifikasi admin.",
       });
+
+      // Trigger Email Admin Notif
+      fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "admin_notif_payment",
+          email: "ika.diy@uii.ac.id",
+          nama: participant.namaLengkap,
+          detail: { type: "Offline Run" },
+        }),
+      }).catch((err) => console.error(err));
     } catch (error) {
       setModal({
         isOpen: true,
         type: "error",
         title: "Gagal",
-        message: "Gagal upload.",
+        message: "Gagal mengunggah bukti bayar.",
       });
     } finally {
       setIsUploading(false);
@@ -235,7 +248,6 @@ export default function OfflineRunCheckoutPage() {
         // Tampilkan Popup Midtrans (Snap)
         (window as any).snap.pay(data.token, {
           onSuccess: function (result: any) {
-            // Reload halaman untuk menarik status 'Lunas' terbaru dari DB
             window.location.reload();
           },
           onPending: function (result: any) {
@@ -255,12 +267,7 @@ export default function OfflineRunCheckoutPage() {
             });
           },
           onClose: function () {
-            setModal({
-              isOpen: true,
-              type: "info",
-              title: "Dibatalkan",
-              message: "Anda menutup halaman pembayaran.",
-            });
+            //
           },
         });
       } else {
@@ -300,8 +307,20 @@ export default function OfflineRunCheckoutPage() {
         {isLunas ? (
           <div className="flex flex-col items-center animate-in zoom-in-95 duration-500">
             <div className="text-center mb-10">
-              <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner text-4xl">
-                ✅
+              <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                <svg
+                  className="w-10 h-10"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
               </div>
               <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-2">
                 Pendaftaran Selesai!
@@ -312,7 +331,7 @@ export default function OfflineRunCheckoutPage() {
               </p>
             </div>
 
-            {/* AREA E-TICKET */}
+            {/* AREA E-TICKET (Desain Awal Kamu) */}
             <div
               ref={containerRef}
               className="w-full flex justify-center items-center bg-white p-6 sm:p-10 rounded-[2rem] shadow-2xl border border-slate-100 mb-8 cursor-pointer group"
@@ -326,7 +345,20 @@ export default function OfflineRunCheckoutPage() {
                 }}
               >
                 <div className="absolute inset-0 z-50 bg-black/0 group-hover:bg-black/5 flex items-center justify-center rounded-2xl transition-colors">
-                  <div className="bg-white/95 text-emerald-900 px-5 py-2.5 rounded-full font-bold text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-xl">
+                  <div className="bg-white/95 text-emerald-900 px-5 py-2.5 rounded-full font-bold text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-xl flex items-center gap-2">
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                      />
+                    </svg>
                     Klik Unduh E-Ticket
                   </div>
                 </div>
@@ -638,12 +670,59 @@ export default function OfflineRunCheckoutPage() {
                 disabled={isDownloading}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 px-10 rounded-full transition-all shadow-lg flex items-center justify-center gap-3 disabled:opacity-50"
               >
-                {isDownloading ? "Memproses..." : "Unduh Tiket (PNG)"}
+                {isDownloading ? (
+                  <>
+                    <svg
+                      className="w-5 h-5 animate-spin"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
+                    </svg>
+                    Memproses...
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                      />
+                    </svg>
+                    Unduh Tiket (PNG)
+                  </>
+                )}
               </button>
               <Link
                 href="/run"
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-4 px-10 rounded-full transition-all text-center"
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-4 px-10 rounded-full transition-all text-center flex items-center justify-center gap-2"
               >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  />
+                </svg>
                 Kembali ke Beranda
               </Link>
             </div>
@@ -668,8 +747,21 @@ export default function OfflineRunCheckoutPage() {
             <div className="grid lg:grid-cols-12 gap-8 items-start">
               {/* KOLOM KIRI: INVOICE */}
               <div className="lg:col-span-5 bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200">
-                <h3 className="font-black text-slate-800 text-xl mb-6 border-b border-slate-100 pb-4">
-                  🧾 Ringkasan Pesanan
+                <h3 className="font-black text-slate-800 text-xl mb-6 border-b border-slate-100 pb-4 flex items-center gap-2">
+                  <svg
+                    className="w-6 h-6 text-slate-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  Ringkasan Pesanan
                 </h3>
                 <div className="space-y-4">
                   <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100">
@@ -729,8 +821,20 @@ export default function OfflineRunCheckoutPage() {
               <div className="lg:col-span-7">
                 {isMenungguVerifikasi ? (
                   <div className="bg-amber-50 rounded-3xl p-8 border border-amber-200 text-center">
-                    <div className="w-20 h-20 bg-white text-amber-500 rounded-full flex items-center justify-center text-4xl mx-auto mb-6 shadow-sm border border-amber-100 animate-pulse">
-                      ⏳
+                    <div className="w-20 h-20 bg-white text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-amber-100">
+                      <svg
+                        className="w-10 h-10 animate-pulse"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
                     </div>
                     <h3 className="text-2xl font-black text-amber-900 mb-2">
                       Menunggu Verifikasi
@@ -753,8 +857,21 @@ export default function OfflineRunCheckoutPage() {
                   </div>
                 ) : (
                   <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200">
-                    <h3 className="font-black text-slate-800 text-xl mb-6 border-b border-slate-100 pb-4">
-                      💳 Instruksi Pembayaran
+                    <h3 className="font-black text-slate-800 text-xl mb-6 border-b border-slate-100 pb-4 flex items-center gap-2">
+                      <svg
+                        className="w-6 h-6 text-slate-500"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                        />
+                      </svg>
+                      Instruksi Pembayaran
                     </h3>
 
                     {/* JIKA ADMIN MEMILIH MANUAL (UPLOAD STRUK) */}
@@ -775,7 +892,7 @@ export default function OfflineRunCheckoutPage() {
                           onSubmit={handleUploadSubmit}
                           className="space-y-4"
                         >
-                          <div className="relative border-2 border-dashed rounded-2xl p-2 text-center h-48 flex items-center justify-center bg-slate-50 overflow-hidden">
+                          <div className="relative border-2 border-dashed rounded-2xl p-2 text-center h-48 flex items-center justify-center bg-slate-50 overflow-hidden hover:bg-slate-100 transition-colors">
                             {previewUrl ? (
                               <img
                                 src={previewUrl}
@@ -783,8 +900,26 @@ export default function OfflineRunCheckoutPage() {
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">
-                                📸 Unggah Foto Struk
+                              <p className="text-slate-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                                <svg
+                                  className="w-5 h-5"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  strokeWidth={2}
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                                  />
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                                  />
+                                </svg>
+                                Unggah Foto Struk
                               </p>
                             )}
                             <input
@@ -811,10 +946,46 @@ export default function OfflineRunCheckoutPage() {
                     {settings?.metodePembayaran === "midtrans" && (
                       <div className="text-center space-y-6">
                         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6">
-                          <div className="flex justify-center gap-4 mb-4 grayscale opacity-60">
-                            <span className="text-3xl">💳</span>
-                            <span className="text-3xl">📱</span>
-                            <span className="text-3xl">🏦</span>
+                          <div className="flex justify-center gap-4 mb-4 text-slate-400">
+                            <svg
+                              className="w-8 h-8"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                              />
+                            </svg>
+                            <svg
+                              className="w-8 h-8"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+                              />
+                            </svg>
+                            <svg
+                              className="w-8 h-8"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"
+                              />
+                            </svg>
                           </div>
                           <p className="text-base font-black text-slate-800 mb-2">
                             Pembayaran Otomatis via Midtrans
@@ -859,13 +1030,51 @@ export default function OfflineRunCheckoutPage() {
               className={`p-8 text-center ${modal.type === "error" ? "bg-rose-50" : modal.type === "warning" ? "bg-amber-50" : "bg-emerald-50"}`}
             >
               <div
-                className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 text-3xl shadow-sm ${modal.type === "error" ? "bg-rose-100 text-rose-600" : modal.type === "warning" ? "bg-amber-100 text-amber-600" : "bg-emerald-100 text-emerald-600"}`}
+                className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 shadow-sm ${modal.type === "error" ? "bg-rose-100 text-rose-600" : modal.type === "warning" ? "bg-amber-100 text-amber-600" : "bg-emerald-100 text-emerald-600"}`}
               >
-                {modal.type === "error"
-                  ? "❌"
-                  : modal.type === "warning"
-                    ? "⚠️"
-                    : "✅"}
+                {modal.type === "error" ? (
+                  <svg
+                    className="w-8 h-8"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                ) : modal.type === "warning" ? (
+                  <svg
+                    className="w-8 h-8"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-8 h-8"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                )}
               </div>
               <h3 className="text-xl font-black text-slate-800 tracking-tight">
                 {modal.title}

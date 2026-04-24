@@ -12,12 +12,16 @@ export default function BibScannerPage() {
     { bib: string; time: string }[]
   >([]);
 
+  // State untuk Template Layar
+  const [templateIdle, setTemplateIdle] = useState("");
+  const [templateBib, setTemplateBib] = useState("");
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+
   const inputRef = useRef<HTMLInputElement>(null);
-  // Ref baru untuk kotak utama agar bisa Fullscreen spesifik
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Kontrol TV dari Scanner
-  const [displayDuration, setDisplayDuration] = useState<number>(8); // Default 8 detik
+  const [displayDuration, setDisplayDuration] = useState<number>(8);
   const [activeBibOnTv, setActiveBibOnTv] = useState<string | null>(null);
 
   // Mesin Waktu (Timer Engine)
@@ -25,11 +29,13 @@ export default function BibScannerPage() {
   const [isPaused, setIsPaused] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Monitor status TV
+  // Monitor status TV & Ambil Template Awal
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "settings", "virtual_run"), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
+
+        // Update status TV
         if (data.activeBibCheck && data.activeBibCheck !== "") {
           setActiveBibOnTv(data.activeBibCheck);
         } else {
@@ -37,10 +43,36 @@ export default function BibScannerPage() {
           setTimeLeft(0);
           if (timerRef.current) clearInterval(timerRef.current);
         }
+
+        // Ambil template dari DB jika user belum mengetik apa-apa
+        if (document.activeElement?.id !== "input-template-idle") {
+          setTemplateIdle(data.urlBibTemplateIdle || "");
+        }
+        if (document.activeElement?.id !== "input-template-bib") {
+          setTemplateBib(data.urlBibTemplateScan || "");
+        }
       }
     });
     return () => unsub();
   }, []);
+
+  // 🔥 FUNGSI TOMBOL SIMPAN TEMPLATE MANUAL 🔥
+  const handleSaveTemplate = async () => {
+    setIsSavingTemplate(true);
+    try {
+      await updateDoc(doc(db, "settings", "virtual_run"), {
+        urlBibTemplateIdle: templateIdle,
+        urlBibTemplateScan: templateBib,
+      });
+      // Kembalikan fokus ke scanner setelah simpan
+      inputRef.current?.focus();
+    } catch (error) {
+      console.error("Gagal simpan template", error);
+      alert("Gagal menyimpan template! Cek koneksi internet.");
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  };
 
   // Countdown timer
   useEffect(() => {
@@ -62,11 +94,20 @@ export default function BibScannerPage() {
     };
   }, [timeLeft, isPaused, activeBibOnTv]);
 
-  // Jaga Fokus Input
+  // Jaga Fokus Input (Penting untuk Barcode Scanner Fisik)
   useEffect(() => {
+    if (
+      document.activeElement?.tagName === "INPUT" &&
+      document.activeElement?.id !== "main-scanner"
+    )
+      return;
+
     inputRef.current?.focus();
   }, [isProcessing, timeLeft, isPaused]);
-  const handleKeepFocus = () => {
+
+  const handleKeepFocus = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === "INPUT" || target.tagName === "BUTTON") return;
     inputRef.current?.focus();
   };
 
@@ -99,6 +140,7 @@ export default function BibScannerPage() {
     } finally {
       setBibInput("");
       setIsProcessing(false);
+      inputRef.current?.focus();
     }
   };
 
@@ -139,7 +181,6 @@ export default function BibScannerPage() {
     setScanHistory((prev) => prev.filter((_, idx) => idx !== indexToDelete));
   };
 
-  // FUNGSI FULLSCREEN HANYA UNTUK KOTAK INI (Menghilangkan Sidebar/Header sementara)
   const toggleFullScreen = () => {
     if (!document.fullscreenElement) {
       wrapperRef.current
@@ -151,7 +192,6 @@ export default function BibScannerPage() {
   };
 
   return (
-    // Disesuaikan agar muat di dalam kontainer Admin (h-[calc(100vh-100px)])
     <div
       ref={wrapperRef}
       className="w-full h-[calc(100vh-100px)] min-h-[600px] bg-[#0A0A0A] text-white font-sans flex flex-col p-6 overflow-hidden rounded-2xl border border-white/10"
@@ -219,6 +259,7 @@ export default function BibScannerPage() {
                 Input Barcode / BIB
               </label>
               <input
+                id="main-scanner"
                 ref={inputRef}
                 type="text"
                 value={bibInput}
@@ -266,9 +307,9 @@ export default function BibScannerPage() {
           </div>
         </div>
 
-        {/* KOLOM KANAN: MONITOR & RIWAYAT */}
+        {/* KOLOM KANAN: MONITOR, TEMPLATE & RIWAYAT */}
         <div className="flex flex-col w-full md:w-1/3 h-full gap-4">
-          {/* PANEL KONTROL TV */}
+          {/* PANEL KONTROL TV & TEMPLATE URL */}
           <div className="bg-[#121212] border border-white/10 rounded-xl p-4 lg:p-5 shrink-0 flex flex-col gap-4">
             <div className="flex justify-between items-center border-b border-white/10 pb-3">
               <h3 className="text-[10px] lg:text-xs font-semibold uppercase tracking-widest flex items-center gap-2 text-white/70">
@@ -279,20 +320,68 @@ export default function BibScannerPage() {
                 >
                   <path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z" />
                 </svg>
-                Monitor Layar TV
+                Monitor & Template
               </h3>
-              {activeBibOnTv ? (
-                <span className="text-[10px] bg-white text-black font-bold px-2 py-1 rounded">
-                  LIVE
-                </span>
-              ) : (
-                <span className="text-[10px] text-white/40 font-bold border border-white/20 px-2 py-1 rounded">
-                  IDLE
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {activeBibOnTv ? (
+                  <span className="text-[10px] bg-white text-black font-bold px-2 py-1 rounded">
+                    LIVE
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-white/40 font-bold border border-white/20 px-2 py-1 rounded">
+                    IDLE
+                  </span>
+                )}
+              </div>
             </div>
 
-            <div className="flex flex-col items-center justify-center py-4 lg:py-6 bg-[#0A0A0A] rounded-lg border border-white/5">
+            {/* 🔥 Form Upload URL Template dengan Tombol Save 🔥 */}
+            <div className="space-y-3 bg-white/5 p-3 rounded-lg border border-white/5">
+              <div>
+                <label className="block text-[9px] uppercase tracking-widest text-white/50 mb-1">
+                  1. URL Template Idle (Awal)
+                </label>
+                <input
+                  id="input-template-idle"
+                  type="url"
+                  value={templateIdle}
+                  onChange={(e) => setTemplateIdle(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full bg-[#0A0A0A] border border-white/20 rounded px-3 py-1.5 text-xs text-white focus:border-white focus:outline-none transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-[9px] uppercase tracking-widest text-white/50 mb-1 flex justify-between">
+                  <span>2. URL Template BIB (Scan)</span>
+                  <span className="text-amber-500">Rasio 16:9 (1920x1080)</span>
+                </label>
+                <input
+                  id="input-template-bib"
+                  type="url"
+                  value={templateBib}
+                  onChange={(e) => setTemplateBib(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full bg-[#0A0A0A] border border-white/20 rounded px-3 py-1.5 text-xs text-white focus:border-white focus:outline-none transition-colors"
+                />
+              </div>
+
+              <button
+                onClick={handleSaveTemplate}
+                disabled={isSavingTemplate}
+                className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold py-2 rounded uppercase tracking-widest transition-colors flex justify-center items-center gap-2 disabled:opacity-50"
+              >
+                {isSavingTemplate ? (
+                  <>
+                    <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>{" "}
+                    Menyimpan...
+                  </>
+                ) : (
+                  "Simpan Template"
+                )}
+              </button>
+            </div>
+
+            <div className="flex flex-col items-center justify-center py-4 bg-[#0A0A0A] rounded-lg border border-white/5">
               {activeBibOnTv ? (
                 <>
                   <div className="text-2xl lg:text-3xl font-bold tracking-widest mb-1 lg:mb-2">

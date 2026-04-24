@@ -979,7 +979,7 @@ export default function DetailAgendaPage({
                       rel="noopener noreferrer"
                       className="font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1.5 transition-colors"
                     >
-                      {agenda.format === "Online (Zoom/YT)"
+                      {agenda.format === "Online Event"
                         ? "🔗 Buka Link Zoom"
                         : "📍 Buka Google Maps"}
                     </a>

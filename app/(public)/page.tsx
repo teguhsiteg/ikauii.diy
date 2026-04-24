@@ -676,7 +676,7 @@ export default function LandingPage() {
                 }
 
                 // URL GENERATOR INLINE
-                const agendaUrl = isSoon ? "#" : `/agenda/${agenda.id}`;
+                const agendaUrl = `/agenda/${agenda.id}`;
 
                 return (
                   <Link

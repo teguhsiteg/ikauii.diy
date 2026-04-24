@@ -15,10 +15,16 @@ import Link from "next/link";
 import NavbarPublic from "@/components/layout/NavbarPublic";
 import FooterPublic from "@/components/layout/FooterPublic";
 
+// 🔥 1. IMPORT HOOK RECAPTCHA
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+
 function FormPendaftaranOffline() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultPaketId = searchParams.get("paket") || "";
+
+  // 🔥 2. PANGGIL HOOK RECAPTCHA
+  const { executeRecaptcha } = useGoogleReCaptcha();
 
   const [settings, setSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -71,7 +77,7 @@ function FormPendaftaranOffline() {
     namaDarurat: "",
     hubunganDarurat: "",
     waDarurat: "",
-    paketId: defaultPaketId,
+    paketId: defaultPaketId, // Otomatis terisi dari URL Landing Page
   });
 
   // --- LOGIKA FETCH DATA & WAITING ROOM ---
@@ -128,6 +134,9 @@ function FormPendaftaranOffline() {
 
   const handleChange = (e: any) => {
     const { name, value } = e.target;
+    // Blokir perubahan pada paketId agar user tidak bisa iseng ganti lewat inspect element
+    if (name === "paketId") return;
+
     if (["noWA", "waDarurat", "nim", "tahunLulus", "nik"].includes(name)) {
       setFormData({ ...formData, [name]: value.replace(/\D/g, "") });
     } else if (name === "namaBib") {
@@ -161,21 +170,65 @@ function FormPendaftaranOffline() {
         isOpen: true,
         type: "warning",
         title: "Pilih Paket",
-        message: "Silakan pilih salah satu kategori lari terlebih dahulu.",
+        message:
+          "Silakan pilih salah satu kategori lari terlebih dahulu dari halaman depan.",
       });
     }
 
-    const selectedPackage = settings.offlinePackages.find(
+    const selectedPackage = settings.offlinePackages?.find(
       (pkg: any) => pkg.id === formData.paketId,
     );
+
+    if (!selectedPackage) {
+      return setModal({
+        isOpen: true,
+        type: "error",
+        title: "Paket Tidak Ditemukan",
+        message: "Kategori yang Anda pilih tidak valid atau sudah dihapus.",
+      });
+    }
+
     setIsSubmitting(true);
 
     try {
+      if (!executeRecaptcha) {
+        setIsSubmitting(false);
+        return setModal({
+          isOpen: true,
+          type: "warning",
+          title: "Sistem Keamanan",
+          message:
+            "Sistem keamanan reCAPTCHA belum siap. Silakan refresh halaman dan coba lagi.",
+        });
+      }
+
+      const token = await executeRecaptcha("offline_registration");
+      const recaptchaResponse = await fetch("/api/verify-recaptcha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+
+      const recaptchaResult = await recaptchaResponse.json();
+
+      if (!recaptchaResult.success) {
+        setIsSubmitting(false);
+        return setModal({
+          isOpen: true,
+          type: "error",
+          title: "Aktivitas Mencurigakan",
+          message:
+            "Sistem mendeteksi aktivitas tidak wajar (Spam/Bot). Pendaftaran ditolak.",
+        });
+      }
+
       const qCount = query(collection(db, "offline_participants"));
       const snapCount = await getDocs(qCount);
       const nomorUrut = snapCount.size + 1;
       const jarakAngka = selectedPackage?.jarak.replace(/\D/g, "") || "9";
       const formattedBIB = `${jarakAngka}${String(nomorUrut).padStart(3, "0")}`;
+
+      const totalTagihan = Number(selectedPackage?.harga || 0);
 
       const docRef = await addDoc(collection(db, "offline_participants"), {
         ...formData,
@@ -187,11 +240,25 @@ function FormPendaftaranOffline() {
           formData.kategoriPeserta === "Umum" ? "" : formData.programStudi,
         paketNama: selectedPackage?.nama || "",
         jarak: selectedPackage?.jarak || "",
-        totalTagihan: Number(selectedPackage?.harga || 0),
+        totalTagihan: totalTagihan,
         statusPembayaran: "Pending",
         waktuDaftar: new Date().toISOString(),
         nomorBIB: formattedBIB,
       });
+
+      fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "offline_registration",
+          email: formData.email,
+          nama: formData.namaLengkap,
+          detail: {
+            id: docRef.id,
+            totalTagihan: totalTagihan,
+          },
+        }),
+      }).catch((err) => console.error("Background Email Error:", err));
 
       router.push(`/run/checkout/${docRef.id}`);
     } catch (error) {
@@ -205,7 +272,6 @@ function FormPendaftaranOffline() {
     }
   };
 
-  // --- LOADING SCREEN ---
   if (isLoading) {
     return (
       <div className="fixed inset-0 z-[999999] bg-[#F4F7FB] flex items-center justify-center">
@@ -282,7 +348,19 @@ function FormPendaftaranOffline() {
 
         <div className="relative z-10 w-full max-w-md flex flex-col items-center text-center animate-in fade-in zoom-in duration-700">
           <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mb-8 backdrop-blur-md border border-white/10 shadow-2xl">
-            <span className="text-4xl opacity-60 grayscale">🏁</span>
+            <svg
+              className="w-10 h-10 text-white/50"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
           </div>
           <h1 className="text-3xl font-black text-white mb-4 tracking-tight">
             Pendaftaran Ditutup
@@ -328,7 +406,6 @@ function FormPendaftaranOffline() {
             </div>
 
             <form onSubmit={handleSubmit} className="p-8 sm:p-10 space-y-12">
-              {/* BAGIAN FORM 1-5 (Kategori s/d Medis) TETAP SAMA */}
               <div>
                 <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider pb-3 border-b border-slate-100 mb-5 flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[10px]">
@@ -338,7 +415,7 @@ function FormPendaftaranOffline() {
                 </h4>
                 <div className="grid grid-cols-2 gap-4">
                   <label
-                    className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.kategoriPeserta === "Alumni" ? "border-[#152B5B] bg-blue-50/50 shadow-sm text-[#152B5B]" : "border-slate-200 bg-white hover:border-blue-200 text-slate-600"}`}
+                    className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 cursor-pointer transition-all group ${formData.kategoriPeserta === "Alumni" ? "border-[#152B5B] bg-blue-50/50 shadow-sm text-[#152B5B]" : "border-slate-200 bg-white hover:border-blue-200 text-slate-500"}`}
                   >
                     <input
                       type="radio"
@@ -348,13 +425,25 @@ function FormPendaftaranOffline() {
                       onChange={handleChange}
                       className="absolute opacity-0"
                     />
-                    <span className="text-3xl mb-2">🎓</span>
+                    <svg
+                      className="w-8 h-8 mb-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"
+                      />
+                    </svg>
                     <span className="font-black text-sm uppercase tracking-wider">
                       Alumni UII
                     </span>
                   </label>
                   <label
-                    className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.kategoriPeserta === "Umum" ? "border-[#152B5B] bg-blue-50/50 shadow-sm text-[#152B5B]" : "border-slate-200 bg-white hover:border-blue-200 text-slate-600"}`}
+                    className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 cursor-pointer transition-all group ${formData.kategoriPeserta === "Umum" ? "border-[#152B5B] bg-blue-50/50 shadow-sm text-[#152B5B]" : "border-slate-200 bg-white hover:border-blue-200 text-slate-500"}`}
                   >
                     <input
                       type="radio"
@@ -364,7 +453,19 @@ function FormPendaftaranOffline() {
                       onChange={handleChange}
                       className="absolute opacity-0"
                     />
-                    <span className="text-3xl mb-2">🌍</span>
+                    <svg
+                      className="w-8 h-8 mb-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"
+                      />
+                    </svg>
                     <span className="font-black text-sm uppercase tracking-wider">
                       Umum (Publik)
                     </span>
@@ -372,50 +473,65 @@ function FormPendaftaranOffline() {
                 </div>
               </div>
 
+              {/* ========================================================= */}
+              {/* 🔥 BLOK 2: KATEGORI JARAK (DIKUNCI / READ ONLY) 🔥        */}
+              {/* ========================================================= */}
               <div>
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider pb-3 border-b border-slate-100 mb-5 flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[10px]">
-                    2
+                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider pb-3 border-b border-slate-100 mb-5 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[10px]">
+                      2
+                    </span>
+                    Kategori Jarak
+                  </div>
+                  <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-1 rounded-md">
+                    Sesuai Pilihan Anda
                   </span>
-                  Pilih Kategori Jarak
                 </h4>
                 <div className="grid sm:grid-cols-2 gap-4">
-                  {settings?.offlinePackages?.map((pkg: any) => (
-                    <label
-                      key={pkg.id}
-                      className={`relative flex flex-col p-5 rounded-2xl border-2 cursor-pointer transition-all ${formData.paketId === pkg.id ? "border-[#152B5B] bg-blue-50/30 shadow-md" : "border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50"}`}
-                    >
-                      <input
-                        type="radio"
-                        name="paketId"
-                        value={pkg.id}
-                        onChange={handleChange}
-                        className="absolute opacity-0"
-                        required
-                      />
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="font-black text-slate-800 text-lg">
-                          {pkg.nama}
-                        </span>
-                        {formData.paketId === pkg.id ? (
-                          <span className="w-5 h-5 bg-[#D4AF37] rounded-full flex items-center justify-center text-white text-xs">
-                            ✓
+                  {settings?.offlinePackages?.map((pkg: any) => {
+                    const isSelected = formData.paketId === pkg.id;
+                    return (
+                      <label
+                        key={pkg.id}
+                        className={`relative flex flex-col p-5 rounded-2xl border-2 transition-all ${
+                          isSelected
+                            ? "border-[#152B5B] bg-blue-50/30 shadow-md ring-2 ring-blue-500/20 cursor-default"
+                            : "border-slate-200 bg-slate-50 opacity-50 grayscale cursor-not-allowed"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="paketId"
+                          value={pkg.id}
+                          checked={isSelected}
+                          readOnly
+                          className="absolute opacity-0"
+                        />
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="font-black text-slate-800 text-lg">
+                            {pkg.nama}
                           </span>
-                        ) : (
-                          <span className="w-5 h-5 border-2 border-slate-200 rounded-full"></span>
-                        )}
-                      </div>
-                      <span className="text-xs font-bold text-[#152B5B] mb-3 bg-white w-fit px-2 py-1 rounded-md border border-blue-100 shadow-sm">
-                        Kategori {pkg.jarak}
-                      </span>
-                      <span className="text-xl font-black text-slate-900 mb-2">
-                        Rp {Number(pkg.harga).toLocaleString("id-ID")}
-                      </span>
-                      <span className="text-[10px] text-slate-500 font-medium leading-relaxed mt-auto border-t border-slate-200/60 pt-2">
-                        Fasilitas: {pkg.benefit}
-                      </span>
-                    </label>
-                  ))}
+                          {isSelected ? (
+                            <span className="w-5 h-5 bg-[#D4AF37] rounded-full flex items-center justify-center text-white text-xs">
+                              ✓
+                            </span>
+                          ) : (
+                            <span className="w-5 h-5 border-2 border-slate-200 rounded-full"></span>
+                          )}
+                        </div>
+                        <span className="text-xs font-bold text-[#152B5B] mb-3 bg-white w-fit px-2 py-1 rounded-md border border-blue-100 shadow-sm">
+                          Kategori {pkg.jarak}
+                        </span>
+                        <span className="text-xl font-black text-slate-900 mb-2">
+                          Rp {Number(pkg.harga).toLocaleString("id-ID")}
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-medium leading-relaxed mt-auto border-t border-slate-200/60 pt-2">
+                          Fasilitas: {pkg.benefit}
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -645,7 +761,20 @@ function FormPendaftaranOffline() {
               {formData.kategoriPeserta === "Alumni" && (
                 <div className="bg-blue-50/50 border border-blue-200 rounded-3xl p-6 md:p-8 space-y-5 animate-in fade-in slide-in-from-top-2">
                   <h4 className="text-xs font-bold text-[#152B5B] uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <span>🎓</span> Data Akademik Alumni
+                    <svg
+                      className="w-5 h-5 text-[#152B5B]"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"
+                      />
+                    </svg>
+                    Data Akademik Alumni
                   </h4>
                   <div className="grid sm:grid-cols-2 gap-5">
                     <div>
@@ -752,8 +881,21 @@ function FormPendaftaranOffline() {
                           <a
                             href={settings.urlSizeChart}
                             target="_blank"
-                            className="text-rose-500 hover:underline font-bold"
+                            className="text-rose-500 hover:underline font-bold flex items-center gap-1"
                           >
+                            <svg
+                              className="w-3 h-3"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
                             Size Chart
                           </a>
                         )}
@@ -1010,25 +1152,58 @@ function FormPendaftaranOffline() {
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={
-                    isSubmitting || !isWaJoined || !isTncRead || !isInsRead
-                  }
-                  className="w-full bg-[#152B5B] hover:bg-[#0D1B3E] text-white font-black py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-lg mt-6"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>{" "}
-                      Memproses...
-                    </>
-                  ) : (
-                    "Daftar Sekarang ➔"
-                  )}
-                </button>
+                <div className="pt-4">
+                  <div className="text-[10px] text-slate-400 text-center mb-4 leading-relaxed px-4">
+                    Formulir ini dilindungi oleh reCAPTCHA dan tunduk pada{" "}
+                    <a
+                      href="https://policies.google.com/privacy"
+                      className="text-blue-500 hover:underline"
+                    >
+                      Kebijakan Privasi
+                    </a>{" "}
+                    serta{" "}
+                    <a
+                      href="https://policies.google.com/terms"
+                      className="text-blue-500 hover:underline"
+                    >
+                      Persyaratan Layanan
+                    </a>{" "}
+                    Google.
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={
+                      isSubmitting || !isWaJoined || !isTncRead || !isInsRead
+                    }
+                    className="w-full bg-[#152B5B] hover:bg-[#0D1B3E] text-white font-black py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-lg mt-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>{" "}
+                        Memproses...
+                      </>
+                    ) : (
+                      "Daftar Sekarang ➔"
+                    )}
+                  </button>
+                </div>
                 {(!isWaJoined || !isTncRead || !isInsRead) && (
-                  <p className="text-center text-[10px] text-rose-500 font-bold mt-2 uppercase tracking-widest">
-                    * Selesaikan 3 persetujuan di atas untuk melanjutkan
+                  <p className="text-center text-[10px] text-rose-500 font-bold mt-2 uppercase tracking-widest flex items-center justify-center gap-1">
+                    <svg
+                      className="w-3 h-3 shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                    Selesaikan 3 persetujuan di atas untuk melanjutkan
                   </p>
                 )}
               </div>
@@ -1049,7 +1224,35 @@ function FormPendaftaranOffline() {
               <div
                 className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 text-3xl shadow-sm ${modal.type === "error" ? "bg-rose-100 text-rose-600" : "bg-amber-100 text-amber-600"}`}
               >
-                {modal.type === "error" ? "❌" : "⚠️"}
+                {modal.type === "error" ? (
+                  <svg
+                    className="w-8 h-8"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-8 h-8"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                )}
               </div>
               <h3 className="text-xl font-black text-slate-800 tracking-tight">
                 {modal.title}
