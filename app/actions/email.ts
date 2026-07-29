@@ -1,7 +1,10 @@
 "use server";
 
 export async function sendEmailAction(payload: any) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://ikadiy.uii.ac.id";
+  const isDev = process.env.NODE_ENV === "development";
+  const baseUrl = isDev 
+    ? "http://localhost:3000" 
+    : (process.env.NEXT_PUBLIC_BASE_URL || "https://ikadiy.uii.ac.id");
   const internalSecret = process.env.INTERNAL_API_SECRET || "";
 
   try {
