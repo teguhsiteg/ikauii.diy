@@ -658,15 +658,29 @@ export default function CrewManagementPage() {
           : "PULIHKAN";
     if (!confirm(`Konfirmasi: ${actionText} pelamar ini?`)) return;
 
+    let alasanTolak = "";
+    if (status === "rejected") {
+      alasanTolak = prompt(
+        "Masukkan alasan penolakan (akan dikirim ke email pendaftar):",
+      ) || "Maaf, kuota telah terpenuhi atau kualifikasi belum sesuai.";
+    }
+
     const updatedEventId = findEventIdByRoleId(
       newAssignedRoleId,
       selectedCrew.eventId,
     );
 
     try {
+      const updateData: any = { status, roleId: newAssignedRoleId, eventId: updatedEventId };
+      if (status === "rejected") {
+        updateData.alasanTolak = alasanTolak;
+        updateData.emailStatus = ""; // reset email status so it can be resent
+      } else if (status === "accepted") {
+        updateData.emailStatus = "";
+      }
       await setDoc(
         doc(db, selectedCrew.sourceDb, selectedCrew.id),
-        { status, roleId: newAssignedRoleId, eventId: updatedEventId },
+        updateData,
         { merge: true },
       );
       showNotif("success", "Status dan Posisi berhasil diperbarui.");
@@ -742,12 +756,26 @@ export default function CrewManagementPage() {
     if (!confirm(`Ubah status ${ids.length} pelamar menjadi ${actionText}?`))
       return;
 
+    let alasanTolak = "";
+    if (newStatus === "rejected") {
+      alasanTolak = prompt(
+        "Masukkan alasan penolakan (akan dikirim ke email pendaftar):",
+      ) || "Maaf, kuota telah terpenuhi atau kualifikasi belum sesuai.";
+    }
+
     try {
       const batch = writeBatch(db);
       ids.forEach((id) => {
         const crew = pendaftar.find((c) => c.id === id);
         if (crew) {
-          batch.update(doc(db, crew.sourceDb, id), { status: newStatus });
+          const updateData: any = { status: newStatus };
+          if (newStatus === "rejected") {
+            updateData.alasanTolak = alasanTolak;
+            updateData.emailStatus = ""; // reset email status so it can be resent
+          } else if (newStatus === "accepted") {
+            updateData.emailStatus = "";
+          }
+          batch.update(doc(db, crew.sourceDb, id), updateData);
         }
       });
       await batch.commit();
@@ -831,6 +859,51 @@ export default function CrewManagementPage() {
       showNotif("error", "Error sistem.");
     } finally {
       setIsSendingMail(false);
+    }
+  };
+
+  const handleSendRejectEmail = async (crew: CrewMember) => {
+    const { parentEvent } = getRoleInfo(crew.eventId, crew.roleId || crew.divisiId || "");
+    setIsSendingMail(true);
+    try {
+      const response = await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "crew_rejected",
+          email: crew.email,
+          nama: crew.nama,
+          detail: {
+            event: parentEvent?.title || "Kepanitiaan",
+            alasanTolak: crew.alasanTolak || "Kualifikasi belum memenuhi kebutuhan panitia.",
+          },
+        }),
+      });
+      if (response.ok) {
+        await setDoc(
+          doc(db, crew.sourceDb, crew.id),
+          { emailStatus: "sent", emailError: "" },
+          { merge: true },
+        );
+        showNotif("success", `Notifikasi penolakan terkirim ke ${crew.nama}`);
+      } else {
+        showNotif("error", "Gagal mengirim notifikasi.");
+      }
+    } catch (e: any) {
+      showNotif("error", "Error sistem.");
+    } finally {
+      setIsSendingMail(false);
+    }
+  };
+
+  const handleResendEmail = async () => {
+    if (!selectedCrew) return;
+    if (selectedCrew.status === "accepted") {
+      await handleSendWelcomeEmail(selectedCrew);
+    } else if (selectedCrew.status === "rejected") {
+      await handleSendRejectEmail(selectedCrew);
+    } else {
+      showNotif("warning", "Hanya untuk pelamar Diterima / Ditolak.");
     }
   };
 
@@ -2254,6 +2327,26 @@ export default function CrewManagementPage() {
                     </div>
                   </div>
 
+                  {selectedCrew.status === "rejected" && selectedCrew.alasanTolak && (
+                    <div className="bg-red-50 border-l-4 border-[#D93025] p-4 rounded-r-xl mt-4">
+                      <span className="text-xs font-black text-[#D93025] uppercase tracking-widest block mb-1">
+                        Alasan Penolakan
+                      </span>
+                      <p className="text-sm font-medium text-red-900 leading-relaxed">
+                        {selectedCrew.alasanTolak}
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <span className="text-xs font-bold text-slate-600 block mb-1.5 uppercase tracking-widest">
+                      Riwayat Penyakit Khusus
+                    </span>
+                    <div className="bg-[#F8F9FA] p-4 rounded-xl border border-[#DADCE0] whitespace-pre-wrap leading-relaxed text-[13px] shadow-inner text-slate-700 font-medium">
+                      {selectedCrew.riwayatPenyakit || "-"}
+                    </div>
+                  </div>
+
                   <div>
                     <span className="text-xs font-bold text-slate-600 block mb-1.5 uppercase tracking-widest">
                       Alasan Memilih Divisi
@@ -2337,12 +2430,21 @@ export default function CrewManagementPage() {
                   </button>
 
                   {selectedCrew.status === "rejected" && (
-                    <button
-                      onClick={() => handleDecision("pending")}
-                      className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-md"
-                    >
-                      Pulihkan ke Menunggu
-                    </button>
+                    <>
+                      <button
+                        onClick={handleResendEmail}
+                        disabled={isSendingMail}
+                        className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm flex items-center gap-2"
+                      >
+                        {isSendingMail ? "Memproses..." : "✉️ Kirim Ulang Penolakan"}
+                      </button>
+                      <button
+                        onClick={() => handleDecision("pending")}
+                        className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-md"
+                      >
+                        Pulihkan ke Menunggu
+                      </button>
+                    </>
                   )}
 
                   {selectedCrew.status !== "accepted" &&
@@ -2364,6 +2466,13 @@ export default function CrewManagementPage() {
                     )}
                   {selectedCrew.status === "accepted" && (
                     <>
+                      <button
+                        onClick={handleResendEmail}
+                        disabled={isSendingMail}
+                        className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm flex items-center gap-2"
+                      >
+                        {isSendingMail ? "Memproses..." : "✉️ Kirim Ulang Undangan"}
+                      </button>
                       <button
                         onClick={() => handleDecision("rejected")}
                         className="text-[#D93025] bg-white border border-rose-200 hover:bg-red-50 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm"
