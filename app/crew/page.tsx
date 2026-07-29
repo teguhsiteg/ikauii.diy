@@ -186,6 +186,7 @@ interface EventRecruitment {
   isActive: boolean;
   linkGrupBesar: string;
   groups: DivisionGroup[];
+  allowedTipe?: string[];
 }
 interface CrewMember {
   roleId: string;
@@ -952,7 +953,13 @@ export default function OprecRegistrationPage() {
                             { id: "himpunan", label: "Himpunan" },
                             { id: "ukm", label: "UKM" },
                             { id: "umum", label: "Umum / Eksternal" },
-                          ].map((t) => (
+                          ]
+                            .filter(
+                              (t) =>
+                                !selectedEvent?.allowedTipe ||
+                                selectedEvent.allowedTipe.includes(t.id),
+                            )
+                            .map((t) => (
                             <label
                               key={t.id}
                               className={`cursor-pointer border p-2.5 text-center rounded-lg transition-all duration-200 ${formData.tipe === t.id ? "border-[#0F2147] bg-[#0F2147] text-white font-bold shadow-md" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50 font-medium"}`}

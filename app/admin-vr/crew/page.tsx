@@ -193,6 +193,7 @@ interface EventRecruitment {
   linkSertifikat?: string;
   order?: number;
   groups: DivisionGroup[];
+  allowedTipe?: string[];
 }
 
 interface CrewMember {
@@ -265,6 +266,9 @@ export default function CrewManagementPage() {
   );
 
   const [filterEvent, setFilterEvent] = useState<string>("all");
+  const [filterTipe, setFilterTipe] = useState<string>("all");
+  const [filterGender, setFilterGender] = useState<string>("all");
+  const [filterDivisi, setFilterDivisi] = useState<string>("all");
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [selectedPending, setSelectedPending] = useState<string[]>([]);
@@ -279,6 +283,14 @@ export default function CrewManagementPage() {
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [pendingRejectAction, setPendingRejectAction] = useState<{type: "single" | "mass", id?: string, ids?: string[]}|null>(null);
   const [rejectReasonInput, setRejectReasonInput] = useState("");
+
+  // STATE UNTUK MODAL KONFIRMASI GENERIC
+  const [genericConfirm, setGenericConfirm] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
 
   // Email State
   const [isSendingMail, setIsSendingMail] = useState(false);
@@ -450,6 +462,7 @@ export default function CrewManagementPage() {
         linkSertifikat: "",
         groups: [],
         order: events.length,
+        allowedTipe: ["mahasiswa", "alumni", "umum"],
       },
     ]);
     setExpandedEvents((prev) => ({ ...prev, [newId]: true }));
@@ -661,7 +674,6 @@ export default function CrewManagementPage() {
         : status === "rejected"
           ? "TOLAK"
           : "PULIHKAN";
-    if (!confirm(`Konfirmasi: ${actionText} pelamar ini?`)) return;
 
     if (status === "rejected") {
       setPendingRejectAction({ type: "single", id: selectedCrew.id });
@@ -670,36 +682,45 @@ export default function CrewManagementPage() {
       return;
     }
 
-    const updatedEventId = findEventIdByRoleId(
-      newAssignedRoleId,
-      selectedCrew.eventId,
-    );
+    setGenericConfirm({
+      isOpen: true,
+      title: "Konfirmasi Tindakan",
+      message: `Konfirmasi: ${actionText} pelamar ini?`,
+      onConfirm: async () => {
+        setGenericConfirm({ ...genericConfirm, isOpen: false });
+        const updatedEventId = findEventIdByRoleId(
+          newAssignedRoleId,
+          selectedCrew.eventId,
+        );
 
-    try {
-      const updateData: any = { status, roleId: newAssignedRoleId, eventId: updatedEventId };
-      if (status === "rejected") {
-        updateData.alasanTolak = alasanTolak;
-        updateData.emailStatus = ""; // reset email status so it can be resent
-      } else if (status === "accepted") {
-        updateData.emailStatus = "";
-      }
-      await setDoc(
-        doc(db, selectedCrew.sourceDb, selectedCrew.id),
-        updateData,
-        { merge: true },
-      );
-      showNotif("success", "Status dan Posisi berhasil diperbarui.");
-      setIsDetailOpen(false);
+        try {
+          const updateData: any = {
+            status,
+            roleId: newAssignedRoleId,
+            eventId: updatedEventId,
+          };
+          if (status === "accepted") {
+            updateData.emailStatus = "";
+          }
+          await setDoc(
+            doc(db, selectedCrew.sourceDb, selectedCrew.id),
+            updateData,
+            { merge: true },
+          );
+          showNotif("success", "Status dan Posisi berhasil diperbarui.");
+          setIsDetailOpen(false);
 
-      setSelectedPending(
-        selectedPending.filter((id) => id !== selectedCrew.id),
-      );
-      setSelectedRejected(
-        selectedRejected.filter((id) => id !== selectedCrew.id),
-      );
-    } catch (e) {
-      showNotif("error", "Gagal memperbarui status.");
-    }
+          setSelectedPending(
+            selectedPending.filter((id) => id !== selectedCrew.id),
+          );
+          setSelectedRejected(
+            selectedRejected.filter((id) => id !== selectedCrew.id),
+          );
+        } catch (e) {
+          showNotif("error", "Gagal memperbarui status.");
+        }
+      },
+    });
   };
 
   const handleUpdateRoleOnly = async () => {
@@ -758,8 +779,6 @@ export default function CrewManagementPage() {
         : newStatus === "rejected"
           ? "Ditolak"
           : "Dipulihkan (Pending)";
-    if (!confirm(`Ubah status ${ids.length} pelamar menjadi ${actionText}?`))
-      return;
 
     if (newStatus === "rejected") {
       setPendingRejectAction({ type: "mass", ids });
@@ -768,25 +787,33 @@ export default function CrewManagementPage() {
       return;
     }
 
-    try {
-      const batch = writeBatch(db);
-      ids.forEach((id) => {
-        const crew = pendaftar.find((c) => c.id === id);
-        if (crew) {
-          const updateData: any = { status: newStatus };
-          if (newStatus === "accepted") {
-            updateData.emailStatus = "";
-          }
-          batch.update(doc(db, crew.sourceDb, id), updateData);
+    setGenericConfirm({
+      isOpen: true,
+      title: "Pembaruan Status Massal",
+      message: `Ubah status ${ids.length} pelamar menjadi ${actionText}?`,
+      onConfirm: async () => {
+        setGenericConfirm({ ...genericConfirm, isOpen: false });
+        try {
+          const batch = writeBatch(db);
+          ids.forEach((id) => {
+            const crew = pendaftar.find((c) => c.id === id);
+            if (crew) {
+              const updateData: any = { status: newStatus };
+              if (newStatus === "accepted") {
+                updateData.emailStatus = "";
+              }
+              batch.update(doc(db, crew.sourceDb, id), updateData);
+            }
+          });
+          await batch.commit();
+          setSelectedPending([]);
+          setSelectedRejected([]);
+          showNotif("success", "Status massal diperbarui.");
+        } catch (err) {
+          showNotif("error", "Gagal memproses pembaruan massal.");
         }
-      });
-      await batch.commit();
-      setSelectedPending([]);
-      setSelectedRejected([]);
-      showNotif("success", "Status massal diperbarui.");
-    } catch (err) {
-      showNotif("error", "Gagal memproses pembaruan massal.");
-    }
+      },
+    });
   };
 
   const executeReject = async () => {
@@ -1000,86 +1027,99 @@ export default function CrewManagementPage() {
     }
   };
 
-  const handleMassEmail = async (type: "welcome" | "cert") => {
-    if (selectedAccepted.length === 0) return;
-    const isCert = type === "cert";
-    if (
-      !confirm(
-        `Kirim ${isCert ? "Sertifikat" : "Undangan WA"} ke ${selectedAccepted.length} kandidat yang diterima?`,
-      )
-    )
-      return;
+  const handleMassEmail = async (type: "welcome" | "cert" | "rejected") => {
+    const targetList = type === "rejected" ? selectedRejected : selectedAccepted;
+    if (targetList.length === 0) return;
+    
+    const actionName = type === "cert" ? "Sertifikat" : type === "rejected" ? "Email Penolakan" : "Undangan WA";
 
-    setEmailProgress({
-      total: selectedAccepted.length,
-      sent: 0,
-      failed: 0,
-      isSending: true,
-      type,
-    });
-    let sentCount = 0;
-    let failCount = 0;
-
-    for (const crewId of selectedAccepted) {
-      const crew = pendaftar.find((c) => c.id === crewId);
-      if (!crew) {
-        failCount++;
-        continue;
-      }
-
-      const { parentEvent, roleName, roleLink } = getRoleInfo(
-        crew.eventId,
-        crew.roleId || crew.divisiId || "",
-      );
-      if (isCert && (!parentEvent || !parentEvent.linkSertifikat)) {
-        failCount++;
-        continue;
-      }
-
-      try {
-        const { sendEmailAction } = await import("@/app/actions/email");
-        const res = await sendEmailAction({
-          type: isCert ? "certificate_crew" : "crew_accepted",
-          email: crew.email,
-          nama: crew.nama,
-          detail: isCert
-            ? {
-                event: parentEvent?.title || "Kepanitiaan",
-                linkSertifikat: parentEvent?.linkSertifikat,
-              }
-            : {
-                event: parentEvent?.title || "Kepanitiaan",
-                divisi: roleName,
-                linkGrupBesar: parentEvent?.linkGrupBesar || "",
-                linkGrupDivisi: roleLink,
-              },
+    setGenericConfirm({
+      isOpen: true,
+      title: `Kirim ${actionName}`,
+      message: `Kirim ${actionName} ke ${targetList.length} kandidat?`,
+      onConfirm: async () => {
+        setGenericConfirm({ ...genericConfirm, isOpen: false });
+        
+        setEmailProgress({
+          total: targetList.length,
+          sent: 0,
+          failed: 0,
+          isSending: true,
+          type: type as any,
         });
+        
+        let sentCount = 0;
+        let failCount = 0;
 
-        if (res.success) {
-          await setDoc(
-            doc(db, crew.sourceDb, crew.id),
-            isCert
-              ? { certEmailStatus: "sent" }
-              : { emailStatus: "sent", emailError: "" },
-            { merge: true },
+        for (const crewId of targetList) {
+          const crew = pendaftar.find((c) => c.id === crewId);
+          if (!crew) {
+            failCount++;
+            continue;
+          }
+
+          const { parentEvent, roleName, roleLink } = getRoleInfo(
+            crew.eventId,
+            crew.roleId || crew.divisiId || "",
           );
-          sentCount++;
-        } else {
-          failCount++;
+          if (type === "cert" && (!parentEvent || !parentEvent.linkSertifikat)) {
+            failCount++;
+            continue;
+          }
+
+          try {
+            const { sendEmailAction } = await import("@/app/actions/email");
+            const res = await sendEmailAction({
+              type: type === "cert" ? "certificate_crew" : type === "rejected" ? "crew_rejected" : "crew_accepted",
+              email: crew.email,
+              nama: crew.nama,
+              detail: type === "cert"
+                ? {
+                    event: parentEvent?.title || "Kepanitiaan",
+                    linkSertifikat: parentEvent?.linkSertifikat,
+                  }
+                : type === "rejected"
+                ? {
+                    event: parentEvent?.title || "Kepanitiaan",
+                    divisi: roleName,
+                    alasanTolak: crew.alasanTolak || "Kualifikasi belum sesuai dengan kebutuhan saat ini.",
+                  }
+                : {
+                    event: parentEvent?.title || "Kepanitiaan",
+                    divisi: roleName,
+                    linkGrupBesar: parentEvent?.linkGrupBesar || "",
+                    linkGrupDivisi: roleLink,
+                  },
+            });
+
+            if (res.success) {
+              await setDoc(
+                doc(db, crew.sourceDb, crew.id),
+                type === "cert"
+                  ? { certEmailStatus: "sent" }
+                  : { emailStatus: "sent", emailError: "" },
+                { merge: true },
+              );
+              sentCount++;
+            } else {
+              failCount++;
+            }
+          } catch (e: any) {
+            failCount++;
+          }
+          setEmailProgress((prev) =>
+            prev ? { ...prev, sent: sentCount, failed: failCount } : null,
+          );
         }
-      } catch (e: any) {
-        failCount++;
-      }
-      setEmailProgress((prev) =>
-        prev ? { ...prev, sent: sentCount, failed: failCount } : null,
-      );
-    }
-    setEmailProgress((prev) => (prev ? { ...prev, isSending: false } : null));
-    showNotif(
-      "success",
-      `Selesai. Berhasil: ${sentCount}, Gagal: ${failCount}`,
-    );
-    setSelectedAccepted([]);
+        setEmailProgress((prev) => (prev ? { ...prev, isSending: false } : null));
+        showNotif(
+          "success",
+          `Selesai. Berhasil: ${sentCount}, Gagal: ${failCount}`,
+        );
+        if (type === "rejected") setSelectedRejected([]);
+        else setSelectedAccepted([]);
+      },
+    });
   };
 
   const exportToExcel = (data: CrewMember[], filename: string) => {
@@ -1139,7 +1179,10 @@ export default function CrewManagementPage() {
           : activeTab === "ditolak"
             ? c.status === "rejected"
             : false) &&
-      (filterEvent === "all" || c.eventId === filterEvent),
+      (filterEvent === "all" || c.eventId === filterEvent) &&
+      (filterTipe === "all" || c.tipe === filterTipe) &&
+      (filterGender === "all" || c.jenisKelamin === filterGender) &&
+      (filterDivisi === "all" || c.roleId === filterDivisi || c.divisiId === filterDivisi),
   );
 
   const totalPages =
@@ -1390,6 +1433,34 @@ export default function CrewManagementPage() {
                               placeholder="https://drive.google.com/..."
                             />
                           </div>
+                        </div>
+                      </div>
+
+                      {/* CHECKBOX TARGET PENDAFTAR */}
+                      <div className="mb-6 bg-[#F8F9FA] p-4 rounded-lg border border-[#DADCE0]">
+                        <label className="block text-xs font-medium text-slate-600 mb-3">
+                          Target Kategori Pendaftar (Yang Diizinkan)
+                        </label>
+                        <div className="flex flex-wrap gap-4">
+                          {["mahasiswa", "alumni", "umum"].map((tipe) => (
+                            <label key={tipe} className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={(event.allowedTipe || ["mahasiswa", "alumni", "umum"]).includes(tipe)}
+                                onChange={(e) => {
+                                  const current = event.allowedTipe || ["mahasiswa", "alumni", "umum"];
+                                  const next = e.target.checked
+                                    ? [...current, tipe]
+                                    : current.filter((t) => t !== tipe);
+                                  handleChangeEvent(event.id, "allowedTipe", next);
+                                }}
+                                className="w-4 h-4 text-[#1A73E8] border-slate-300 rounded focus:ring-[#1A73E8]"
+                              />
+                              <span className="text-sm font-medium text-slate-700 capitalize">
+                                {tipe}
+                              </span>
+                            </label>
+                          ))}
                         </div>
                       </div>
 
@@ -1649,6 +1720,7 @@ export default function CrewManagementPage() {
                 value={filterEvent}
                 onChange={(e) => {
                   setFilterEvent(e.target.value);
+                  setFilterDivisi("all");
                   setCurrentPage(1);
                 }}
                 className="bg-white border border-[#DADCE0] text-slate-800 text-sm rounded-lg px-4 py-2 outline-none focus:border-[#1A73E8] shadow-sm flex-1 lg:flex-auto cursor-pointer font-medium"
@@ -1659,6 +1731,55 @@ export default function CrewManagementPage() {
                     {e.title}
                   </option>
                 ))}
+              </select>
+
+              <select
+                value={filterDivisi}
+                onChange={(e) => {
+                  setFilterDivisi(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="bg-white border border-[#DADCE0] text-slate-800 text-sm rounded-lg px-4 py-2 outline-none focus:border-[#1A73E8] shadow-sm flex-1 lg:flex-auto cursor-pointer font-medium"
+              >
+                <option value="all">Semua Divisi</option>
+                {filterEvent !== "all" &&
+                  events
+                    .find((e) => e.id === filterEvent)
+                    ?.groups?.flatMap((g) => g.roles || [])
+                    .map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.nama}
+                      </option>
+                    ))}
+              </select>
+
+              <select
+                value={filterTipe}
+                onChange={(e) => {
+                  setFilterTipe(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="bg-white border border-[#DADCE0] text-slate-800 text-sm rounded-lg px-4 py-2 outline-none focus:border-[#1A73E8] shadow-sm flex-1 lg:flex-auto cursor-pointer font-medium"
+              >
+                <option value="all">Semua Tipe</option>
+                <option value="mahasiswa">Mahasiswa</option>
+                <option value="alumni">Alumni</option>
+                <option value="himpunan">Himpunan</option>
+                <option value="ukm">UKM</option>
+                <option value="umum">Umum</option>
+              </select>
+
+              <select
+                value={filterGender}
+                onChange={(e) => {
+                  setFilterGender(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="bg-white border border-[#DADCE0] text-slate-800 text-sm rounded-lg px-4 py-2 outline-none focus:border-[#1A73E8] shadow-sm flex-1 lg:flex-auto cursor-pointer font-medium"
+              >
+                <option value="all">Semua Gender</option>
+                <option value="Laki-laki">Laki-laki</option>
+                <option value="Perempuan">Perempuan</option>
               </select>
               <button
                 onClick={() =>
@@ -1769,6 +1890,12 @@ export default function CrewManagementPage() {
                     >
                       Pulihkan (Pending)
                     </button>
+                    <button
+                      onClick={() => handleMassEmail("rejected")}
+                      className="bg-white text-slate-700 border border-[#DADCE0] hover:bg-slate-50 px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
+                    >
+                      <IconMail /> Email Penolakan
+                    </button>
                   </>
                 )}
               </div>
@@ -1807,7 +1934,7 @@ export default function CrewManagementPage() {
                   <th className="px-4 py-4 font-bold text-slate-500 text-xs uppercase tracking-wider">
                     EVENT & POSISI
                   </th>
-                  {activeTab === "timInti" && (
+                  {(activeTab === "timInti" || activeTab === "ditolak") && (
                     <th className="px-4 py-4 font-bold text-slate-500 text-xs uppercase tracking-wider text-center">
                       STATUS EMAIL
                     </th>
@@ -1914,26 +2041,30 @@ export default function CrewManagementPage() {
                           </p>
                         </td>
 
-                        {activeTab === "timInti" && (
+                        {(activeTab === "timInti" || activeTab === "ditolak") && (
                           <td className="px-4 py-3 text-center">
                             <div className="flex flex-col items-center gap-1.5">
                               {crew.emailStatus === "sent" ? (
                                 <span className="bg-emerald-50 text-emerald-700 text-[10px] px-2 py-1 rounded font-bold border border-emerald-200">
-                                  Undangan: Sukses
+                                  {activeTab === "ditolak" ? "Pemberitahuan: Sukses" : "Undangan: Sukses"}
                                 </span>
                               ) : (
                                 <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-1 rounded font-medium border border-slate-200">
-                                  Undangan: -
+                                  {activeTab === "ditolak" ? "Pemberitahuan: -" : "Undangan: -"}
                                 </span>
                               )}
-                              {crew.certEmailStatus === "sent" ? (
-                                <span className="bg-blue-50 text-blue-700 text-[10px] px-2 py-1 rounded font-bold border border-blue-200">
-                                  Sertifikat: Sukses
-                                </span>
-                              ) : (
-                                <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-1 rounded font-medium border border-slate-200">
-                                  Sertifikat: -
-                                </span>
+                              {activeTab === "timInti" && (
+                                <>
+                                  {crew.certEmailStatus === "sent" ? (
+                                    <span className="bg-blue-50 text-blue-700 text-[10px] px-2 py-1 rounded font-bold border border-blue-200">
+                                      Sertifikat: Sukses
+                                    </span>
+                                  ) : (
+                                    <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-1 rounded font-medium border border-slate-200">
+                                      Sertifikat: -
+                                    </span>
+                                  )}
+                                </>
                               )}
                             </div>
                           </td>
@@ -2541,6 +2672,41 @@ export default function CrewManagementPage() {
           </div>
         </div>
       )}
+      {/* MODAL GENERIC CONFIRM */}
+      {genericConfirm.isOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-100">
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-black text-slate-800 tracking-tight mb-2">
+                {genericConfirm.title}
+              </h2>
+              <p className="text-sm font-medium text-slate-600">
+                {genericConfirm.message}
+              </p>
+            </div>
+            <div className="px-6 py-4 border-t border-[#DADCE0] flex justify-end gap-3 bg-[#F8F9FA]">
+              <button
+                onClick={() => setGenericConfirm({ ...genericConfirm, isOpen: false })}
+                className="text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm w-full"
+              >
+                Batal
+              </button>
+              <button
+                onClick={genericConfirm.onConfirm}
+                className="bg-[#1A73E8] hover:bg-[#1557B0] text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-md w-full"
+              >
+                Konfirmasi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL ALASAN PENOLAKAN */}
       {rejectModalOpen && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
