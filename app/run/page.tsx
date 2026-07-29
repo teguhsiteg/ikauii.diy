@@ -141,7 +141,7 @@ function OfflineRunLandingPageContent() {
   }
 
   const isOfflineEnabled = settings?.isOfflineRunEnabled;
-  const adminStatus = settings?.offlineStatus || "tutup";
+  const adminStatus = settings?.offlineStatus || "auto";
   const isWaitingRoom = settings?.isWaitingRoomActive || false;
 
   const openDate = settings?.offlineTanggalPembukaan
@@ -159,16 +159,18 @@ function OfflineRunLandingPageContent() {
   // --- MULAI COPY DARI SINI ---
   if (isBypassed || isForceOpen) {
     showNormal = true;
-  } else if (!isOfflineEnabled || adminStatus === "tutup") {
+  } else if (!isOfflineEnabled) {
     showTutup = true;
+  } else if (adminStatus === "tutup") {
+    showTutup = true;
+  } else if (adminStatus === "coming_soon") {
+    showComingSoon = true;
+  } else if (adminStatus === "buka") {
+    showNormal = true;
   } else {
-    // Cek waktu dulu sebelum ngecek status Admin
+    // adminStatus === "auto" atau tidak terdefinisi
     if (openDate && currentTime < openDate) {
-      if (adminStatus === "coming_soon") {
-        showComingSoon = true;
-      } else {
-        showCountdown = true;
-      }
+      showCountdown = true;
     } else if (closeDate && currentTime > closeDate) {
       showTutup = true;
     } else {
@@ -177,7 +179,7 @@ function OfflineRunLandingPageContent() {
   }
   // --- SAMPAI SINI ---
 
-  if (showComingSoon) {
+  if (showComingSoon || showCountdown) {
     return (
       <div className="min-h-screen bg-[#0B2239] font-sans flex flex-col items-center justify-center p-4 relative overflow-hidden">
         {isDevMode && (
@@ -211,7 +213,7 @@ function OfflineRunLandingPageContent() {
 
         <h1 className="text-3xl md:text-5xl font-black text-white tracking-widest uppercase mb-4 text-center relative z-10 leading-tight">
           IKA UII DIY RUN <br />
-          <span className="text-[#FCD116]">COMING SOON</span>
+          <span className="text-[#FCD116]">{showCountdown ? "SEGERA DIBUKA" : "COMING SOON"}</span>
         </h1>
 
         {settings?.offlineTanggalPembukaan && (
@@ -278,12 +280,10 @@ function OfflineRunLandingPageContent() {
 
         <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 max-w-4xl leading-tight relative z-10">
           PENDAFTARAN RUNNING <br />
-          <span className="text-[#FCD116]">TELAH DITUTUP / BERAKHIR</span>
-        </h1>
+                  </h1>
 
         <p className="text-slate-300 text-sm md:text-base font-medium mb-10 max-w-2xl relative z-10 leading-relaxed">
-          Terima kasih atas antusiasme yang luar biasa. Sampai jumpa di garis
-          start event IKA UII selanjutnya.
+          Sampai jumpa di garis start event IKA UII DIY.
         </p>
 
         <div className="flex flex-wrap justify-center gap-4 relative z-10">
@@ -328,42 +328,36 @@ function OfflineRunLandingPageContent() {
         <div className="absolute inset-0 bg-[#0B2239]/90"></div>
 
         <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 relative z-20 text-center flex flex-col items-center w-full">
-          {showCountdown ? (
-            <ScrollReveal>
-              <div className="flex flex-col items-center justify-center w-full mt-4">
-                <h2 className="text-2xl md:text-4xl font-black text-white mb-3 tracking-wide">
-                  Registrasi{" "}
-                  <span className="text-[#FCD116]">
-                    {settings?.offlinePackages?.[0]?.nama || "Offline Run"}
-                  </span>
-                </h2>
-                <p className="text-sm md:text-base font-bold text-slate-300 mb-10 bg-white/10 px-6 py-2 rounded-full backdrop-blur-sm border border-white/10">
-                  {openDate
-                    ? openDate.toLocaleDateString("id-ID", {
-                        weekday: "long",
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })
-                    : ""}{" "}
-                  • Pukul{" "}
-                  {openDate
-                    ? openDate.toLocaleTimeString("id-ID", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : ""}{" "}
-                  WIB
-                </p>
-
-                <CountdownTimer
-                  targetDate={settings?.offlineTanggalPembukaan}
-                  onExpire={() => {}} /* 🔥 KOSONGKAN FUNGSI INI */
-                />
-
-                <div className="flex justify-center gap-4 mt-8">
-                  <Link
-                    href="/"
+          <ScrollReveal>
+            <div className="flex flex-col items-center justify-center w-full mt-4">
+              <h2 className="text-2xl md:text-4xl font-black text-white mb-3 tracking-wide">
+                Registrasi{" "}
+                <span className="text-[#FCD116]">
+                  {settings?.offlinePackages?.[0]?.nama || "Offline Run"}
+                </span>
+              </h2>
+              <p className="text-sm md:text-base font-bold text-slate-300 mb-10 bg-white/10 px-6 py-2 rounded-full backdrop-blur-sm border border-white/10">
+                {openDate
+                  ? openDate.toLocaleDateString("id-ID", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })
+                  : ""}{" "}
+                • Pukul{" "}
+                {openDate
+                  ? openDate.toLocaleTimeString("id-ID", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : ""}{" "}
+                WIB
+              </p>
+              
+              <div className="flex justify-center gap-4 mt-8">
+                <Link
+                  href="/"
                     className="w-12 h-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-[#FCD116] hover:text-[#0B2239] transition-all shadow-lg hover:-translate-y-1"
                   >
                     <svg
@@ -397,11 +391,10 @@ function OfflineRunLandingPageContent() {
                 </div>
               </div>
             </ScrollReveal>
-          ) : (
-            <>
-              <ScrollReveal>
-                <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 backdrop-blur-sm text-white px-5 py-2 rounded-full mb-8 shadow-xl">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#FCD116] animate-pulse"></span>
+
+            <ScrollReveal>
+              <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 backdrop-blur-sm text-white px-5 py-2 rounded-full mb-8 shadow-xl">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#FCD116] animate-pulse"></span>
                   <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em]">
                     Official Offline Run Event
                   </span>
@@ -519,8 +512,6 @@ function OfflineRunLandingPageContent() {
                   peserta.
                 </p>
               </ScrollReveal>
-            </>
-          )}
         </div>
       </section>
 
@@ -849,13 +840,6 @@ function OfflineRunLandingPageContent() {
                         className="w-full text-center font-bold py-3.5 md:py-4 rounded-xl shadow-inner text-sm bg-rose-100 text-rose-500 cursor-not-allowed border border-rose-200 uppercase tracking-widest"
                       >
                         Habis Terjual
-                      </button>
-                    ) : showCountdown && !isBypassed ? (
-                      <button
-                        disabled
-                        className={`w-full text-center font-bold py-3.5 md:py-4 rounded-xl text-sm uppercase tracking-widest cursor-not-allowed ${isHighlight ? "bg-white/10 text-white/50" : "bg-slate-100 text-slate-400 border border-slate-200"}`}
-                      >
-                        Segera Dibuka
                       </button>
                     ) : (
                       <Link

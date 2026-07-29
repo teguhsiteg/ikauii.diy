@@ -139,6 +139,31 @@ export default function TabOffline({
 
             <div className="pt-6 border-t border-slate-100 mt-6 space-y-5">
               <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+                Status Pendaftaran (Manual Override)
+              </h4>
+              <div className="bg-[#F8F9FA] p-4 rounded-lg border border-slate-200">
+                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                  Kontrol Status Halaman Pendaftaran Offline
+                </label>
+                <select
+                  name="offlineStatus"
+                  value={vrSettings.offlineStatus || "auto"}
+                  onChange={handleSettingChange}
+                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-md focus:border-[#1A73E8] outline-none text-sm font-bold text-[#0B2239]"
+                >
+                  <option value="auto">Otomatis (Mengikuti Tanggal Buka/Tutup)</option>
+                  <option value="coming_soon">Tampilkan Layar "Segera Dibuka" (Coming Soon)</option>
+                  <option value="tutup">Tutup Total Pendaftaran (Tutup)</option>
+                  <option value="buka">Buka Paksa (Abaikan Tanggal)</option>
+                </select>
+                <p className="text-[10px] text-slate-400 mt-2">
+                  *Gunakan ini jika Anda ingin menutup/membuka pendaftaran secara manual tanpa mengubah tanggal.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-6 border-t border-slate-100 mt-6 space-y-5">
+              <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">
                 Timeline Offline
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

@@ -438,6 +438,7 @@ export default function StravaStudioPage() {
                       if (isSubmitted && activity?.id !== act.id) {
                         toast.warning("Anda sudah menyetor waktu. Riwayat lari lain sudah dikunci dari Leaderboard.");
                         return;
+                      }
                       setActivity(act);
                     }}
                     className={`shrink-0 snap-center cursor-pointer p-4 rounded-2xl border-2 transition-all w-[140px] flex flex-col justify-between h-[160px] relative overflow-hidden ${
