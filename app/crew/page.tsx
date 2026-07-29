@@ -523,10 +523,8 @@ export default function OprecRegistrationPage() {
           .flatMap((g) => g.roles)
           .find((r) => r.id === formData.roleId)?.nama || "Divisi Pilihan";
 
-      fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      import("@/app/actions/email").then(({ sendEmailAction }) => {
+        sendEmailAction({
           type: "oprec_pending",
           email: formData.email,
           nama: formData.nama,
@@ -534,8 +532,8 @@ export default function OprecRegistrationPage() {
             event: targetEvent?.title || "Kepanitiaan IKA UII",
             divisi: targetDivisi,
           },
-        }),
-      }).catch((err) => console.error("Gagal kirim notif pending", err));
+        }).catch((err) => console.error("Gagal kirim notif pending", err));
+      });
 
       setSuccessModal(true);
     } catch (error) {

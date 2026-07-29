@@ -275,6 +275,11 @@ export default function CrewManagementPage() {
   const [isEditingData, setIsEditingData] = useState(false);
   const [editFormData, setEditFormData] = useState<any>({});
 
+  // STATE UNTUK MODAL PENOLAKAN
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [pendingRejectAction, setPendingRejectAction] = useState<{type: "single" | "mass", id?: string, ids?: string[]}|null>(null);
+  const [rejectReasonInput, setRejectReasonInput] = useState("");
+
   // Email State
   const [isSendingMail, setIsSendingMail] = useState(false);
   const [emailProgress, setEmailProgress] = useState<{
@@ -658,11 +663,11 @@ export default function CrewManagementPage() {
           : "PULIHKAN";
     if (!confirm(`Konfirmasi: ${actionText} pelamar ini?`)) return;
 
-    let alasanTolak = "";
     if (status === "rejected") {
-      alasanTolak = prompt(
-        "Masukkan alasan penolakan (akan dikirim ke email pendaftar):",
-      ) || "Maaf, kuota telah terpenuhi atau kualifikasi belum sesuai.";
+      setPendingRejectAction({ type: "single", id: selectedCrew.id });
+      setRejectReasonInput("");
+      setRejectModalOpen(true);
+      return;
     }
 
     const updatedEventId = findEventIdByRoleId(
@@ -756,11 +761,11 @@ export default function CrewManagementPage() {
     if (!confirm(`Ubah status ${ids.length} pelamar menjadi ${actionText}?`))
       return;
 
-    let alasanTolak = "";
     if (newStatus === "rejected") {
-      alasanTolak = prompt(
-        "Masukkan alasan penolakan (akan dikirim ke email pendaftar):",
-      ) || "Maaf, kuota telah terpenuhi atau kualifikasi belum sesuai.";
+      setPendingRejectAction({ type: "mass", ids });
+      setRejectReasonInput("");
+      setRejectModalOpen(true);
+      return;
     }
 
     try {
@@ -769,10 +774,7 @@ export default function CrewManagementPage() {
         const crew = pendaftar.find((c) => c.id === id);
         if (crew) {
           const updateData: any = { status: newStatus };
-          if (newStatus === "rejected") {
-            updateData.alasanTolak = alasanTolak;
-            updateData.emailStatus = ""; // reset email status so it can be resent
-          } else if (newStatus === "accepted") {
+          if (newStatus === "accepted") {
             updateData.emailStatus = "";
           }
           batch.update(doc(db, crew.sourceDb, id), updateData);
@@ -784,6 +786,60 @@ export default function CrewManagementPage() {
       showNotif("success", "Status massal diperbarui.");
     } catch (err) {
       showNotif("error", "Gagal memproses pembaruan massal.");
+    }
+  };
+
+  const executeReject = async () => {
+    if (!pendingRejectAction) return;
+    const finalReason = rejectReasonInput.trim() || "Maaf, kuota telah terpenuhi atau kualifikasi belum sesuai.";
+    
+    try {
+      if (pendingRejectAction.type === "single" && pendingRejectAction.id) {
+        const crew = pendaftar.find((c) => c.id === pendingRejectAction.id);
+        if (!crew) return;
+        
+        const updatedEventId = findEventIdByRoleId(
+          newAssignedRoleId,
+          crew.eventId,
+        );
+        
+        await setDoc(
+          doc(db, crew.sourceDb, crew.id),
+          { 
+            status: "rejected", 
+            roleId: newAssignedRoleId, 
+            eventId: updatedEventId,
+            alasanTolak: finalReason,
+            emailStatus: ""
+          },
+          { merge: true },
+        );
+        showNotif("success", "Pelamar ditolak dan alasan disimpan.");
+        setIsDetailOpen(false);
+        setSelectedPending(selectedPending.filter((id) => id !== crew.id));
+        setSelectedRejected(selectedRejected.filter((id) => id !== crew.id));
+      } else if (pendingRejectAction.type === "mass" && pendingRejectAction.ids) {
+        const batch = writeBatch(db);
+        pendingRejectAction.ids.forEach((id) => {
+          const crew = pendaftar.find((c) => c.id === id);
+          if (crew) {
+            batch.update(doc(db, crew.sourceDb, id), { 
+              status: "rejected", 
+              alasanTolak: finalReason,
+              emailStatus: ""
+            });
+          }
+        });
+        await batch.commit();
+        setSelectedPending([]);
+        setSelectedRejected([]);
+        showNotif("success", "Pelamar terpilih berhasil ditolak.");
+      }
+    } catch (e) {
+      showNotif("error", "Gagal menyimpan penolakan.");
+    } finally {
+      setRejectModalOpen(false);
+      setPendingRejectAction(null);
     }
   };
 
@@ -830,22 +886,20 @@ export default function CrewManagementPage() {
 
     setIsSendingMail(true);
     try {
-      const response = await fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "crew_accepted",
-          email: crew.email,
-          nama: crew.nama,
-          detail: {
-            event: parentEvent?.title || "Kepanitiaan",
-            divisi: roleName,
-            linkGrupBesar: targetLinkBesar,
-            linkGrupDivisi: roleLink,
-          },
-        }),
+      const { sendEmailAction } = await import("@/app/actions/email");
+      const res = await sendEmailAction({
+        type: "crew_accepted",
+        email: crew.email,
+        nama: crew.nama,
+        detail: {
+          event: parentEvent?.title || "Kepanitiaan",
+          divisi: roleName,
+          linkGrupBesar: targetLinkBesar,
+          linkGrupDivisi: roleLink,
+        },
       });
-      if (response.ok) {
+
+      if (res.success) {
         await setDoc(
           doc(db, crew.sourceDb, crew.id),
           { emailStatus: "sent", emailError: "" },
@@ -866,20 +920,18 @@ export default function CrewManagementPage() {
     const { parentEvent } = getRoleInfo(crew.eventId, crew.roleId || crew.divisiId || "");
     setIsSendingMail(true);
     try {
-      const response = await fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "crew_rejected",
-          email: crew.email,
-          nama: crew.nama,
-          detail: {
-            event: parentEvent?.title || "Kepanitiaan",
-            alasanTolak: crew.alasanTolak || "Kualifikasi belum memenuhi kebutuhan panitia.",
-          },
-        }),
+      const { sendEmailAction } = await import("@/app/actions/email");
+      const res = await sendEmailAction({
+        type: "crew_rejected",
+        email: crew.email,
+        nama: crew.nama,
+        detail: {
+          event: parentEvent?.title || "Kepanitiaan",
+          alasanTolak: crew.alasanTolak || "Kualifikasi belum memenuhi kebutuhan panitia.",
+        },
       });
-      if (response.ok) {
+
+      if (res.success) {
         await setDoc(
           doc(db, crew.sourceDb, crew.id),
           { emailStatus: "sent", emailError: "" },
@@ -920,20 +972,18 @@ export default function CrewManagementPage() {
 
     setIsSendingMail(true);
     try {
-      const response = await fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "certificate_crew",
-          email: crew.email,
-          nama: crew.nama,
-          detail: {
-            event: parentEvent?.title || "Kepanitiaan",
-            linkSertifikat: certLink,
-          },
-        }),
+      const { sendEmailAction } = await import("@/app/actions/email");
+      const res = await sendEmailAction({
+        type: "certificate_crew",
+        email: crew.email,
+        nama: crew.nama,
+        detail: {
+          event: parentEvent?.title || "Kepanitiaan",
+          linkSertifikat: certLink,
+        },
       });
-      if (response.ok) {
+
+      if (res.success) {
         await setDoc(
           doc(db, crew.sourceDb, crew.id),
           { certEmailStatus: "sent", emailError: "" },
@@ -987,27 +1037,25 @@ export default function CrewManagementPage() {
       }
 
       try {
-        const response = await fetch("/api/send-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: isCert ? "certificate_crew" : "crew_accepted",
-            email: crew.email,
-            nama: crew.nama,
-            detail: isCert
-              ? {
-                  event: parentEvent?.title || "Kepanitiaan",
-                  linkSertifikat: parentEvent?.linkSertifikat,
-                }
-              : {
-                  event: parentEvent?.title || "Kepanitiaan",
-                  divisi: roleName,
-                  linkGrupBesar: parentEvent?.linkGrupBesar || "",
-                  linkGrupDivisi: roleLink,
-                },
-          }),
+        const { sendEmailAction } = await import("@/app/actions/email");
+        const res = await sendEmailAction({
+          type: isCert ? "certificate_crew" : "crew_accepted",
+          email: crew.email,
+          nama: crew.nama,
+          detail: isCert
+            ? {
+                event: parentEvent?.title || "Kepanitiaan",
+                linkSertifikat: parentEvent?.linkSertifikat,
+              }
+            : {
+                event: parentEvent?.title || "Kepanitiaan",
+                divisi: roleName,
+                linkGrupBesar: parentEvent?.linkGrupBesar || "",
+                linkGrupDivisi: roleLink,
+              },
         });
-        if (response.ok) {
+
+        if (res.success) {
           await setDoc(
             doc(db, crew.sourceDb, crew.id),
             isCert
@@ -2489,6 +2537,55 @@ export default function CrewManagementPage() {
                   )}
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* MODAL ALASAN PENOLAKAN */}
+      {rejectModalOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
+            <div className="px-6 py-5 border-b border-[#DADCE0] bg-[#F8F9FA] flex justify-between items-center">
+              <h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                <span className="text-[#D93025]">Alasan Penolakan</span>
+              </h2>
+              <button
+                onClick={() => {
+                  setRejectModalOpen(false);
+                  setPendingRejectAction(null);
+                }}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm font-medium text-slate-600 mb-4">
+                Masukkan alasan mengapa kandidat ini ditolak. Alasan ini akan dikirimkan langsung ke email kandidat.
+              </p>
+              <textarea
+                value={rejectReasonInput}
+                onChange={(e) => setRejectReasonInput(e.target.value)}
+                placeholder="Contoh: Kualifikasi yang dibutuhkan belum sesuai dengan posisi ini..."
+                className="w-full p-4 border border-[#DADCE0] rounded-xl text-sm font-medium outline-none focus:border-[#D93025] focus:ring-4 focus:ring-red-50 transition-all resize-none h-32 text-slate-800 placeholder:text-slate-400"
+              />
+            </div>
+            <div className="px-6 py-4 border-t border-[#DADCE0] flex justify-end gap-3 bg-[#F8F9FA]">
+              <button
+                onClick={() => {
+                  setRejectModalOpen(false);
+                  setPendingRejectAction(null);
+                }}
+                className="text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm"
+              >
+                Batal
+              </button>
+              <button
+                onClick={executeReject}
+                className="bg-[#D93025] hover:bg-[#B3261E] text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-md flex items-center gap-2"
+              >
+                Konfirmasi Penolakan
+              </button>
             </div>
           </div>
         </div>
