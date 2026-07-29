@@ -36,11 +36,14 @@ export async function GET(request: Request) {
 
     // 2. Simpan "Gembok" Strava ini ke database peserta yang bersangkutan
     if (participantId) {
+      // Import secara dinamis agar tidak mempengaruhi Edge runtime jika ada
+      const { encryptText } = await import("@/lib/crypto");
+      
       const participantRef = doc(db, "offline_participants", participantId);
       await updateDoc(participantRef, {
         strava_athlete_id: data.athlete.id,
-        strava_access_token: data.access_token,
-        strava_refresh_token: data.refresh_token,
+        strava_access_token: encryptText(data.access_token),
+        strava_refresh_token: encryptText(data.refresh_token),
         strava_expires_at: data.expires_at, // Waktu kadaluarsa token
         isStravaConnected: true,
       });

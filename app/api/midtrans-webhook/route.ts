@@ -8,6 +8,7 @@ import {
   query,
   where,
   getDocs,
+  runTransaction,
 } from "firebase/firestore";
 import crypto from "crypto";
 
@@ -72,9 +73,9 @@ export async function POST(request: Request) {
     }
 
     // 4. POTONG ORDER ID (Contoh: ID123-TIMESTAMP -> ID123)
-    const realOrderId = order_id.split("-")[0];
-
-    // =================================================================
+    // Menggunakan lastIndexOf agar aman jika original ID mengandung karakter '-'
+    const lastDashIndex = order_id.lastIndexOf("-");
+    const realOrderId = lastDashIndex !== -1 ? order_id.substring(0, lastDashIndex) : order_id;    // =================================================================
     // 🔥 5. OMNI-ROUTING: CARI DATA DI 3 TABEL BERBEDA
     // =================================================================
     let targetRef = doc(db, "offline_participants", realOrderId);
@@ -126,22 +127,26 @@ export async function POST(request: Request) {
           !finalBib
         ) {
           try {
-            // Hitung jumlah peserta yang sudah Lunas untuk menentukan nomor urut
-            const qCount = query(
-              collection(db, "offline_participants"),
-              where("statusPembayaran", "==", "Lunas"),
-            );
-            const snapCount = await getDocs(qCount);
-            const nomorUrutBaru = snapCount.size + 1;
-
-            // Ambil angka dari jarak (Cth: "10K" -> "10")
-            const jarakAngka =
-              (targetData.jarak || "9").replace(/\D/g, "") || "9";
-
-            // Format: [Jarak][Urutan 3 Digit] -> "10001"
-            finalBib = `${jarakAngka}${String(nomorUrutBaru).padStart(3, "0")}`;
+            // Menggunakan transaksi Firestore untuk mencegah Race Condition
+            const counterRef = doc(db, "pengaturan", "counter_bib_offline");
+            
+            await runTransaction(db, async (transaction) => {
+              const counterSnap = await transaction.get(counterRef);
+              let nomorUrutBaru = 1;
+              
+              if (counterSnap.exists()) {
+                nomorUrutBaru = (counterSnap.data()?.lastBib || 0) + 1;
+              }
+              
+              // Ambil angka dari jarak (Cth: "10K" -> "10")
+              const jarakAngka = (targetData.jarak || "9").replace(/\D/g, "") || "9";
+              finalBib = `${jarakAngka}${String(nomorUrutBaru).padStart(3, "0")}`;
+              
+              // Simpan lastBib baru ke counter
+              transaction.set(counterRef, { lastBib: nomorUrutBaru }, { merge: true });
+            });
           } catch (err) {
-            console.error("[Midtrans] Gagal generate BIB:", err);
+            console.error("[Midtrans] Gagal generate BIB via transaction:", err);
             finalBib = "TUNDA"; // Fallback jika gagal generate
           }
         }

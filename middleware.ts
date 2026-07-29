@@ -1,33 +1,29 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-/**
- * Decode JWT payload dan cek apakah token sudah kadaluarsa.
- * Ini TIDAK memverifikasi signature — hanya mengecek expiry.
- * Cukup untuk mencegah token lama/manipulasi sederhana.
- */
-function getTokenExpiry(token: string): number | null {
+import { createRemoteJWKSet, jwtVerify } from "jose";
+
+// URL public keys Google untuk Firebase
+const FIREBASE_JWKS_URL = "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
+const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || "suratdigitalv2";
+
+const JWKS = createRemoteJWKSet(new URL(FIREBASE_JWKS_URL));
+
+async function verifyFirebaseToken(token: string) {
   try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    // Base64URL decode
-    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
-    const payload = JSON.parse(atob(padded));
-    return typeof payload.exp === "number" ? payload.exp : null;
-  } catch {
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer: `https://securetoken.google.com/${projectId}`,
+      audience: projectId,
+    });
+    // Jika verify berhasil, berarti token valid, ditandatangani Google, dan belum expired.
+    return payload;
+  } catch (error) {
+    console.error("JWT Verification failed in Edge:", error);
     return null;
   }
 }
 
-function isTokenValid(token: string): boolean {
-  const exp = getTokenExpiry(token);
-  if (!exp) return false;
-  // exp adalah Unix timestamp dalam detik
-  return exp * 1000 > Date.now();
-}
-
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const session = request.cookies.get("firebase_session");
   const { pathname } = request.nextUrl;
 
@@ -43,8 +39,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // 3. Verifikasi token tidak kadaluarsa
-  if (!isTokenValid(session.value)) {
+  // 3. Verifikasi token secara mendalam (Signature & Expiry)
+  const payload = await verifyFirebaseToken(session.value);
+  if (!payload) {
     const url = new URL("/login", request.url);
     url.searchParams.set("callbackUrl", pathname);
     url.searchParams.set("reason", "session_expired");
