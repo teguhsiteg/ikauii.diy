@@ -123,7 +123,6 @@ export default function Sidebar({
       subItems: [
         { name: "Pengaturan Umum", path: "/admin-vr/pengaturan" },
         { name: "Manajemen Sponsor", path: "/admin-vr/sponsor" }, // 🔥 MENU BARU KITA 🔥
-        { name: "Kontrol Akses", path: "/admin-vr/kontrol" },
         { name: "Legal & Aturan", path: "/admin-vr/legal" },
       ],
     },
