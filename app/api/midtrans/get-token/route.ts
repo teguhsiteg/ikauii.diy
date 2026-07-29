@@ -5,7 +5,39 @@ import { doc, getDoc } from "firebase/firestore";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { id, nama, email, noWA, totalTagihan, type } = body;
+    // 🔥 FIX 1: Kita HAPUS 'totalTagihan' dari sini. Kita tidak butuh kiriman harga dari browser!
+    const { id, nama, email, noWA, type } = body;
+
+    if (!id || !type) {
+      return NextResponse.json(
+        { error: "Missing ID or Type parameter" },
+        { status: 400 },
+      );
+    }
+
+    // 🔥 FIX 2: AMBIL HARGA ASLI LANGSUNG DARI DATABASE (Anti-Manipulasi) 🔥
+    // Asumsi: parameter 'type' isinya "offline" atau "virtual"
+    const collectionName =
+      type === "offline" ? "offline_participants" : "vr_participants";
+    const participantRef = doc(db, collectionName, id);
+    const participantSnap = await getDoc(participantRef);
+
+    if (!participantSnap.exists()) {
+      return NextResponse.json(
+        { error: "Data peserta tidak ditemukan di sistem" },
+        { status: 404 },
+      );
+    }
+
+    const participantData = participantSnap.data();
+    const actualTagihan = participantData.totalTagihan; // Ini harga asli yang tersimpan di server!
+
+    if (!actualTagihan || actualTagihan <= 0) {
+      return NextResponse.json(
+        { error: "Nominal tagihan tidak valid" },
+        { status: 400 },
+      );
+    }
 
     // 1. Ambil Pengaturan dari Admin Panel (Firebase)
     const sRef = doc(db, "settings", "virtual_run");
@@ -19,7 +51,7 @@ export async function POST(request: Request) {
     }
 
     const settings = sSnap.data();
-    const serverKey = settings.midtransServerKey; // Diambil dari form Admin-mu!
+    const serverKey = settings.midtransServerKey;
 
     if (!serverKey) {
       return NextResponse.json(
@@ -28,8 +60,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. AUTO-DETECT ENVIRONMENT (Super Pintar 🧠)
-    // Cek apakah awalan Server Key-nya "SB-" (Sandbox) atau Live
+    // 2. AUTO-DETECT ENVIRONMENT
     const isSandbox = serverKey.startsWith("SB-");
     const midtransUrl = isSandbox
       ? "https://app.sandbox.midtrans.com/snap/v1/transactions"
@@ -42,12 +73,13 @@ export async function POST(request: Request) {
     const payload = {
       transaction_details: {
         order_id: orderId,
-        gross_amount: Math.round(Number(totalTagihan)),
+        // 🔥 FIX 3: Gunakan 'actualTagihan' dari database, BUKAN dari request body
+        gross_amount: Math.round(Number(actualTagihan)),
       },
       customer_details: {
-        first_name: nama,
-        email: email,
-        phone: noWA,
+        first_name: nama || participantData.namaLengkap,
+        email: email || participantData.email,
+        phone: noWA || participantData.noWA,
       },
     };
 

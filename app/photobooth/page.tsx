@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { toast } from "@/lib/toast";
 import { db } from "@/lib/firebase";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 
@@ -69,7 +70,7 @@ export default function PhotoboothKioskPage() {
       }
     } catch (err) {
       console.error("Gagal akses kamera:", err);
-      alert("Tolong izinkan akses kamera di browser ini!");
+      toast.error("Tolong izinkan akses kamera di browser ini!");
     }
   };
 
@@ -201,7 +202,7 @@ export default function PhotoboothKioskPage() {
       }
     } catch (err) {
       console.error("Gagal Upload:", err);
-      alert("Gagal mengunggah foto. Cek koneksi internet.");
+      toast.error("Gagal mengunggah foto. Cek koneksi internet.");
       setStep("PREVIEW");
     }
   };

@@ -8,11 +8,12 @@ import {
   addDoc,
   getDocs,
   query,
-  orderBy,
   where,
   doc,
   updateDoc,
   deleteDoc,
+  getDoc,
+  orderBy,
 } from "firebase/firestore";
 
 // --- TYPES ---
@@ -40,6 +41,8 @@ interface ProkerPayload {
   divisi: Divisi[];
   fileProposal: string;
   fileLaporan: string;
+  _qrUrl?: string; // Hanya dipakai untuk render PDF (Tidak masuk DB Proker)
+  _ttdName?: string; // Hanya dipakai untuk render PDF (Tidak masuk DB Proker)
   [key: string]: any;
 }
 
@@ -59,101 +62,112 @@ const formatDateToID = (dateStr: string) => {
   }
 };
 
-// --- REUSABLE PDF TEMPLATE COMPONENT DENGAN THEAD (KOP BERULANG) ---
+// --- REUSABLE PDF TEMPLATE COMPONENT ---
 const SuratTugasTemplate = ({ printData }: { printData: ProkerPayload }) => {
-  const qrData = encodeURIComponent(
-    `Dokumen Sah & TTD Digital\nNo: ${printData.nomorSurat || "ST-IKA-UII"}\nOleh: Ketua DPW IKA UII DIY`,
+  const isVerified = Boolean(
+    printData._qrUrl &&
+    typeof printData._qrUrl === "string" &&
+    printData._qrUrl.trim().length > 10 &&
+    printData._qrUrl.startsWith("http"),
   );
+
+  const namaTtd = printData._ttdName || "H. Harda Kiswaya, S.E., M.Si.";
 
   return (
     <table
       style={{
         width: "100%",
         borderCollapse: "collapse",
-        fontFamily: '"Times New Roman", Times, serif',
-        fontSize: "11pt",
+        fontFamily: '"Cambria", "Times New Roman", serif',
+        fontSize: "12pt",
         color: "#000000",
         lineHeight: 1.5,
       }}
     >
-      {/* THEAD: AKAN BERULANG DI SETIAP HALAMAN CETAK */}
       <thead style={{ display: "table-header-group" }}>
         <tr>
           <td style={{ paddingBottom: "25px" }}>
-            {/* KOP SURAT PROPORSIONAL */}
-            <div
+            <table
               style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
+                width: "100%",
+                borderBottom: "3px solid black",
+                paddingBottom: "4px",
               }}
             >
-              <div style={{ width: "120px", textAlign: "left" }}>
-                <img
-                  crossOrigin="anonymous"
-                  src="/logo-dpp-ika.png"
-                  alt="Logo IKA UII"
-                  style={{
-                    width: "95px",
-                    height: "auto",
-                    objectFit: "contain",
-                  }}
-                />
-              </div>
-              <div style={{ flex: 1, textAlign: "center" }}>
-                <div
-                  style={{
-                    fontSize: "14pt",
-                    fontWeight: "bold",
-                    textTransform: "uppercase",
-                    marginBottom: "3px",
-                    letterSpacing: "0.5px",
-                  }}
-                >
-                  Dewan Pimpinan Wilayah Daerah Istimewa Yogyakarta
-                </div>
-                <div
-                  style={{
-                    fontSize: "16pt",
-                    color: "#1e3a8a",
-                    fontWeight: "900",
-                    textTransform: "uppercase",
-                    marginBottom: "6px",
-                    letterSpacing: "0.5px",
-                  }}
-                >
-                  Ikatan Keluarga Alumni Universitas Islam Indonesia
-                </div>
-                <div style={{ fontSize: "10pt", color: "#000" }}>
-                  Sekretariat: Kampus Terpadu UII, Jl. Kaliurang KM 14.5 Sleman,
-                  Yogyakarta
-                  <br />
-                  Email: ikadiy@uii.ac.id | Website: www.ikadiy.uii.ac.id | IG:
-                  @ikauii.diy
-                </div>
-              </div>
-              {/* Spacer penyeimbang di kanan agar teks benar-benar rata tengah */}
-              <div style={{ width: "120px" }}></div>
-            </div>
-            {/* Garis Bawah Kop */}
+              <tbody>
+                <tr>
+                  <td
+                    style={{
+                      width: "15%",
+                      textAlign: "center",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    <img
+                      crossOrigin="anonymous"
+                      src="/logo-dpp-ika.png"
+                      alt="Logo IKA UII"
+                      style={{ width: "95px", height: "auto" }}
+                    />
+                  </td>
+                  <td
+                    style={{
+                      width: "70%",
+                      textAlign: "center",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "19pt",
+                        fontWeight: "bold",
+                        textTransform: "uppercase",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Dewan Pimpinan Wilayah
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "18pt",
+                        color: "#1e3a8a",
+                        fontWeight: "900",
+                        textTransform: "uppercase",
+                        marginTop: "2px",
+                        marginBottom: "4px",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Ikatan Keluarga Alumni
+                      <br />
+                      Universitas Islam Indonesia
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "11pt",
+                        color: "#000",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Sekretariat: Kampus Terpadu UII, Jl. Kaliurang KM 14.5,
+                      Sleman, Yogyakarta
+                      <br />
+                      Email: ika.diy@uii.ac.id | Website: ikadiy.uii.ac.id
+                    </div>
+                  </td>
+                  <td style={{ width: "15%" }}></td>
+                </tr>
+              </tbody>
+            </table>
             <div
-              style={{
-                marginTop: "12px",
-                borderBottom: "3px solid #000",
-                paddingBottom: "2px",
-              }}
-            >
-              <div style={{ borderBottom: "1px solid #000" }}></div>
-            </div>
+              style={{ borderTop: "1px solid black", marginTop: "2px" }}
+            ></div>
           </td>
         </tr>
       </thead>
-
-      {/* TBODY: ISI KONTEN (Anti Potong Halaman) */}
       <tbody>
         <tr>
           <td>
-            {/* Judul & Nomor Surat */}
             <div style={{ textAlign: "center", marginBottom: "25px" }}>
               <div
                 style={{
@@ -169,8 +183,6 @@ const SuratTugasTemplate = ({ printData }: { printData: ProkerPayload }) => {
               </div>
               <div>Nomor: {printData.nomorSurat}</div>
             </div>
-
-            {/* Pembuka */}
             <div style={{ textAlign: "justify", marginBottom: "20px" }}>
               Pimpinan Dewan Pimpinan Wilayah Ikatan Keluarga Alumni Universitas
               Islam Indonesia (DPW IKA UII) Daerah Istimewa Yogyakarta
@@ -178,17 +190,15 @@ const SuratTugasTemplate = ({ printData }: { printData: ProkerPayload }) => {
               sebagai panitia <strong>{printData.namaKegiatan}</strong>, dengan
               susunan personalia sebagai berikut:
             </div>
-
-            {/* Tabel Personalia */}
             <table
               style={{
                 width: "100%",
                 marginBottom: "30px",
                 borderCollapse: "collapse",
+                fontSize: "12pt",
               }}
             >
               <tbody>
-                {/* Penanggung Jawab */}
                 {printData.penanggungJawab && (
                   <tr style={{ pageBreakInside: "avoid" }}>
                     <td
@@ -222,54 +232,28 @@ const SuratTugasTemplate = ({ printData }: { printData: ProkerPayload }) => {
                     </td>
                   </tr>
                 )}
-                {/* Ketua SC */}
                 {printData.ketuaSC && (
                   <tr style={{ pageBreakInside: "avoid" }}>
                     <td style={{ verticalAlign: "top", paddingBottom: "6px" }}>
                       Ketua SC / Pengarah
                     </td>
-                    <td
-                      style={{
-                        verticalAlign: "top",
-                        textAlign: "center",
-                        paddingBottom: "6px",
-                      }}
-                    >
+                    <td style={{ verticalAlign: "top", textAlign: "center" }}>
                       :
                     </td>
-                    <td
-                      style={{
-                        verticalAlign: "top",
-                        fontWeight: "bold",
-                        paddingBottom: "6px",
-                      }}
-                    >
+                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>
                       {printData.ketuaSC}
                     </td>
                   </tr>
                 )}
-                {/* Anggota SC */}
                 {printData.anggotaSC?.length > 0 && (
                   <tr style={{ pageBreakInside: "avoid" }}>
                     <td style={{ verticalAlign: "top", paddingBottom: "6px" }}>
                       Anggota SC
                     </td>
-                    <td
-                      style={{
-                        verticalAlign: "top",
-                        textAlign: "center",
-                        paddingBottom: "6px",
-                      }}
-                    >
+                    <td style={{ verticalAlign: "top", textAlign: "center" }}>
                       :
                     </td>
-                    <td
-                      style={{
-                        verticalAlign: "top",
-                        fontWeight: "bold",
-                        paddingBottom: "6px",
-                      }}
-                    >
+                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>
                       <div
                         style={{
                           display: "flex",
@@ -286,183 +270,129 @@ const SuratTugasTemplate = ({ printData }: { printData: ProkerPayload }) => {
                     </td>
                   </tr>
                 )}
-
-                {/* Spasi Antara SC dan OC */}
                 {printData.anggotaSC?.length > 0 && (
                   <tr>
                     <td colSpan={3} style={{ height: "10px" }}></td>
                   </tr>
                 )}
-
-                {/* Ketua OC */}
                 {printData.ketuaOC && (
                   <tr style={{ pageBreakInside: "avoid" }}>
                     <td style={{ verticalAlign: "top", paddingBottom: "6px" }}>
                       Ketua Pelaksana (OC)
                     </td>
-                    <td
-                      style={{
-                        verticalAlign: "top",
-                        textAlign: "center",
-                        paddingBottom: "6px",
-                      }}
-                    >
+                    <td style={{ verticalAlign: "top", textAlign: "center" }}>
                       :
                     </td>
-                    <td
-                      style={{
-                        verticalAlign: "top",
-                        fontWeight: "bold",
-                        paddingBottom: "6px",
-                      }}
-                    >
+                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>
                       {printData.ketuaOC}
                     </td>
                   </tr>
                 )}
-                {/* Wakil Ketua OC */}
                 {printData.wakilKetuaOC && (
                   <tr style={{ pageBreakInside: "avoid" }}>
                     <td style={{ verticalAlign: "top", paddingBottom: "6px" }}>
                       Wakil Ketua
                     </td>
-                    <td
-                      style={{
-                        verticalAlign: "top",
-                        textAlign: "center",
-                        paddingBottom: "6px",
-                      }}
-                    >
+                    <td style={{ verticalAlign: "top", textAlign: "center" }}>
                       :
                     </td>
-                    <td
-                      style={{
-                        verticalAlign: "top",
-                        fontWeight: "bold",
-                        paddingBottom: "6px",
-                      }}
-                    >
+                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>
                       {printData.wakilKetuaOC}
                     </td>
                   </tr>
                 )}
-                {/* Sekretaris */}
                 {printData.sekretaris && (
                   <tr style={{ pageBreakInside: "avoid" }}>
                     <td style={{ verticalAlign: "top", paddingBottom: "6px" }}>
                       Sekretaris
                     </td>
-                    <td
-                      style={{
-                        verticalAlign: "top",
-                        textAlign: "center",
-                        paddingBottom: "6px",
-                      }}
-                    >
+                    <td style={{ verticalAlign: "top", textAlign: "center" }}>
                       :
                     </td>
-                    <td
-                      style={{
-                        verticalAlign: "top",
-                        fontWeight: "bold",
-                        paddingBottom: "6px",
-                      }}
-                    >
+                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>
                       {printData.sekretaris}
                     </td>
                   </tr>
                 )}
-                {/* Bendahara */}
                 {printData.bendahara && (
                   <tr style={{ pageBreakInside: "avoid" }}>
                     <td style={{ verticalAlign: "top", paddingBottom: "6px" }}>
                       Bendahara
                     </td>
-                    <td
-                      style={{
-                        verticalAlign: "top",
-                        textAlign: "center",
-                        paddingBottom: "6px",
-                      }}
-                    >
+                    <td style={{ verticalAlign: "top", textAlign: "center" }}>
                       :
                     </td>
-                    <td
-                      style={{
-                        verticalAlign: "top",
-                        fontWeight: "bold",
-                        paddingBottom: "6px",
-                      }}
-                    >
+                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>
                       {printData.bendahara}
                     </td>
                   </tr>
                 )}
-
-                {/* Divisi - Divisi */}
-                {printData.divisi?.map((div, idx) => (
-                  <tr key={idx} style={{ pageBreakInside: "avoid" }}>
-                    <td style={{ verticalAlign: "top", paddingBottom: "6px" }}>
-                      {div.namaDivisi}
-                    </td>
-                    <td
-                      style={{
-                        verticalAlign: "top",
-                        textAlign: "center",
-                        paddingBottom: "6px",
-                      }}
-                    >
-                      :
-                    </td>
+                <tr>
+                  <td colSpan={3} style={{ height: "10px" }}></td>
+                </tr>
+                {printData.divisi?.map((div, idx) => [
+                  <tr key={`div-${idx}`} style={{ pageBreakInside: "avoid" }}>
                     <td
                       style={{
                         verticalAlign: "top",
                         fontWeight: "bold",
-                        paddingBottom: "6px",
+                        paddingBottom: div.anggota?.length > 0 ? "4px" : "12px",
                       }}
                     >
-                      <div
+                      {div.namaDivisi}
+                    </td>
+                    <td style={{ verticalAlign: "top", textAlign: "center" }}>
+                      :
+                    </td>
+                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>
+                      {div.koordinator}
+                    </td>
+                  </tr>,
+                  div.anggota?.length > 0 && (
+                    <tr key={`ang-${idx}`} style={{ pageBreakInside: "avoid" }}>
+                      <td
                         style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "2px",
+                          verticalAlign: "top",
+                          fontWeight: "normal",
+                          paddingBottom: "12px",
                         }}
                       >
-                        {div.koordinator && <div>1. {div.koordinator}</div>}
-                        {div.anggota.map((m, i) => (
-                          <div key={i}>
-                            {div.koordinator ? i + 2 : i + 1}. {m}
-                          </div>
-                        ))}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-
-                {/* Informasi Tambahan */}
+                        Anggota
+                      </td>
+                      <td style={{ verticalAlign: "top", textAlign: "center" }}>
+                        :
+                      </td>
+                      <td
+                        style={{ verticalAlign: "top", fontWeight: "normal" }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "4px",
+                          }}
+                        >
+                          {div.anggota.map((m, i) => (
+                            <div key={i}>
+                              {i + 1}. {m}
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ),
+                ])}
                 <tr style={{ pageBreakInside: "avoid" }}>
                   <td colSpan={3} style={{ height: "15px" }}></td>
                 </tr>
                 <tr style={{ pageBreakInside: "avoid" }}>
                   <td style={{ verticalAlign: "top", paddingBottom: "6px" }}>
-                    Lama Penugasan
+                    Periode Ketugasan
                   </td>
-                  <td
-                    style={{
-                      verticalAlign: "top",
-                      textAlign: "center",
-                      paddingBottom: "6px",
-                    }}
-                  >
+                  <td style={{ verticalAlign: "top", textAlign: "center" }}>
                     :
                   </td>
-                  <td
-                    style={{
-                      verticalAlign: "top",
-                      fontWeight: "bold",
-                      paddingBottom: "6px",
-                    }}
-                  >
+                  <td style={{ verticalAlign: "top", fontWeight: "bold" }}>
                     {formatDateToID(printData.tglMulai)} s.d{" "}
                     {formatDateToID(printData.tglSelesai)}
                   </td>
@@ -478,14 +408,12 @@ const SuratTugasTemplate = ({ printData }: { printData: ProkerPayload }) => {
                 </tr>
               </tbody>
             </table>
-
-            {/* Penutup */}
             <div style={{ textAlign: "justify", marginBottom: "40px" }}>
               Demikian Surat Tugas ini dibuat agar dapat dilaksanakan dengan
-              sebaik-baiknya, dan dengan penuh rasa tanggung jawab.
+              sebaik-baiknya, dan dengan penuh rasa tanggung jawab. Apabila di
+              kemudian hari terdapat kekeliruan, maka Surat Tugas ini dapat
+              ditinjau dan diperbarui sebagaimana mestinya.
             </div>
-
-            {/* Tanda Tangan & Disclaimer Validasi */}
             <table
               style={{
                 width: "100%",
@@ -495,7 +423,6 @@ const SuratTugasTemplate = ({ printData }: { printData: ProkerPayload }) => {
             >
               <tbody>
                 <tr>
-                  {/* Kiri: Disclaimer */}
                   <td
                     style={{
                       width: "55%",
@@ -505,7 +432,7 @@ const SuratTugasTemplate = ({ printData }: { printData: ProkerPayload }) => {
                   >
                     <div
                       style={{
-                        fontSize: "9pt",
+                        fontSize: "10pt",
                         color: "#000",
                         lineHeight: 1.4,
                       }}
@@ -521,8 +448,6 @@ const SuratTugasTemplate = ({ printData }: { printData: ProkerPayload }) => {
                       menggunakan perangkat ponsel Anda.
                     </div>
                   </td>
-
-                  {/* Kanan: Tanda Tangan */}
                   <td
                     style={{
                       width: "45%",
@@ -541,7 +466,6 @@ const SuratTugasTemplate = ({ printData }: { printData: ProkerPayload }) => {
                     <div style={{ marginBottom: "15px" }}>
                       Ketua DPW IKA UII DIY,
                     </div>
-
                     <div
                       style={{
                         display: "flex",
@@ -549,22 +473,42 @@ const SuratTugasTemplate = ({ printData }: { printData: ProkerPayload }) => {
                         marginBottom: "15px",
                       }}
                     >
-                      <img
-                        crossOrigin="anonymous"
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${qrData}`}
-                        alt="Digital Signature"
-                        style={{ width: "90px", height: "90px" }}
-                      />
+                      {isVerified ? (
+                        <img
+                          crossOrigin="anonymous"
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(printData._qrUrl!)}`}
+                          alt="Digital Signature"
+                          style={{ width: "90px", height: "90px" }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: "90px",
+                            height: "90px",
+                            border: "2px dashed #94a3b8",
+                            borderRadius: "8px",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#64748b",
+                            fontSize: "9pt",
+                            fontWeight: "bold",
+                            textAlign: "center",
+                            padding: "4px",
+                          }}
+                        >
+                          <span>DRAFT</span>
+                        </div>
+                      )}
                     </div>
-
                     <div
                       style={{
                         fontWeight: "bold",
                         textDecoration: "underline",
-                        textTransform: "uppercase",
                       }}
                     >
-                      H. HARDA KISWAYA, S.E., M.SI.
+                      {namaTtd}
                     </div>
                   </td>
                 </tr>
@@ -592,8 +536,8 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
 
   const [prokerList, setProkerList] = useState<any[]>([]);
   const [pengurusList, setPengurusList] = useState<any[]>([]);
+  const [suratTugasOptions, setSuratTugasOptions] = useState<any[]>([]); // 🔥 STATE BARU UNTUK DROPDOWN SURAT TUGAS
 
-  // STATES UNTUK FORM INPUT
   const initialFormState: ProkerPayload = {
     nomorSurat: "",
     namaKegiatan: "",
@@ -612,22 +556,23 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
     fileProposal: "",
     fileLaporan: "",
   };
-  const [prokerForm, setProkerForm] = useState<ProkerPayload>(initialFormState);
 
-  // States Pendukung Input Sementara
+  const [prokerForm, setProkerForm] = useState<ProkerPayload>(initialFormState);
   const [tempAnggotaSC, setTempAnggotaSC] = useState("");
   const [namaDivisiBaru, setNamaDivisiBaru] = useState("");
   const [tempAnggotaDivisi, setTempAnggotaDivisi] = useState<
     Record<number, string>
   >({});
-
   const [editProkerId, setEditProkerId] = useState<string | null>(null);
+
   const printRef = useRef<HTMLDivElement>(null);
   const [printData, setPrintData] = useState<ProkerPayload | null>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
+      // 1. Fetch Nama Bidang
       const snapBidang = await getDocs(collection(db, "bidang"));
       const bidangDitemukan = snapBidang.docs
         .map((d) => d.data())
@@ -635,15 +580,14 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
           (b) =>
             b.namaBidang.toLowerCase().replace(/[^a-z0-9]+/g, "-") === rawSlug,
         );
-
       if (!bidangDitemukan) {
         router.push("/dashboard");
         return;
       }
-
       const namaAsli = bidangDitemukan.namaBidang;
       setNamaBidangAktif(namaAsli);
 
+      // 2. Fetch Proker
       const qProker = query(
         collection(db, "proker"),
         where("bidang", "==", namaAsli),
@@ -652,6 +596,7 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
         (await getDocs(qProker)).docs.map((d) => ({ id: d.id, ...d.data() })),
       );
 
+      // 3. Fetch Pengurus
       const qPengurus = query(
         collection(db, "pengurus"),
         orderBy("nama", "asc"),
@@ -659,8 +604,20 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
       setPengurusList(
         (await getDocs(qPengurus)).docs.map((d) => ({ id: d.id, ...d.data() })),
       );
+
+      // 4. 🔥 FETCH NOMOR SURAT TUGAS DARI REGISTRI 🔥
+      const qST = query(
+        collection(db, "nomor_surat"),
+        where("jenis", "==", "Surat Tugas"),
+      );
+      const snapST = await getDocs(qST);
+      // Urutkan dari yang terbaru
+      const listST = snapST.docs
+        .map((d) => d.data())
+        .sort((a: any, b: any) => b.createdAt - a.createdAt);
+      setSuratTugasOptions(listST);
     } catch (error) {
-      console.error("Gagal load data:", error);
+      console.error(error);
     } finally {
       setIsLoading(false);
     }
@@ -670,13 +627,59 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
     if (rawSlug) fetchData();
   }, [rawSlug, router]);
 
-  // --- LOGIKA CETAK NATIVE BROWSER (ANTI POTONG & MULTI PAGE) ---
-  const handlePrintST = (proker: any) => {
-    setPrintData(proker as ProkerPayload);
-    // Timeout untuk render template di background sebelum panggil print
+  // 🔥 ALUR CETAK: CEK DATABASE REGISTRI TERLEBIH DAHULU 🔥
+  const handlePrintST = async (proker: any) => {
+    setIsPrinting(true);
+
+    const noSuratClean = (proker.nomorSurat || "000").replace(/\//g, "-");
+    const tentangClean = (proker.namaKegiatan || "Kegiatan")
+      .replace(/[^a-zA-Z0-9 ]/g, "")
+      .trim()
+      .replace(/\s+/g, "-");
+    const year = new Date().getFullYear();
+    const saveFileName = `ST.${noSuratClean}.${tentangClean}.DPW-IKA-DIY.${year}`;
+
+    let ttdName = "H. Harda Kiswaya, S.E., M.Si.";
+    let finalQrUrl = "";
+
+    try {
+      // Cek ke Koleksi nomor_surat apakah Surat Tugas ini sudah dibubuhi QR di Pintu 2
+      const qSurat = query(
+        collection(db, "nomor_surat"),
+        where("nomor", "==", proker.nomorSurat),
+      );
+      const snapSurat = await getDocs(qSurat);
+
+      if (!snapSurat.empty) {
+        const dataRegistri = snapSurat.docs[0].data();
+        if (
+          dataRegistri.qrValidationUrl &&
+          dataRegistri.qrValidationUrl.includes("/verifttd/")
+        ) {
+          finalQrUrl = dataRegistri.qrValidationUrl;
+          // Ekstrak ID QR untuk mencari tahu siapa nama penanda tangannya
+          const urlParts = finalQrUrl.split("/");
+          const validasiId = urlParts[urlParts.length - 1];
+          if (validasiId) {
+            const valDoc = await getDoc(doc(db, "validasi_ttd", validasiId));
+            if (valDoc.exists() && valDoc.data().penandatangan) {
+              ttdName = valDoc.data().penandatangan;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Gagal sinkronisasi QR dari Registri", e);
+    }
+
+    setPrintData({ ...proker, _qrUrl: finalQrUrl, _ttdName: ttdName });
+
     setTimeout(() => {
       const element = printRef.current;
-      if (!element) return;
+      if (!element) {
+        setIsPrinting(false);
+        return;
+      }
 
       const iframe = document.createElement("iframe");
       iframe.style.position = "fixed";
@@ -688,62 +691,38 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
       document.body.appendChild(iframe);
 
       const contentWindow = iframe.contentWindow;
-      if (!contentWindow) return;
+      if (!contentWindow) {
+        setIsPrinting(false);
+        return;
+      }
 
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Surat Tugas - ${proker.namaKegiatan}</title>
-            <style>
-              @page { size: A4 portrait; margin: 15mm 20mm; }
-              body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-              /* Memastikan thead diulang di setiap halaman cetak */
-              table { page-break-inside: auto; }
-              tr    { page-break-inside: avoid; page-break-after: auto; }
-              thead { display: table-header-group; }
-              tfoot { display: table-footer-group; }
-            </style>
-          </head>
-          <body>
-            ${element.innerHTML}
-          </body>
-        </html>
-      `;
+      const htmlContent = `<html>
+        <head>
+          <title>${saveFileName}</title> 
+          <style>@page { size: A4 portrait; margin: 15mm 20mm; } body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; } table { page-break-inside: auto; } tr { page-break-inside: avoid; } thead { display: table-header-group; }</style>
+        </head>
+        <body>${element.innerHTML}</body>
+      </html>`;
 
       contentWindow.document.open();
       contentWindow.document.write(htmlContent);
       contentWindow.document.close();
 
       setTimeout(() => {
+        const originalTitle = document.title;
+        document.title = saveFileName;
         contentWindow.focus();
         contentWindow.print();
+        document.title = originalTitle;
         document.body.removeChild(iframe);
         setPrintData(null);
-      }, 1000); // Tunggu QR Code Ter-render di Iframe
-    }, 500);
+        setIsPrinting(false);
+      }, 1000);
+    }, 1500);
   };
 
-  const generateNomorSurat = async () => {
-    const today = new Date();
-    const romawi = [
-      "I",
-      "II",
-      "III",
-      "IV",
-      "V",
-      "VI",
-      "VII",
-      "VIII",
-      "IX",
-      "X",
-      "XI",
-      "XII",
-    ];
-    setProkerForm({
-      ...initialFormState,
-      nomorSurat: `---/ST/DPW-IKA-DIY/${romawi[today.getMonth()]}/${today.getFullYear()}`,
-    });
+  const handleBuatBaru = () => {
+    setProkerForm(initialFormState);
     setEditProkerId(null);
     setView("form");
   };
@@ -752,7 +731,6 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
     setProkerForm({
       ...initialFormState,
       ...p,
-      // Pastikan fallback array tidak undefined
       anggotaSC: p.anggotaSC || [],
       divisi: p.divisi || [],
       fileProposal: p.fileProposal || "",
@@ -763,19 +741,15 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Hapus proker ini secara permanen?")) {
+    if (confirm("Hapus proker?")) {
       await deleteDoc(doc(db, "proker", id));
       fetchData();
     }
   };
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
+  const handleChange = (e: any) => {
     setProkerForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // --- FUNGSI ARRAY UNTUK FORM ---
   const handleAddAnggotaSC = () => {
     if (tempAnggotaSC.trim()) {
       setProkerForm((prev) => ({
@@ -785,7 +759,6 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
       setTempAnggotaSC("");
     }
   };
-
   const handleRemoveAnggotaSC = (index: number) => {
     setProkerForm((prev) => ({
       ...prev,
@@ -799,24 +772,18 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
         ...prev,
         divisi: [
           ...prev.divisi,
-          {
-            namaDivisi: `Departemen ${namaDivisiBaru.trim()}`,
-            koordinator: "",
-            anggota: [],
-          },
+          { namaDivisi: namaDivisiBaru.trim(), koordinator: "", anggota: [] },
         ],
       }));
       setNamaDivisiBaru("");
     }
   };
-
   const handleHapusDivisi = (index: number) => {
     setProkerForm((prev) => ({
       ...prev,
       divisi: prev.divisi.filter((_, i) => i !== index),
     }));
   };
-
   const handleKoordinatorChange = (index: number, val: string) => {
     setProkerForm((prev) => {
       const newDiv = [...prev.divisi];
@@ -824,7 +791,6 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
       return { ...prev, divisi: newDiv };
     });
   };
-
   const handleAddAnggotaDivisi = (divIndex: number) => {
     const val = tempAnggotaDivisi[divIndex] || "";
     if (val.trim()) {
@@ -839,7 +805,6 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
       setTempAnggotaDivisi((prev) => ({ ...prev, [divIndex]: "" }));
     }
   };
-
   const handleRemoveAnggotaDivisi = (divIndex: number, angIndex: number) => {
     setProkerForm((prev) => {
       const newDiv = [...prev.divisi];
@@ -853,14 +818,13 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
 
   const confirmAndSaveProker = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!prokerForm.namaKegiatan?.trim() || !prokerForm.tglMulai) {
+    if (!prokerForm.namaKegiatan?.trim() || !prokerForm.nomorSurat) {
       setMessage({
         type: "error",
-        text: "Nama Kegiatan dan Tanggal wajib diisi.",
+        text: "Nama Kegiatan dan Nomor Surat Tugas wajib diisi.",
       });
       return;
     }
-
     setIsSaving(true);
     try {
       if (editProkerId) {
@@ -868,19 +832,19 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
           ...prokerForm,
           updatedAt: new Date().toISOString(),
         });
-        setMessage({ type: "success", text: "Proker berhasil diperbarui!" });
+        setMessage({ type: "success", text: "Berhasil diperbarui!" });
       } else {
         await addDoc(collection(db, "proker"), {
           ...prokerForm,
           bidang: namaBidangAktif,
           createdAt: new Date().toISOString(),
         });
-        setMessage({ type: "success", text: "Proker baru berhasil dibuat!" });
+        setMessage({ type: "success", text: "Berhasil dibuat!" });
       }
       setView("list");
       fetchData();
     } catch (error) {
-      setMessage({ type: "error", text: "Gagal menyimpan proker." });
+      setMessage({ type: "error", text: "Gagal menyimpan." });
     } finally {
       setIsSaving(false);
       setTimeout(() => setMessage({ type: "", text: "" }), 3000);
@@ -906,12 +870,26 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
 
   return (
     <div className="max-w-7xl mx-auto animate-in fade-in duration-500 pb-12 relative">
-      {/* DATALIST UNTUK AUTOCOMPLETE NATIVE */}
       <datalist id="pengurus-list">
         {pengurusList.map((p) => (
           <option key={p.id} value={p.nama} />
         ))}
       </datalist>
+
+      {isPrinting && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] flex flex-col items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center max-w-sm text-center border border-slate-200">
+            <div className="w-12 h-12 border-4 border-slate-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+            <h3 className="text-lg font-bold text-slate-800 mb-2">
+              Mempersiapkan Dokumen
+            </h3>
+            <p className="text-sm text-slate-500">
+              Sistem sedang merender dan memvalidasi QR, Mohon tunggu
+              sebentar...
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="mb-8">
         <div className="inline-block bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1 rounded-full mb-2 uppercase tracking-widest">
@@ -936,12 +914,12 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
 
       {view === "list" ? (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+          <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50/50">
             <h3 className="font-bold text-slate-800 text-lg">
               Daftar Program Kerja
             </h3>
             <button
-              onClick={generateNomorSurat}
+              onClick={handleBuatBaru}
               className="bg-blue-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md hover:bg-blue-950 transition-colors"
             >
               + Rancang Proker Baru
@@ -975,18 +953,15 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
                       <p className="text-xs font-mono text-slate-500 mb-3 bg-slate-100 inline-block px-2 py-1 rounded">
                         No: {p.nomorSurat}
                       </p>
-
                       <div className="flex flex-wrap gap-2 text-xs font-bold mb-4">
                         <span className="bg-slate-50 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-200">
-                          📅 {formatDateToID(p.tglMulai)} s/d{" "}
+                          {formatDateToID(p.tglMulai)} s/d{" "}
                           {formatDateToID(p.tglSelesai)}
                         </span>
                         <span className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg border border-blue-100">
-                          👑 Ketupel: {p.ketuaOC || "Belum di-set"}
+                          Ketua Pelaksana: {p.ketuaOC || "Belum di-set"}
                         </span>
                       </div>
-
-                      {/* --- TOMBOL DOKUMEN PROPOSAL & LPJ --- */}
                       <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-3">
                         {p.fileProposal ? (
                           <a
@@ -995,14 +970,13 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
                             rel="noopener noreferrer"
                             className="flex items-center gap-2 text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors"
                           >
-                            📄 Lihat Proposal
+                            Lihat Proposal
                           </a>
                         ) : (
                           <span className="flex items-center gap-2 text-xs font-medium text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                            📄 Proposal Belum Ada
+                            Proposal Belum Ada
                           </span>
                         )}
-
                         {p.fileLaporan ? (
                           <a
                             href={p.fileLaporan}
@@ -1010,29 +984,27 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
                             rel="noopener noreferrer"
                             className="flex items-center gap-2 text-xs font-bold text-green-700 bg-green-50 px-3 py-1.5 rounded-lg border border-green-200 hover:bg-green-100 transition-colors"
                           >
-                            📁 Lihat LPJ
+                            Lihat LPJ
                           </a>
                         ) : (
                           <span className="flex items-center gap-2 text-xs font-medium text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                            📁 LPJ Belum Ada
+                            LPJ Belum Ada
                           </span>
                         )}
                       </div>
-                      {/* ------------------------------------- */}
                     </div>
-
                     <div className="flex flex-col gap-2 shrink-0 lg:w-48">
                       <button
                         onClick={() => handlePrintST(p)}
                         className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-blue-950 font-bold rounded-lg text-xs shadow-sm transition-colors w-full flex items-center justify-center gap-2"
                       >
-                        📄 Cetak Surat Tugas
+                        Cetak Surat Tugas
                       </button>
                       <button
                         onClick={() => handleEdit(p)}
                         className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-lg text-xs shadow-sm transition-colors w-full"
                       >
-                        ✏️ Edit Data & Panitia
+                        Edit Data & Panitia
                       </button>
                       <button
                         onClick={() => handleDelete(p.id)}
@@ -1049,7 +1021,6 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
         </div>
       ) : (
         <form onSubmit={confirmAndSaveProker} className="space-y-6">
-          {/* HEADER FORM */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h3 className="text-xl font-bold text-blue-900">
@@ -1070,7 +1041,6 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
             </button>
           </div>
 
-          {/* SECTION 1: INFORMASI KEGIATAN */}
           <section className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
             <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
               <h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">
@@ -1095,18 +1065,37 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
                   placeholder="Contoh: Panitia Halal Bi Halal DPW IKA UII DIY Tahun 2026"
                 />
               </div>
+
+              {/* 🔥 DROPDOWN NOMOR SURAT TUGAS DARI REGISTRI 🔥 */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Nomor Surat Tugas
+                  Pilih Nomor Surat Tugas{" "}
+                  <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
+                <select
+                  required
                   name="nomorSurat"
                   value={prokerForm.nomorSurat}
                   onChange={handleChange}
-                  className="w-full px-3 py-2.5 bg-white border border-slate-300 text-blue-900 font-mono font-bold rounded-lg text-sm"
-                />
+                  className="w-full px-3 py-2.5 bg-white border border-blue-300 text-blue-900 font-bold rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-600"
+                >
+                  <option value="">-- Pilih Nomor dari Registri --</option>
+                  {suratTugasOptions.map((surat) => (
+                    <option key={surat.nomor} value={surat.nomor}>
+                      {surat.nomor} ({surat.perihal})
+                    </option>
+                  ))}
+                  {suratTugasOptions.length === 0 && (
+                    <option value="" disabled>
+                      Belum ada Surat Tugas di Registri!
+                    </option>
+                  )}
+                </select>
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Harus buat Surat Tugas di menu Registrasi terlebih dahulu.
+                </p>
               </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   Laporan Kepada
@@ -1164,7 +1153,6 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
             </div>
           </section>
 
-          {/* SECTION 2: SC & PELINDUNG */}
           <section className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
             <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
               <h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">
@@ -1248,7 +1236,6 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
             </div>
           </section>
 
-          {/* SECTION 3: OC / PELAKSANA */}
           <section className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
             <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
               <h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">
@@ -1314,7 +1301,6 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
             </div>
           </section>
 
-          {/* SECTION 4: DIVISI / SEKSI */}
           <section className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
             <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
               <h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">
@@ -1325,7 +1311,6 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
               </h4>
             </div>
             <div className="p-6">
-              {/* Tambah Divisi Baru */}
               <div className="flex gap-3 mb-6 bg-slate-100 p-4 rounded-xl border border-slate-200">
                 <input
                   type="text"
@@ -1337,7 +1322,7 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
                       handleBuatDivisi();
                     }
                   }}
-                  placeholder="Nama Divisi (Misal: Acara, Konsumsi, Humas)"
+                  placeholder="Nama Divisi (Misal: Acara, Konsumsi)"
                   className="flex-1 px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm font-semibold"
                 />
                 <button
@@ -1348,8 +1333,6 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
                   + Buat
                 </button>
               </div>
-
-              {/* Grid Kartu Divisi */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {prokerForm.divisi.map((div, dIndex) => (
                   <div
@@ -1441,13 +1424,12 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
             </div>
           </section>
 
-          {/* SECTION 5: DOKUMEN PROPOSAL & LPJ */}
           <section className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
             <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
               <h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">
                 <span className="bg-blue-900 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">
                   5
-                </span>
+                </span>{" "}
                 Dokumen Arsip (Gudang Dokumen)
               </h4>
             </div>
@@ -1464,9 +1446,6 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
                   placeholder="https://drive.google.com/..."
                   className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-lg text-sm"
                 />
-                <p className="text-[10px] text-slate-500 mt-1">
-                  Masukkan link cloud/G-Drive untuk arsip Proposal Kegiatan.
-                </p>
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
@@ -1480,10 +1459,6 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
                   placeholder="https://drive.google.com/..."
                   className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-lg text-sm"
                 />
-                <p className="text-[10px] text-slate-500 mt-1">
-                  Masukkan link LPJ apabila proker telah berstatus Selesai/LPJ
-                  Diajukan.
-                </p>
               </div>
             </div>
           </section>
@@ -1494,14 +1469,16 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
               disabled={isSaving}
               className="bg-blue-900 hover:bg-blue-950 text-white font-bold py-3 px-10 rounded-xl shadow-lg transition-all text-sm w-full md:w-auto"
             >
-              {isSaving ? "Menyimpan..." : "Update Proker & Panitia"}
+              {isSaving ? "Menyimpan..." : "Simpan Data Proker"}
             </button>
           </div>
         </form>
       )}
 
-      {/* HIDDEN DATA UNTUK PDF RENDER BROWSER */}
-      <div className="hidden">
+      <div
+        className="absolute opacity-0 pointer-events-none -z-50 w-full overflow-hidden"
+        aria-hidden="true"
+      >
         <div ref={printRef}>
           {printData && <SuratTugasTemplate printData={printData} />}
         </div>

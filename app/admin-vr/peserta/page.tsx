@@ -42,10 +42,25 @@ export default function DataPesertaPage() {
     currentResi: "",
     participantName: "",
   });
+
   const [proofModal, setProofModal] = useState<{
     isOpen: boolean;
     imgUrl: string;
   }>({ isOpen: false, imgUrl: "" });
+
+  // 🔥 STATE BARU UNTUK POPUP UBAH STATUS PEMBAYARAN 🔥
+  const [paymentModal, setPaymentModal] = useState<{
+    isOpen: boolean;
+    participantId: string;
+    participantName: string;
+    currentStatus: string;
+  }>({
+    isOpen: false,
+    participantId: "",
+    participantName: "",
+    currentStatus: "Pending",
+  });
+
   const [popup, setPopup] = useState<{
     type: "success" | "error" | "info";
     text: string;
@@ -59,7 +74,7 @@ export default function DataPesertaPage() {
     return () => unsubscribe();
   }, []);
 
-  // 2. Fetch Data Peserta Realtime (Tanpa limit Firestore, agar bisa di-sort & limit di Client)
+  // 2. Fetch Data Peserta Realtime
   useEffect(() => {
     const q = query(collection(db, "vr_participants"));
     const unsubscribe = onSnapshot(q, (snap) => {
@@ -101,32 +116,63 @@ export default function DataPesertaPage() {
     setSortConfig({ key, direction });
   };
 
-  // --- AKSI: UBAH STATUS BAYAR ---
-  const handleUbahStatusBayar = async (
-    id: string,
-    newStatus: string,
-    participantName: string,
-  ) => {
+  // --- 🔥 AKSI: UBAH STATUS BAYAR & AUTO GENERATE BIB 🔥 ---
+  const executeStatusChange = async (newStatus: string) => {
+    const { participantId: id, participantName } = paymentModal;
+    setPaymentModal({ ...paymentModal, isOpen: false }); // Tutup modal duluan
     setLoadingAction(id);
+
     try {
-      await updateDoc(doc(db, "vr_participants", id), {
-        statusPembayaran: newStatus,
-      });
-      if (newStatus === "Lunas") {
-        const targetPeserta = participants.find((p) => p.id === id);
-        if (targetPeserta && targetPeserta.email) {
-          fetch("/api/send-email", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              type: "payment_success",
-              email: targetPeserta.email,
-              nama: targetPeserta.nama,
-              detail: {},
-            }),
-          }).catch((e) => console.log("Gagal kirim notif email lunas", e));
-        }
+      const targetPeserta = participants.find((p) => p.id === id);
+      let dataToUpdate: any = { statusPembayaran: newStatus };
+
+      // 🔥 LOGIKA CERDAS: GENERATE NOMOR BIB SAAT LUNAS 🔥
+      if (
+        newStatus === "Lunas" &&
+        targetPeserta &&
+        !targetPeserta.nomorBibLengkap
+      ) {
+        const kodeJarak = targetPeserta.jarak.replace(/\D/g, ""); // "5K" -> "5"
+
+        // Cari semua peserta di jarak yang sama yang SUDAH punya nomor BIB
+        const pesertaSatuJarak = participants.filter(
+          (p) => p.jarak === targetPeserta.jarak && p.nomorBibLengkap,
+        );
+
+        // Cari nomor urut paling tinggi saat ini
+        let maxUrut = 0;
+        pesertaSatuJarak.forEach((p) => {
+          // Buang kode depan (jarak), ambil sisa urutannya
+          const urutString = p.nomorBibLengkap.slice(kodeJarak.length);
+          const urut = parseInt(urutString, 10);
+          if (!isNaN(urut) && urut > maxUrut) {
+            maxUrut = urut;
+          }
+        });
+
+        const urutanBaru = maxUrut + 1;
+        // Gabungkan kode jarak + 3 digit nomor urut. Misal: 5 + 001 = 5001
+        const nomorBibBaru = `${kodeJarak}${String(urutanBaru).padStart(3, "0")}`;
+
+        dataToUpdate.nomorBibLengkap = nomorBibBaru;
       }
+
+      await updateDoc(doc(db, "vr_participants", id), dataToUpdate);
+
+      // Kirim Email Notifikasi Lunas
+      if (newStatus === "Lunas" && targetPeserta && targetPeserta.email) {
+        fetch("/api/send-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "payment_success",
+            email: targetPeserta.email,
+            nama: targetPeserta.nama,
+            detail: {},
+          }),
+        }).catch((e) => console.log("Gagal kirim notif email lunas", e));
+      }
+
       await addDoc(collection(db, "vr_logs"), {
         type: "bayar",
         action: `mengubah status pembayaran menjadi [${newStatus.toUpperCase()}] untuk`,
@@ -134,9 +180,10 @@ export default function DataPesertaPage() {
         adminEmail: adminUser?.email || "Admin",
         timestamp: Date.now(),
       });
+
       setPopup({
         type: "success",
-        text: `Status ${participantName} berhasil diubah.`,
+        text: `Status ${participantName} berhasil diubah jadi ${newStatus}.`,
       });
     } catch (error) {
       setPopup({ type: "error", text: "Gagal merubah status pembayaran." });
@@ -232,6 +279,7 @@ export default function DataPesertaPage() {
       Angkatan: p.angkatan || "-",
       "Kategori Jarak": p.jarak || "-",
       Paket: p.paket?.toUpperCase() || "-",
+      "Nomor BIB": p.nomorBibLengkap || "Belum Lunas",
       Jersey: p.paket === "basic" ? "Tanpa Jersey" : p.ukuranJersey || "-",
       "Total Tagihan (Rp)": p.totalTagihan || 0,
       "Donasi Amal (Rp)": p.nominalDonasi || 0,
@@ -290,6 +338,69 @@ export default function DataPesertaPage() {
               </p>
               <p className="text-xs text-slate-500">{popup.text}</p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🔥 MODAL KONFIRMASI STATUS PEMBAYARAN 🔥 */}
+      {paymentModal.isOpen && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => setPaymentModal({ ...paymentModal, isOpen: false })}
+        >
+          <div
+            className="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl relative overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+            <div className="text-center mb-6 mt-2">
+              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border-4 border-blue-100 shadow-inner">
+                💰
+              </div>
+              <h3 className="text-xl font-black text-slate-800 tracking-tight">
+                Konfirmasi Pembayaran
+              </h3>
+              <p className="text-sm text-slate-500 mt-2">
+                Atur status pembayaran untuk:
+              </p>
+              <p className="text-base font-bold text-slate-900 bg-slate-50 py-2 px-4 rounded-xl inline-block mt-2 border border-slate-200">
+                {paymentModal.participantName}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => executeStatusChange("Lunas")}
+                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl shadow-md transition-transform active:scale-95 text-sm flex items-center justify-center gap-2"
+              >
+                ✅ Validasi Lunas (Generate BIB)
+              </button>
+
+              <button
+                onClick={() => executeStatusChange("Batal")}
+                className="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2"
+              >
+                ❌ Tolak / Batalkan
+              </button>
+
+              {paymentModal.currentStatus !== "Pending" && (
+                <button
+                  onClick={() => executeStatusChange("Pending")}
+                  className="w-full bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2"
+                >
+                  ⏳ Kembalikan ke Pending
+                </button>
+              )}
+            </div>
+
+            <button
+              onClick={() =>
+                setPaymentModal({ ...paymentModal, isOpen: false })
+              }
+              className="w-full text-center mt-5 text-xs font-bold text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-colors"
+            >
+              Batalkan
+            </button>
           </div>
         </div>
       )}
@@ -413,7 +524,6 @@ export default function DataPesertaPage() {
       {/* 🔥 TOOLBAR: SORTING, LIMIT, & EXPORT 🔥 */}
       <div className="bg-white border border-slate-200 rounded-t-xl p-3 flex flex-wrap justify-between items-center gap-3 shrink-0">
         <div className="flex items-center gap-4">
-          {/* Dropdown Jumlah Tampil */}
           <div className="flex items-center gap-2">
             <label className="text-xs font-bold text-slate-500 uppercase">
               Tampilkan:
@@ -454,7 +564,7 @@ export default function DataPesertaPage() {
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
-            </svg>
+            </svg>{" "}
             Export Excel
           </button>
         </div>
@@ -462,7 +572,6 @@ export default function DataPesertaPage() {
 
       {/* --- 🔥 TABEL DENGAN INTERNAL SCROLL 🔥 --- */}
       <div className="bg-white border-x border-b border-slate-200 rounded-b-xl shadow-sm overflow-hidden flex-grow flex flex-col min-h-0">
-        {/* max-h & overflow auto bikin tabel tidak manjang ke bawah page */}
         <div className="overflow-x-auto overflow-y-auto custom-scrollbar flex-grow">
           <table className="w-full text-left border-collapse min-w-[1000px]">
             <thead className="sticky top-0 bg-slate-100 z-10 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
@@ -478,8 +587,6 @@ export default function DataPesertaPage() {
                     className="w-4 h-4 cursor-pointer accent-[#1A73E8]"
                   />
                 </th>
-
-                {/* Header Sortable: Nama */}
                 <th
                   className="px-4 py-3 border-r border-slate-200 cursor-pointer hover:bg-slate-200 transition-colors select-none"
                   onClick={() => handleSort("nama")}
@@ -497,8 +604,6 @@ export default function DataPesertaPage() {
                     )}
                   </div>
                 </th>
-
-                {/* Header Sortable: Tanggal Daftar */}
                 <th
                   className="px-4 py-3 border-r border-slate-200 cursor-pointer hover:bg-slate-200 transition-colors select-none w-36"
                   onClick={() => handleSort("waktuDaftar")}
@@ -516,7 +621,6 @@ export default function DataPesertaPage() {
                     )}
                   </div>
                 </th>
-
                 <th className="px-4 py-3 border-r border-slate-200 w-36">
                   Paket Lari
                 </th>
@@ -601,10 +705,21 @@ export default function DataPesertaPage() {
                     </td>
 
                     <td className="px-4 py-3 border-r border-slate-100 align-top">
-                      <span className="bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded">
-                        {p.jarak} • {p.paket?.toUpperCase()}
-                      </span>
-                      <div className="mt-2 text-[10px] font-bold text-slate-600">
+                      <div className="flex flex-wrap items-center gap-1 mb-2">
+                        <span className="bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded">
+                          {p.jarak} • {p.paket?.toUpperCase()}
+                        </span>
+                        {/* 🔥 MENAMPILKAN NOMOR E-BIB JIKA SUDAH LUNAS 🔥 */}
+                        {p.nomorBibLengkap && (
+                          <span
+                            className="bg-blue-100 text-blue-700 text-[10px] font-black px-2 py-1 rounded border border-blue-200"
+                            title="Nomor Dada Pelari (e-BIB)"
+                          >
+                            BIB: {p.nomorBibLengkap}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 text-[10px] font-bold text-slate-600">
                         {p.paket === "basic" ? (
                           <span className="text-slate-400">Tanpa Jersey</span>
                         ) : (
@@ -619,13 +734,18 @@ export default function DataPesertaPage() {
                     </td>
 
                     <td className="px-4 py-3 text-center border-r border-slate-100 align-top">
-                      <select
-                        value={p.statusPembayaran || "Pending"}
-                        onChange={(e) =>
-                          handleUbahStatusBayar(p.id, e.target.value, p.nama)
+                      {/* 🔥 TOMBOL PENGGANTI DROPDOWN STATUS 🔥 */}
+                      <button
+                        onClick={() =>
+                          setPaymentModal({
+                            isOpen: true,
+                            participantId: p.id,
+                            participantName: p.nama,
+                            currentStatus: p.statusPembayaran || "Pending",
+                          })
                         }
                         disabled={loadingAction === p.id}
-                        className={`text-[10px] font-bold uppercase rounded-md px-2 py-1.5 outline-none border cursor-pointer disabled:opacity-50 w-full shadow-sm ${
+                        className={`text-[10px] font-bold uppercase rounded-md px-2 py-1.5 outline-none border cursor-pointer disabled:opacity-50 w-full shadow-sm transition-colors hover:brightness-95 ${
                           p.statusPembayaran === "Lunas"
                             ? "bg-[#E6F4EA] text-[#1E8E3E] border-[#1E8E3E]/20"
                             : p.statusPembayaran === "Pending"
@@ -633,10 +753,12 @@ export default function DataPesertaPage() {
                               : "bg-[#FCE8E6] text-[#D93025] border-[#D93025]/20"
                         }`}
                       >
-                        <option value="Pending">Pending</option>
-                        <option value="Lunas">Lunas</option>
-                        <option value="Batal">Batal</option>
-                      </select>
+                        {loadingAction === p.id
+                          ? "Memproses..."
+                          : p.statusPembayaran || "Pending"}{" "}
+                        ▾
+                      </button>
+
                       {p.buktiBayarUrl && (
                         <button
                           onClick={() =>
@@ -645,9 +767,28 @@ export default function DataPesertaPage() {
                               imgUrl: p.buktiBayarUrl,
                             })
                           }
-                          className="mt-2 text-[9px] font-bold text-[#1A73E8] bg-[#E8F0FE] hover:bg-[#D2E3FC] px-2 py-1 rounded w-full transition-colors border border-blue-100"
+                          className="mt-2 text-[9px] font-bold text-[#1A73E8] bg-[#E8F0FE] hover:bg-[#D2E3FC] px-2 py-1 rounded w-full transition-colors border border-blue-100 flex items-center justify-center gap-1"
                         >
-                          Lihat Struk
+                          <svg
+                            className="w-3 h-3"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                            />
+                          </svg>{" "}
+                          Cek Struk
                         </button>
                       )}
                     </td>

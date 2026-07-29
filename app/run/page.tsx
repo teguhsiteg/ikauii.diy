@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { db } from "@/lib/firebase";
 import {
   doc,
@@ -8,12 +8,17 @@ import {
   collection,
   query,
   where,
-  getDocs,
+  getCountFromServer,
 } from "firebase/firestore";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import NavbarPublic from "@/components/layout/NavbarPublic";
 import FooterPublic from "@/components/layout/FooterPublic";
+import CountdownTimer from "@/components/CountdownTimer";
+import dynamic from "next/dynamic";
+
+// 🔥 IMPORT PETA SECARA DINAMIS (SSR FALSE) 🔥
+const EventMap = dynamic(() => import("@/components/EventMap"), { ssr: false });
 
 // --- KOMPONEN ANIMASI SCROLL REVEAL ---
 const ScrollReveal = ({
@@ -31,7 +36,7 @@ const ScrollReveal = ({
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true);
-          observer.disconnect(); // Hanya animasi sekali saat pertama kali muncul
+          observer.disconnect();
         }
       },
       { threshold: 0.1 },
@@ -53,43 +58,56 @@ const ScrollReveal = ({
   );
 };
 
-export default function OfflineRunLandingPage() {
-  const router = useRouter();
+// --- KOMPONEN UTAMA ---
+function OfflineRunLandingPageContent() {
+  const searchParams = useSearchParams();
+  const isDevMode = searchParams.get("dev") === "true";
+
   const [settings, setSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // --- STATE UNTUK SINKRONISASI KUOTA ---
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [isBypassed, setIsBypassed] = useState(false);
+  const [isForceOpen, setIsForceOpen] = useState(false);
+
   const [packageCounts, setPackageCounts] = useState<Record<string, number>>(
     {},
   );
-
-  // --- STATE PENCARIAN TIKET & TIMELINE ---
-  const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
+  const [expandedMaps, setExpandedMaps] = useState<string[]>([]);
   const [isTimelineModalOpen, setIsTimelineModalOpen] = useState(false);
-  const [searchTicketValue, setSearchTicketValue] = useState("");
-  const [isSearchingTicket, setIsSearchingTicket] = useState(false);
-  const [ticketError, setTicketError] = useState("");
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 🔥 SESUAI REQUEST: Narik dari "virtual_run" 🔥
         const docRef = doc(db, "settings", "virtual_run");
         const docSnap = await getDoc(docRef);
+        let settingsData = null;
+
         if (docSnap.exists()) {
-          setSettings(docSnap.data());
+          settingsData = docSnap.data();
+          setSettings(settingsData);
         }
 
-        const pRef = collection(db, "offline_participants");
-        const pSnap = await getDocs(pRef);
         const counts: Record<string, number> = {};
 
-        pSnap.forEach((doc) => {
-          const data = doc.data();
-          if (data.paketId) {
-            counts[data.paketId] = (counts[data.paketId] || 0) + 1;
-          }
-        });
+        if (settingsData && settingsData.offlinePackages) {
+          await Promise.all(
+            settingsData.offlinePackages.map(async (pkg: any) => {
+              const q = query(
+                collection(db, "offline_participants"),
+                where("paketId", "==", pkg.id),
+              );
+              const snapshot = await getCountFromServer(q);
+              counts[pkg.id] = snapshot.data().count;
+            }),
+          );
+        }
+
         setPackageCounts(counts);
       } catch (error) {
         console.error("Gagal memuat pengaturan:", error);
@@ -100,42 +118,6 @@ export default function OfflineRunLandingPage() {
     fetchData();
   }, []);
 
-  const handleSearchTicket = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchTicketValue) return;
-
-    setIsSearchingTicket(true);
-    setTicketError("");
-
-    try {
-      const pRef = collection(db, "offline_participants");
-      let q = query(
-        pRef,
-        where("email", "==", searchTicketValue.trim().toLowerCase()),
-      );
-      let querySnapshot = await getDocs(q);
-
-      if (querySnapshot.empty) {
-        const numericSearch = searchTicketValue.replace(/\D/g, "");
-        q = query(pRef, where("noWA", "==", numericSearch));
-        querySnapshot = await getDocs(q);
-      }
-
-      if (!querySnapshot.empty) {
-        const participantData = querySnapshot.docs[0];
-        router.push(`/run/checkout/${participantData.id}`);
-      } else {
-        setTicketError(
-          "Data tidak ditemukan. Pastikan Email atau No. WhatsApp sudah benar.",
-        );
-      }
-    } catch (error) {
-      setTicketError("Terjadi kesalahan pada server. Silakan coba lagi.");
-    } finally {
-      setIsSearchingTicket(false);
-    }
-  };
-
   const scrollToTiket = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     const elem = document.getElementById("kategori-tiket");
@@ -144,87 +126,151 @@ export default function OfflineRunLandingPage() {
     }
   };
 
+  const toggleMap = (id: string) => {
+    setExpandedMaps((prev) =>
+      prev.includes(id) ? prev.filter((mapId) => mapId !== id) : [...prev, id],
+    );
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#072439] flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-slate-500 border-t-emerald-500 rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-[#0B2239] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#0B2239] border-t-[#FCD116] rounded-full animate-spin"></div>
       </div>
     );
   }
 
-  // =========================================
-  // LOGIKA STATUS TAMPILAN HALAMAN
-  // =========================================
   const isOfflineEnabled = settings?.isOfflineRunEnabled;
-  const offlineStatus = settings?.offlineStatus || "tutup";
+  const adminStatus = settings?.offlineStatus || "tutup";
+  const isWaitingRoom = settings?.isWaitingRoomActive || false;
 
-  const showComingSoon = isOfflineEnabled && offlineStatus === "coming_soon";
-  const showTutup = !isOfflineEnabled || offlineStatus === "tutup";
-  const showNormal = isOfflineEnabled && offlineStatus === "buka";
+  const openDate = settings?.offlineTanggalPembukaan
+    ? new Date(settings.offlineTanggalPembukaan)
+    : null;
+  const closeDate = settings?.offlineTanggalPenutupan
+    ? new Date(settings.offlineTanggalPenutupan)
+    : null;
 
-  // 1. TAMPILAN COMING SOON
+  let showComingSoon = false;
+  let showTutup = false;
+  let showCountdown = false;
+  let showNormal = false;
+
+  // --- MULAI COPY DARI SINI ---
+  if (isBypassed || isForceOpen) {
+    showNormal = true;
+  } else if (!isOfflineEnabled || adminStatus === "tutup") {
+    showTutup = true;
+  } else {
+    // Cek waktu dulu sebelum ngecek status Admin
+    if (openDate && currentTime < openDate) {
+      if (adminStatus === "coming_soon") {
+        showComingSoon = true;
+      } else {
+        showCountdown = true;
+      }
+    } else if (closeDate && currentTime > closeDate) {
+      showTutup = true;
+    } else {
+      showNormal = true;
+    }
+  }
+  // --- SAMPAI SINI ---
+
   if (showComingSoon) {
     return (
       <div className="min-h-screen bg-[#0B2239] font-sans flex flex-col items-center justify-center p-4 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 pointer-events-none"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/10 blur-[100px] rounded-full pointer-events-none"></div>
+        {isDevMode && (
+          <button
+            onClick={() => setIsBypassed(true)}
+            className="fixed bottom-4 left-4 z-50 bg-rose-600 text-white text-[10px] font-black px-4 py-2 rounded-full shadow-lg border-2 border-white animate-bounce hover:bg-rose-700"
+          >
+            ⚡ BYPASS DEV MODE
+          </button>
+        )}
+
+        <div
+          className="absolute inset-0 bg-cover bg-center grayscale-[30%]"
+          style={{
+            backgroundImage:
+              "url('https://www.uii.ac.id/wp-content/uploads/2025/03/Gerbang-UII.jpg')",
+          }}
+        ></div>
+        <div className="absolute inset-0 bg-[#0B2239]/90"></div>
 
         <div className="mb-6 flex flex-col items-center justify-center animate-in zoom-in-95 duration-700 relative z-10">
-          <div className="w-32 h-40 md:w-36 md:h-48 bg-white rounded-t-full rounded-b-2xl p-4 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden border border-slate-200">
-            <div className="absolute top-0 w-full h-12 bg-slate-100 flex items-end justify-center pb-1">
-              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                Est. {new Date().getFullYear()}
-              </span>
-            </div>
+          <div className="w-28 h-28 bg-white rounded-full p-5 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden border-4 border-[#FCD116]">
             <img
               src="/logo-dpp-ika.png"
               alt="Logo IKA UII"
-              className="w-20 h-20 md:w-24 md:h-24 object-contain mt-8 z-10"
+              className="w-full h-full object-contain"
               crossOrigin="anonymous"
             />
           </div>
         </div>
 
-        <h1 className="text-2xl md:text-3xl font-black text-white tracking-widest uppercase mb-6 text-center animate-in fade-in duration-1000 delay-100 relative z-10">
-          IKA UII DIY RUN
+        <h1 className="text-3xl md:text-5xl font-black text-white tracking-widest uppercase mb-4 text-center relative z-10 leading-tight">
+          IKA UII DIY RUN <br />
+          <span className="text-[#FCD116]">COMING SOON</span>
         </h1>
 
-        <h2 className="text-4xl md:text-6xl font-bold text-white mb-4 animate-in fade-in duration-1000 delay-200 relative z-10">
-          Coming Soon
-        </h2>
+        {settings?.offlineTanggalPembukaan && (
+          <div className="mt-2 mb-10 relative z-10 flex flex-col items-center animate-in fade-in duration-1000 delay-300">
+            <p className="text-[#FCD116] text-[10px] md:text-xs font-black uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 bg-[#FCD116] rounded-full animate-ping"></span>
+              Pendaftaran Dibuka Dalam:
+            </p>
+            <CountdownTimer
+              targetDate={settings.offlineTanggalPembukaan}
+              onExpire={() => {}} /* 🔥 KOSONGKAN FUNGSI INI */
+            />
+          </div>
+        )}
 
-        <p className="text-emerald-400 font-bold tracking-widest text-sm md:text-lg mb-10 animate-in fade-in duration-1000 delay-300 text-center relative z-10">
-          {settings?.offlineComingSoonText || "Akan Segera Hadir"}
-        </p>
-
-        <a
-          href="https://instagram.com/ikauii.diy"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="border border-slate-500 hover:border-emerald-400 hover:bg-emerald-900/30 text-slate-300 hover:text-white px-6 py-2.5 rounded-full flex items-center gap-2.5 transition-all font-medium text-sm animate-in fade-in duration-1000 delay-500 relative z-10"
-        >
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2.163c3.204 0 3.584.012 4.85.067 3.282.153 4.769 1.64 4.922 4.922.055 1.266.067 1.646.067 4.849 0 3.204-.012 3.584-.067 4.85-.153 3.282-1.64 4.769-4.922 4.922-1.266.055-1.646.067-4.85.067-3.204 0-3.584-.012-4.85-.067-3.282-.153-4.769-1.64-4.922-4.922-.055-1.266-.067-1.646-.067-4.849 0-3.204.012-3.584.067-4.85.153-3.282 1.64-4.769 4.922-4.922 1.266-.055 1.646-.067 4.85-.067zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 1.61-6.98 5.928-.058 1.28-.072 1.688-.072 4.947s.014 3.667.072 4.947c.2 4.358 2.618 6.78 5.928 6.98 1.28.058 1.688.072 4.947.072 3.259 0 3.667-.014 4.947-.072 4.358-.2 6.78-1.61 6.98-5.928.058-1.28.072-1.688.072-4.947s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-5.928-6.98-1.28-.058-1.688-.072-4.947-.072zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.791-4-4s1.791-4 4-4 4 1.791 4 4-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-          </svg>
-          @ikauii.diy
-        </a>
+        <div className="flex flex-wrap justify-center gap-4 relative z-10 animate-in fade-in duration-1000 delay-500">
+          <a
+            href="https://instagram.com/ikauii.diy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239] px-6 py-3 rounded-full flex items-center gap-2.5 transition-all font-black text-sm shadow-lg"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.067 3.282.153 4.769 1.64 4.922 4.922.055 1.266.067 1.646.067 4.849 0 3.204-.012 3.584-.067 4.85-.153 3.282-1.64 4.769-4.922 4.922-1.266.055-1.646.067-4.85.067-3.204 0-3.584-.012-4.85-.067-3.282-.153-4.769-1.64-4.922-4.922-.055-1.266-.067-1.646-.067-4.849 0-3.204.012-3.584.067-4.85.153-3.282 1.64-4.769 4.922-4.922 1.266-.055 1.646-.067 4.85-.067zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 1.61-6.98 5.928-.058 1.28-.072 1.688-.072 4.947s.014 3.667.072 4.947c.2 4.358 2.618 6.78 5.928 6.98 1.28.058 1.688.072 4.947.072 3.259 0 3.667-.014 4.947-.072 4.358-.2 6.78-1.61 6.98-5.928.058-1.28.072-1.688.072-4.947s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-5.928-6.98-1.28-.058-1.688-.072-4.947-.072zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.791-4-4s1.791-4 4-4 4 1.791 4 4-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+            </svg>
+            @ikauii.diy
+          </a>
+        </div>
       </div>
     );
   }
 
-  // 2. TAMPILAN TUTUP (TIDAK AKTIF)
   if (showTutup) {
     return (
       <div className="min-h-screen bg-[#0B2239] font-sans flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 pointer-events-none"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none"></div>
+        {isDevMode && (
+          <button
+            onClick={() => setIsBypassed(true)}
+            className="fixed bottom-4 left-4 z-50 bg-rose-600 text-white text-[10px] font-black px-4 py-2 rounded-full shadow-lg border-2 border-white animate-bounce hover:bg-rose-700"
+          >
+            ⚡ BYPASS DEV MODE
+          </button>
+        )}
+
+        <div
+          className="absolute inset-0 bg-cover bg-center grayscale-[30%]"
+          style={{
+            backgroundImage:
+              "url('https://www.uii.ac.id/wp-content/uploads/2025/03/Gerbang-UII.jpg')",
+          }}
+        ></div>
+        <div className="absolute inset-0 bg-[#0B2239]/90"></div>
 
         <div className="mb-6 flex flex-col items-center justify-center relative z-10">
-          <div className="w-24 h-32 bg-white rounded-t-full rounded-b-xl p-3 flex flex-col items-center justify-center shadow-xl border border-slate-200">
+          <div className="w-28 h-28 bg-white rounded-full p-5 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden border-4 border-[#FCD116]">
             <img
               src="/logo-dpp-ika.png"
               alt="Logo"
-              className="w-16 h-16 object-contain mt-4"
+              className="w-full h-full object-contain"
               crossOrigin="anonymous"
             />
           </div>
@@ -232,13 +278,12 @@ export default function OfflineRunLandingPage() {
 
         <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 max-w-4xl leading-tight relative z-10">
           PENDAFTARAN RUNNING <br />
-          <span className="text-emerald-400">AKAN SEGERA DIINFORMASIKAN</span>
+          <span className="text-[#FCD116]">TELAH DITUTUP / BERAKHIR</span>
         </h1>
 
         <p className="text-slate-300 text-sm md:text-base font-medium mb-10 max-w-2xl relative z-10 leading-relaxed">
-          Pendaftaran belum dibuka atau telah ditutup. Pantau terus Instagram
-          dan saluran komunikasi resmi kami untuk mendapatkan pembaruan dan
-          informasi tiket selanjutnya.
+          Terima kasih atas antusiasme yang luar biasa. Sampai jumpa di garis
+          start event IKA UII selanjutnya.
         </p>
 
         <div className="flex flex-wrap justify-center gap-4 relative z-10">
@@ -246,223 +291,83 @@ export default function OfflineRunLandingPage() {
             href="https://instagram.com/ikauii.diy"
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-white/10 hover:bg-white/20 border border-white/20 text-white px-6 py-3 rounded-full flex items-center gap-2.5 transition-all font-bold text-sm backdrop-blur-md"
+            className="bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239] px-6 py-3 rounded-full flex items-center gap-2.5 transition-all font-black text-sm shadow-lg"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2.163c3.204 0 3.584.012 4.85.067 3.282.153 4.769 1.64 4.922 4.922.055 1.266.067 1.646.067 4.849 0 3.204-.012 3.584-.067 4.85-.153 3.282-1.64 4.769-4.922 4.922-1.266.055-1.646.067-4.85.067-3.204 0-3.584-.012-4.85-.067-3.282-.153-4.769-1.64-4.922-4.922-.055-1.266-.067-1.646-.067-4.849 0-3.204.012-3.584.067-4.85.153-3.282 1.64-4.769 4.922-4.922 1.266-.055 1.646-.067 4.85-.067zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 1.61-6.98 5.928-.058 1.28-.072 1.688-.072 4.947s.014 3.667.072 4.947c.2 4.358 2.618 6.78 5.928 6.98 1.28.058 1.688.072 4.947.072 3.259 0 3.667-.014 4.947-.072 4.358-.2 6.78-1.61 6.98-5.928.058-1.28.072-1.688.072-4.947s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-5.928-6.98-1.28-.058-1.688-.072-4.947-.072zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.791-4-4s1.791-4 4-4 4 1.791 4 4-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
             </svg>
             @ikauii.diy
           </a>
-          <a
-            href="mailto:ika.diy@uii.ac.id"
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-full flex items-center gap-2.5 transition-all font-bold text-sm shadow-lg"
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-              />
-            </svg>
-            Hubungi Panitia
-          </a>
         </div>
       </div>
     );
   }
 
-  // =========================================
-  // 3. TAMPILAN BUKA (NORMAL)
-  // =========================================
+  // 3. TAMPILAN NORMAL
   return (
-    <div className="min-h-screen bg-slate-50 font-sans selection:bg-emerald-300 selection:text-emerald-900 flex flex-col scroll-smooth">
+    <div className="min-h-screen bg-slate-50 font-sans selection:bg-[#FCD116] selection:text-[#0B2239] flex flex-col scroll-smooth relative">
       <NavbarPublic />
 
-      {/* HERO SECTION DENGAN SILUET */}
-      <section className="relative pt-[180px] pb-20 md:pt-[220px] lg:pt-[260px] lg:pb-32 overflow-hidden bg-gradient-to-br from-emerald-900 to-teal-950">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+      {isBypassed && (
+        <button
+          onClick={() => setIsBypassed(false)}
+          className="fixed bottom-4 left-4 z-50 text-[10px] font-black px-4 py-2 rounded-full shadow-lg border-2 border-white transition-all bg-rose-600 text-white animate-bounce hover:bg-rose-700"
+        >
+          MATIKAN BYPASS
+        </button>
+      )}
 
-        {/* Siluet Pelari & Kota (Menggantikan Emoji) */}
-        <div className="absolute -left-10 bottom-0 opacity-10 text-white pointer-events-none select-none overflow-hidden">
-          <svg
-            className="w-[500px] h-[500px] translate-y-1/3"
-            viewBox="0 0 100 100"
-            fill="currentColor"
-          >
-            <path d="M50.4,14.6c2.4,0,4.4-2,4.4-4.4c0-2.4-2-4.4-4.4-4.4c-2.4,0-4.4,2-4.4,4.4C46,12.6,48,14.6,50.4,14.6z M53.8,40.1l3.5,17l10.9,3.3 c1,0.3,2.1-0.2,2.4-1.2c0.3-1-0.2-2.1-1.2-2.4l-8.6-2.6l-4.1-18.7c-0.6-2.5-2.7-4.3-5.2-4.6l-9.1-1l-5.6-7.2c-0.8-1.1-2.4-1.3-3.5-0.5 c-1.1,0.8-1.3,2.4-0.5,3.5l7,9l-2,9.3l-8.8-3.4c-1-0.4-2.1,0.1-2.5,1c-0.4,1,0.1,2.1,1,2.5l11.5,4.4c1.6,0.6,3.4,0.1,4.6-1.2 L49,42L53.8,40.1z M40.7,64.2c-1,0.3-1.6,1.4-1.3,2.5l5.2,16.8l-8,8.2c-0.7,0.8-0.7,2,0.1,2.8c0.8,0.7,2,0.7,2.8-0.1l10-10.3 c0.6-0.6,0.9-1.4,0.7-2.3L45,65.5C44.7,64.5,43.6,63.9,40.7,64.2z M60.4,85.2l-3-11c-0.3-1-1.3-1.6-2.4-1.3c-1,0.3-1.6,1.3-1.3,2.4 l3.5,12.8c0.2,0.8,0.8,1.4,1.6,1.6l10.8,2.9c1,0.3,2.1-0.3,2.4-1.3c0.3-1-0.3-2.1-1.3-2.4L60.4,85.2z" />
-          </svg>
-        </div>
-        <div className="absolute -right-20 bottom-0 opacity-10 text-white pointer-events-none select-none">
-          <svg
-            className="w-[600px] h-[300px] translate-y-1/4"
-            viewBox="0 0 1200 400"
-            fill="currentColor"
-          >
-            <path d="M0,400h1200V300h-50v-50h-50v50h-50v-80h-40v80h-80v-40h-40v40h-80V150h-60v150h-80v-60h-50v60h-60V200h-50v100h-80v-30h-40v30h-80V250h-60v50H0V400z" />
-          </svg>
-        </div>
+      <section className="relative pt-[160px] pb-20 md:pt-[200px] lg:pt-[240px] lg:pb-32 overflow-hidden min-h-[85vh] flex flex-col justify-center">
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat grayscale-[20%]"
+          style={{
+            backgroundImage:
+              "url('https://www.uii.ac.id/wp-content/uploads/2025/03/Gerbang-UII.jpg')",
+          }}
+        ></div>
+        <div className="absolute inset-0 bg-[#0B2239]/90"></div>
 
-        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 relative z-20 text-center flex flex-col items-center">
-          <ScrollReveal>
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2 rounded-full mb-8 shadow-2xl">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span className="text-[10px] md:text-xs font-black text-emerald-50 uppercase tracking-[0.2em]">
-                Official Offline Run Event
-              </span>
-            </div>
-          </ScrollReveal>
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 relative z-20 text-center flex flex-col items-center w-full">
+          {showCountdown ? (
+            <ScrollReveal>
+              <div className="flex flex-col items-center justify-center w-full mt-4">
+                <h2 className="text-2xl md:text-4xl font-black text-white mb-3 tracking-wide">
+                  Registrasi{" "}
+                  <span className="text-[#FCD116]">
+                    {settings?.offlinePackages?.[0]?.nama || "Offline Run"}
+                  </span>
+                </h2>
+                <p className="text-sm md:text-base font-bold text-slate-300 mb-10 bg-white/10 px-6 py-2 rounded-full backdrop-blur-sm border border-white/10">
+                  {openDate
+                    ? openDate.toLocaleDateString("id-ID", {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })
+                    : ""}{" "}
+                  • Pukul{" "}
+                  {openDate
+                    ? openDate.toLocaleTimeString("id-ID", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : ""}{" "}
+                  WIB
+                </p>
 
-          <ScrollReveal delay={100}>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight mb-6 max-w-4xl leading-[1.1]">
-              Lari Bersama,{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-yellow-300">
-                Tebarkan Manfaat
-              </span>
-            </h1>
-          </ScrollReveal>
+                <CountdownTimer
+                  targetDate={settings?.offlineTanggalPembukaan}
+                  onExpire={() => {}} /* 🔥 KOSONGKAN FUNGSI INI */
+                />
 
-          <ScrollReveal delay={200}>
-            <p className="text-base md:text-xl text-emerald-100/80 mb-10 max-w-2xl font-medium leading-relaxed mx-auto">
-              Satu rute, ribuan semangat. Mari berkumpul dan berlari menyusuri
-              keindahan {settings?.offlineLocation || "Yogyakarta"} bersama
-              keluarga besar IKA UII.
-            </p>
-          </ScrollReveal>
-
-          <ScrollReveal delay={300}>
-            <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-12 w-full">
-              <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-6 py-4 flex items-center justify-center gap-4 w-full md:w-auto">
-                <svg
-                  className="w-8 h-8 text-emerald-400 shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.242-4.243a8 8 0 1111.314 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
-                <div className="text-left">
-                  <p className="text-[9px] md:text-[10px] uppercase tracking-widest text-emerald-300 font-bold mb-0.5">
-                    Lokasi Start / Finish
-                  </p>
-                  <p className="text-white font-black text-sm md:text-base">
-                    {settings?.offlineLocation || "Yogyakarta"}
-                  </p>
-                </div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-6 py-4 flex items-center justify-center gap-4 w-full md:w-auto">
-                <svg
-                  className="w-8 h-8 text-emerald-400 shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-                <div className="text-left">
-                  <p className="text-[9px] md:text-[10px] uppercase tracking-widest text-emerald-300 font-bold mb-0.5">
-                    Waktu Pelaksanaan
-                  </p>
-                  <p className="text-white font-black text-sm md:text-base">
-                    {settings?.offlineDate
-                      ? new Date(settings.offlineDate).toLocaleDateString(
-                          "id-ID",
-                          { day: "numeric", month: "long", year: "numeric" },
-                        )
-                      : "-"}
-                  </p>
-                  <p className="text-xs text-emerald-200 font-medium">
-                    Pukul {settings?.offlineTime || "06:00"} WIB
-                  </p>
-                </div>
-              </div>
-            </div>
-          </ScrollReveal>
-
-          <ScrollReveal delay={400}>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full md:w-auto">
-              <a
-                href="#kategori-tiket"
-                onClick={scrollToTiket}
-                className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black px-10 py-4 md:px-12 md:py-5 rounded-full text-base md:text-lg transition-all shadow-xl shadow-emerald-500/20 transform hover:-translate-y-1 flex items-center justify-center gap-2"
-              >
-                Amankan Slot Sekarang &rarr;
-              </a>
-
-              {/* TOMBOL TIMELINE */}
-              <button
-                onClick={() => setIsTimelineModalOpen(true)}
-                className="w-full sm:w-auto bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white font-bold px-10 py-4 md:px-10 md:py-5 rounded-full text-base md:text-lg transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-                Jadwal Pendaftaran
-              </button>
-            </div>
-          </ScrollReveal>
-
-          <ScrollReveal delay={500}>
-            <p className="text-[10px] md:text-xs text-emerald-200/60 mt-6 font-medium tracking-wide">
-              *Kuota keseluruhan terbatas {settings?.offlineQuota || 0} peserta.
-            </p>
-          </ScrollReveal>
-        </div>
-      </section>
-
-      {/* RACE PACK & ROUTE SECTION */}
-      <section className="py-16 md:py-24 bg-[#F4F7FB] border-b border-slate-200 w-full relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <ScrollReveal>
-            <div className="text-center mb-12 md:mb-16">
-              <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-3 py-1 rounded-full uppercase tracking-widest mb-3 inline-block">
-                Fasilitas Peserta
-              </span>
-              <h2 className="text-2xl md:text-4xl font-black text-slate-900 mb-4">
-                Race Pack & Rute Lari
-              </h2>
-              <p className="text-sm md:text-base text-slate-500 font-medium max-w-xl mx-auto mb-8">
-                Setiap pendaftaran offline sudah termasuk Race Pack premium yang
-                akan menemani langkah Anda melintasi rute yang telah disiapkan.
-              </p>
-
-              {/* BOX CEK TIKET */}
-              <div className="max-w-2xl mx-auto bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 transform -translate-y-4 hover:-translate-y-6 transition-transform duration-300">
-                <div className="text-left flex-grow">
-                  <h3 className="font-black text-slate-800 text-lg flex items-center justify-center md:justify-start gap-2">
+                <div className="flex justify-center gap-4 mt-8">
+                  <Link
+                    href="/"
+                    className="w-12 h-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-[#FCD116] hover:text-[#0B2239] transition-all shadow-lg hover:-translate-y-1"
+                  >
                     <svg
-                      className="w-6 h-6 text-emerald-600"
+                      className="w-5 h-5"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -471,32 +376,178 @@ export default function OfflineRunLandingPage() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"
+                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
                       />
                     </svg>
-                    Sudah Mendaftar?
-                  </h3>
-                  <p className="text-xs text-slate-500 font-medium mt-1 text-center md:text-left">
-                    Ambil E-Ticket Anda sekarang untuk persiapan penukaran Race
-                    Pack.
-                  </p>
+                  </Link>
+                  <a
+                    href="https://instagram.com/ikauii.diy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-12 h-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-[#FCD116] hover:text-[#0B2239] transition-all shadow-lg hover:-translate-y-1"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M12 2.163c3.204 0 3.584.012 4.85.067 3.282.153 4.769 1.64 4.922 4.922.055 1.266.067 1.646.067 4.849 0 3.204-.012 3.584-.067 4.85-.153 3.282-1.64 4.769-4.922 4.922-1.266.055-1.646.067-4.85.067-3.204 0-3.584-.012-4.85-.067-3.282-.153-4.769-1.64-4.922-4.922-.055-1.266-.067-1.646-.067-4.849 0-3.204.012-3.584.067-4.85.153-3.282 1.64-4.769 4.922-4.922 1.266-.055 1.646-.067 4.85-.067zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 1.61-6.98 5.928-.058 1.28-.072 1.688-.072 4.947s.014 3.667.072 4.947c.2 4.358 2.618 6.78 5.928 6.98 1.28.058 1.688.072 4.947.072 3.259 0 3.667-.014 4.947-.072 4.358-.2 6.78-1.61 6.98-5.928.058-1.28.072-1.688.072-4.947s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-5.928-6.98-1.28-.058-1.688-.072-4.947-.072zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.791-4-4s1.791-4 4-4 4 1.791 4 4-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                    </svg>
+                  </a>
                 </div>
-                <button
-                  onClick={() => setIsTicketModalOpen(true)}
-                  className="w-full md:w-auto shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white font-black px-8 py-3.5 rounded-xl text-sm transition-all shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2"
-                >
-                  Cek Tiket Saya
-                </button>
               </div>
+            </ScrollReveal>
+          ) : (
+            <>
+              <ScrollReveal>
+                <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 backdrop-blur-sm text-white px-5 py-2 rounded-full mb-8 shadow-xl">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#FCD116] animate-pulse"></span>
+                  <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em]">
+                    Official Offline Run Event
+                  </span>
+                </div>
+              </ScrollReveal>
+
+              <ScrollReveal delay={100}>
+                <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight mb-6 max-w-4xl leading-[1.1] drop-shadow-sm">
+                  UII{" "}
+                  <span className="text-[#FCD116] drop-shadow-md">Sehat</span>
+                </h1>
+              </ScrollReveal>
+
+              <ScrollReveal delay={200}>
+                <p className="text-base md:text-xl text-slate-300 mb-10 max-w-2xl font-medium leading-relaxed mx-auto">
+                  Langkah kecil hari ini membawa energi besar untuk hidup yang
+                  lebih sehat, aktif, dan penuh semangat kebersamaan. Pilih
+                  kategori dan jadilah bagian dari perayaan sehat{" "}
+                  {settings?.offlineLocation || "Yogyakarta"} bersama keluarga
+                  besar IKA UII Daerah Istimewa Yogyakarta!
+                </p>
+              </ScrollReveal>
+
+              <ScrollReveal delay={300}>
+                <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-12 w-full">
+                  <div className="bg-white/10 border border-white/10 backdrop-blur-md text-white rounded-2xl px-6 py-4 flex items-center justify-center gap-4 w-full md:w-auto shadow-xl">
+                    <svg
+                      className="w-8 h-8 text-[#FCD116] shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.242-4.243a8 8 0 1111.314 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                    <div className="text-left">
+                      <p className="text-[9px] md:text-[10px] uppercase tracking-widest text-[#FCD116] font-bold mb-0.5">
+                        Lokasi Start / Finish
+                      </p>
+                      <p className="font-black text-sm md:text-base">
+                        {settings?.offlineLocation || "Yogyakarta"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="bg-white/10 border border-white/10 backdrop-blur-md text-white rounded-2xl px-6 py-4 flex items-center justify-center gap-4 w-full md:w-auto shadow-xl">
+                    <svg
+                      className="w-8 h-8 text-[#FCD116] shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    <div className="text-left">
+                      <p className="text-[9px] md:text-[10px] uppercase tracking-widest text-[#FCD116] font-bold mb-0.5">
+                        Waktu Pelaksanaan
+                      </p>
+                      <p className="font-black text-sm md:text-base">
+                        {settings?.offlineDate
+                          ? new Date(settings.offlineDate).toLocaleDateString(
+                              "id-ID",
+                              {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              },
+                            )
+                          : "-"}
+                      </p>
+                      <p className="text-xs text-slate-300 font-medium">
+                        Pukul {settings?.offlineTime || "06:00"} WIB
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </ScrollReveal>
+
+              <ScrollReveal delay={400}>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full md:w-auto">
+                  <a
+                    href="#kategori-tiket"
+                    onClick={scrollToTiket}
+                    className="w-full sm:w-auto bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239] font-black px-10 py-4 md:px-12 md:py-5 rounded-full text-base md:text-lg transition-all shadow-2xl transform hover:-translate-y-1 flex items-center justify-center gap-2"
+                  >
+                    Amankan Slot Sekarang &rarr;
+                  </a>
+                  <button
+                    onClick={() => setIsTimelineModalOpen(true)}
+                    className="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white font-black px-10 py-4 md:px-10 md:py-5 rounded-full text-base md:text-lg transition-all shadow-xl border border-white/20 backdrop-blur-sm transform hover:-translate-y-1 flex items-center justify-center gap-2"
+                  >
+                    Timeline
+                  </button>
+                </div>
+              </ScrollReveal>
+
+              <ScrollReveal delay={500}>
+                <p className="text-[10px] md:text-xs text-slate-400 mt-6 font-bold tracking-wide">
+                  *Kuota{" "}
+                  {settings?.offlineQuota === 0 ? "∞" : settings?.offlineQuota}{" "}
+                  peserta.
+                </p>
+              </ScrollReveal>
+            </>
+          )}
+        </div>
+      </section>
+
+      {/* RACE PACK & FASILITAS SECTION */}
+      <section className="py-16 md:py-24 bg-white w-full relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <ScrollReveal>
+            <div className="text-center mb-12 md:mb-16">
+              <span className="text-xs font-bold text-[#0B2239] bg-blue-50 px-3 py-1 rounded-full uppercase tracking-widest mb-3 inline-block">
+                Fasilitas Peserta
+              </span>
+              <h2 className="text-2xl md:text-4xl font-black text-slate-900 mb-4">
+                Race Pack & Fasilitas Eksklusif
+              </h2>
+              <p className="text-sm md:text-base text-slate-500 font-medium max-w-xl mx-auto mb-8">
+                Setiap pendaftaran offline sudah termasuk perlengkapan lari
+                premium yang akan menemani langkah Anda hingga ke garis finish.
+              </p>
             </div>
           </ScrollReveal>
 
           <div className="grid lg:grid-cols-3 gap-8 items-stretch max-w-6xl mx-auto">
-            {/* Jersey */}
+            {/* 1. Jersey */}
             <ScrollReveal delay={100}>
-              <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 hover:shadow-xl transition-shadow group flex flex-col h-full">
-                <div className="aspect-square bg-slate-50 rounded-3xl mb-6 flex items-center justify-center overflow-hidden relative">
-                  <div className="absolute inset-0 bg-emerald-600/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="bg-slate-50 rounded-[2rem] p-6 shadow-sm border border-slate-100 hover:shadow-xl transition-shadow group flex flex-col h-full">
+                <div className="aspect-square bg-white rounded-3xl mb-6 flex items-center justify-center overflow-hidden relative border border-slate-100">
+                  <div className="absolute inset-0 bg-[#0B2239]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   {settings?.urlJerseyOffline ? (
                     <img
                       src={settings.urlJerseyOffline}
@@ -506,7 +557,7 @@ export default function OfflineRunLandingPage() {
                   ) : (
                     <div className="text-slate-300 flex flex-col items-center">
                       <svg
-                        className="w-16 h-16 text-slate-300 mb-2"
+                        className="w-16 h-16 text-slate-300 mb-2 transform group-hover:scale-110 transition-transform duration-500"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -529,62 +580,51 @@ export default function OfflineRunLandingPage() {
                 </h3>
                 <p className="text-slate-500 text-xs md:text-sm text-center md:text-left">
                   Jersey berbahan premium, ringan, dan cepat kering. Nyaman
-                  dipakai hingga mencapai garis finish.
+                  dipakai di bawah sinar matahari.
                 </p>
               </div>
             </ScrollReveal>
 
-            {/* Peta Rute */}
+            {/* 2. Nomor BIB & Refreshment */}
             <ScrollReveal delay={200}>
-              <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 hover:shadow-xl transition-shadow group flex flex-col h-full">
-                <div className="aspect-square bg-slate-50 rounded-3xl mb-6 flex items-center justify-center overflow-hidden relative">
-                  <div className="absolute inset-0 bg-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  {settings?.urlOfflineRouteMap ? (
-                    <img
-                      src={settings.urlOfflineRouteMap}
-                      alt="Peta Rute Lari"
-                      className="w-full h-full object-contain p-2 transform group-hover:scale-105 transition-transform duration-700 cursor-zoom-in"
-                      onClick={() =>
-                        window.open(settings.urlOfflineRouteMap, "_blank")
-                      }
-                      title="Klik untuk memperbesar gambar"
-                    />
-                  ) : (
-                    <div className="text-slate-300 flex flex-col items-center">
-                      <svg
-                        className="w-16 h-16 text-slate-300 mb-2"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1.5}
-                          d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
-                        />
-                      </svg>
-                      <span className="font-bold text-xs md:text-sm">
-                        Rute Belum Tersedia
-                      </span>
-                    </div>
-                  )}
+              <div className="bg-slate-50 rounded-[2rem] p-6 shadow-sm border border-slate-100 hover:shadow-xl transition-shadow group flex flex-col h-full">
+                <div className="aspect-square bg-white rounded-3xl mb-6 flex items-center justify-center overflow-hidden relative border border-slate-100">
+                  <div className="absolute inset-0 bg-[#0B2239]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="text-slate-300 flex flex-col items-center">
+                    <svg
+                      className="w-20 h-20 text-[#0B2239]/80 mb-2 transform group-hover:scale-110 transition-transform duration-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"
+                      />
+                    </svg>
+                    <span className="font-bold text-xs md:text-sm text-slate-400">
+                      BIB & Tiket Lari
+                    </span>
+                  </div>
                 </div>
                 <h3 className="text-lg md:text-xl font-black text-slate-800 mb-2 text-center md:text-left">
-                  Peta Rute (Route Map)
+                  Nomor BIB & Refreshment
                 </h3>
                 <p className="text-slate-500 text-xs md:text-sm text-center md:text-left">
-                  Pelajari jalur lari yang akan dilewati. Lengkap dengan
-                  informasi titik kumpul, water station, dan pos medis.
+                  Dapatkan nomor dada eksklusif sebagai identitas pelari.
+                  Nikmati juga fasilitas water station & refreshment selama
+                  acara.
                 </p>
               </div>
             </ScrollReveal>
 
-            {/* Medali */}
+            {/* 3. Medali */}
             <ScrollReveal delay={300}>
-              <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 hover:shadow-xl transition-shadow group flex flex-col h-full">
-                <div className="aspect-square bg-slate-50 rounded-3xl mb-6 flex items-center justify-center overflow-hidden relative">
-                  <div className="absolute inset-0 bg-yellow-400/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="bg-slate-50 rounded-[2rem] p-6 shadow-sm border border-slate-100 hover:shadow-xl transition-shadow group flex flex-col h-full">
+                <div className="aspect-square bg-white rounded-3xl mb-6 flex items-center justify-center overflow-hidden relative border border-slate-100">
+                  <div className="absolute inset-0 bg-[#FCD116]/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   {settings?.urlMedaliOffline ? (
                     <img
                       src={settings.urlMedaliOffline}
@@ -594,7 +634,7 @@ export default function OfflineRunLandingPage() {
                   ) : (
                     <div className="text-slate-300 flex flex-col items-center">
                       <svg
-                        className="w-16 h-16 text-slate-300 mb-2"
+                        className="w-16 h-16 text-slate-300 mb-2 transform group-hover:scale-110 transition-transform duration-500"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -628,11 +668,11 @@ export default function OfflineRunLandingPage() {
       {/* CATEGORIES SECTION */}
       <section
         id="kategori-tiket"
-        className="py-16 md:py-24 bg-white max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full scroll-mt-24"
+        className="py-16 md:py-24 bg-[#F8F9FA] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full scroll-mt-24 border-t border-slate-200"
       >
         <ScrollReveal>
           <div className="text-center mb-12 md:mb-16">
-            <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-3 py-1 rounded-full uppercase tracking-widest mb-3 inline-block">
+            <span className="text-xs font-bold text-[#0B2239] bg-blue-50 px-3 py-1 rounded-full uppercase tracking-widest mb-3 inline-block">
               Kategori Tiket
             </span>
             <h2 className="text-2xl md:text-4xl font-black text-slate-900 mb-4">
@@ -648,43 +688,39 @@ export default function OfflineRunLandingPage() {
           {settings?.offlinePackages && settings.offlinePackages.length > 0 ? (
             settings.offlinePackages.map((pkg: any, index: number) => {
               const isHighlight = pkg.isHighlight === true;
-
               const terisi = packageCounts[pkg.id] || 0;
               const batasKuota = Number(pkg.kuota) || 0;
-              const sisaKuota = Math.max(0, batasKuota - terisi);
-              const isSoldOut = sisaKuota <= 0;
-              const persentase =
-                batasKuota > 0 ? Math.min(100, (terisi / batasKuota) * 100) : 0;
+              const isUnlimited = batasKuota === 0;
+              const sisaKuota = isUnlimited
+                ? "Tak Terbatas"
+                : Math.max(0, batasKuota - terisi);
+              const isSoldOut = !isUnlimited && sisaKuota <= 0;
+              const persentase = isUnlimited
+                ? 0
+                : Math.min(100, (terisi / batasKuota) * 100);
 
               return (
                 <ScrollReveal key={pkg.id} delay={index * 150}>
                   <div
-                    className={`w-full h-full rounded-[2rem] p-6 border flex flex-col relative overflow-hidden transition-all ${
-                      isHighlight
-                        ? "bg-emerald-900 border-emerald-800 text-white shadow-2xl transform lg:-translate-y-4"
-                        : "bg-slate-50 border-slate-200 shadow-sm hover:shadow-xl"
-                    }`}
+                    className={`w-full h-full rounded-[2rem] p-6 border flex flex-col relative overflow-hidden transition-all ${isHighlight ? "bg-[#0B2239] border-[#0B2239] text-white shadow-2xl transform lg:-translate-y-4" : "bg-white border-slate-200 shadow-sm hover:shadow-xl"}`}
                   >
                     {!isHighlight && (
-                      <div className="h-2 w-full bg-slate-300 absolute top-0 left-0"></div>
+                      <div className="h-2 w-full bg-slate-200 absolute top-0 left-0"></div>
+                    )}
+                    {isHighlight && (
+                      <div className="h-2 w-full bg-[#FCD116] absolute top-0 left-0"></div>
                     )}
 
                     <div className="mb-6 mt-4">
                       <span
-                        className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg ${
-                          isHighlight
-                            ? "bg-emerald-800 text-emerald-200 border border-emerald-700"
-                            : "bg-slate-200 text-slate-600"
-                        }`}
+                        className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg ${isHighlight ? "bg-white/10 text-[#FCD116]" : "bg-slate-100 text-slate-600"}`}
                       >
                         KATEGORI {pkg.jarak}
                       </span>
                     </div>
 
                     <h3
-                      className={`text-xl md:text-2xl font-black mb-2 ${
-                        isHighlight ? "text-white" : "text-slate-800"
-                      }`}
+                      className={`text-xl md:text-2xl font-black mb-2 ${isHighlight ? "text-white" : "text-slate-800"}`}
                     >
                       {pkg.nama}
                     </h3>
@@ -693,7 +729,7 @@ export default function OfflineRunLandingPage() {
                       <div className="flex justify-between text-[11px] font-bold mb-2">
                         <span
                           className={
-                            isHighlight ? "text-emerald-200" : "text-slate-500"
+                            isHighlight ? "text-slate-300" : "text-slate-500"
                           }
                         >
                           Sisa Kuota:
@@ -703,56 +739,50 @@ export default function OfflineRunLandingPage() {
                             isSoldOut
                               ? "text-rose-500"
                               : isHighlight
-                                ? "text-yellow-400"
-                                : "text-emerald-600"
+                                ? "text-[#FCD116]"
+                                : "text-[#0B2239]"
                           }
                         >
-                          {isSoldOut ? "Habis" : `${sisaKuota} / ${batasKuota}`}
+                          {isSoldOut ? (
+                            "Habis"
+                          ) : isUnlimited ? (
+                            <span className="text-lg leading-none font-sans">
+                              &infin;
+                            </span>
+                          ) : (
+                            `${sisaKuota} / ${batasKuota}`
+                          )}
                         </span>
                       </div>
-                      <div
-                        className={`w-full h-2.5 rounded-full overflow-hidden ${
-                          isHighlight
-                            ? "bg-emerald-950/50 border border-emerald-800"
-                            : "bg-slate-200 border border-slate-300/50"
-                        }`}
-                      >
+                      {!isUnlimited && (
                         <div
-                          className={`h-full rounded-full transition-all duration-1000 ${
-                            isSoldOut
-                              ? "bg-rose-500"
-                              : isHighlight
-                                ? "bg-yellow-400"
-                                : "bg-emerald-500"
-                          }`}
-                          style={{ width: `${persentase}%` }}
-                        ></div>
-                      </div>
+                          className={`w-full h-2.5 rounded-full overflow-hidden ${isHighlight ? "bg-white/10" : "bg-slate-100"}`}
+                        >
+                          <div
+                            className={`h-full rounded-full transition-all duration-1000 ${isSoldOut ? "bg-rose-500" : isHighlight ? "bg-[#FCD116]" : "bg-[#0B2239]"}`}
+                            style={{ width: `${persentase}%` }}
+                          ></div>
+                        </div>
+                      )}
                     </div>
 
                     <div
-                      className={`text-3xl md:text-4xl font-black mb-8 tracking-tight ${
-                        isHighlight ? "text-yellow-400" : "text-slate-900"
-                      }`}
+                      className={`text-3xl md:text-4xl font-black mb-8 tracking-tight ${isHighlight ? "text-[#FCD116]" : "text-slate-900"}`}
                     >
                       Rp {Number(pkg.harga).toLocaleString("id-ID")}
                     </div>
 
-                    <ul className="space-y-3 mb-8 flex-grow">
+                    <ul className="space-y-3 mb-6">
                       {pkg.benefit &&
                         pkg.benefit
                           .split(",")
                           .map((item: string, i: number) => (
                             <li
                               key={i}
-                              className={`flex items-start gap-3 text-xs md:text-sm font-medium ${
-                                isHighlight
-                                  ? "text-emerald-50"
-                                  : "text-slate-700"
-                              }`}
+                              className={`flex items-start gap-3 text-xs md:text-sm font-medium ${isHighlight ? "text-slate-200" : "text-slate-600"}`}
                             >
                               <svg
-                                className={`w-4 h-4 mt-0.5 shrink-0 ${isHighlight ? "text-yellow-400" : "text-emerald-500"}`}
+                                className={`w-4 h-4 mt-0.5 shrink-0 ${isHighlight ? "text-[#FCD116]" : "text-[#0B2239]"}`}
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -769,36 +799,104 @@ export default function OfflineRunLandingPage() {
                           ))}
                     </ul>
 
-                    {isSoldOut ? (
+                    {/* 🔥 FITUR CUSTOM MAPS & WAYPOINTS 🔥 */}
+                    {pkg.polyline && (
+                      <div className="mb-6 flex flex-col items-center w-full mt-auto">
+                        <button
+                          onClick={() => toggleMap(pkg.id)}
+                          className={`w-full text-xs font-bold py-2.5 rounded-lg border transition-colors flex items-center justify-center gap-2 mb-3 ${isHighlight ? "bg-[#1A73E8] border-[#1A73E8] hover:bg-blue-600 text-white" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
+                            />
+                          </svg>
+                          {expandedMaps.includes(pkg.id)
+                            ? "Tutup Peta Rute"
+                            : "Lihat Peta Rute & Titik Air"}
+                        </button>
+
+                        <div
+                          className={`w-full overflow-hidden transition-all duration-500 ease-in-out ${expandedMaps.includes(pkg.id) ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"}`}
+                        >
+                          <div
+                            className={`w-full h-[350px] rounded-xl overflow-hidden border relative ${isHighlight ? "bg-[#051324] border-white/10" : "bg-slate-100 border-slate-200"}`}
+                          >
+                            {expandedMaps.includes(pkg.id) && (
+                              <EventMap
+                                polyline={pkg.polyline}
+                                waypoints={pkg.waypoints}
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {!pkg.polyline && <div className="mt-auto"></div>}
+
+                    {isSoldOut && !isBypassed ? (
                       <button
                         disabled
-                        className="w-full text-center font-bold py-3.5 md:py-4 rounded-xl shadow-inner text-sm bg-rose-100 text-rose-500 cursor-not-allowed border border-rose-200 uppercase tracking-widest mt-auto"
+                        className="w-full text-center font-bold py-3.5 md:py-4 rounded-xl shadow-inner text-sm bg-rose-100 text-rose-500 cursor-not-allowed border border-rose-200 uppercase tracking-widest"
                       >
                         Habis Terjual
                       </button>
+                    ) : showCountdown && !isBypassed ? (
+                      <button
+                        disabled
+                        className={`w-full text-center font-bold py-3.5 md:py-4 rounded-xl text-sm uppercase tracking-widest cursor-not-allowed ${isHighlight ? "bg-white/10 text-white/50" : "bg-slate-100 text-slate-400 border border-slate-200"}`}
+                      >
+                        Segera Dibuka
+                      </button>
                     ) : (
                       <Link
-                        href={`/run/daftar?paket=${pkg.id}`}
-                        className={`w-full text-center font-bold py-3.5 md:py-4 rounded-xl transition-all shadow-md text-sm mt-auto flex items-center justify-center gap-2 ${
-                          isHighlight
-                            ? "bg-emerald-500 hover:bg-emerald-400 text-emerald-950"
-                            : "bg-white border border-slate-200 hover:bg-slate-100 text-slate-800"
-                        }`}
+                        href={`/run/daftar?paket=${pkg.id}${isWaitingRoom ? "&queue=true" : ""}`}
+                        className={`w-full text-center font-bold py-3.5 md:py-4 rounded-xl transition-all shadow-md text-sm flex items-center justify-center gap-2 ${isWaitingRoom ? "bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239]" : isHighlight ? "bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239]" : "bg-[#0B2239] hover:bg-blue-900 text-white"}`}
                       >
-                        Daftar Kategori {pkg.jarak}
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M14 5l7 7m0 0l-7 7m7-7H3"
-                          />
-                        </svg>
+                        {isWaitingRoom ? (
+                          <>
+                            <svg
+                              className="w-5 h-5 animate-pulse"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>{" "}
+                            Masuk Ruang Tunggu
+                          </>
+                        ) : (
+                          <>
+                            Daftar Kategori {pkg.jarak}{" "}
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M14 5l7 7m0 0l-7 7m7-7H3"
+                              />
+                            </svg>
+                          </>
+                        )}
                       </Link>
                     )}
                   </div>
@@ -806,36 +904,31 @@ export default function OfflineRunLandingPage() {
               );
             })
           ) : (
-            <div className="text-slate-500 font-bold py-10 col-span-full text-center bg-slate-50 rounded-2xl border border-slate-200">
+            <div className="text-slate-500 font-bold py-10 col-span-full text-center bg-white rounded-2xl border border-slate-200">
               Paket lari offline belum tersedia dari Admin.
             </div>
           )}
         </div>
       </section>
 
-      {/* SECTION SPONSOR & MEDIA PARTNER */}
+      {/* SECTION SPONSOR */}
       {settings?.sponsorGroups && settings.sponsorGroups.length > 0 && (
-        <section className="py-16 md:py-24 bg-slate-50 relative z-10 w-full overflow-hidden border-t border-slate-200">
+        <section className="py-16 md:py-24 bg-white relative z-10 w-full overflow-hidden border-t border-slate-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center">
             {settings.sponsorGroups.map((group: any, idx: number) => {
-              // Lewati kalau tidak ada logo yang bisa ditampilkan (disembunyikan admin / URL kosong)
               const visibleLogos = (group.logos || []).filter(
                 (l: any) => !l.isHidden && l.url,
               );
               if (visibleLogos.length === 0) return null;
-
-              // Ambil ukuran dari Admin (default medium)
               const size = group.size || "medium";
-
-              // Konfigurasi CSS Dinamis Berdasarkan Ukuran Pilihan Admin
               let titleClass = "text-xs text-slate-500 mb-8";
               let containerClass =
                 "gap-8 md:gap-12 opacity-60 hover:opacity-100 grayscale hover:grayscale-0";
               let logoClass = "h-10 md:h-14";
 
               if (size === "large") {
-                titleClass = "text-sm md:text-base text-[#152B5B] mb-12";
-                containerClass = "gap-10 md:gap-20 grayscale-0 opacity-100"; // Full color
+                titleClass = "text-sm md:text-base text-[#0B2239] mb-12";
+                containerClass = "gap-10 md:gap-20 grayscale-0 opacity-100";
                 logoClass = "h-20 md:h-28";
               } else if (size === "small") {
                 titleClass = "text-[10px] text-slate-400 mb-6";
@@ -849,20 +942,16 @@ export default function OfflineRunLandingPage() {
                   <div
                     className={`flex flex-col items-center w-full max-w-4xl mx-auto ${idx !== 0 ? "mt-16 md:mt-24" : ""}`}
                   >
-                    {/* Judul Grup Sponsor */}
                     {group.title && (
                       <h3
                         className={`font-black uppercase tracking-[0.3em] relative inline-block ${titleClass}`}
                       >
                         {group.title}
-                        {/* Garis Bawah Aksen (Hanya untuk ukuran Large) */}
                         {size === "large" && (
-                          <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-12 h-1 bg-yellow-400 rounded-full"></span>
+                          <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-12 h-1 bg-[#FCD116] rounded-full"></span>
                         )}
                       </h3>
                     )}
-
-                    {/* List Logo */}
                     <div
                       className={`flex flex-wrap justify-center items-center transition-all duration-500 w-full ${containerClass}`}
                     >
@@ -876,14 +965,12 @@ export default function OfflineRunLandingPage() {
                             alt={logo.name || "Sponsor Logo"}
                             className="max-w-full max-h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-300"
                           />
-                          {/* Tooltip Nama Sponsor (Hover) */}
                           {logo.name && (
                             <div
-                              className={`absolute left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[9px] font-bold px-2.5 py-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 shadow-lg ${size === "large" ? "-bottom-10" : "-bottom-8"}`}
+                              className={`absolute left-1/2 -translate-x-1/2 bg-[#0B2239] text-white text-[9px] font-bold px-2.5 py-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 shadow-lg ${size === "large" ? "-bottom-10" : "-bottom-8"}`}
                             >
                               {logo.name}
-                              {/* Segitiga kecil tooltip */}
-                              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
+                              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#0B2239] rotate-45"></div>
                             </div>
                           )}
                         </div>
@@ -897,14 +984,14 @@ export default function OfflineRunLandingPage() {
         </section>
       )}
 
-      {/* MODAL TIMELINE PENDAFTARAN (POPUP) */}
+      {/* MODAL TIMELINE */}
       {isTimelineModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="relative max-w-md w-full bg-white rounded-[2rem] overflow-hidden shadow-2xl animate-in zoom-in-95">
-            <div className="bg-emerald-50 px-6 py-5 flex justify-between items-center border-b border-emerald-100">
-              <h3 className="font-black text-emerald-900 flex items-center gap-2">
+            <div className="bg-slate-50 px-6 py-5 flex justify-between items-center border-b border-slate-100">
+              <h3 className="font-black text-[#0B2239] flex items-center gap-2">
                 <svg
-                  className="w-6 h-6 text-emerald-600"
+                  className="w-6 h-6 text-[#1A73E8]"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -920,25 +1007,35 @@ export default function OfflineRunLandingPage() {
               </h3>
               <button
                 onClick={() => setIsTimelineModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 flex items-center justify-center font-bold transition-colors"
+                className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 flex items-center justify-center font-bold transition-colors"
               >
                 ✕
               </button>
             </div>
 
             <div className="p-6 sm:p-8">
-              <div className="relative border-l-2 border-emerald-100 ml-3 space-y-8">
+              <div className="relative border-l-2 border-slate-200 ml-3 space-y-8">
                 <div className="relative pl-6">
-                  <span className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-emerald-500 ring-4 ring-white"></span>
+                  <span className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-[#1A73E8] ring-4 ring-white"></span>
                   <p className="font-black text-slate-800 text-sm">
                     Pendaftaran Dibuka
                   </p>
-                  <p className="text-xs text-emerald-600 font-medium mt-1">
-                    Saat ini sedang berlangsung
+                  <p className="text-xs text-[#1A73E8] font-medium mt-1">
+                    {settings?.offlineTanggalPembukaan
+                      ? new Date(
+                          settings.offlineTanggalPembukaan,
+                        ).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }) + " WIB"
+                      : "Akan Diumumkan"}
                   </p>
                 </div>
                 <div className="relative pl-6">
-                  <span className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-blue-500 ring-4 ring-white"></span>
+                  <span className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-slate-400 ring-4 ring-white"></span>
                   <p className="font-black text-slate-800 text-sm">
                     Batas Pendaftaran
                   </p>
@@ -957,7 +1054,7 @@ export default function OfflineRunLandingPage() {
                   </p>
                 </div>
                 <div className="relative pl-6">
-                  <span className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-amber-500 ring-4 ring-white"></span>
+                  <span className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-[#FCD116] ring-4 ring-white"></span>
                   <p className="font-black text-slate-800 text-sm">
                     Pengambilan Race Pack
                   </p>
@@ -1005,90 +1102,21 @@ export default function OfflineRunLandingPage() {
         </div>
       )}
 
-      {/* MODAL PENCARIAN TIKET */}
-      {isTicketModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative max-w-md w-full bg-white rounded-[2rem] overflow-hidden shadow-2xl animate-in zoom-in-95">
-            <div className="bg-emerald-50 px-6 py-5 flex justify-between items-center border-b border-emerald-100">
-              <h3 className="font-black text-emerald-900 flex items-center gap-2">
-                <svg
-                  className="w-6 h-6 text-emerald-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"
-                  />
-                </svg>
-                Cari Tiket Saya
-              </h3>
-              <button
-                onClick={() => setIsTicketModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 flex items-center justify-center font-bold transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSearchTicket} className="p-6 sm:p-8">
-              <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-                Masukkan <strong className="text-slate-800">Email</strong> atau{" "}
-                <strong className="text-slate-800">Nomor WhatsApp</strong> yang
-                Anda gunakan saat mendaftar untuk melihat E-Ticket atau status
-                pembayaran Anda.
-              </p>
-              <div className="mb-6">
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: budi@email.com / 08123456789"
-                  value={searchTicketValue}
-                  onChange={(e) => setSearchTicketValue(e.target.value)}
-                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-emerald-500 outline-none text-sm transition-all text-slate-800 font-bold"
-                />
-                {ticketError && (
-                  <p className="text-xs text-rose-500 mt-2 font-medium flex items-center gap-1">
-                    <svg
-                      className="w-4 h-4 shrink-0"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                      />
-                    </svg>
-                    {ticketError}
-                  </p>
-                )}
-              </div>
-              <button
-                type="submit"
-                disabled={isSearchingTicket || !searchTicketValue}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-xl shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {isSearchingTicket ? (
-                  <>
-                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>{" "}
-                    Mencari...
-                  </>
-                ) : (
-                  "Cek Tiket Sekarang"
-                )}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
       <FooterPublic />
     </div>
+  );
+}
+
+export default function OfflineRunLandingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#0B2239] flex items-center justify-center">
+          <div className="w-12 h-12 border-4 border-[#0B2239] border-t-[#FCD116] rounded-full animate-spin"></div>
+        </div>
+      }
+    >
+      <OfflineRunLandingPageContent />
+    </Suspense>
   );
 }

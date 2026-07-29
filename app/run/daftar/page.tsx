@@ -9,13 +9,16 @@ import {
   addDoc,
   getDocs,
   query,
+  where,
+  orderBy,
+  limit,
+  getCountFromServer, // 🔥 TAMBAHKAN INI
 } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import NavbarPublic from "@/components/layout/NavbarPublic";
 import FooterPublic from "@/components/layout/FooterPublic";
 
-// 🔥 1. IMPORT HOOK RECAPTCHA
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 function FormPendaftaranOffline() {
@@ -23,12 +26,16 @@ function FormPendaftaranOffline() {
   const searchParams = useSearchParams();
   const defaultPaketId = searchParams.get("paket") || "";
 
-  // 🔥 2. PANGGIL HOOK RECAPTCHA
   const { executeRecaptcha } = useGoogleReCaptcha();
 
   const [settings, setSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // --- STATE KATEGORI TERSEDIA (DARI ADMIN) ---
+  const [availableCategories, setAvailableCategories] = useState<string[]>([
+    "Umum",
+  ]); // Default Umum
 
   // --- STATE SISTEM ANTRIAN ---
   const [inQueue, setInQueue] = useState(true);
@@ -53,7 +60,7 @@ function FormPendaftaranOffline() {
 
   // --- STATE FORM ---
   const [formData, setFormData] = useState({
-    kategoriPeserta: "Alumni",
+    kategoriPeserta: "Umum", // Default awal
     jenisIdentitas: "KTP",
     nik: "",
     namaLengkap: "",
@@ -67,20 +74,32 @@ function FormPendaftaranOffline() {
     email: "",
     noWA: "",
     komunitas: "",
+    // Data Alumni
     nim: "",
     tahunLulus: "",
     fakultas: "",
     programStudi: "",
+    // Data Tambahan Pelajar
+    asalSekolah: "",
+    // Medis & Darurat
     ukuranJersey: "",
     golonganDarah: "",
     riwayatPenyakit: "",
     namaDarurat: "",
     hubunganDarurat: "",
     waDarurat: "",
-    paketId: defaultPaketId, // Otomatis terisi dari URL Landing Page
+    paketId: defaultPaketId,
   });
 
-  // --- LOGIKA FETCH DATA & WAITING ROOM ---
+  // --- STATE PROMO & DISKON ---
+  const [promoInput, setPromoInput] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<any>(null);
+  const [isCheckingPromo, setIsCheckingPromo] = useState(false);
+  const [promoMessage, setPromoMessage] = useState({ text: "", type: "" });
+
+  // --- STATE CEK NIK ---
+  const [isCheckingNik, setIsCheckingNik] = useState(false);
+
   useEffect(() => {
     let queueTimer: any;
 
@@ -92,6 +111,18 @@ function FormPendaftaranOffline() {
         if (docSnap.exists()) {
           const data = docSnap.data();
           setSettings(data);
+
+          // 🔥 BACA PENGATURAN KATEGORI DARI ADMIN 🔥
+          if (data.allowedCategories && data.allowedCategories.length > 0) {
+            setAvailableCategories(data.allowedCategories);
+            setFormData((prev) => ({
+              ...prev,
+              kategoriPeserta: data.allowedCategories[0],
+            }));
+          } else {
+            setAvailableCategories(["Umum"]);
+            setFormData((prev) => ({ ...prev, kategoriPeserta: "Umum" }));
+          }
 
           if (data.isWaitingRoomActive) {
             let currentPosition = Math.floor(Math.random() * 15) + 15;
@@ -134,7 +165,6 @@ function FormPendaftaranOffline() {
 
   const handleChange = (e: any) => {
     const { name, value } = e.target;
-    // Blokir perubahan pada paketId agar user tidak bisa iseng ganti lewat inspect element
     if (name === "paketId") return;
 
     if (["noWA", "waDarurat", "nim", "tahunLulus", "nik"].includes(name)) {
@@ -144,6 +174,148 @@ function FormPendaftaranOffline() {
     } else {
       setFormData({ ...formData, [name]: value });
     }
+  };
+
+  const handleCekNik = async () => {
+    if (formData.nik.length < 10) {
+      setModal({
+        isOpen: true,
+        type: "warning",
+        title: "Periksa NIK",
+        message: "Masukkan minimal 10 digit NIK untuk mengecek riwayat data.",
+      });
+      return;
+    }
+    setIsCheckingNik(true);
+    try {
+      const q = query(
+        collection(db, "offline_participants"),
+        where("nik", "==", formData.nik),
+      );
+      const snap = await getDocs(q);
+
+      if (!snap.empty) {
+        const allPastData = snap.docs.map((doc) => doc.data());
+        allPastData.sort((a, b) => {
+          const timeA = a.waktuDaftar ? new Date(a.waktuDaftar).getTime() : 0;
+          const timeB = b.waktuDaftar ? new Date(b.waktuDaftar).getTime() : 0;
+          return timeB - timeA;
+        });
+
+        const pastData = allPastData[0];
+
+        setFormData((prev) => ({
+          ...prev,
+          namaLengkap: pastData.namaLengkap || prev.namaLengkap,
+          namaBib: pastData.namaBib || prev.namaBib,
+          tanggalLahir: pastData.tanggalLahir || prev.tanggalLahir,
+          jenisKelamin: pastData.jenisKelamin || prev.jenisKelamin,
+          provinsi: pastData.provinsi || prev.provinsi,
+          kotaKabupaten: pastData.kotaKabupaten || prev.kotaKabupaten,
+          alamatLengkap: pastData.alamatLengkap || prev.alamatLengkap,
+          email: pastData.email || prev.email,
+          noWA: pastData.noWA || prev.noWA,
+          golonganDarah: pastData.golonganDarah || prev.golonganDarah,
+          riwayatPenyakit: pastData.riwayatPenyakit || prev.riwayatPenyakit,
+        }));
+
+        setModal({
+          isOpen: true,
+          type: "success",
+          title: "Data Ditemukan",
+          message: `Selamat datang kembali, ${pastData.namaLengkap || "Peserta"}! Riwayat Pendaftaran Anda berhasil dimuat ke dalam formulir.`,
+        });
+      } else {
+        setModal({
+          isOpen: true,
+          type: "warning",
+          title: "Belum Terdaftar",
+          message:
+            "NIK ini belum pernah mengikuti event sebelumnya. Silakan isi form secara manual.",
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      setModal({
+        isOpen: true,
+        type: "error",
+        title: "Gagal Mengambil Data",
+        message: "Gagal mengecek NIK. Pastikan koneksi internet Anda stabil.",
+      });
+    } finally {
+      setIsCheckingNik(false);
+    }
+  };
+
+  const handleApplyPromo = async () => {
+    if (!promoInput.trim()) return;
+    if (!formData.paketId) {
+      setPromoMessage({
+        text: "Pilih paket lari terlebih dahulu!",
+        type: "error",
+      });
+      return;
+    }
+
+    setIsCheckingPromo(true);
+    setPromoMessage({ text: "", type: "" });
+
+    try {
+      const q = query(
+        collection(db, "promo_codes"),
+        where("kode", "==", promoInput.toUpperCase()),
+      );
+      const snap = await getDocs(q);
+
+      if (snap.empty) {
+        setPromoMessage({ text: "Kode promo tidak ditemukan.", type: "error" });
+        setAppliedPromo(null);
+        return;
+      }
+
+      const promoData = snap.docs[0].data();
+
+      if (!promoData.isActive) {
+        setPromoMessage({
+          text: "Kode promo sudah tidak aktif.",
+          type: "error",
+        });
+        return;
+      }
+      if (promoData.kuotaTerpakai >= promoData.kuotaMaksimal) {
+        setPromoMessage({ text: "Kuota promo sudah habis.", type: "error" });
+        return;
+      }
+      if (new Date() > new Date(promoData.tanggalKedaluwarsa)) {
+        setPromoMessage({
+          text: "Kode promo sudah kedaluwarsa.",
+          type: "error",
+        });
+        return;
+      }
+
+      setAppliedPromo({
+        id: snap.docs[0].id,
+        ...promoData,
+      });
+      setPromoMessage({
+        text: `Promo diterapkan! Diskon: ${promoData.jenisDiskon === "persen" ? promoData.nilaiDiskon + "%" : "Rp " + promoData.nilaiDiskon.toLocaleString("id-ID")}`,
+        type: "success",
+      });
+    } catch (error) {
+      setPromoMessage({
+        text: "Gagal mengecek promo. Coba lagi.",
+        type: "error",
+      });
+    } finally {
+      setIsCheckingPromo(false);
+    }
+  };
+
+  const hapusPromo = () => {
+    setPromoInput("");
+    setAppliedPromo(null);
+    setPromoMessage({ text: "", type: "" });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -191,6 +363,35 @@ function FormPendaftaranOffline() {
     setIsSubmitting(true);
 
     try {
+      // =================================================================
+      // 🔥 1. PENJAGA PINTU TERAKHIR (FINAL QUOTA CHECK REAL-TIME) 🔥
+      // =================================================================
+      const batasKuota = Number(selectedPackage.kuota) || 0;
+
+      // Jika batasKuota adalah 0, berarti kuota Unlimited (bebas masuk).
+      // Tapi jika batasKuota > 0, kita WAJIB cek sisa real-time ke server detik ini juga!
+      if (batasKuota > 0) {
+        const qCount = query(
+          collection(db, "offline_participants"),
+          where("paketId", "==", formData.paketId),
+        );
+        const snapshot = await getCountFromServer(qCount);
+        const currentTerisi = snapshot.data().count;
+
+        if (currentTerisi >= batasKuota) {
+          setIsSubmitting(false);
+          return setModal({
+            isOpen: true,
+            type: "error",
+            title: "Mohon Maaf, Kuota Habis!",
+            message: `Anda kalah cepat sedetik! Kuota kategori ${selectedPackage.nama} baru saja habis dipesan orang lain. Silakan kembali ke beranda dan pilih kategori yang masih tersedia.`,
+          });
+        }
+      }
+
+      // =================================================================
+      // 🔥 2. LANJUT VERIFIKASI RECAPTCHA 🔥
+      // =================================================================
       if (!executeRecaptcha) {
         setIsSubmitting(false);
         return setModal({
@@ -203,10 +404,11 @@ function FormPendaftaranOffline() {
       }
 
       const token = await executeRecaptcha("offline_registration");
+
       const recaptchaResponse = await fetch("/api/verify-recaptcha", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, email: formData.email }),
       });
 
       const recaptchaResult = await recaptchaResponse.json();
@@ -222,30 +424,50 @@ function FormPendaftaranOffline() {
         });
       }
 
-      const qCount = query(collection(db, "offline_participants"));
-      const snapCount = await getDocs(qCount);
-      const nomorUrut = snapCount.size + 1;
-      const jarakAngka = selectedPackage?.jarak.replace(/\D/g, "") || "9";
-      const formattedBIB = `${jarakAngka}${String(nomorUrut).padStart(3, "0")}`;
+      // =================================================================
+      // 🔥 3. KALKULASI HARGA, DISKON & SIMPAN KE DATABASE 🔥
+      // =================================================================
+      const hargaAsli = Number(selectedPackage?.harga || 0);
+      let totalTagihan = hargaAsli;
+      let nominalDiskon = 0;
 
-      const totalTagihan = Number(selectedPackage?.harga || 0);
+      if (appliedPromo) {
+        if (appliedPromo.jenisDiskon === "persen") {
+          nominalDiskon = hargaAsli * (appliedPromo.nilaiDiskon / 100);
+        } else if (appliedPromo.jenisDiskon === "nominal") {
+          nominalDiskon = appliedPromo.nilaiDiskon;
+        }
+        totalTagihan = Math.max(0, hargaAsli - nominalDiskon);
+      }
 
-      const docRef = await addDoc(collection(db, "offline_participants"), {
+      const isAkademikUII = formData.kategoriPeserta === "Alumni";
+      const isPelajar = formData.kategoriPeserta === "SMA/Pelajar";
+
+      const finalDataToSave = {
         ...formData,
-        nim: formData.kategoriPeserta === "Umum" ? "" : formData.nim,
-        tahunLulus:
-          formData.kategoriPeserta === "Umum" ? "" : formData.tahunLulus,
-        fakultas: formData.kategoriPeserta === "Umum" ? "" : formData.fakultas,
-        programStudi:
-          formData.kategoriPeserta === "Umum" ? "" : formData.programStudi,
+        nim: isAkademikUII ? formData.nim : "",
+        tahunLulus: isAkademikUII ? formData.tahunLulus : "",
+        fakultas: isAkademikUII ? formData.fakultas : "",
+        programStudi: isAkademikUII ? formData.programStudi : "",
+        asalSekolah: isPelajar ? formData.asalSekolah : "",
         paketNama: selectedPackage?.nama || "",
         jarak: selectedPackage?.jarak || "",
+        hargaAsli: hargaAsli,
+        kodePromoDipakai: appliedPromo ? appliedPromo.kode : null,
+        idPromoDipakai: appliedPromo ? appliedPromo.id : null,
+        totalDiskon: nominalDiskon,
         totalTagihan: totalTagihan,
         statusPembayaran: "Pending",
         waktuDaftar: new Date().toISOString(),
-        nomorBIB: formattedBIB,
-      });
+        nomorBIB: "", // KOSONGKAN SAAT BARU DAFTAR
+      };
 
+      const docRef = await addDoc(
+        collection(db, "offline_participants"),
+        finalDataToSave,
+      );
+
+      // Eksekusi pengiriman email di background (tanpa await agar tidak memperlambat transisi user)
       fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -256,6 +478,9 @@ function FormPendaftaranOffline() {
           detail: {
             id: docRef.id,
             totalTagihan: totalTagihan,
+            bank: settings?.manualBank || "Bank Transfer",
+            rekening: settings?.manualRekening || "-",
+            atasNama: settings?.manualNama || "DPW IKA UII DIY",
           },
         }),
       }).catch((err) => console.error("Background Email Error:", err));
@@ -358,7 +583,7 @@ function FormPendaftaranOffline() {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2-2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
               />
             </svg>
           </div>
@@ -381,6 +606,9 @@ function FormPendaftaranOffline() {
     );
   }
 
+  // 🔥 KALKULATOR NOMOR URUT FORM DINAMIS 🔥
+  let stepNumber = 1;
+
   // --- MAIN LAYOUT (DIBUNGKUS NAVBAR & FOOTER) ---
   return (
     <div className="min-h-screen bg-[#F4F7FB] font-sans flex flex-col">
@@ -397,7 +625,7 @@ function FormPendaftaranOffline() {
                 &larr; Kembali ke Info Event
               </Link>
               <h3 className="text-2xl md:text-3xl font-black text-[#152B5B] mb-2 mt-2">
-                Form Registrasi Offline Run
+                Form Registrasi
               </h3>
               <p className="text-slate-500 text-sm">
                 Harap isi data pribadi, kontak, dan alamat dengan
@@ -406,72 +634,113 @@ function FormPendaftaranOffline() {
             </div>
 
             <form onSubmit={handleSubmit} className="p-8 sm:p-10 space-y-12">
-              <div>
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider pb-3 border-b border-slate-100 mb-5 flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[10px]">
-                    1
-                  </span>
-                  Kategori Peserta
-                </h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <label
-                    className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 cursor-pointer transition-all group ${formData.kategoriPeserta === "Alumni" ? "border-[#152B5B] bg-blue-50/50 shadow-sm text-[#152B5B]" : "border-slate-200 bg-white hover:border-blue-200 text-slate-500"}`}
-                  >
-                    <input
-                      type="radio"
-                      name="kategoriPeserta"
-                      value="Alumni"
-                      checked={formData.kategoriPeserta === "Alumni"}
-                      onChange={handleChange}
-                      className="absolute opacity-0"
-                    />
-                    <svg
-                      className="w-8 h-8 mb-2"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"
-                      />
-                    </svg>
-                    <span className="font-black text-sm uppercase tracking-wider">
-                      Alumni UII
+              {/* ========================================================= */}
+              {/* 🔥 BLOK 1: KATEGORI PESERTA (JIKA > 1 OPSI DARI ADMIN) 🔥 */}
+              {/* ========================================================= */}
+              {availableCategories.length > 1 && (
+                <div>
+                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider pb-3 border-b border-slate-100 mb-5 flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[10px]">
+                      {stepNumber++}
                     </span>
-                  </label>
-                  <label
-                    className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 cursor-pointer transition-all group ${formData.kategoriPeserta === "Umum" ? "border-[#152B5B] bg-blue-50/50 shadow-sm text-[#152B5B]" : "border-slate-200 bg-white hover:border-blue-200 text-slate-500"}`}
-                  >
-                    <input
-                      type="radio"
-                      name="kategoriPeserta"
-                      value="Umum"
-                      checked={formData.kategoriPeserta === "Umum"}
-                      onChange={handleChange}
-                      className="absolute opacity-0"
-                    />
-                    <svg
-                      className="w-8 h-8 mb-2"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"
-                      />
-                    </svg>
-                    <span className="font-black text-sm uppercase tracking-wider">
-                      Umum (Publik)
-                    </span>
-                  </label>
+                    Kategori Peserta
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                    {availableCategories.includes("Alumni") && (
+                      <label
+                        className={`relative flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all group ${formData.kategoriPeserta === "Alumni" ? "border-[#152B5B] bg-blue-50/50 shadow-sm text-[#152B5B]" : "border-slate-200 bg-white hover:border-blue-200 text-slate-500"}`}
+                      >
+                        <input
+                          type="radio"
+                          name="kategoriPeserta"
+                          value="Alumni"
+                          checked={formData.kategoriPeserta === "Alumni"}
+                          onChange={handleChange}
+                          className="absolute opacity-0"
+                        />
+                        <svg
+                          className="w-6 h-6 sm:w-8 sm:h-8 mb-2"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={1.5}
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"
+                          />
+                        </svg>
+                        <span className="font-black text-xs sm:text-sm uppercase tracking-wider text-center">
+                          Alumni UII
+                        </span>
+                      </label>
+                    )}
+
+                    {availableCategories.includes("SMA/Pelajar") && (
+                      <label
+                        className={`relative flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all group ${formData.kategoriPeserta === "SMA/Pelajar" ? "border-[#152B5B] bg-blue-50/50 shadow-sm text-[#152B5B]" : "border-slate-200 bg-white hover:border-blue-200 text-slate-500"}`}
+                      >
+                        <input
+                          type="radio"
+                          name="kategoriPeserta"
+                          value="SMA/Pelajar"
+                          checked={formData.kategoriPeserta === "SMA/Pelajar"}
+                          onChange={handleChange}
+                          className="absolute opacity-0"
+                        />
+                        <svg
+                          className="w-6 h-6 sm:w-8 sm:h-8 mb-2"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={1.5}
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z"
+                          />
+                        </svg>
+                        <span className="font-black text-xs sm:text-sm uppercase tracking-wider text-center">
+                          Pelajar
+                        </span>
+                      </label>
+                    )}
+
+                    {availableCategories.includes("Umum") && (
+                      <label
+                        className={`relative flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all group ${formData.kategoriPeserta === "Umum" ? "border-[#152B5B] bg-blue-50/50 shadow-sm text-[#152B5B]" : "border-slate-200 bg-white hover:border-blue-200 text-slate-500"}`}
+                      >
+                        <input
+                          type="radio"
+                          name="kategoriPeserta"
+                          value="Umum"
+                          checked={formData.kategoriPeserta === "Umum"}
+                          onChange={handleChange}
+                          className="absolute opacity-0"
+                        />
+                        <svg
+                          className="w-6 h-6 sm:w-8 sm:h-8 mb-2"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={1.5}
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"
+                          />
+                        </svg>
+                        <span className="font-black text-xs sm:text-sm uppercase tracking-wider text-center">
+                          Umum
+                        </span>
+                      </label>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* ========================================================= */}
               {/* 🔥 BLOK 2: KATEGORI JARAK (DIKUNCI / READ ONLY) 🔥        */}
@@ -480,7 +749,7 @@ function FormPendaftaranOffline() {
                 <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider pb-3 border-b border-slate-100 mb-5 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[10px]">
-                      2
+                      {stepNumber++}
                     </span>
                     Kategori Jarak
                   </div>
@@ -535,10 +804,13 @@ function FormPendaftaranOffline() {
                 </div>
               </div>
 
+              {/* ========================================================= */}
+              {/* 🔥 BLOK 3: INFORMASI PERSONAL 🔥                           */}
+              {/* ========================================================= */}
               <div>
                 <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider pb-3 border-b border-slate-100 mb-5 flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[10px]">
-                    3
+                    {stepNumber++}
                   </span>
                   Informasi Personal
                 </h4>
@@ -588,23 +860,57 @@ function FormPendaftaranOffline() {
                       >
                         <option value="KTP">KTP</option>
                         <option value="Paspor">Paspor / Passport</option>
+                        <option value="Kartu Pelajar">Kartu Pelajar</option>
                       </select>
                     </div>
+
+                    {/* 🔥 TOMBOL CEK RIWAYAT NIK 🔥 */}
                     <div className="sm:col-span-2">
                       <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
-                        Nomor Identitas (NIK/Paspor){" "}
+                        Nomor Identitas (NIK/Paspor/NIS){" "}
                         <span className="text-rose-500">*</span>
                       </label>
-                      <input
-                        type="text"
-                        name="nik"
-                        value={formData.nik}
-                        onChange={handleChange}
-                        required
-                        maxLength={16}
-                        placeholder="Masukkan 16 digit NIK"
-                        className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#152B5B] outline-none text-sm transition-all text-slate-800 font-bold"
-                      />
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                        <input
+                          type="text"
+                          name="nik"
+                          value={formData.nik}
+                          onChange={handleChange}
+                          required
+                          maxLength={16}
+                          placeholder="Masukkan No Identitas"
+                          className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#152B5B] outline-none text-sm transition-all text-slate-800 font-bold"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleCekNik}
+                          disabled={isCheckingNik || formData.nik.length < 10}
+                          className="flex items-center justify-center gap-2 bg-[#1A73E8] hover:bg-[#1557B0] text-white px-5 py-3.5 rounded-xl text-[11px] font-black tracking-widest uppercase disabled:opacity-50 transition-colors shadow-sm"
+                        >
+                          {isCheckingNik ? (
+                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                          ) : (
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                              />
+                            </svg>
+                          )}
+                          <span className="sm:hidden ml-1">Cari Riwayat</span>
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-2 font-medium">
+                        Pernah ikut event lari sebelumnya? Masukkan NIK dan klik
+                        icon 🔍 untuk isi otomatis.
+                      </p>
                     </div>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-5">
@@ -704,10 +1010,160 @@ function FormPendaftaranOffline() {
                 </div>
               </div>
 
+              {/* ========================================================= */}
+              {/* 🔥 BLOK 4a: DATA AKADEMIK (HANYA MUNCUL JIKA ALUMNI) 🔥     */}
+              {/* ========================================================= */}
+              {formData.kategoriPeserta === "Alumni" && (
+                <div className="bg-blue-50/50 border border-blue-200 rounded-3xl p-6 md:p-8 space-y-5 animate-in fade-in slide-in-from-top-2">
+                  <h4 className="text-xs font-bold text-[#152B5B] uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <svg
+                      className="w-5 h-5 text-[#152B5B]"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"
+                      />
+                    </svg>
+                    Data Akademik (UII)
+                  </h4>
+                  <div className="grid sm:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-[11px] font-bold text-blue-800 uppercase tracking-wider mb-1.5 ml-1">
+                        NIM <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="nim"
+                        value={formData.nim}
+                        onChange={handleChange}
+                        required
+                        pattern="[0-9]*"
+                        placeholder="13525022"
+                        className="w-full px-4 py-3.5 bg-white border border-blue-200 rounded-xl focus:border-[#152B5B] outline-none text-sm transition-all text-slate-800 font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-blue-800 uppercase tracking-wider mb-1.5 ml-1">
+                        Tahun Lulus <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        name="tahunLulus"
+                        value={formData.tahunLulus}
+                        onChange={handleChange}
+                        required
+                        pattern="[0-9]{4}"
+                        maxLength={4}
+                        placeholder="Cth: 2013"
+                        className="w-full px-4 py-3.5 bg-white border border-blue-200 rounded-xl focus:border-[#152B5B] outline-none text-sm transition-all text-slate-800 font-bold"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-[11px] font-bold text-blue-800 uppercase tracking-wider mb-1.5 ml-1">
+                        Fakultas <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        name="fakultas"
+                        value={formData.fakultas}
+                        onChange={handleChange}
+                        required
+                        className="w-full px-4 py-3.5 bg-white border border-blue-200 rounded-xl focus:border-[#152B5B] outline-none text-sm transition-all text-slate-800 font-bold cursor-pointer"
+                      >
+                        <option value="" disabled>
+                          -- Pilih Fakultas --
+                        </option>
+                        <option value="Hukum">Fakultas Hukum</option>
+                        <option value="Bisnis & Ekonomi">
+                          Fakultas Bisnis & Ekonomi
+                        </option>
+                        <option value="Ilmu Agama Islam">
+                          Fakultas Ilmu Agama Islam
+                        </option>
+                        <option value="Kedokteran">Fakultas Kedokteran</option>
+                        <option value="MIPA">Fakultas MIPA</option>
+                        <option value="Psikologi & Ilmu Sosial Budaya">
+                          Fakultas Psikologi & Ilmu Sosial Budaya
+                        </option>
+                        <option value="Teknik Sipil & Perencanaan">
+                          Fakultas Teknik Sipil & Perencanaan
+                        </option>
+                        <option value="Teknologi Industri">
+                          Fakultas Teknologi Industri
+                        </option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-blue-800 uppercase tracking-wider mb-1.5 ml-1">
+                        Program Studi <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="programStudi"
+                        value={formData.programStudi}
+                        onChange={handleChange}
+                        required
+                        placeholder="Cth: Ilmu Kimia"
+                        className="w-full px-4 py-3.5 bg-white border border-blue-200 rounded-xl focus:border-[#152B5B] outline-none text-sm transition-all text-slate-800 font-bold"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ========================================================= */}
+              {/* 🔥 BLOK 4b: DATA SEKOLAH (HANYA MUNCUL JIKA PELAJAR) 🔥    */}
+              {/* ========================================================= */}
+              {formData.kategoriPeserta === "SMA/Pelajar" && (
+                <div className="bg-sky-50/50 border border-sky-200 rounded-3xl p-6 md:p-8 space-y-5 animate-in fade-in slide-in-from-top-2">
+                  <h4 className="text-xs font-bold text-sky-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <svg
+                      className="w-5 h-5 text-sky-800"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"
+                      />
+                    </svg>
+                    Data Sekolah
+                  </h4>
+                  <div className="grid sm:grid-cols-2 gap-5">
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-bold text-sky-800 uppercase tracking-wider mb-1.5 ml-1">
+                        Asal Sekolah <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="asalSekolah"
+                        value={formData.asalSekolah}
+                        onChange={handleChange}
+                        required
+                        placeholder="Cth: SMAN 1 Yogyakarta"
+                        className="w-full px-4 py-3.5 bg-white border border-sky-200 rounded-xl focus:border-sky-600 outline-none text-sm transition-all text-slate-800 font-bold"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ========================================================= */}
+              {/* 🔥 BLOK 5: KONTAK & KOMUNITAS 🔥                            */}
+              {/* ========================================================= */}
               <div>
                 <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider pb-3 border-b border-slate-100 mb-5 flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[10px]">
-                    4
+                    {stepNumber++}
                   </span>
                   Kontak & Komunitas
                 </h4>
@@ -751,122 +1207,20 @@ function FormPendaftaranOffline() {
                       name="komunitas"
                       value={formData.komunitas}
                       onChange={handleChange}
-                      placeholder="Cth: UII Endurance"
+                      placeholder="Cth: Jogja Runner"
                       className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#152B5B] outline-none text-sm transition-all text-slate-800 font-bold"
                     />
                   </div>
                 </div>
               </div>
 
-              {formData.kategoriPeserta === "Alumni" && (
-                <div className="bg-blue-50/50 border border-blue-200 rounded-3xl p-6 md:p-8 space-y-5 animate-in fade-in slide-in-from-top-2">
-                  <h4 className="text-xs font-bold text-[#152B5B] uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <svg
-                      className="w-5 h-5 text-[#152B5B]"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"
-                      />
-                    </svg>
-                    Data Akademik Alumni
-                  </h4>
-                  <div className="grid sm:grid-cols-2 gap-5">
-                    <div>
-                      <label className="block text-[11px] font-bold text-blue-800 uppercase tracking-wider mb-1.5 ml-1">
-                        NIM <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="nim"
-                        value={formData.nim}
-                        onChange={handleChange}
-                        required
-                        pattern="[0-9]*"
-                        placeholder="13525022"
-                        className="w-full px-4 py-3.5 bg-white border border-blue-200 rounded-xl focus:border-[#152B5B] outline-none text-sm transition-all text-slate-800 font-bold"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-blue-800 uppercase tracking-wider mb-1.5 ml-1">
-                        Tahun Lulus / Angkatan{" "}
-                        <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="tel"
-                        name="tahunLulus"
-                        value={formData.tahunLulus}
-                        onChange={handleChange}
-                        required
-                        pattern="[0-9]{4}"
-                        maxLength={4}
-                        placeholder="2013"
-                        className="w-full px-4 py-3.5 bg-white border border-blue-200 rounded-xl focus:border-[#152B5B] outline-none text-sm transition-all text-slate-800 font-bold"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid sm:grid-cols-2 gap-5">
-                    <div>
-                      <label className="block text-[11px] font-bold text-blue-800 uppercase tracking-wider mb-1.5 ml-1">
-                        Fakultas <span className="text-rose-500">*</span>
-                      </label>
-                      <select
-                        name="fakultas"
-                        value={formData.fakultas}
-                        onChange={handleChange}
-                        required
-                        className="w-full px-4 py-3.5 bg-white border border-blue-200 rounded-xl focus:border-[#152B5B] outline-none text-sm transition-all text-slate-800 font-bold cursor-pointer"
-                      >
-                        <option value="" disabled>
-                          -- Pilih Fakultas --
-                        </option>
-                        <option value="Hukum">Fakultas Hukum</option>
-                        <option value="Ekonomi & Bisnis">
-                          Fakultas Ekonomi & Bisnis
-                        </option>
-                        <option value="Ilmu Agama Islam">
-                          Fakultas Ilmu Agama Islam
-                        </option>
-                        <option value="Kedokteran">Fakultas Kedokteran</option>
-                        <option value="MIPA">Fakultas MIPA</option>
-                        <option value="Psikologi & Ilmu Sosial Budaya">
-                          Fakultas Psikologi & Ilmu Sosial Budaya
-                        </option>
-                        <option value="Teknik Sipil & Perencanaan">
-                          Fakultas Teknik Sipil & Perencanaan
-                        </option>
-                        <option value="Teknologi Industri">
-                          Fakultas Teknologi Industri
-                        </option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-blue-800 uppercase tracking-wider mb-1.5 ml-1">
-                        Program Studi <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="programStudi"
-                        value={formData.programStudi}
-                        onChange={handleChange}
-                        required
-                        placeholder="Cth: Ilmu Kimia"
-                        className="w-full px-4 py-3.5 bg-white border border-blue-200 rounded-xl focus:border-[#152B5B] outline-none text-sm transition-all text-slate-800 font-bold"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
+              {/* ========================================================= */}
+              {/* 🔥 BLOK 6: MEDIS & DARURAT 🔥                               */}
+              {/* ========================================================= */}
               <div>
                 <h4 className="text-xs font-bold text-rose-600 uppercase tracking-wider pb-3 border-b border-rose-100 mb-5 flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-[10px]">
-                    5
+                    {stepNumber++}
                   </span>
                   Kondisi Medis & Darurat
                 </h4>
@@ -1006,12 +1360,148 @@ function FormPendaftaranOffline() {
               </div>
 
               {/* ========================================================== */}
-              {/* 🔥 6. PERSETUJUAN PENDAFTARAN (METODE INLINE EXPAND) 🔥 */}
+              {/* 🔥 BLOK 7: KODE PROMO & RINCIAN PEMBAYARAN 🔥              */}
+              {/* ========================================================== */}
+              <div>
+                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider pb-3 border-b border-slate-100 mb-5 flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[10px]">
+                    {stepNumber++}
+                  </span>
+                  Rincian Pembayaran
+                </h4>
+
+                <div className="bg-slate-50 border border-slate-200 rounded-3xl p-6 md:p-8">
+                  {/* Input Kode Promo */}
+                  <div className="mb-6">
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">
+                      Punya Kode Promo?
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={promoInput}
+                        onChange={(e) =>
+                          setPromoInput(e.target.value.toUpperCase())
+                        }
+                        disabled={appliedPromo !== null}
+                        placeholder="Masukkan kode..."
+                        className="w-full px-4 py-3.5 bg-white border border-slate-300 rounded-xl focus:border-[#152B5B] outline-none text-sm font-bold uppercase disabled:bg-slate-100 disabled:text-slate-400"
+                      />
+                      {appliedPromo ? (
+                        <button
+                          type="button"
+                          onClick={hapusPromo}
+                          className="px-5 py-3.5 bg-rose-100 text-rose-600 font-bold rounded-xl hover:bg-rose-200 transition-colors text-sm"
+                        >
+                          Hapus
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleApplyPromo}
+                          disabled={isCheckingPromo || !promoInput.trim()}
+                          className="px-6 py-3.5 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 transition-colors disabled:opacity-50 text-sm flex items-center min-w-[100px] justify-center"
+                        >
+                          {isCheckingPromo ? "Cek..." : "Terapkan"}
+                        </button>
+                      )}
+                    </div>
+                    {promoMessage.text && (
+                      <p
+                        className={`mt-2 text-xs font-bold ${promoMessage.type === "error" ? "text-rose-500" : "text-emerald-600"}`}
+                      >
+                        {promoMessage.text}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Kalkulasi Harga Real-time */}
+                  <div className="space-y-3 pt-5 border-t border-slate-200 border-dashed">
+                    <div className="flex justify-between items-center text-sm font-medium text-slate-500">
+                      <span>
+                        Harga Paket (
+                        {settings?.offlinePackages?.find(
+                          (p: any) => p.id === formData.paketId,
+                        )?.nama || "-"}
+                        )
+                      </span>
+                      <span>
+                        Rp{" "}
+                        {Number(
+                          settings?.offlinePackages?.find(
+                            (p: any) => p.id === formData.paketId,
+                          )?.harga || 0,
+                        ).toLocaleString("id-ID")}
+                      </span>
+                    </div>
+
+                    {appliedPromo && (
+                      <div className="flex justify-between items-center text-sm font-bold text-emerald-600">
+                        <span>Diskon Promo ({appliedPromo.kode})</span>
+                        <span>
+                          - Rp{" "}
+                          {appliedPromo.jenisDiskon === "persen"
+                            ? (
+                                Number(
+                                  settings?.offlinePackages?.find(
+                                    (p: any) => p.id === formData.paketId,
+                                  )?.harga || 0,
+                                ) *
+                                (appliedPromo.nilaiDiskon / 100)
+                              ).toLocaleString("id-ID")
+                            : appliedPromo.nilaiDiskon.toLocaleString("id-ID")}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* 🔥 FITUR BARU: BIAYA LAYANAN MIDTRANS 🔥 */}
+                    {settings?.metodePembayaran === "midtrans" && (
+                      <div className="flex justify-between items-center text-sm font-medium text-slate-500">
+                        <span>Biaya Layanan / Gateway</span>
+                        <span>Rp 5.000</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between items-center text-lg md:text-xl font-black text-[#152B5B] pt-3 border-t border-slate-200">
+                      <span>Total Tagihan</span>
+                      <span>
+                        Rp{" "}
+                        {(() => {
+                          const hargaAsli = Number(
+                            settings?.offlinePackages?.find(
+                              (p: any) => p.id === formData.paketId,
+                            )?.harga || 0,
+                          );
+                          let diskon = 0;
+                          if (appliedPromo) {
+                            diskon =
+                              appliedPromo.jenisDiskon === "persen"
+                                ? hargaAsli * (appliedPromo.nilaiDiskon / 100)
+                                : appliedPromo.nilaiDiskon;
+                          }
+
+                          let subTotal = Math.max(0, hargaAsli - diskon);
+
+                          // Tambahkan biaya layanan jika mode midtrans aktif
+                          if (settings?.metodePembayaran === "midtrans") {
+                            subTotal += 5000;
+                          }
+
+                          return subTotal.toLocaleString("id-ID");
+                        })()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ========================================================== */}
+              {/* 🔥 8. PERSETUJUAN PENDAFTARAN (METODE INLINE EXPAND) 🔥     */}
               {/* ========================================================== */}
               <div className="space-y-4 pt-10 border-t border-slate-200">
                 <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[10px]">
-                    6
+                    {stepNumber++}
                   </span>
                   Persetujuan Pendaftaran
                 </h4>
@@ -1044,7 +1534,7 @@ function FormPendaftaranOffline() {
                   </div>
                 </div>
 
-                {/* Box 2: TNC (Inline Expand) */}
+                {/* Box 2: TNC */}
                 <div
                   className={`rounded-2xl p-5 border shadow-sm transition-colors duration-300 ${isTncRead ? "bg-emerald-50/50 border-emerald-200" : "bg-blue-50/50 border-blue-200"}`}
                 >
@@ -1071,8 +1561,6 @@ function FormPendaftaranOffline() {
                       Offline Run beserta sanksinya.
                     </label>
                   </div>
-
-                  {/* TNC Expanded Content */}
                   <div
                     className={`grid transition-all duration-300 ease-in-out ${expandedLegal === "tnc" ? "grid-rows-[1fr] opacity-100 mt-4" : "grid-rows-[0fr] opacity-0 mt-0"}`}
                   >
@@ -1098,7 +1586,7 @@ function FormPendaftaranOffline() {
                   </div>
                 </div>
 
-                {/* Box 3: Asuransi (Inline Expand) */}
+                {/* Box 3: Asuransi */}
                 <div
                   className={`rounded-2xl p-5 border shadow-sm transition-colors duration-300 ${isInsRead ? "bg-emerald-50/50 border-emerald-200" : "bg-blue-50/50 border-blue-200"}`}
                 >
@@ -1125,8 +1613,6 @@ function FormPendaftaranOffline() {
                       yang berlaku.
                     </label>
                   </div>
-
-                  {/* INS Expanded Content */}
                   <div
                     className={`grid transition-all duration-300 ease-in-out ${expandedLegal === "ins" ? "grid-rows-[1fr] opacity-100 mt-4" : "grid-rows-[0fr] opacity-0 mt-0"}`}
                   >
@@ -1171,18 +1657,25 @@ function FormPendaftaranOffline() {
                     Google.
                   </div>
 
+                  {/* 🔥 TOMBOL DINAMIS: BERUBAH SESUAI MODE PEMBAYARAN 🔥 */}
                   <button
                     type="submit"
                     disabled={
                       isSubmitting || !isWaJoined || !isTncRead || !isInsRead
                     }
-                    className="w-full bg-[#152B5B] hover:bg-[#0D1B3E] text-white font-black py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-lg mt-2"
+                    className={`w-full font-black py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-lg mt-2 ${
+                      settings?.metodePembayaran === "midtrans"
+                        ? "bg-[#1A73E8] hover:bg-blue-700 text-white"
+                        : "bg-[#152B5B] hover:bg-[#0D1B3E] text-white"
+                    }`}
                   >
                     {isSubmitting ? (
                       <>
                         <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>{" "}
                         Memproses...
                       </>
+                    ) : settings?.metodePembayaran === "midtrans" ? (
+                      "Lanjutkan ke Pembayaran ➔"
                     ) : (
                       "Daftar Sekarang ➔"
                     )}
@@ -1214,15 +1707,15 @@ function FormPendaftaranOffline() {
 
       <FooterPublic />
 
-      {/* ALERT ERROR MURNI */}
+      {/* ALERT ERROR MURNI (CUSTOM MODAL) */}
       {modal.isOpen && (
         <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
             <div
-              className={`p-8 text-center ${modal.type === "error" ? "bg-rose-50" : "bg-amber-50"}`}
+              className={`p-8 text-center ${modal.type === "error" ? "bg-rose-50" : modal.type === "success" ? "bg-emerald-50" : "bg-amber-50"}`}
             >
               <div
-                className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 text-3xl shadow-sm ${modal.type === "error" ? "bg-rose-100 text-rose-600" : "bg-amber-100 text-amber-600"}`}
+                className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 text-3xl shadow-sm ${modal.type === "error" ? "bg-rose-100 text-rose-600" : modal.type === "success" ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"}`}
               >
                 {modal.type === "error" ? (
                   <svg
@@ -1236,6 +1729,20 @@ function FormPendaftaranOffline() {
                       strokeLinejoin="round"
                       strokeWidth={2.5}
                       d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                ) : modal.type === "success" ? (
+                  <svg
+                    className="w-8 h-8"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M5 13l4 4L19 7"
                     />
                   </svg>
                 ) : (
@@ -1276,7 +1783,6 @@ function FormPendaftaranOffline() {
   );
 }
 
-// BUNGKUSAN PAGE UTAMA
 export default function OfflineRunRegisterPage() {
   return (
     <Suspense

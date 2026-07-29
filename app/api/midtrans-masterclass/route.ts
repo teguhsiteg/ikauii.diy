@@ -1,0 +1,86 @@
+import { NextResponse } from "next/server";
+import { db } from "@/lib/firebase";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { enrollmentId, grossAmount, customerName, customerEmail } = body;
+
+    // 1. Ambil Settingan Midtrans dari laci Kasir Masterclass
+    const settingsRef = doc(db, "settings", "masterclass");
+    const settingsSnap = await getDoc(settingsRef);
+
+    if (!settingsSnap.exists()) {
+      return NextResponse.json(
+        { error: "Pengaturan Midtrans Masterclass tidak ditemukan" },
+        { status: 500 },
+      );
+    }
+
+    const settings = settingsSnap.data();
+    const serverKey = settings.midtransServerKey?.trim();
+    const isProduction = settings.isProduction || false;
+
+    if (!serverKey) {
+      return NextResponse.json(
+        { error: "Server Key Midtrans belum di-setting di Admin" },
+        { status: 500 },
+      );
+    }
+
+    // 2. Tentukan URL API Midtrans (Live atau Sandbox)
+    const apiUrl = isProduction
+      ? "https://app.midtrans.com/snap/v1/transactions"
+      : "https://app.sandbox.midtrans.com/snap/v1/transactions";
+
+    // 3. Susun Payload (Tambahkan timestamp di order_id agar selalu unik di mata Midtrans)
+    const orderId = `${enrollmentId}-${Date.now()}`;
+
+    const payload = {
+      transaction_details: {
+        order_id: orderId,
+        gross_amount: Math.round(grossAmount),
+      },
+      customer_details: {
+        first_name: customerName,
+        email: customerEmail,
+      },
+    };
+
+    // 4. Ubah Server Key jadi Base64
+    const authString = Buffer.from(`${serverKey}:`).toString("base64");
+
+    // 5. Tembak ke API Midtrans
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Basic ${authString}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+
+    // 6. KEMBALIKAN TOKEN KE FRONT-END
+    if (response.ok) {
+      // (Opsional) Simpan token ke Firebase agar terekam
+      await updateDoc(doc(db, "masterclass_enrollments", enrollmentId), {
+        snapToken: data.token,
+      });
+
+      return NextResponse.json({ token: data.token });
+    } else {
+      console.error("Midtrans Error Detail:", data);
+      return NextResponse.json(
+        { error: "Gagal mendapatkan token Midtrans", details: data },
+        { status: response.status },
+      );
+    }
+  } catch (error: any) {
+    console.error("API Route Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

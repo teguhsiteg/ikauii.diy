@@ -1,17 +1,173 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { toast } from "@/lib/toast";
 import { db } from "@/lib/firebase";
 import {
   collection,
   doc,
   onSnapshot,
-  updateDoc,
   deleteDoc,
   query,
   orderBy,
+  setDoc,
 } from "firebase/firestore";
+import { writeBatch } from "firebase/firestore";
 import * as XLSX from "xlsx";
+
+// --- KUMPULAN IKON MATERIAL ---
+const IconSettings = () => (
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+    />
+  </svg>
+);
+const IconPending = () => (
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
+  </svg>
+);
+const IconCheckBadge = () => (
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
+  </svg>
+);
+const IconMail = () => (
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+    />
+  </svg>
+);
+const IconCertificate = () => (
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+    />
+  </svg>
+);
+const IconCheckCircle = () => (
+  <svg
+    className="w-5 h-5 text-emerald-500"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
+  </svg>
+);
+const IconErrorCircle = () => (
+  <svg
+    className="w-5 h-5 text-red-500"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
+  </svg>
+);
+const IconDetail = () => (
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+    />
+  </svg>
+);
+const IconArrowUp = () => (
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2.5}
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+  </svg>
+);
+const IconArrowDown = () => (
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2.5}
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+  </svg>
+);
 
 // --- TYPE DEFINITIONS ---
 interface RolePosition {
@@ -19,6 +175,7 @@ interface RolePosition {
   nama: string;
   kuota: number;
   linkWa: string;
+  deskripsi?: string;
 }
 
 interface DivisionGroup {
@@ -30,9 +187,11 @@ interface DivisionGroup {
 interface EventRecruitment {
   id: string;
   title: string;
-  requirements: string; // Deskripsi / Persyaratan Umum
+  requirements: string;
   isActive: boolean;
   linkGrupBesar: string;
+  linkSertifikat?: string;
+  order?: number;
   groups: DivisionGroup[];
 }
 
@@ -42,8 +201,15 @@ interface CrewMember {
   roleId: string;
   divisiId?: string;
   nama: string;
+  jenisKelamin?: string;
+  tempatLahir?: string;
+  tanggalLahir?: string;
   email: string;
   whatsapp: string;
+  instagram?: string;
+  riwayatPenyakit?: string;
+  ukuranJersey?: string;
+  fotoIdCard?: string;
   tipe: string;
   status: "pending" | "accepted" | "rejected";
   waktuDaftar: string;
@@ -54,14 +220,19 @@ interface CrewMember {
   domisili?: string;
   motivasi?: string;
   pengalaman?: string;
-  // State untuk status email
+  alasanDivisi?: string;
+  bersediaPindahDivisi?: string;
+  kendaraan?: string;
+  bersediaPelatihan?: string;
   emailStatus?: "sent" | "failed" | null;
+  certEmailStatus?: "sent" | "failed" | null;
   emailError?: string;
+  sourceDb: "crew_volunteers" | "oprec_pelamar";
 }
 
 export default function CrewManagementPage() {
   const [activeTab, setActiveTab] = useState<
-    "pengaturan" | "pendaftar" | "timInti"
+    "pengaturan" | "pendaftar" | "timInti" | "ditolak"
   >("pengaturan");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -72,25 +243,37 @@ export default function CrewManagementPage() {
 
   // Data State
   const [events, setEvents] = useState<EventRecruitment[]>([]);
-  const [pendaftar, setPendaftar] = useState<CrewMember[]>([]);
+  const [pendaftarNew, setPendaftarNew] = useState<CrewMember[]>([]);
+  const [pendaftarOld, setPendaftarOld] = useState<CrewMember[]>([]);
+  const initialLoadDone = useRef(false);
 
-  // UI State: Modal Detail & Re-Assign
+  // Menggabungkan data lama dan baru
+  const pendaftar = [...pendaftarNew, ...pendaftarOld].sort(
+    (a, b) =>
+      new Date(b.waktuDaftar).getTime() - new Date(a.waktuDaftar).getTime(),
+  );
+
+  // UI State
   const [selectedCrew, setSelectedCrew] = useState<CrewMember | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [newAssignedRoleId, setNewAssignedRoleId] = useState("");
-
-  // UI State: Accordion & Filter
   const [expandedEvents, setExpandedEvents] = useState<Record<string, boolean>>(
     {},
   );
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
     {},
   );
+
   const [filterEvent, setFilterEvent] = useState<string>("all");
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [selectedPending, setSelectedPending] = useState<string[]>([]);
   const [selectedAccepted, setSelectedAccepted] = useState<string[]>([]);
+  const [selectedRejected, setSelectedRejected] = useState<string[]>([]);
+
+  // STATE UNTUK MODE EDIT DATA
+  const [isEditingData, setIsEditingData] = useState(false);
+  const [editFormData, setEditFormData] = useState<any>({});
 
   // Email State
   const [isSendingMail, setIsSendingMail] = useState(false);
@@ -99,65 +282,155 @@ export default function CrewManagementPage() {
     sent: number;
     failed: number;
     isSending: boolean;
+    type: "welcome" | "cert";
   } | null>(null);
 
   useEffect(() => {
-    const unsubSettings = onSnapshot(
-      doc(db, "settings", "virtual_run"),
-      (docSnap) => {
-        if (docSnap.exists()) {
-          const loadedEvents = docSnap.data().crewRecruitments || [];
-          setEvents(loadedEvents);
+    // 1. AMBIL SETTING OPREC
+    const unsubSettings = onSnapshot(collection(db, "oprec_master"), (snap) => {
+      const loadedEvents = snap.docs
+        .map(
+          (doc) =>
+            ({ id: doc.id, order: 0, ...doc.data() }) as EventRecruitment,
+        )
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
 
-          if (
-            loadedEvents.length > 0 &&
-            Object.keys(expandedEvents).length === 0
-          ) {
-            const initialEvents: Record<string, boolean> = {};
-            const initialGroups: Record<string, boolean> = {};
-            loadedEvents.forEach((e: EventRecruitment) => {
-              initialEvents[e.id] = true;
-              (e.groups || []).forEach((g) => {
-                initialGroups[g.id] = true;
-              });
-            });
-            setExpandedEvents(initialEvents);
-            setExpandedGroups(initialGroups);
-          }
-        }
-      },
+      setEvents(loadedEvents);
+
+      if (!initialLoadDone.current) {
+        initialLoadDone.current = true;
+      }
+    });
+
+    // 2. AMBIL DATA PELAMAR BARU (oprec_pelamar)
+    const qNew = query(
+      collection(db, "oprec_pelamar"),
+      orderBy("waktuDaftar", "desc"),
     );
+    const unsubNew = onSnapshot(qNew, (snap) => {
+      const data = snap.docs.map(
+        (d) =>
+          ({ id: d.id, sourceDb: "oprec_pelamar", ...d.data() }) as CrewMember,
+      );
+      setPendaftarNew(data);
+    });
 
-    const qCrew = query(
+    // 3. AMBIL DATA PELAMAR LAMA (crew_volunteers)
+    const qOld = query(
       collection(db, "crew_volunteers"),
       orderBy("waktuDaftar", "desc"),
     );
-    const unsubCrew = onSnapshot(qCrew, (snap) => {
+    const unsubOld = onSnapshot(qOld, (snap) => {
       const data = snap.docs.map(
-        (d) => ({ id: d.id, ...d.data() }) as CrewMember,
+        (d) =>
+          ({
+            id: d.id,
+            sourceDb: "crew_volunteers",
+            ...d.data(),
+          }) as CrewMember,
       );
-      setPendaftar(data);
+      setPendaftarOld(data);
       setIsLoading(false);
     });
 
     return () => {
       unsubSettings();
-      unsubCrew();
+      unsubNew();
+      unsubOld();
     };
   }, []);
 
+  // Sync selectedCrew ketika data berubah agar modal update realtime
+  useEffect(() => {
+    if (selectedCrew && !isEditingData) {
+      const updatedSelected = pendaftar.find((c) => c.id === selectedCrew.id);
+      if (updatedSelected) setSelectedCrew(updatedSelected);
+    }
+  }, [pendaftar, selectedCrew, isEditingData]);
+
   const showNotif = (type: "success" | "error", text: string) => {
     setPopup({ type, text });
-    setTimeout(() => setPopup(null), 3000);
+    setTimeout(() => setPopup(null), 4000);
+  };
+
+  const getRoleFilledCount = (roleId: string) => {
+    return pendaftar.filter(
+      (c) =>
+        c.status === "accepted" &&
+        (c.roleId === roleId || c.divisiId === roleId),
+    ).length;
   };
 
   // ========================================================
-  // LOGIKA PENGATURAN EVENT & DIVISI (Aman dari Map Error)
+  // LOGIKA PENGATURAN EVENT & REORDER
   // ========================================================
   const toggleEventCard = (id: string) =>
     setExpandedEvents((prev) => ({ ...prev, [id]: !prev[id] }));
   const toggleGroupCard = (id: string) =>
     setExpandedGroups((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const moveEvent = (index: number, direction: "up" | "down") => {
+    if (direction === "up" && index === 0) return;
+    if (direction === "down" && index === events.length - 1) return;
+    const newEvents = [...events];
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    [newEvents[index], newEvents[targetIndex]] = [
+      newEvents[targetIndex],
+      newEvents[index],
+    ];
+    setEvents(newEvents);
+  };
+
+  const moveGroup = (
+    eventId: string,
+    groupIndex: number,
+    direction: "up" | "down",
+  ) => {
+    setEvents(
+      events.map((ev) => {
+        if (ev.id !== eventId) return ev;
+        const newGroups = [...(ev.groups || [])];
+        if (direction === "up" && groupIndex === 0) return ev;
+        if (direction === "down" && groupIndex === newGroups.length - 1)
+          return ev;
+        const targetIndex =
+          direction === "up" ? groupIndex - 1 : groupIndex + 1;
+        [newGroups[groupIndex], newGroups[targetIndex]] = [
+          newGroups[targetIndex],
+          newGroups[groupIndex],
+        ];
+        return { ...ev, groups: newGroups };
+      }),
+    );
+  };
+
+  const moveRole = (
+    eventId: string,
+    groupId: string,
+    roleIndex: number,
+    direction: "up" | "down",
+  ) => {
+    setEvents(
+      events.map((ev) => {
+        if (ev.id !== eventId) return ev;
+        const newGroups = (ev.groups || []).map((g) => {
+          if (g.id !== groupId) return g;
+          const newRoles = [...(g.roles || [])];
+          if (direction === "up" && roleIndex === 0) return g;
+          if (direction === "down" && roleIndex === newRoles.length - 1)
+            return g;
+          const targetIndex =
+            direction === "up" ? roleIndex - 1 : roleIndex + 1;
+          [newRoles[roleIndex], newRoles[targetIndex]] = [
+            newRoles[targetIndex],
+            newRoles[roleIndex],
+          ];
+          return { ...g, roles: newRoles };
+        });
+        return { ...ev, groups: newGroups };
+      }),
+    );
+  };
 
   const handleAddEvent = () => {
     const newId = Date.now().toString();
@@ -169,19 +442,23 @@ export default function CrewManagementPage() {
         requirements: "",
         isActive: true,
         linkGrupBesar: "",
+        linkSertifikat: "",
         groups: [],
+        order: events.length,
       },
     ]);
     setExpandedEvents((prev) => ({ ...prev, [newId]: true }));
   };
 
   const handleRemoveEvent = async (id: string) => {
-    if (!confirm("Hapus event kepanitiaan ini?")) return;
-    const newEvents = events.filter((e) => e.id !== id);
-    setEvents(newEvents);
-    await updateDoc(doc(db, "settings", "virtual_run"), {
-      crewRecruitments: newEvents,
-    });
+    if (!confirm("Hapus event kepanitiaan ini secara permanen?")) return;
+    try {
+      await deleteDoc(doc(db, "oprec_master", id));
+      setEvents(events.filter((e) => e.id !== id));
+      showNotif("success", "Event berhasil dihapus.");
+    } catch (e) {
+      showNotif("error", "Gagal menghapus event.");
+    }
   };
 
   const handleChangeEvent = (id: string, field: string, value: any) => {
@@ -212,59 +489,56 @@ export default function CrewManagementPage() {
     newTitle: string,
   ) => {
     setEvents(
-      events.map((e) => {
-        if (e.id === eventId) {
-          return {
-            ...e,
-            groups: (e.groups || []).map((g) =>
-              g.id === groupId ? { ...g, title: newTitle } : g,
-            ),
-          };
-        }
-        return e;
-      }),
+      events.map((e) =>
+        e.id === eventId
+          ? {
+              ...e,
+              groups: (e.groups || []).map((g) =>
+                g.id === groupId ? { ...g, title: newTitle } : g,
+              ),
+            }
+          : e,
+      ),
     );
   };
 
   const handleRemoveGroup = async (eventId: string, groupId: string) => {
     if (!confirm("Hapus kelompok divisi ini?")) return;
-    const newEvents = events.map((e) =>
-      e.id === eventId
-        ? { ...e, groups: (e.groups || []).filter((g) => g.id !== groupId) }
-        : e,
+    setEvents(
+      events.map((e) =>
+        e.id === eventId
+          ? { ...e, groups: (e.groups || []).filter((g) => g.id !== groupId) }
+          : e,
+      ),
     );
-    setEvents(newEvents);
-    await updateDoc(doc(db, "settings", "virtual_run"), {
-      crewRecruitments: newEvents,
-    });
   };
 
   const handleAddRole = (eventId: string, groupId: string) => {
     setEvents(
-      events.map((e) => {
-        if (e.id === eventId) {
-          return {
-            ...e,
-            groups: (e.groups || []).map((g) =>
-              g.id === groupId
-                ? {
-                    ...g,
-                    roles: [
-                      ...(g.roles || []),
-                      {
-                        id: Date.now().toString(),
-                        nama: "",
-                        kuota: 5,
-                        linkWa: "",
-                      },
-                    ],
-                  }
-                : g,
-            ),
-          };
-        }
-        return e;
-      }),
+      events.map((e) =>
+        e.id === eventId
+          ? {
+              ...e,
+              groups: (e.groups || []).map((g) =>
+                g.id === groupId
+                  ? {
+                      ...g,
+                      roles: [
+                        ...(g.roles || []),
+                        {
+                          id: Date.now().toString(),
+                          nama: "",
+                          kuota: 5,
+                          linkWa: "",
+                          deskripsi: "",
+                        },
+                      ],
+                    }
+                  : g,
+              ),
+            }
+          : e,
+      ),
     );
   };
 
@@ -276,25 +550,23 @@ export default function CrewManagementPage() {
     value: any,
   ) => {
     setEvents(
-      events.map((e) => {
-        if (e.id === eventId) {
-          return {
-            ...e,
-            groups: (e.groups || []).map((g) => {
-              if (g.id === groupId) {
-                return {
-                  ...g,
-                  roles: (g.roles || []).map((r) =>
-                    r.id === roleId ? { ...r, [field]: value } : r,
-                  ),
-                };
-              }
-              return g;
-            }),
-          };
-        }
-        return e;
-      }),
+      events.map((e) =>
+        e.id === eventId
+          ? {
+              ...e,
+              groups: (e.groups || []).map((g) =>
+                g.id === groupId
+                  ? {
+                      ...g,
+                      roles: (g.roles || []).map((r) =>
+                        r.id === roleId ? { ...r, [field]: value } : r,
+                      ),
+                    }
+                  : g,
+              ),
+            }
+          : e,
+      ),
     );
   };
 
@@ -303,45 +575,44 @@ export default function CrewManagementPage() {
     groupId: string,
     roleId: string,
   ) => {
-    const newEvents = events.map((e) => {
-      if (e.id === eventId) {
-        return {
-          ...e,
-          groups: (e.groups || []).map((g) => {
-            if (g.id === groupId) {
-              return {
-                ...g,
-                roles: (g.roles || []).filter((r) => r.id !== roleId),
-              };
+    setEvents(
+      events.map((e) =>
+        e.id === eventId
+          ? {
+              ...e,
+              groups: (e.groups || []).map((g) =>
+                g.id === groupId
+                  ? {
+                      ...g,
+                      roles: (g.roles || []).filter((r) => r.id !== roleId),
+                    }
+                  : g,
+              ),
             }
-            return g;
-          }),
-        };
-      }
-      return e;
-    });
-    setEvents(newEvents);
-    await updateDoc(doc(db, "settings", "virtual_run"), {
-      crewRecruitments: newEvents,
-    });
+          : e,
+      ),
+    );
   };
 
   const saveSettings = async () => {
     setIsSaving(true);
     try {
-      await updateDoc(doc(db, "settings", "virtual_run"), {
-        crewRecruitments: events,
+      const batch = writeBatch(db);
+      events.forEach((ev, index) => {
+        const docRef = doc(db, "oprec_master", ev.id);
+        batch.set(docRef, { ...ev, order: index });
       });
-      showNotif("success", "Pengaturan kepanitiaan disimpan.");
+      await batch.commit();
+      showNotif("success", "Pengaturan kepanitiaan berhasil disimpan.");
     } catch (error) {
-      showNotif("error", "Gagal menyimpan.");
+      showNotif("error", "Gagal menyimpan pengaturan.");
     } finally {
       setIsSaving(false);
     }
   };
 
   // ========================================================
-  // LOGIKA REVIEW & EMAIL
+  // LOGIKA REVIEW & EDIT DATA PELAMAR
   // ========================================================
   const getRoleInfo = (eventId: string, targetRoleId: string) => {
     const parentEvent = events.find((e) => e.id === eventId);
@@ -360,96 +631,174 @@ export default function CrewManagementPage() {
   const openDetail = (crew: CrewMember) => {
     setSelectedCrew(crew);
     setNewAssignedRoleId(crew.roleId || crew.divisiId || "");
+    setIsEditingData(false);
+    setEditFormData(crew);
     setIsDetailOpen(true);
   };
 
-  const handleDecision = async (status: "accepted" | "rejected") => {
+  const findEventIdByRoleId = (roleId: string, fallbackEventId: string) => {
+    if (!roleId) return fallbackEventId;
+    for (const e of events) {
+      for (const g of e.groups || []) {
+        if ((g.roles || []).some((r) => r.id === roleId)) return e.id;
+      }
+    }
+    return fallbackEventId;
+  };
+
+  const handleDecision = async (
+    status: "accepted" | "rejected" | "pending",
+  ) => {
     if (!selectedCrew) return;
-    if (
-      !confirm(
-        `Konfirmasi: ${status === "accepted" ? "TERIMA" : "TOLAK"} pelamar ini?`,
-      )
-    )
-      return;
+    const actionText =
+      status === "accepted"
+        ? "TERIMA"
+        : status === "rejected"
+          ? "TOLAK"
+          : "PULIHKAN";
+    if (!confirm(`Konfirmasi: ${actionText} pelamar ini?`)) return;
+
+    const updatedEventId = findEventIdByRoleId(
+      newAssignedRoleId,
+      selectedCrew.eventId,
+    );
 
     try {
-      await updateDoc(doc(db, "crew_volunteers", selectedCrew.id), {
-        status,
-        roleId: newAssignedRoleId,
-      });
-      showNotif("success", "Status berhasil diperbarui.");
+      await setDoc(
+        doc(db, selectedCrew.sourceDb, selectedCrew.id),
+        { status, roleId: newAssignedRoleId, eventId: updatedEventId },
+        { merge: true },
+      );
+      showNotif("success", "Status dan Posisi berhasil diperbarui.");
       setIsDetailOpen(false);
+
       setSelectedPending(
         selectedPending.filter((id) => id !== selectedCrew.id),
+      );
+      setSelectedRejected(
+        selectedRejected.filter((id) => id !== selectedCrew.id),
       );
     } catch (e) {
       showNotif("error", "Gagal memperbarui status.");
     }
   };
 
-  const handleDeletePelamar = async (id: string) => {
-    if (!confirm("Hapus permanen data pelamar ini dari database?")) return;
+  const handleUpdateRoleOnly = async () => {
+    if (!selectedCrew) return;
+    const updatedEventId = findEventIdByRoleId(
+      newAssignedRoleId,
+      selectedCrew.eventId,
+    );
     try {
-      await deleteDoc(doc(db, "crew_volunteers", id));
-      showNotif("success", "Data dihapus.");
-    } catch (err) {
-      showNotif("error", "Gagal menghapus data.");
+      await setDoc(
+        doc(db, selectedCrew.sourceDb, selectedCrew.id),
+        { roleId: newAssignedRoleId, eventId: updatedEventId },
+        { merge: true },
+      );
+      showNotif("success", "Posisi divisi berhasil diperbarui.");
+      setIsDetailOpen(false);
+    } catch (e) {
+      showNotif("error", "Gagal memperbarui posisi.");
     }
   };
 
+  const saveEditedData = async () => {
+    if (!selectedCrew) return;
+    try {
+      await setDoc(
+        doc(db, selectedCrew.sourceDb, selectedCrew.id),
+        editFormData,
+        { merge: true },
+      );
+      showNotif("success", "Data pelamar berhasil diperbarui!");
+      setSelectedCrew({ ...selectedCrew, ...editFormData });
+      setIsEditingData(false);
+    } catch (e) {
+      showNotif("error", "Gagal menyimpan perubahan data.");
+    }
+  };
+
+  const handleEditChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
+    setEditFormData({ ...editFormData, [e.target.name]: e.target.value });
+  };
+
+  // ========================================================
+  // MASS ACTIONS & EXPORT
+  // ========================================================
   const handleMassUpdateStatus = async (
     ids: string[],
-    newStatus: "accepted" | "rejected",
+    newStatus: "accepted" | "rejected" | "pending",
   ) => {
-    if (
-      !confirm(
-        `Ubah status ${ids.length} pelamar menjadi ${newStatus === "accepted" ? "Diterima" : "Ditolak"}?`,
-      )
-    )
+    const actionText =
+      newStatus === "accepted"
+        ? "Diterima"
+        : newStatus === "rejected"
+          ? "Ditolak"
+          : "Dipulihkan (Pending)";
+    if (!confirm(`Ubah status ${ids.length} pelamar menjadi ${actionText}?`))
       return;
+
     try {
-      await Promise.all(
-        ids.map((id) =>
-          updateDoc(doc(db, "crew_volunteers", id), { status: newStatus }),
-        ),
-      );
+      const batch = writeBatch(db);
+      ids.forEach((id) => {
+        const crew = pendaftar.find((c) => c.id === id);
+        if (crew) {
+          batch.update(doc(db, crew.sourceDb, id), { status: newStatus });
+        }
+      });
+      await batch.commit();
       setSelectedPending([]);
+      setSelectedRejected([]);
       showNotif("success", "Status massal diperbarui.");
     } catch (err) {
       showNotif("error", "Gagal memproses pembaruan massal.");
     }
   };
 
-  const handleMassDelete = async (ids: string[], isPendingTab: boolean) => {
-    if (!confirm(`Hapus permanen ${ids.length} data terpilih?`)) return;
+  const handleMassDelete = async (
+    ids: string[],
+    tabSource: "pending" | "accepted" | "rejected",
+  ) => {
+    if (!confirm(`Hapus permanen ${ids.length} data terpilih dari sistem?`))
+      return;
     try {
-      await Promise.all(
-        ids.map((id) => deleteDoc(doc(db, "crew_volunteers", id))),
-      );
-      if (isPendingTab) setSelectedPending([]);
-      else setSelectedAccepted([]);
-      showNotif("success", "Data dihapus.");
+      const batch = writeBatch(db);
+      ids.forEach((id) => {
+        const crew = pendaftar.find((c) => c.id === id);
+        if (crew) {
+          batch.delete(doc(db, crew.sourceDb, id));
+        }
+      });
+      await batch.commit();
+
+      if (tabSource === "pending") setSelectedPending([]);
+      else if (tabSource === "accepted") setSelectedAccepted([]);
+      else setSelectedRejected([]);
+
+      showNotif("success", "Data dihapus secara permanen.");
     } catch (err) {
       showNotif("error", "Gagal menghapus data.");
     }
   };
 
-  // 🔥 FUNGSI KIRIM EMAIL DENGAN STATUS TERUPDATE 🔥
-  const handleSendEmailIndividual = async (crew: CrewMember) => {
+  // --- EMAIL FUNCTIONS ---
+  const handleSendWelcomeEmail = async (crew: CrewMember) => {
     const { parentEvent, roleName, roleLink } = getRoleInfo(
       crew.eventId,
       crew.roleId || crew.divisiId || "",
     );
     const targetLinkBesar = parentEvent?.linkGrupBesar || "";
-
-    if (!targetLinkBesar && !roleLink) {
+    if (!targetLinkBesar && !roleLink)
       if (
         !confirm(
           "Belum ada Link WA yang diatur di event ini. Tetap kirim email?",
         )
       )
         return;
-    }
 
     setIsSendingMail(true);
     try {
@@ -468,38 +817,72 @@ export default function CrewManagementPage() {
           },
         }),
       });
-
       if (response.ok) {
-        // Update database bahwa email sukses terkirim
-        await updateDoc(doc(db, "crew_volunteers", crew.id), {
-          emailStatus: "sent",
-          emailError: "",
-        });
-        showNotif("success", `Email berhasil dikirim ke ${crew.nama}`);
+        await setDoc(
+          doc(db, crew.sourceDb, crew.id),
+          { emailStatus: "sent", emailError: "" },
+          { merge: true },
+        );
+        showNotif("success", `Undangan terkirim ke ${crew.nama}`);
       } else {
-        const errorData = await response.json();
-        await updateDoc(doc(db, "crew_volunteers", crew.id), {
-          emailStatus: "failed",
-          emailError: errorData.message || "Gagal dari server email.",
-        });
-        showNotif("error", "Gagal mengirim email.");
+        showNotif("error", "Gagal mengirim undangan.");
       }
-    } catch (error: any) {
-      await updateDoc(doc(db, "crew_volunteers", crew.id), {
-        emailStatus: "failed",
-        emailError: error.message,
-      });
-      showNotif("error", "Terjadi kesalahan sistem saat kirim email.");
+    } catch (e: any) {
+      showNotif("error", "Error sistem.");
     } finally {
       setIsSendingMail(false);
     }
   };
 
-  const handleMassEmail = async () => {
+  const handleSendCertEmail = async (crew: CrewMember) => {
+    const { parentEvent } = getRoleInfo(
+      crew.eventId,
+      crew.roleId || crew.divisiId || "",
+    );
+    const certLink = parentEvent?.linkSertifikat || "";
+    if (!certLink) {
+      toast.warning("Link E-Sertifikat belum diatur!");
+      return;
+    }
+
+    setIsSendingMail(true);
+    try {
+      const response = await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "certificate_crew",
+          email: crew.email,
+          nama: crew.nama,
+          detail: {
+            event: parentEvent?.title || "Kepanitiaan",
+            linkSertifikat: certLink,
+          },
+        }),
+      });
+      if (response.ok) {
+        await setDoc(
+          doc(db, crew.sourceDb, crew.id),
+          { certEmailStatus: "sent", emailError: "" },
+          { merge: true },
+        );
+        showNotif("success", `Sertifikat terkirim ke ${crew.nama}`);
+      } else {
+        showNotif("error", "Gagal mengirim sertifikat.");
+      }
+    } catch (e: any) {
+      showNotif("error", "Error sistem.");
+    } finally {
+      setIsSendingMail(false);
+    }
+  };
+
+  const handleMassEmail = async (type: "welcome" | "cert") => {
     if (selectedAccepted.length === 0) return;
+    const isCert = type === "cert";
     if (
       !confirm(
-        `Kirim email ke ${selectedAccepted.length} kandidat? Proses ini berjalan satu per satu.`,
+        `Kirim ${isCert ? "Sertifikat" : "Undangan WA"} ke ${selectedAccepted.length} kandidat yang diterima?`,
       )
     )
       return;
@@ -509,6 +892,7 @@ export default function CrewManagementPage() {
       sent: 0,
       failed: 0,
       isSending: true,
+      type,
     });
     let sentCount = 0;
     let failCount = 0;
@@ -524,40 +908,45 @@ export default function CrewManagementPage() {
         crew.eventId,
         crew.roleId || crew.divisiId || "",
       );
+      if (isCert && (!parentEvent || !parentEvent.linkSertifikat)) {
+        failCount++;
+        continue;
+      }
+
       try {
         const response = await fetch("/api/send-email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            type: "crew_accepted",
+            type: isCert ? "certificate_crew" : "crew_accepted",
             email: crew.email,
             nama: crew.nama,
-            detail: {
-              event: parentEvent?.title || "Kepanitiaan",
-              divisi: roleName,
-              linkGrupBesar: parentEvent?.linkGrupBesar || "",
-              linkGrupDivisi: roleLink,
-            },
+            detail: isCert
+              ? {
+                  event: parentEvent?.title || "Kepanitiaan",
+                  linkSertifikat: parentEvent?.linkSertifikat,
+                }
+              : {
+                  event: parentEvent?.title || "Kepanitiaan",
+                  divisi: roleName,
+                  linkGrupBesar: parentEvent?.linkGrupBesar || "",
+                  linkGrupDivisi: roleLink,
+                },
           }),
         });
         if (response.ok) {
-          await updateDoc(doc(db, "crew_volunteers", crew.id), {
-            emailStatus: "sent",
-            emailError: "",
-          });
+          await setDoc(
+            doc(db, crew.sourceDb, crew.id),
+            isCert
+              ? { certEmailStatus: "sent" }
+              : { emailStatus: "sent", emailError: "" },
+            { merge: true },
+          );
           sentCount++;
         } else {
-          await updateDoc(doc(db, "crew_volunteers", crew.id), {
-            emailStatus: "failed",
-            emailError: "Gagal dari server (Massal)",
-          });
           failCount++;
         }
       } catch (e: any) {
-        await updateDoc(doc(db, "crew_volunteers", crew.id), {
-          emailStatus: "failed",
-          emailError: e.message,
-        });
         failCount++;
       }
       setEmailProgress((prev) =>
@@ -572,9 +961,6 @@ export default function CrewManagementPage() {
     setSelectedAccepted([]);
   };
 
-  // ========================================================
-  // EXPORT EXCEL
-  // ========================================================
   const exportToExcel = (data: CrewMember[], filename: string) => {
     const formattedData = data.map((c, index) => {
       const { parentEvent, roleName } = getRoleInfo(
@@ -587,17 +973,29 @@ export default function CrewManagementPage() {
         "Event Target": parentEvent?.title || "Data Lama",
         "Penempatan Posisi": roleName,
         "Nama Lengkap": c.nama,
+        "Jenis Kelamin": c.jenisKelamin || "-",
+        "Tempat & Tgl Lahir": c.tempatLahir
+          ? `${c.tempatLahir}, ${c.tanggalLahir}`
+          : "-",
         Kategori: c.tipe.toUpperCase(),
         Email: c.email,
         WhatsApp: c.whatsapp,
+        Instagram: c.instagram || "-",
+        "Riwayat Penyakit": c.riwayatPenyakit || "-",
+        "Ukuran Jersey": c.ukuranJersey || "-",
+        Kendaraan: c.kendaraan || "-",
+        "Bersedia Pindah Divisi": c.bersediaPindahDivisi || "-",
+        "Bersedia Pelatihan": c.bersediaPelatihan || "-",
         "Instansi/UKM": c.instansi || "-",
         Jabatan: c.jabatan || "-",
         "Fakultas / Jurusan": c.fakultas || "-",
         Angkatan: c.angkatan || "-",
         Domisili: c.domisili || "-",
+        "Alasan Pilih Divisi": c.alasanDivisi || "-",
         Motivasi: c.motivasi || "-",
         Pengalaman: c.pengalaman || "-",
-        Status:
+        "Link Foto ID": c.fotoIdCard || "-",
+        "Status Terkini":
           c.status === "accepted"
             ? "Diterima"
             : c.status === "pending"
@@ -607,18 +1005,22 @@ export default function CrewManagementPage() {
     });
     const worksheet = XLSX.utils.json_to_sheet(formattedData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Data Relawan");
+    XLSX.utils.book_append_sheet(workbook, worksheet, `Data_${activeTab}`);
     XLSX.writeFile(workbook, `${filename}.xlsx`);
   };
 
-  // Data Filtering
   const currentTabList = pendaftar.filter(
     (c) =>
       (activeTab === "pendaftar"
         ? c.status === "pending"
-        : c.status === "accepted") &&
+        : activeTab === "timInti"
+          ? c.status === "accepted"
+          : activeTab === "ditolak"
+            ? c.status === "rejected"
+            : false) &&
       (filterEvent === "all" || c.eventId === filterEvent),
   );
+
   const totalPages =
     itemsPerPage === 0 ? 1 : Math.ceil(currentTabList.length / itemsPerPage);
   const pagedData =
@@ -631,44 +1033,19 @@ export default function CrewManagementPage() {
 
   if (isLoading)
     return (
-      <div className="h-screen flex flex-col items-center justify-center text-[#1A73E8]">
-        <div className="w-8 h-8 border-4 border-blue-100 border-t-[#1A73E8] rounded-full animate-spin mb-4"></div>
-        Memuat Sistem...
+      <div className="h-screen flex items-center justify-center text-[#1A73E8]">
+        <div className="w-8 h-8 border-4 border-blue-100 border-t-[#1A73E8] rounded-full animate-spin"></div>
       </div>
     );
 
   return (
     <div className="max-w-7xl mx-auto pb-32 font-sans p-4 sm:p-8 bg-[#F8F9FA] min-h-screen">
-      {/* POPUP NOTIFIKASI */}
       {popup && (
-        <div className="fixed top-6 right-6 z-[200] bg-white border border-[#DADCE0] px-5 py-4 rounded-xl shadow-lg flex items-center gap-4 animate-in slide-in-from-top-4 fade-in">
-          <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${popup.type === "success" ? "bg-[#E6F4EA] text-[#1E8E3E]" : "bg-[#FCE8E6] text-[#D93025]"}`}
-          >
-            {popup.type === "success" ? (
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            )}
-          </div>
-          <div className="flex-grow">
-            <p className="text-sm font-bold text-slate-800">
-              {popup.type === "success" ? "Berhasil" : "Gagal"}
-            </p>
-            <p className="text-xs text-slate-500">{popup.text}</p>
-          </div>
+        <div className="fixed top-6 right-6 z-[9999] min-w-[280px] bg-white border border-[#DADCE0] px-4 py-3 rounded-lg shadow-xl flex items-center gap-3 animate-in slide-in-from-right-8 fade-in duration-300">
+          {popup.type === "success" ? <IconCheckCircle /> : <IconErrorCircle />}
+          <span className="text-sm font-medium text-slate-700">
+            {popup.text}
+          </span>
         </div>
       )}
 
@@ -678,34 +1055,18 @@ export default function CrewManagementPage() {
           Manajemen Kru & Relawan
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          Konfigurasi struktur kepanitiaan dan persetujuan pendaftar.
+          Konfigurasi struktur rekrutmen, peninjauan pelamar, dan pengiriman
+          notifikasi.
         </p>
       </div>
 
-      {/* MATERIAL TABS (PILLS) */}
-      <div className="flex gap-3 mb-8 overflow-x-auto hide-scrollbar">
+      {/* MATERIAL TABS */}
+      <div className="flex gap-3 mb-8 overflow-x-auto hide-scrollbar pb-2">
         {[
-          {
-            id: "pengaturan",
-            label: "Setup Lowongan",
-            icon: (
-              <path d="M19.14,12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.49-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
-            ),
-          },
-          {
-            id: "pendaftar",
-            label: "Menunggu Review",
-            icon: (
-              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5v-2h14v2zm0-4H5V5h14v10zm-7-2l5-5h-3V5h-4v4H7l5 5z" />
-            ),
-          },
-          {
-            id: "timInti",
-            label: "Tim Inti (Diterima)",
-            icon: (
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-            ),
-          },
+          { id: "pengaturan", label: "Setup Lowongan", icon: <IconSettings /> },
+          { id: "pendaftar", label: "Menunggu Review", icon: <IconPending /> },
+          { id: "timInti", label: "Diterima", icon: <IconCheckBadge /> },
+          { id: "ditolak", label: "Ditolak", icon: <IconErrorCircle /> },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -713,12 +1074,9 @@ export default function CrewManagementPage() {
               setActiveTab(tab.id as any);
               setCurrentPage(1);
             }}
-            className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all flex items-center gap-2 border ${activeTab === tab.id ? "bg-[#E8F0FE] text-[#1A73E8] border-[#1A73E8]/30 shadow-sm" : "bg-white text-slate-600 hover:bg-slate-50 border-[#DADCE0]"}`}
+            className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all flex items-center gap-2 border whitespace-nowrap ${activeTab === tab.id ? "bg-[#E8F0FE] text-[#1A73E8] border-[#1A73E8]/30 shadow-sm" : "bg-white text-slate-600 hover:bg-slate-50 border-[#DADCE0]"}`}
           >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              {tab.icon}
-            </svg>
-            {tab.label}
+            {tab.icon} {tab.label}
             {tab.id === "pendaftar" &&
               pendaftar.filter((c) => c.status === "pending").length > 0 && (
                 <span className="bg-[#D93025] text-white text-[10px] px-2 py-0.5 rounded-full font-bold ml-1">
@@ -731,37 +1089,28 @@ export default function CrewManagementPage() {
                   {pendaftar.filter((c) => c.status === "accepted").length}
                 </span>
               )}
+            {tab.id === "ditolak" &&
+              pendaftar.filter((c) => c.status === "rejected").length > 0 && (
+                <span className="bg-slate-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold ml-1">
+                  {pendaftar.filter((c) => c.status === "rejected").length}
+                </span>
+              )}
           </button>
         ))}
       </div>
 
-      {/* ======================================================== */}
-      {/* TAB 1: PENGATURAN KEPANITIAAN */}
-      {/* ======================================================== */}
+      {/* TAB 1: PENGATURAN */}
       {activeTab === "pengaturan" && (
         <div className="space-y-6 animate-in fade-in duration-300">
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4">
             <h2 className="text-base font-medium text-slate-800">
-              Daftar Event Kepanitiaan
+              Daftar Event Kepanitiaan (OPREC)
             </h2>
             <button
               onClick={handleAddEvent}
               className="bg-white border border-[#DADCE0] text-[#1A73E8] hover:bg-[#F8F9FA] px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-sm"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>{" "}
-              Tambah Event Baru
+              + Tambah Event Baru
             </button>
           </div>
 
@@ -772,35 +1121,47 @@ export default function CrewManagementPage() {
               </p>
             </div>
           ) : (
-            events.map((event) => {
-              const isEventExpanded = expandedEvents[event.id] !== false;
+            events.map((event, eventIdx) => {
+              const isEventExpanded = expandedEvents[event.id] === true;
               return (
                 <div
                   key={event.id}
                   className={`bg-white rounded-2xl border transition-all overflow-hidden ${event.isActive ? "border-[#DADCE0] shadow-sm" : "border-[#DADCE0] opacity-70"}`}
                 >
-                  {/* Event Header */}
                   <div
-                    className={`p-5 flex flex-col xl:flex-row gap-5 items-start hover:bg-[#F8F9FA] transition-colors cursor-pointer ${isEventExpanded ? "border-b border-[#DADCE0]" : ""}`}
+                    className={`p-4 sm:p-5 flex flex-col xl:flex-row gap-4 xl:gap-5 items-start xl:items-center hover:bg-[#F8F9FA] transition-colors cursor-pointer ${isEventExpanded ? "border-b border-[#DADCE0] bg-[#F8F9FA]" : ""}`}
                     onClick={() => toggleEventCard(event.id)}
                   >
+                    <div
+                      className="flex xl:flex-col gap-1 items-center bg-white border border-[#DADCE0] rounded-lg p-1 mr-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        onClick={() => moveEvent(eventIdx, "up")}
+                        disabled={eventIdx === 0}
+                        className="p-1 text-slate-400 hover:text-[#1A73E8] hover:bg-blue-50 rounded disabled:opacity-30"
+                      >
+                        <IconArrowUp />
+                      </button>
+                      <button
+                        onClick={() => moveEvent(eventIdx, "down")}
+                        disabled={eventIdx === events.length - 1}
+                        className="p-1 text-slate-400 hover:text-[#1A73E8] hover:bg-blue-50 rounded disabled:opacity-30"
+                      >
+                        <IconArrowDown />
+                      </button>
+                    </div>
+
                     <div
                       className="flex items-center gap-3 flex-1 w-full"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <svg
-                        className={`w-5 h-5 text-slate-400 transition-transform ${isEventExpanded ? "rotate-180" : ""}`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                      <span
+                        className={`text-slate-400 transition-transform ${isEventExpanded ? "rotate-180" : ""}`}
+                        onClick={() => toggleEventCard(event.id)}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
+                        ▼
+                      </span>
                       <input
                         type="text"
                         value={event.title}
@@ -808,12 +1169,11 @@ export default function CrewManagementPage() {
                           handleChangeEvent(event.id, "title", e.target.value)
                         }
                         placeholder="Nama Event (Cth: IKA UII RUN 2026)"
-                        className="flex-1 bg-transparent border-b border-transparent hover:border-[#DADCE0] focus:border-[#1A73E8] outline-none text-base font-medium text-slate-800 py-0.5 transition-colors"
+                        className="flex-1 bg-transparent border-b border-transparent hover:border-[#DADCE0] focus:border-[#1A73E8] outline-none text-base font-bold text-[#0F2147] py-0.5 transition-colors"
                       />
                     </div>
-
                     <div
-                      className="flex items-center gap-4 ml-8 md:ml-0"
+                      className="flex items-center gap-4 ml-8 xl:ml-0"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <label className="flex items-center cursor-pointer mr-2">
@@ -837,7 +1197,7 @@ export default function CrewManagementPage() {
                             className={`dot absolute left-[2px] top-[2px] bg-white w-4 h-4 rounded-full transition-transform ${event.isActive ? "transform translate-x-4" : ""}`}
                           ></div>
                         </div>
-                        <span className="ml-2 text-xs font-medium text-slate-600 hidden sm:block">
+                        <span className="ml-2 text-xs font-bold text-slate-600 hidden sm:block">
                           {event.isActive ? "Dibuka" : "Ditutup"}
                         </span>
                       </label>
@@ -846,31 +1206,17 @@ export default function CrewManagementPage() {
                         className="p-2 text-slate-400 hover:text-[#D93025] hover:bg-red-50 rounded-lg transition-colors"
                         title="Hapus Event"
                       >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
+                        ✕
                       </button>
                     </div>
                   </div>
 
-                  {/* Body Event */}
                   {isEventExpanded && (
-                    <div className="p-5 sm:p-6 bg-white">
-                      {/* 🔥 DESKRIPSI UMUM & LINK GRUP 🔥 */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div>
+                    <div className="p-5 sm:p-6 bg-white animate-in slide-in-from-top-2 duration-200">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <div className="md:col-span-1">
                           <label className="block text-xs font-medium text-slate-600 mb-1.5">
-                            Deskripsi / Persyaratan Umum (Tiap baris = 1 poin)
+                            Deskripsi / Persyaratan Umum
                           </label>
                           <textarea
                             value={event.requirements || ""}
@@ -881,28 +1227,48 @@ export default function CrewManagementPage() {
                                 e.target.value,
                               )
                             }
-                            rows={3}
-                            className="w-full p-3 border border-[#DADCE0] rounded-lg focus:border-[#1A73E8] outline-none text-sm text-slate-800 resize-none bg-white transition-colors shadow-sm"
-                            placeholder="Mahasiswa aktif UII&#10;Sehat jasmani"
+                            rows={4}
+                            className="w-full p-3 border border-[#DADCE0] rounded-lg focus:border-[#1A73E8] outline-none text-sm text-slate-800 resize-none shadow-sm"
+                            placeholder="Persyaratan..."
                           ></textarea>
                         </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-600 mb-1.5">
-                            Link WhatsApp Grup Utama (Opsional)
-                          </label>
-                          <input
-                            type="url"
-                            value={event.linkGrupBesar || ""}
-                            onChange={(e) =>
-                              handleChangeEvent(
-                                event.id,
-                                "linkGrupBesar",
-                                e.target.value,
-                              )
-                            }
-                            className="w-full p-3 border border-[#DADCE0] rounded-lg focus:border-[#1A73E8] outline-none text-sm text-slate-800 bg-white shadow-sm"
-                            placeholder="https://chat.whatsapp..."
-                          />
+                        <div className="md:col-span-2 flex flex-col gap-4">
+                          <div>
+                            <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                              Link WhatsApp Grup Utama (Opsional)
+                            </label>
+                            <input
+                              type="url"
+                              value={event.linkGrupBesar || ""}
+                              onChange={(e) =>
+                                handleChangeEvent(
+                                  event.id,
+                                  "linkGrupBesar",
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full p-3 border border-[#DADCE0] rounded-lg focus:border-[#1A73E8] outline-none text-sm text-slate-800 shadow-sm"
+                              placeholder="https://chat.whatsapp..."
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                              Link E-Sertifikat Kepanitiaan (G-Drive)
+                            </label>
+                            <input
+                              type="url"
+                              value={event.linkSertifikat || ""}
+                              onChange={(e) =>
+                                handleChangeEvent(
+                                  event.id,
+                                  "linkSertifikat",
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full p-3 border border-[#DADCE0] rounded-lg focus:border-[#1A73E8] outline-none text-sm text-slate-800 shadow-sm"
+                              placeholder="https://drive.google.com/..."
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -915,37 +1281,51 @@ export default function CrewManagementPage() {
                             onClick={() => handleAddGroup(event.id)}
                             className="text-[#1A73E8] text-sm font-medium hover:bg-[#F8F9FA] px-3 py-1.5 rounded-lg transition-colors border border-[#DADCE0] shadow-sm"
                           >
-                            + Tambah Kelompok Divisi
+                            + Tambah Kelompok
                           </button>
                         </div>
-
-                        {(event.groups || []).map((group) => {
+                        {(event.groups || []).map((group, groupIdx) => {
                           const isGroupExpanded =
-                            expandedGroups[group.id] !== false;
+                            expandedGroups[group.id] === true;
                           return (
                             <div
                               key={group.id}
-                              className="border border-[#DADCE0] rounded-xl p-4 bg-[#F8F9FA]"
+                              className="border border-[#DADCE0] rounded-xl p-3 bg-[#F8F9FA]"
                             >
-                              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
+                              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2">
                                 <div className="flex items-center gap-2 w-full sm:w-auto">
+                                  <div className="flex gap-1 items-center bg-white border border-[#DADCE0] rounded-md px-1 mr-1">
+                                    <button
+                                      onClick={() =>
+                                        moveGroup(event.id, groupIdx, "up")
+                                      }
+                                      disabled={groupIdx === 0}
+                                      className="p-1 text-slate-400 hover:text-[#1A73E8] hover:bg-blue-50 rounded disabled:opacity-30"
+                                    >
+                                      <IconArrowUp />
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        moveGroup(event.id, groupIdx, "down")
+                                      }
+                                      disabled={
+                                        groupIdx ===
+                                        (event.groups || []).length - 1
+                                      }
+                                      className="p-1 text-slate-400 hover:text-[#1A73E8] hover:bg-blue-50 rounded disabled:opacity-30"
+                                    >
+                                      <IconArrowDown />
+                                    </button>
+                                  </div>
                                   <button
                                     onClick={() => toggleGroupCard(group.id)}
                                     className="text-slate-400 p-1 hover:bg-[#E8EAED] rounded transition-colors"
                                   >
-                                    <svg
-                                      className={`w-4 h-4 transition-transform ${isGroupExpanded ? "rotate-180" : ""}`}
-                                      fill="none"
-                                      viewBox="0 0 24 24"
-                                      stroke="currentColor"
+                                    <span
+                                      className={`inline-block transition-transform ${isGroupExpanded ? "rotate-180" : ""}`}
                                     >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M19 9l-7 7-7-7"
-                                      />
-                                    </svg>
+                                      ▼
+                                    </span>
                                   </button>
                                   <input
                                     type="text"
@@ -957,8 +1337,8 @@ export default function CrewManagementPage() {
                                         e.target.value,
                                       )
                                     }
-                                    placeholder="Nama Kelompok Divisi (Cth: Manajemen)"
-                                    className="bg-transparent border-b border-[#DADCE0] focus:border-[#1A73E8] outline-none text-sm font-medium text-slate-800 w-full sm:w-64 pb-0.5"
+                                    placeholder="Nama Kelompok Divisi"
+                                    className="bg-transparent border-b border-[#DADCE0] focus:border-[#1A73E8] outline-none text-sm font-bold text-[#0F2147] w-full sm:w-64 pb-0.5"
                                   />
                                 </div>
                                 <div className="flex items-center gap-2 w-full sm:w-auto justify-end ml-7 sm:ml-0">
@@ -966,7 +1346,7 @@ export default function CrewManagementPage() {
                                     onClick={() =>
                                       handleRemoveGroup(event.id, group.id)
                                     }
-                                    className="text-xs font-medium text-[#D93025] hover:bg-red-50 px-3 py-1.5 rounded transition-colors border border-transparent hover:border-red-200"
+                                    className="text-xs font-bold text-[#D93025] hover:bg-red-50 px-3 py-1.5 rounded transition-colors"
                                   >
                                     Hapus Grup
                                   </button>
@@ -974,7 +1354,7 @@ export default function CrewManagementPage() {
                                     onClick={() =>
                                       handleAddRole(event.id, group.id)
                                     }
-                                    className="text-xs font-medium bg-white border border-[#DADCE0] text-slate-600 px-3 py-1.5 rounded hover:bg-[#E8EAED] shadow-sm transition-colors"
+                                    className="text-xs font-bold bg-white border border-[#DADCE0] text-slate-600 px-3 py-1.5 rounded hover:bg-[#E8EAED] shadow-sm transition-colors"
                                   >
                                     + Tambah Posisi
                                   </button>
@@ -982,91 +1362,139 @@ export default function CrewManagementPage() {
                               </div>
 
                               {isGroupExpanded && (
-                                <div className="space-y-2 mt-3 ml-1 sm:ml-8">
+                                <div className="space-y-3 mt-3 sm:ml-12 border-l-2 border-[#1A73E8]/20 pl-4 py-1">
                                   {(!group.roles ||
                                     group.roles.length === 0) && (
                                     <p className="text-xs text-slate-400 italic">
-                                      Belum ada posisi di kelompok ini.
+                                      Belum ada posisi.
                                     </p>
                                   )}
-                                  {(group.roles || []).map((role) => (
-                                    <div
-                                      key={role.id}
-                                      className="flex flex-col lg:flex-row items-center gap-2 bg-white p-2 border border-[#DADCE0] rounded-lg shadow-sm"
-                                    >
-                                      <input
-                                        type="text"
-                                        value={role.nama}
-                                        onChange={(e) =>
-                                          handleChangeRole(
-                                            event.id,
-                                            group.id,
-                                            role.id,
-                                            "nama",
-                                            e.target.value,
-                                          )
-                                        }
-                                        placeholder="Nama Posisi (Cth: Korlap)"
-                                        className="w-full lg:w-1/3 p-2 border border-[#DADCE0] rounded text-xs outline-none focus:border-[#1A73E8] text-slate-800"
-                                      />
-                                      <input
-                                        type="number"
-                                        value={role.kuota}
-                                        onChange={(e) =>
-                                          handleChangeRole(
-                                            event.id,
-                                            group.id,
-                                            role.id,
-                                            "kuota",
-                                            Number(e.target.value),
-                                          )
-                                        }
-                                        placeholder="Kuota"
-                                        className="w-full lg:w-20 p-2 border border-[#DADCE0] rounded text-xs text-center outline-none focus:border-[#1A73E8] text-slate-800"
-                                      />
-                                      <input
-                                        type="url"
-                                        value={role.linkWa}
-                                        onChange={(e) =>
-                                          handleChangeRole(
-                                            event.id,
-                                            group.id,
-                                            role.id,
-                                            "linkWa",
-                                            e.target.value,
-                                          )
-                                        }
-                                        placeholder="Link WA Posisi Khusus"
-                                        className="w-full lg:flex-1 p-2 border border-[#DADCE0] rounded text-xs outline-none focus:border-[#1A73E8] text-slate-800"
-                                      />
-                                      <div className="flex gap-1 justify-end w-full lg:w-auto mt-2 lg:mt-0">
-                                        <button
-                                          onClick={() =>
-                                            handleRemoveRole(
-                                              event.id,
-                                              group.id,
-                                              role.id,
-                                            )
-                                          }
-                                          className="p-2 text-slate-400 hover:text-[#D93025] hover:bg-red-50 rounded transition-colors"
-                                        >
-                                          <svg
-                                            className="w-4 h-4"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                          >
-                                            <path
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                              strokeWidth={2}
-                                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  {(group.roles || []).map((role, roleIdx) => {
+                                    const filledCount = getRoleFilledCount(
+                                      role.id,
+                                    );
+                                    return (
+                                      <div
+                                        key={role.id}
+                                        className="flex flex-col gap-2 bg-white p-3 border border-[#DADCE0] rounded-lg shadow-sm"
+                                      >
+                                        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-2 w-full">
+                                          <div className="flex lg:flex-col gap-1 items-center bg-[#F8F9FA] border border-[#DADCE0] rounded-md px-1 mr-1">
+                                            <button
+                                              onClick={() =>
+                                                moveRole(
+                                                  event.id,
+                                                  group.id,
+                                                  roleIdx,
+                                                  "up",
+                                                )
+                                              }
+                                              disabled={roleIdx === 0}
+                                              className="p-0.5 text-slate-400 hover:text-[#1A73E8] hover:bg-blue-50 rounded disabled:opacity-30"
+                                            >
+                                              <IconArrowUp />
+                                            </button>
+                                            <button
+                                              onClick={() =>
+                                                moveRole(
+                                                  event.id,
+                                                  group.id,
+                                                  roleIdx,
+                                                  "down",
+                                                )
+                                              }
+                                              disabled={
+                                                roleIdx ===
+                                                (group.roles || []).length - 1
+                                              }
+                                              className="p-0.5 text-slate-400 hover:text-[#1A73E8] hover:bg-blue-50 rounded disabled:opacity-30"
+                                            >
+                                              <IconArrowDown />
+                                            </button>
+                                          </div>
+                                          <input
+                                            type="text"
+                                            value={role.nama}
+                                            onChange={(e) =>
+                                              handleChangeRole(
+                                                event.id,
+                                                group.id,
+                                                role.id,
+                                                "nama",
+                                                e.target.value,
+                                              )
+                                            }
+                                            placeholder="Nama Posisi"
+                                            className="w-full lg:w-1/3 p-2 border border-[#DADCE0] rounded text-xs font-bold text-slate-700 outline-none focus:border-[#1A73E8]"
+                                          />
+                                          <div className="w-full lg:w-24 flex flex-col">
+                                            <input
+                                              type="number"
+                                              value={role.kuota}
+                                              onChange={(e) =>
+                                                handleChangeRole(
+                                                  event.id,
+                                                  group.id,
+                                                  role.id,
+                                                  "kuota",
+                                                  Number(e.target.value),
+                                                )
+                                              }
+                                              placeholder="Kuota"
+                                              className="p-2 border border-[#DADCE0] rounded text-xs text-center outline-none focus:border-[#1A73E8]"
                                             />
-                                          </svg>
-                                        </button>
+                                            <span className="text-[9px] font-bold text-slate-400 text-center mt-1">
+                                              TERISI: {filledCount}/{role.kuota}
+                                            </span>
+                                          </div>
+                                          <input
+                                            type="url"
+                                            value={role.linkWa}
+                                            onChange={(e) =>
+                                              handleChangeRole(
+                                                event.id,
+                                                group.id,
+                                                role.id,
+                                                "linkWa",
+                                                e.target.value,
+                                              )
+                                            }
+                                            placeholder="Link WA Posisi Khusus"
+                                            className="w-full lg:flex-1 p-2 border border-[#DADCE0] rounded text-xs outline-none focus:border-[#1A73E8]"
+                                          />
+                                          <button
+                                            onClick={() =>
+                                              handleRemoveRole(
+                                                event.id,
+                                                group.id,
+                                                role.id,
+                                              )
+                                            }
+                                            className="p-2 text-slate-400 hover:text-[#D93025] hover:bg-red-50 rounded transition-colors text-xs font-bold w-full lg:w-auto text-right lg:text-center"
+                                          >
+                                            ✕ Hapus
+                                          </button>
+                                        </div>
+                                        <div className="w-full border-t border-slate-100 pt-2 ml-7 lg:ml-0 pr-7 lg:pr-0">
+                                          <textarea
+                                            value={role.deskripsi || ""}
+                                            onChange={(e) =>
+                                              handleChangeRole(
+                                                event.id,
+                                                group.id,
+                                                role.id,
+                                                "deskripsi",
+                                                e.target.value,
+                                              )
+                                            }
+                                            placeholder="Tuliskan SOP atau Job Description singkat untuk posisi ini..."
+                                            className="w-full p-2.5 bg-slate-50 border border-[#DADCE0] rounded-md text-xs outline-none focus:border-[#1A73E8] resize-none"
+                                            rows={2}
+                                          ></textarea>
+                                        </div>
                                       </div>
-                                    </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                               )}
                             </div>
@@ -1079,25 +1507,21 @@ export default function CrewManagementPage() {
               );
             })
           )}
-
-          <div className="pt-2">
+          <div className="pt-2 sticky bottom-4 z-50 bg-[#F8F9FA] py-4 border-t border-[#DADCE0] sm:border-none sm:py-0">
             <button
               onClick={saveSettings}
               disabled={isSaving}
-              className="w-full sm:w-auto bg-[#1A73E8] hover:bg-[#1557B0] text-white text-sm font-medium px-8 py-2.5 rounded-lg shadow-sm transition-colors disabled:opacity-50"
+              className="w-full sm:w-auto bg-[#1A73E8] hover:bg-[#1557B0] text-white text-sm font-bold px-8 py-3 rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 mx-auto"
             >
-              {isSaving ? "Menyimpan..." : "Simpan Pengaturan"}
+              {isSaving ? "Menyimpan..." : "Simpan Semua Pengaturan"}
             </button>
           </div>
         </div>
       )}
 
-      {/* ======================================================== */}
-      {/* TAB 2 & 3: TABEL PELAMAR (Google Workspace Style) */}
-      {/* ======================================================== */}
-      {(activeTab === "pendaftar" || activeTab === "timInti") && (
+      {/* TAB 2, 3, & 4: TABEL PELAMAR */}
+      {activeTab !== "pengaturan" && (
         <div className="bg-white border border-[#DADCE0] rounded-2xl overflow-hidden shadow-sm animate-in fade-in duration-300">
-          {/* Toolbars */}
           <div className="p-4 border-b border-[#DADCE0] flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-[#F8F9FA]">
             <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
               <select
@@ -1106,7 +1530,7 @@ export default function CrewManagementPage() {
                   setFilterEvent(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-white border border-[#DADCE0] text-slate-800 text-sm rounded-lg px-4 py-2 outline-none focus:border-[#1A73E8] shadow-sm flex-1 lg:flex-auto cursor-pointer"
+                className="bg-white border border-[#DADCE0] text-slate-800 text-sm rounded-lg px-4 py-2 outline-none focus:border-[#1A73E8] shadow-sm flex-1 lg:flex-auto cursor-pointer font-medium"
               >
                 <option value="all">Semua Event</option>
                 {events.map((e) => (
@@ -1117,9 +1541,9 @@ export default function CrewManagementPage() {
               </select>
               <button
                 onClick={() =>
-                  exportToExcel(currentTabList, `Data_Relawan_${activeTab}`)
+                  exportToExcel(currentTabList, `Data_Pelamar_${activeTab}`)
                 }
-                className="bg-white border border-[#DADCE0] text-[#1A73E8] hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm transition-colors"
+                className="bg-emerald-600 border border-emerald-700 text-white hover:bg-emerald-700 px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-2"
               >
                 <svg
                   className="w-4 h-4"
@@ -1133,26 +1557,32 @@ export default function CrewManagementPage() {
                     strokeWidth={2}
                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                   />
-                </svg>{" "}
-                Ekspor Excel
+                </svg>
+                Ekspor Excel ({activeTab})
               </button>
             </div>
 
-            {/* Aksi Massal */}
+            {/* AKSI MASSAL */}
             {((activeTab === "pendaftar" && selectedPending.length > 0) ||
-              (activeTab === "timInti" && selectedAccepted.length > 0)) && (
-              <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto bg-[#E8F0FE] p-1.5 rounded-xl border border-blue-200">
+              (activeTab === "timInti" && selectedAccepted.length > 0) ||
+              (activeTab === "ditolak" && selectedRejected.length > 0)) && (
+              <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto bg-[#E8F0FE] p-1.5 rounded-xl border border-[#1A73E8]/30">
                 <span className="text-sm text-[#1A73E8] font-bold ml-3 mr-3">
                   {activeTab === "pendaftar"
                     ? selectedPending.length
-                    : selectedAccepted.length}{" "}
+                    : activeTab === "timInti"
+                      ? selectedAccepted.length
+                      : selectedRejected.length}{" "}
                   dipilih
                 </span>
-                {activeTab === "pendaftar" ? (
+
+                {activeTab === "pendaftar" && (
                   <>
                     <button
-                      onClick={() => handleMassDelete(selectedPending, true)}
-                      className="text-[#D93025] bg-white hover:bg-red-50 px-4 py-1.5 rounded-lg text-sm font-medium shadow-sm transition-colors"
+                      onClick={() =>
+                        handleMassDelete(selectedPending, "pending")
+                      }
+                      className="text-[#D93025] bg-white border border-[#DADCE0] hover:bg-red-50 px-4 py-1.5 rounded-lg text-sm font-bold shadow-sm transition-colors"
                     >
                       Hapus
                     </button>
@@ -1160,7 +1590,7 @@ export default function CrewManagementPage() {
                       onClick={() =>
                         handleMassUpdateStatus(selectedPending, "rejected")
                       }
-                      className="text-slate-700 bg-white hover:bg-slate-50 px-4 py-1.5 rounded-lg text-sm font-medium shadow-sm transition-colors"
+                      className="text-slate-700 bg-white border border-[#DADCE0] hover:bg-slate-50 px-4 py-1.5 rounded-lg text-sm font-bold shadow-sm transition-colors"
                     >
                       Tolak
                     </button>
@@ -1168,37 +1598,55 @@ export default function CrewManagementPage() {
                       onClick={() =>
                         handleMassUpdateStatus(selectedPending, "accepted")
                       }
-                      className="bg-[#1A73E8] hover:bg-[#1557B0] text-white px-4 py-1.5 rounded-lg text-sm font-medium shadow-sm transition-colors"
+                      className="bg-[#1A73E8] hover:bg-[#1557B0] text-white px-4 py-1.5 rounded-lg text-sm font-bold shadow-sm transition-colors"
                     >
                       Terima Semua
                     </button>
                   </>
-                ) : (
+                )}
+
+                {activeTab === "timInti" && (
                   <>
                     <button
-                      onClick={() => handleMassDelete(selectedAccepted, false)}
-                      className="text-[#D93025] bg-white hover:bg-red-50 px-4 py-1.5 rounded-lg text-sm font-medium shadow-sm transition-colors"
+                      onClick={() =>
+                        handleMassDelete(selectedAccepted, "accepted")
+                      }
+                      className="text-[#D93025] bg-white border border-[#DADCE0] hover:bg-red-50 px-4 py-1.5 rounded-lg text-sm font-bold shadow-sm transition-colors"
                     >
                       Hapus Permanen
                     </button>
                     <button
-                      onClick={handleMassEmail}
-                      className="bg-[#1A73E8] hover:bg-[#1557B0] text-white px-4 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm transition-colors"
+                      onClick={() => handleMassEmail("welcome")}
+                      className="bg-white text-slate-700 border border-[#DADCE0] hover:bg-slate-50 px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
                     >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                        />
-                      </svg>{" "}
-                      Kirim Email Massal
+                      <IconMail /> Email
+                    </button>
+                    <button
+                      onClick={() => handleMassEmail("cert")}
+                      className="bg-[#1A73E8] hover:bg-[#1557B0] text-white px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
+                    >
+                      <IconCertificate /> Kirim E-Sertifikat
+                    </button>
+                  </>
+                )}
+
+                {activeTab === "ditolak" && (
+                  <>
+                    <button
+                      onClick={() =>
+                        handleMassDelete(selectedRejected, "rejected")
+                      }
+                      className="text-[#D93025] bg-white border border-[#DADCE0] hover:bg-red-50 px-4 py-1.5 rounded-lg text-sm font-bold shadow-sm transition-colors"
+                    >
+                      Hapus Permanen
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleMassUpdateStatus(selectedRejected, "pending")
+                      }
+                      className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded-lg text-sm font-bold shadow-sm transition-colors"
+                    >
+                      Pulihkan (Pending)
                     </button>
                   </>
                 )}
@@ -1206,76 +1654,6 @@ export default function CrewManagementPage() {
             )}
           </div>
 
-          {/* Progress Email Massal */}
-          {emailProgress && (
-            <div className="px-5 py-3 bg-[#E8F0FE] border-b border-[#DADCE0] flex flex-col sm:flex-row items-center justify-between gap-3">
-              <span className="text-sm font-medium text-[#1A73E8] flex items-center gap-2">
-                {emailProgress.isSending && (
-                  <svg
-                    className="w-4 h-4 animate-spin"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    ></path>
-                  </svg>
-                )}
-                {emailProgress.isSending
-                  ? "Mengirim email undangan..."
-                  : "Pengiriman email selesai."}
-              </span>
-              <span className="text-sm font-medium text-slate-800 bg-white px-4 py-1 rounded-lg shadow-sm border border-[#DADCE0]">
-                Sukses:{" "}
-                <span className="text-[#1E8E3E] font-bold">
-                  {emailProgress.sent}
-                </span>{" "}
-                | Gagal:{" "}
-                <span className="text-[#D93025] font-bold">
-                  {emailProgress.failed}
-                </span>{" "}
-                / {emailProgress.total}
-              </span>
-            </div>
-          )}
-
-          {/* Progress Email Individual */}
-          {isSendingMail && (
-            <div className="bg-[#E8F0FE] text-[#1A73E8] border-b border-[#DADCE0] text-xs font-bold text-center py-3 animate-pulse flex items-center justify-center gap-2">
-              <svg
-                className="w-4 h-4 animate-spin"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                ></path>
-              </svg>
-              Mengirim Email WA Individual...
-            </div>
-          )}
-
-          {/* Table */}
           <div className="overflow-y-auto custom-scrollbar max-h-[500px]">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -1287,27 +1665,33 @@ export default function CrewManagementPage() {
                         pagedData.length > 0 &&
                         (activeTab === "pendaftar"
                           ? selectedPending.length === pagedData.length
-                          : selectedAccepted.length === pagedData.length)
+                          : activeTab === "timInti"
+                            ? selectedAccepted.length === pagedData.length
+                            : selectedRejected.length === pagedData.length)
                       }
                       onChange={(e) => {
                         const ids = pagedData.map((c) => c.id);
                         if (activeTab === "pendaftar")
                           setSelectedPending(e.target.checked ? ids : []);
-                        else setSelectedAccepted(e.target.checked ? ids : []);
+                        else if (activeTab === "timInti")
+                          setSelectedAccepted(e.target.checked ? ids : []);
+                        else setSelectedRejected(e.target.checked ? ids : []);
                       }}
                       className="w-4 h-4 border-[#DADCE0] rounded cursor-pointer accent-[#1A73E8]"
                     />
                   </th>
-                  <th className="px-4 py-4 font-medium text-slate-500 text-xs uppercase tracking-wider">
+                  <th className="px-4 py-4 font-bold text-slate-500 text-xs uppercase tracking-wider">
                     NAMA KANDIDAT
                   </th>
-                  <th className="px-4 py-4 font-medium text-slate-500 text-xs uppercase tracking-wider">
+                  <th className="px-4 py-4 font-bold text-slate-500 text-xs uppercase tracking-wider">
                     EVENT & POSISI
                   </th>
-                  <th className="px-4 py-4 font-medium text-slate-500 text-xs uppercase tracking-wider hidden md:table-cell">
-                    PREVIEW PENGALAMAN
-                  </th>
-                  <th className="px-5 py-4 font-medium text-slate-500 text-xs uppercase tracking-wider text-right">
+                  {activeTab === "timInti" && (
+                    <th className="px-4 py-4 font-bold text-slate-500 text-xs uppercase tracking-wider text-center">
+                      STATUS EMAIL
+                    </th>
+                  )}
+                  <th className="px-5 py-4 font-bold text-slate-500 text-xs uppercase tracking-wider text-right">
                     AKSI
                   </th>
                 </tr>
@@ -1317,9 +1701,9 @@ export default function CrewManagementPage() {
                   <tr>
                     <td
                       colSpan={5}
-                      className="py-16 text-center text-slate-500 text-sm"
+                      className="py-16 text-center text-slate-500 text-sm font-medium"
                     >
-                      Tidak ada data untuk ditampilkan.
+                      Tidak ada data untuk ditampilkan di tab ini.
                     </td>
                   </tr>
                 ) : (
@@ -1331,8 +1715,9 @@ export default function CrewManagementPage() {
                     const isChecked =
                       activeTab === "pendaftar"
                         ? selectedPending.includes(crew.id)
-                        : selectedAccepted.includes(crew.id);
-
+                        : activeTab === "timInti"
+                          ? selectedAccepted.includes(crew.id)
+                          : selectedRejected.includes(crew.id);
                     return (
                       <tr
                         key={crew.id}
@@ -1351,7 +1736,7 @@ export default function CrewManagementPage() {
                                         (id) => id !== crew.id,
                                       ),
                                 );
-                              else
+                              else if (activeTab === "timInti")
                                 setSelectedAccepted(
                                   e.target.checked
                                     ? [...selectedAccepted, crew.id]
@@ -1359,120 +1744,109 @@ export default function CrewManagementPage() {
                                         (id) => id !== crew.id,
                                       ),
                                 );
+                              else
+                                setSelectedRejected(
+                                  e.target.checked
+                                    ? [...selectedRejected, crew.id]
+                                    : selectedRejected.filter(
+                                        (id) => id !== crew.id,
+                                      ),
+                                );
                             }}
                             className="w-4 h-4 border-[#DADCE0] rounded cursor-pointer accent-[#1A73E8]"
                           />
                         </td>
-                        <td className="px-4 py-3">
-                          <p className="text-sm font-medium text-slate-800">
-                            {crew.nama}
-                          </p>
-                          <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider bg-[#F1F3F4] px-1.5 py-0.5 rounded inline-block mt-1">
-                            {crew.tipe}
-                          </p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="text-sm text-[#1A73E8] font-medium">
-                            {parentEvent?.title || "Data Lama"}
-                          </p>
-                          <p className="text-xs text-slate-500">{roleName}</p>
-                        </td>
-                        <td className="px-4 py-3 hidden md:table-cell">
-                          <div className="max-w-[250px] truncate text-xs text-slate-500 italic bg-[#F8F9FA] p-1.5 rounded border border-[#DADCE0]">
-                            "
-                            {crew.pengalaman ||
-                              crew.motivasi ||
-                              "Tidak ada keterangan..."}
-                            "
+                        <td className="px-4 py-3 flex items-center gap-3">
+                          {crew.fotoIdCard ? (
+                            <img
+                              src={crew.fotoIdCard}
+                              alt="Foto"
+                              className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-sm shrink-0"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center shrink-0">
+                              <IconSettings />
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-sm font-bold text-slate-800">
+                              {crew.nama}
+                            </p>
+                            <div className="flex gap-1.5 mt-1">
+                              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider bg-[#F1F3F4] px-1.5 py-0.5 rounded inline-block">
+                                {crew.tipe}
+                              </p>
+                              {crew.sourceDb === "crew_volunteers" && (
+                                <p className="text-[9px] font-bold text-amber-600 uppercase tracking-wider bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded inline-block">
+                                  Data Lama
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </td>
+                        <td className="px-4 py-3">
+                          <p className="text-sm text-[#1A73E8] font-bold">
+                            {parentEvent?.title || "Data Lama"}
+                          </p>
+                          <p className="text-xs font-medium text-slate-500">
+                            {roleName}
+                          </p>
+                        </td>
+
+                        {activeTab === "timInti" && (
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex flex-col items-center gap-1.5">
+                              {crew.emailStatus === "sent" ? (
+                                <span className="bg-emerald-50 text-emerald-700 text-[10px] px-2 py-1 rounded font-bold border border-emerald-200">
+                                  Undangan: Sukses
+                                </span>
+                              ) : (
+                                <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-1 rounded font-medium border border-slate-200">
+                                  Undangan: -
+                                </span>
+                              )}
+                              {crew.certEmailStatus === "sent" ? (
+                                <span className="bg-blue-50 text-blue-700 text-[10px] px-2 py-1 rounded font-bold border border-blue-200">
+                                  Sertifikat: Sukses
+                                </span>
+                              ) : (
+                                <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-1 rounded font-medium border border-slate-200">
+                                  Sertifikat: -
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        )}
+
                         <td className="px-5 py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => openDetail(crew)}
-                              className="text-slate-600 bg-white border border-[#DADCE0] hover:bg-[#F8F9FA] hover:text-[#1A73E8] px-4 py-2 rounded-lg text-xs font-medium transition-colors shadow-sm"
+                              className="text-slate-600 bg-white border border-[#DADCE0] hover:bg-[#F8F9FA] hover:text-[#1A73E8] px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center gap-1"
                             >
-                              Detail
+                              <IconDetail /> Detail
                             </button>
 
-                            {/* 🔥 TOMBOL KIRIM EMAIL (DENGAN STATUS) 🔥 */}
-                            {activeTab === "timInti" &&
-                              (crew.emailStatus === "sent" ? (
-                                <span className="text-[#1E8E3E] bg-[#E6F4EA] border border-[#1E8E3E]/30 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm">
-                                  <svg
-                                    className="w-4 h-4"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={3}
-                                      d="M5 13l4 4L19 7"
-                                    />
-                                  </svg>{" "}
-                                  Terkirim
-                                </span>
-                              ) : crew.emailStatus === "failed" ? (
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    onClick={() =>
-                                      alert(
-                                        `Gagal Mengirim:\n${crew.emailError || "Kesalahan Server"}`,
-                                      )
-                                    }
-                                    className="text-[#D93025] hover:bg-red-50 p-2 rounded-full transition-colors"
-                                    title="Lihat Alasan"
-                                  >
-                                    <svg
-                                      className="w-5 h-5"
-                                      fill="none"
-                                      viewBox="0 0 24 24"
-                                      stroke="currentColor"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                                      />
-                                    </svg>
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleSendEmailIndividual(crew)
-                                    }
-                                    disabled={isSendingMail}
-                                    className="text-[#1A73E8] border border-[#1A73E8] bg-blue-50 px-3 py-2 rounded-lg text-xs font-bold hover:bg-[#1A73E8] hover:text-white transition-colors disabled:opacity-50"
-                                  >
-                                    Coba Lagi
-                                  </button>
-                                </div>
-                              ) : (
+                            {activeTab === "timInti" && (
+                              <div className="flex gap-2 border-l border-slate-200 pl-3 ml-1">
                                 <button
-                                  onClick={() =>
-                                    handleSendEmailIndividual(crew)
-                                  }
+                                  onClick={() => handleSendWelcomeEmail(crew)}
                                   disabled={isSendingMail}
-                                  className="text-[#1E8E3E] bg-white border border-[#DADCE0] hover:bg-[#E6F4EA] px-3 py-2 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-sm"
+                                  className="text-slate-700 border border-[#DADCE0] bg-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-50 transition-colors disabled:opacity-50 flex items-center gap-1"
+                                  title="Kirim Email Undangan"
                                 >
-                                  <svg
-                                    className="w-4 h-4"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                                    />
-                                  </svg>{" "}
-                                  Email
+                                  <IconMail /> Email
                                 </button>
-                              ))}
+                                <button
+                                  onClick={() => handleSendCertEmail(crew)}
+                                  disabled={isSendingMail}
+                                  className="text-[#1A73E8] border border-[#1A73E8] bg-blue-50 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-[#1A73E8] hover:text-white transition-colors disabled:opacity-50 flex items-center gap-1"
+                                  title="Kirim E-Sertifikat"
+                                >
+                                  <IconCertificate /> E-Sertifikat
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1483,10 +1857,9 @@ export default function CrewManagementPage() {
             </table>
           </div>
 
-          {/* Pagination */}
           <div className="p-4 border-t border-[#DADCE0] flex flex-col md:flex-row justify-between items-center bg-white gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 hidden sm:block">
+              <span className="text-xs font-medium text-slate-500 hidden sm:block">
                 Baris per halaman:
               </span>
               <select
@@ -1495,7 +1868,7 @@ export default function CrewManagementPage() {
                   setItemsPerPage(Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="text-xs text-slate-800 outline-none bg-transparent border border-[#DADCE0] rounded-lg p-1.5 focus:border-[#1A73E8]"
+                className="text-xs font-bold text-slate-800 outline-none bg-transparent border border-[#DADCE0] rounded-lg p-1.5 focus:border-[#1A73E8]"
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
@@ -1503,7 +1876,7 @@ export default function CrewManagementPage() {
                 <option value={0}>Semua</option>
               </select>
             </div>
-            <div className="flex items-center gap-4 text-xs text-slate-500">
+            <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
               <span>
                 {currentPage} dari {totalPages}
               </span>
@@ -1511,42 +1884,18 @@ export default function CrewManagementPage() {
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="p-1.5 bg-white border border-[#DADCE0] hover:bg-[#F8F9FA] rounded-lg disabled:opacity-30 transition-colors shadow-sm"
+                  className="p-1.5 font-bold bg-white border border-[#DADCE0] hover:bg-[#F8F9FA] rounded-lg disabled:opacity-30 shadow-sm"
                 >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 19l-7-7 7-7"
-                    />
-                  </svg>
+                  Sebelumnya
                 </button>
                 <button
                   onClick={() =>
                     setCurrentPage((p) => Math.min(totalPages, p + 1))
                   }
                   disabled={currentPage === totalPages}
-                  className="p-1.5 bg-white border border-[#DADCE0] hover:bg-[#F8F9FA] rounded-lg disabled:opacity-30 transition-colors shadow-sm"
+                  className="p-1.5 font-bold bg-white border border-[#DADCE0] hover:bg-[#F8F9FA] rounded-lg disabled:opacity-30 shadow-sm"
                 >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
+                  Selanjutnya
                 </button>
               </div>
             </div>
@@ -1554,135 +1903,406 @@ export default function CrewManagementPage() {
         </div>
       )}
 
-      {/* ======================================================== */}
-      {/* MODAL DETAIL (RUANG SIDANG) */}
-      {/* ======================================================== */}
+      {/* MODAL DETAIL DENGAN FITUR EDIT */}
       {isDetailOpen && selectedCrew && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+          <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
             <div className="px-6 py-4 border-b border-[#DADCE0] flex justify-between items-center bg-white">
-              <h2 className="text-lg font-medium text-slate-800">
-                Detail Pelamar
+              <h2 className="text-lg font-bold text-slate-800">
+                {isEditingData ? "Edit Data Pelamar" : "Profil Lengkap Pelamar"}
               </h2>
-              <button
-                onClick={() => setIsDetailOpen(false)}
-                className="text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-1.5 rounded-full transition-colors"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+              <div className="flex gap-3 items-center">
+                {!isEditingData && (
+                  <button
+                    onClick={() => setIsEditingData(true)}
+                    className="text-xs font-bold text-[#1A73E8] bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors border border-blue-200"
+                  >
+                    ✏️ Edit Data
+                  </button>
+                )}
+                <button
+                  onClick={() => setIsDetailOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-1.5 rounded-full transition-colors font-bold"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+                  ✕
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto px-6 py-5 custom-scrollbar text-sm text-slate-800 space-y-6">
-              <div>
-                <h3 className="text-xl font-bold mb-1">{selectedCrew.nama}</h3>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-slate-600 uppercase text-[10px] font-bold tracking-widest bg-slate-100 border border-[#DADCE0] px-2 py-0.5 rounded">
-                    {selectedCrew.tipe}
-                  </span>
-                  <span className="text-slate-500 text-xs font-medium">
-                    Terdaftar:{" "}
-                    {new Date(selectedCrew.waktuDaftar).toLocaleDateString(
-                      "id-ID",
-                    )}
-                  </span>
+              {/* HEADER PROFIL */}
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+                {selectedCrew.fotoIdCard ? (
+                  <img
+                    src={selectedCrew.fotoIdCard}
+                    alt="Pas Foto"
+                    className="w-24 h-32 object-cover rounded-xl border border-[#DADCE0] shadow-sm shrink-0"
+                  />
+                ) : (
+                  <div className="w-24 h-32 bg-slate-100 border border-[#DADCE0] rounded-xl flex items-center justify-center text-slate-400 shrink-0 text-xs text-center p-2 font-medium">
+                    Tanpa Foto
+                  </div>
+                )}
+
+                <div className="flex-1 text-center sm:text-left w-full">
+                  {isEditingData ? (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        name="nama"
+                        value={editFormData.nama || ""}
+                        onChange={handleEditChange}
+                        className="w-full text-lg font-bold p-2 border border-[#1A73E8] rounded-lg outline-none"
+                        placeholder="Nama Lengkap"
+                      />
+                      <div className="flex gap-2">
+                        <select
+                          name="jenisKelamin"
+                          value={editFormData.jenisKelamin || ""}
+                          onChange={handleEditChange}
+                          className="flex-1 p-2 border border-[#1A73E8] rounded-lg text-xs outline-none font-medium"
+                        >
+                          <option value="Laki-laki">Laki-laki</option>
+                          <option value="Perempuan">Perempuan</option>
+                        </select>
+                        <select
+                          name="tipe"
+                          value={editFormData.tipe || ""}
+                          onChange={handleEditChange}
+                          className="flex-1 p-2 border border-[#1A73E8] rounded-lg text-xs outline-none uppercase font-medium"
+                        >
+                          <option value="mahasiswa">Mahasiswa</option>
+                          <option value="alumni">Alumni</option>
+                          <option value="ukm">UKM</option>
+                          <option value="himpunan">Himpunan</option>
+                          <option value="umum">Umum</option>
+                        </select>
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          name="tempatLahir"
+                          value={editFormData.tempatLahir || ""}
+                          onChange={handleEditChange}
+                          className="flex-1 p-2 border border-[#1A73E8] rounded-lg text-xs outline-none font-medium"
+                          placeholder="Tempat Lahir"
+                        />
+                        <input
+                          type="date"
+                          name="tanggalLahir"
+                          value={editFormData.tanggalLahir || ""}
+                          onChange={handleEditChange}
+                          className="flex-1 p-2 border border-[#1A73E8] rounded-lg text-xs outline-none font-medium"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <h3 className="text-2xl font-black mb-1 text-[#1A73E8]">
+                        {selectedCrew.nama}
+                      </h3>
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-1">
+                        <span className="text-slate-600 uppercase text-[10px] font-bold tracking-widest bg-slate-100 border border-[#DADCE0] px-2 py-0.5 rounded">
+                          {selectedCrew.tipe}
+                        </span>
+                        <span className="text-slate-500 text-xs font-bold">
+                          Terdaftar:{" "}
+                          {new Date(
+                            selectedCrew.waktuDaftar,
+                          ).toLocaleDateString("id-ID")}
+                        </span>
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-3 text-left bg-[#F8F9FA] p-3 rounded-lg border border-[#DADCE0]">
+                        <div>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                            Jenis Kelamin
+                          </p>
+                          <p className="text-xs font-bold">
+                            {selectedCrew.jenisKelamin || "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                            Tempat, Tgl Lahir
+                          </p>
+                          <p className="text-xs font-bold">
+                            {selectedCrew.tempatLahir
+                              ? `${selectedCrew.tempatLahir}, ${selectedCrew.tanggalLahir}`
+                              : "-"}
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
-              <div className="space-y-3 py-4 border-y border-[#DADCE0] text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-500 font-medium">WhatsApp</span>
-                  <span className="font-bold">{selectedCrew.whatsapp}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500 font-medium">Email</span>
-                  <span className="font-bold truncate max-w-[200px]">
-                    {selectedCrew.email}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 py-4 border-y border-[#DADCE0] text-sm">
+                <div className="flex flex-col">
+                  <span className="text-slate-500 font-bold text-xs">
+                    WhatsApp
                   </span>
+                  {isEditingData ? (
+                    <input
+                      type="text"
+                      name="whatsapp"
+                      value={editFormData.whatsapp || ""}
+                      onChange={handleEditChange}
+                      className="p-1.5 border border-[#1A73E8] rounded mt-1 text-sm outline-none font-medium"
+                    />
+                  ) : (
+                    <span className="font-bold">{selectedCrew.whatsapp}</span>
+                  )}
                 </div>
-                {selectedCrew.fakultas && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 font-medium">Akademik</span>
+                <div className="flex flex-col">
+                  <span className="text-slate-500 font-bold text-xs">
+                    Email
+                  </span>
+                  {isEditingData ? (
+                    <input
+                      type="email"
+                      name="email"
+                      value={editFormData.email || ""}
+                      onChange={handleEditChange}
+                      className="p-1.5 border border-[#1A73E8] rounded mt-1 text-sm outline-none font-medium"
+                    />
+                  ) : (
+                    <span className="font-bold truncate">
+                      {selectedCrew.email}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-slate-500 font-bold text-xs">
+                    Instagram
+                  </span>
+                  {isEditingData ? (
+                    <input
+                      type="text"
+                      name="instagram"
+                      value={editFormData.instagram || ""}
+                      onChange={handleEditChange}
+                      className="p-1.5 border border-[#1A73E8] rounded mt-1 text-sm outline-none font-medium"
+                    />
+                  ) : (
+                    <a
+                      href={`https://instagram.com/${(selectedCrew.instagram || "").replace("@", "")}`}
+                      target="_blank"
+                      className="font-bold text-[#1A73E8] hover:underline"
+                    >
+                      {selectedCrew.instagram || "-"}
+                    </a>
+                  )}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-slate-500 font-bold text-xs">
+                    Ukuran Jersey
+                  </span>
+                  {isEditingData ? (
+                    <select
+                      name="ukuranJersey"
+                      value={editFormData.ukuranJersey || ""}
+                      onChange={handleEditChange}
+                      className="p-1.5 border border-[#1A73E8] rounded mt-1 text-sm outline-none font-medium"
+                    >
+                      <option value="S">S</option>
+                      <option value="M">M</option>
+                      <option value="L">L</option>
+                      <option value="XL">XL</option>
+                      <option value="XXL">XXL</option>
+                    </select>
+                  ) : (
                     <span className="font-bold">
-                      {selectedCrew.fakultas} '{selectedCrew.angkatan}
+                      {selectedCrew.ukuranJersey || "-"}
                     </span>
-                  </div>
-                )}
-                {selectedCrew.instansi && (
-                  <div className="flex justify-between gap-4">
-                    <span className="text-slate-500 font-medium whitespace-nowrap">
-                      {selectedCrew.tipe === "alumni"
-                        ? "Pekerjaan"
+                  )}
+                </div>
+                <div className="flex flex-col md:col-span-2 bg-rose-50 border border-rose-100 p-2.5 rounded-lg mt-1">
+                  <span className="text-rose-600 font-black text-[10px] uppercase tracking-wider mb-0.5">
+                    Riwayat Penyakit Khusus
+                  </span>
+                  {isEditingData ? (
+                    <input
+                      type="text"
+                      name="riwayatPenyakit"
+                      value={editFormData.riwayatPenyakit || ""}
+                      onChange={handleEditChange}
+                      className="p-1.5 border border-[#1A73E8] rounded mt-1 text-sm outline-none text-rose-800 font-bold"
+                    />
+                  ) : (
+                    <span className="font-bold text-rose-800 text-xs">
+                      {selectedCrew.riwayatPenyakit || "-"}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3 py-2 text-sm">
+                <div className="flex flex-col border-b border-slate-100 pb-2">
+                  <span className="text-slate-500 font-bold text-xs mb-1">
+                    Akademik / Jurusan / Angkatan
+                  </span>
+                  {isEditingData ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        name="fakultas"
+                        value={editFormData.fakultas || ""}
+                        onChange={handleEditChange}
+                        placeholder="Fakultas/Jurusan"
+                        className="flex-1 p-1.5 border border-[#1A73E8] rounded text-sm outline-none font-medium"
+                      />
+                      <input
+                        type="number"
+                        name="angkatan"
+                        value={editFormData.angkatan || ""}
+                        onChange={handleEditChange}
+                        placeholder="Tahun"
+                        className="w-24 p-1.5 border border-[#1A73E8] rounded text-sm outline-none font-medium"
+                      />
+                    </div>
+                  ) : (
+                    <span className="font-bold text-left">
+                      {selectedCrew.fakultas || "-"} (Angkatan '
+                      {selectedCrew.angkatan || "-"})
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-col border-b border-slate-100 pb-2">
+                  <span className="text-slate-500 font-bold text-xs mb-1 whitespace-nowrap">
+                    {isEditingData
+                      ? "Instansi & Jabatan"
+                      : selectedCrew.tipe === "alumni" ||
+                          selectedCrew.tipe === "umum"
+                        ? "Pekerjaan / Instansi"
                         : "Organisasi"}
+                  </span>
+                  {isEditingData ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        name="instansi"
+                        value={editFormData.instansi || ""}
+                        onChange={handleEditChange}
+                        placeholder="Instansi/Organisasi"
+                        className="flex-1 p-1.5 border border-[#1A73E8] rounded text-sm outline-none font-medium"
+                      />
+                      <input
+                        type="text"
+                        name="jabatan"
+                        value={editFormData.jabatan || ""}
+                        onChange={handleEditChange}
+                        placeholder="Jabatan"
+                        className="flex-1 p-1.5 border border-[#1A73E8] rounded text-sm outline-none font-medium"
+                      />
+                    </div>
+                  ) : (
+                    <span className="font-bold text-left break-words">
+                      {selectedCrew.instansi || "-"}{" "}
+                      {selectedCrew.jabatan ? `— ${selectedCrew.jabatan}` : ""}
                     </span>
-                    <span className="font-bold text-right break-words">
-                      {selectedCrew.instansi}{" "}
-                      {selectedCrew.jabatan
-                        ? `— Jabatan: ${selectedCrew.jabatan}`
-                        : ""}
+                  )}
+                </div>
+
+                <div className="flex flex-col border-b border-slate-100 pb-2">
+                  <span className="text-slate-500 font-bold text-xs mb-1">
+                    Alamat Domisili
+                  </span>
+                  {isEditingData ? (
+                    <textarea
+                      name="domisili"
+                      value={editFormData.domisili || ""}
+                      onChange={handleEditChange}
+                      rows={2}
+                      className="w-full p-2 border border-[#1A73E8] rounded text-sm outline-none resize-none font-medium"
+                    />
+                  ) : (
+                    <span className="font-bold text-left break-words">
+                      {selectedCrew.domisili || "-"}
                     </span>
-                  </div>
-                )}
-                {selectedCrew.domisili && (
-                  <div className="flex justify-between gap-4">
-                    <span className="text-slate-500 font-medium">Domisili</span>
-                    <span className="font-bold text-right break-words">
-                      {selectedCrew.domisili}
-                    </span>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
-              <div className="space-y-4">
-                <div>
-                  <span className="text-xs font-bold text-slate-600 block mb-1.5 uppercase tracking-widest">
-                    Motivasi
-                  </span>
-                  <div className="bg-[#F8F9FA] p-4 rounded-xl border border-[#DADCE0] whitespace-pre-wrap leading-relaxed text-[13px] shadow-inner text-slate-700">
-                    {selectedCrew.motivasi || "-"}
+              {!isEditingData && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-[#E8F0FE]/50 p-4 rounded-xl border border-[#1A73E8]/20 mt-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider">
+                        Kendaraan Pribadi
+                      </span>
+                      <span className="text-xs font-bold text-slate-700">
+                        {selectedCrew.kendaraan || "-"}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider">
+                        Bersedia Pindah Divisi?
+                      </span>
+                      <span className="text-xs font-bold text-slate-700">
+                        {selectedCrew.bersediaPindahDivisi || "-"}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1 sm:col-span-2">
+                      <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider">
+                        Komitmen Pelatihan & Briefing
+                      </span>
+                      <span className="text-xs font-bold text-slate-700">
+                        {selectedCrew.bersediaPelatihan || "-"}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <span className="text-xs font-bold text-slate-600 block mb-1.5 uppercase tracking-widest">
-                    Pengalaman Terkait
-                  </span>
-                  <div className="bg-[#F8F9FA] p-4 rounded-xl border border-[#DADCE0] whitespace-pre-wrap leading-relaxed text-[13px] shadow-inner text-slate-700">
-                    {selectedCrew.pengalaman || "-"}
-                  </div>
-                </div>
-              </div>
 
-              {/* Re-Assign Role */}
-              {selectedCrew.status !== "rejected" && (
+                  <div>
+                    <span className="text-xs font-bold text-slate-600 block mb-1.5 uppercase tracking-widest">
+                      Alasan Memilih Divisi
+                    </span>
+                    <div className="bg-[#F8F9FA] p-4 rounded-xl border border-[#DADCE0] whitespace-pre-wrap leading-relaxed text-[13px] shadow-inner text-slate-700 font-medium">
+                      {selectedCrew.alasanDivisi || "-"}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-600 block mb-1.5 uppercase tracking-widest">
+                      Motivasi Bergabung
+                    </span>
+                    <div className="bg-[#F8F9FA] p-4 rounded-xl border border-[#DADCE0] whitespace-pre-wrap leading-relaxed text-[13px] shadow-inner text-slate-700 font-medium">
+                      {selectedCrew.motivasi || "-"}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-600 block mb-1.5 uppercase tracking-widest">
+                      Pengalaman Terkait
+                    </span>
+                    <div className="bg-[#F8F9FA] p-4 rounded-xl border border-[#DADCE0] whitespace-pre-wrap leading-relaxed text-[13px] shadow-inner text-slate-700 font-medium">
+                      {selectedCrew.pengalaman || "-"}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!isEditingData && selectedCrew.status !== "rejected" && (
                 <div className="pt-3">
-                  <label className="text-xs font-bold text-[#1A73E8] block mb-2">
+                  <label className="text-xs font-black text-[#1A73E8] block mb-2">
                     Ubah Penempatan (Admin):
                   </label>
                   <select
                     value={newAssignedRoleId}
                     onChange={(e) => setNewAssignedRoleId(e.target.value)}
-                    className="w-full p-3 bg-white border border-[#1A73E8] rounded-xl text-sm font-medium text-slate-800 outline-none focus:ring-2 focus:ring-[#1A73E8]/20 shadow-sm cursor-pointer"
+                    className="w-full p-3 bg-white border border-[#1A73E8] rounded-xl text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#1A73E8]/20 shadow-sm cursor-pointer"
                   >
                     <option value="">-- Pindah Posisi / Data Lama --</option>
                     {events.map((e) =>
                       (e.groups || []).map((g) => (
                         <optgroup key={g.id} label={`${e.title} - ${g.title}`}>
-                          {(g.roles || []).map((r) => (
-                            <option key={r.id} value={r.id}>
-                              {r.nama} (Kuota: {r.kuota})
-                            </option>
-                          ))}
+                          {(g.roles || []).map((r) => {
+                            const filledCount = getRoleFilledCount(r.id);
+                            return (
+                              <option key={r.id} value={r.id}>
+                                {r.nama} (Terisi: {filledCount}/{r.kuota})
+                              </option>
+                            );
+                          })}
                         </optgroup>
                       )),
                     )}
@@ -1692,27 +2312,73 @@ export default function CrewManagementPage() {
             </div>
 
             <div className="px-6 py-4 border-t border-[#DADCE0] flex justify-end gap-3 bg-[#F8F9FA]">
-              <button
-                onClick={() => setIsDetailOpen(false)}
-                className="text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm"
-              >
-                Tutup
-              </button>
-              {selectedCrew.status !== "rejected" && (
-                <button
-                  onClick={() => handleDecision("rejected")}
-                  className="text-[#D93025] bg-white border border-rose-200 hover:bg-red-50 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm"
-                >
-                  Tolak
-                </button>
-              )}
-              {selectedCrew.status !== "accepted" && (
-                <button
-                  onClick={() => handleDecision("accepted")}
-                  className="bg-[#1A73E8] hover:bg-[#1557B0] text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-md"
-                >
-                  Terima Relawan
-                </button>
+              {isEditingData ? (
+                <>
+                  <button
+                    onClick={() => setIsEditingData(false)}
+                    className="text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={saveEditedData}
+                    className="bg-[#1A73E8] hover:bg-[#1557B0] text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-md"
+                  >
+                    💾 Simpan Data
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setIsDetailOpen(false)}
+                    className="text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm"
+                  >
+                    Tutup
+                  </button>
+
+                  {selectedCrew.status === "rejected" && (
+                    <button
+                      onClick={() => handleDecision("pending")}
+                      className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-md"
+                    >
+                      Pulihkan ke Menunggu
+                    </button>
+                  )}
+
+                  {selectedCrew.status !== "accepted" &&
+                    selectedCrew.status !== "rejected" && (
+                      <>
+                        <button
+                          onClick={() => handleDecision("rejected")}
+                          className="text-[#D93025] bg-white border border-rose-200 hover:bg-red-50 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm"
+                        >
+                          Tolak
+                        </button>
+                        <button
+                          onClick={() => handleDecision("accepted")}
+                          className="bg-[#1A73E8] hover:bg-[#1557B0] text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-md"
+                        >
+                          Terima Relawan
+                        </button>
+                      </>
+                    )}
+                  {selectedCrew.status === "accepted" && (
+                    <>
+                      <button
+                        onClick={() => handleDecision("rejected")}
+                        className="text-[#D93025] bg-white border border-rose-200 hover:bg-red-50 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm"
+                      >
+                        Keluarkan
+                      </button>
+                      <button
+                        onClick={handleUpdateRoleOnly}
+                        className="bg-[#1A73E8] hover:bg-[#1557B0] text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-md"
+                      >
+                        Simpan Perubahan
+                      </button>
+                    </>
+                  )}
+                </>
               )}
             </div>
           </div>

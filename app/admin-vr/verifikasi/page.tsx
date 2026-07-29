@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "@/lib/toast";
 import { db, auth } from "@/lib/firebase";
 import {
   collection,
@@ -76,7 +77,7 @@ export default function VerifikasiLariPage() {
       };
       await addDoc(collection(db, "vr_logs"), logData);
     } catch (error) {
-      alert("Gagal memverifikasi data.");
+      toast.error("Gagal memverifikasi data.");
       console.error(error);
     } finally {
       setLoadingAction(null);
@@ -124,7 +125,7 @@ export default function VerifikasiLariPage() {
       await batch.commit();
       setSelectedSubmissions([]);
     } catch (e) {
-      alert("Gagal menghapus data.");
+      toast.error("Gagal menghapus data.");
     } finally {
       setLoadingAction(null);
     }

@@ -2,16 +2,15 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// Ganti nilai di bawah ini dengan konfigurasi dari Firebase Console milikmu
-// (Kamu bisa copy dari file konfigurasi di proyek yang lama)
+// Konfigurasi dibaca dari environment variables (bukan hardcoded)
 const firebaseConfig = {
-  apiKey: "AIzaSyB_oBi8xCjwk0Tj__FhKjjVpBIDKT0aY3Y",
-  authDomain: "suratdigitalv2.firebaseapp.com",
-  projectId: "suratdigitalv2",
-  storageBucket: "suratdigitalv2.firebasestorage.app",
-  messagingSenderId: "46792735306",
-  appId: "1:46792735306:web:ababc2cec51a774cbe84b3",
-  measurementId: "G-0HFMKYDPM6",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
@@ -19,3 +18,4 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 export { app, auth, db };
+

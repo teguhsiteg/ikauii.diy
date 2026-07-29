@@ -311,7 +311,7 @@ export default function ParticipantDashboard() {
       setPopup({
         type: "success",
         title: "Bukti Terkirim!",
-        text: "Menunggu verifikasi admin agar masuk ke Total KM Anda.",
+        text: "Menunggu verifikasi admin agar masuk ke Total Kilometer Anda.",
       });
 
       setSelectedFile(null);
@@ -1025,11 +1025,8 @@ export default function ParticipantDashboard() {
             ctx.textAlign = "center";
             ctx.font = "bold 250px Arial";
 
-            const bibNum =
-              participant.id
-                .replace(/\D/g, "")
-                .substring(0, 4)
-                .padEnd(4, "0") || "0001";
+            // 🔥 LOGIKA BARU: Tarik nomor cantik dari database
+            const bibNum = participant.nomorBibLengkap || "0000";
             ctx.fillText(bibNum, baseWidth / 2, 550);
 
             ctx.fillStyle = "#1e3a8a";
@@ -1088,15 +1085,27 @@ export default function ParticipantDashboard() {
             ctx.textAlign = "center";
             ctx.fillStyle = "#1e3a8a";
             ctx.font = "bold 70px Arial";
-            ctx.fillText("E-CERTIFICATE", baseWidth / 2, 300);
+            // ✅ Tarik Judul dari setting Admin
+            ctx.fillText(
+              settings.certTitle?.toUpperCase() || "E-CERTIFICATE",
+              baseWidth / 2,
+              300,
+            );
 
             ctx.fillStyle = "#64748b";
             ctx.font = "bold 25px Arial";
-            ctx.fillText("OF COMPLETION", baseWidth / 2, 345);
+            // ✅ Tarik Sub Judul dari setting Admin
+            ctx.fillText(
+              settings.certSubtitle?.toUpperCase() || "OF COMPLETION",
+              baseWidth / 2,
+              345,
+            );
 
             ctx.font = "italic 25px Arial";
+            // ✅ Tarik Kalimat Pengantar dari setting Admin
             ctx.fillText(
-              "This certificate is proudly presented to:",
+              settings.certOpening ||
+                "This certificate is proudly presented to:",
               baseWidth / 2,
               450,
             );
@@ -1110,15 +1119,20 @@ export default function ParticipantDashboard() {
 
             ctx.fillStyle = "#334155";
             ctx.font = "28px Arial";
-            ctx.fillText(
-              `For successfully completing the ${participant.jarak} category`,
+
+            // Info Jarak Kategori
+            ctx.fillText(`Kategori: ${participant.jarak}`, baseWidth / 2, 680);
+
+            // ✅ Tarik Kalimat Penutup dari setting Admin.
+            // Kita pakai fungsi wrapText bawaan kita, biar kalau admin ngetiknya panjang, teksnya nggak nabrak keluar canvas!
+            wrapText(
+              ctx,
+              settings.certFooter ||
+                "Atas keberhasilannya menyelesaikan lari secara virtual.",
               baseWidth / 2,
-              700,
-            );
-            ctx.fillText(
-              `in the IKA UII DIY Virtual Run & Charity 2026.`,
-              baseWidth / 2,
-              750,
+              730,
+              1200, // Batas lebar maksimal teks
+              35, // Jarak spasi antar baris
             );
 
             ctx.fillStyle = "#1e3a8a";
@@ -1212,6 +1226,10 @@ export default function ParticipantDashboard() {
             canvas.width / 2,
             canvas.height / 2 + 150,
           );
+          // 🔥 TAMBAHAN UNTUK CUSTOM TEMPLATE 🔥
+          const bibNum = participant.nomorBibLengkap || "0000";
+          ctx.font = "bold 120px Arial";
+          ctx.fillText(bibNum, canvas.width / 2, canvas.height / 2 - 80);
         } else {
           ctx.font = "bold 100px Arial";
           ctx.fillText(
@@ -1393,7 +1411,7 @@ export default function ParticipantDashboard() {
               <div className="flex justify-between items-center mb-8 relative z-50">
                 {activeView === "dashboard" ? (
                   <div className="font-black text-xl tracking-tight hidden sm:block">
-                    IKA UII <span className="text-yellow-400">RUN</span>
+                    IKA UII DIY <span className="text-yellow-400">RUN</span>
                   </div>
                 ) : (
                   <button
@@ -1586,8 +1604,14 @@ export default function ParticipantDashboard() {
                       <h1 className="text-3xl md:text-5xl font-black mb-2 tracking-tight">
                         Virtual Run IKA UII
                       </h1>
-                      <p className="text-blue-200 text-sm font-medium">
+                      <p className="text-blue-200 text-sm font-medium flex items-center gap-2">
                         Paket: {participant.paket.toUpperCase()}
+                        {/* 🔥 MENAMPILKAN NOMOR E-BIB JIKA SUDAH PUNYA 🔥 */}
+                        {participant.nomorBibLengkap && (
+                          <span className="bg-blue-800 text-white px-2 py-0.5 rounded-md font-bold border border-blue-400/30 text-xs shadow-sm">
+                            BIB: {participant.nomorBibLengkap}
+                          </span>
+                        )}
                       </p>
                     </div>
 

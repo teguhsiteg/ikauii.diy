@@ -17,7 +17,7 @@ export default function LayananAlumniPage() {
         "Dapatkan identitas resmi keluarga besar alumni UII. Nikmati berbagai fasilitas eksklusif dan diskon di berbagai merchant mitra IKA UII.",
       icon: (
         <svg
-          className="w-8 h-8"
+          className="w-7 h-7 md:w-8 md:h-8"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -41,7 +41,7 @@ export default function LayananAlumniPage() {
         "Akses informasi lowongan pekerjaan terbaru, program magang, serta peluang karir eksklusif dari jaringan luas alumni UII di berbagai instansi.",
       icon: (
         <svg
-          className="w-8 h-8"
+          className="w-7 h-7 md:w-8 md:h-8"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -59,13 +59,13 @@ export default function LayananAlumniPage() {
       color: "yellow",
     },
     {
-      id: "mentoring",
-      title: "Mentoring & Inkubasi",
+      id: "masterclass",
+      title: "Masterclass Alumni",
       description:
-        "Program bimbingan karir dan bisnis langsung dari alumni senior (expert) kepada fresh graduate untuk mempersiapkan diri menghadapi dunia profesional.",
+        "Akses perpustakaan materi eksklusif, video kelas, dan modul pembelajaran langsung dari alumni senior (expert) untuk akselerasi karir dan bisnis Anda.",
       icon: (
         <svg
-          className="w-8 h-8"
+          className="w-7 h-7 md:w-8 md:h-8"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -78,18 +78,18 @@ export default function LayananAlumniPage() {
           />
         </svg>
       ),
-      actionText: "Daftar Mentoring",
-      link: "#",
+      actionText: "Akses Masterclass",
+      link: "/masterclass",
       color: "green",
     },
     {
       id: "legalisir",
-      title: "Bantuan Administrasi Akademik",
+      title: "Bantuan Akademik",
       description:
         "Panduan lengkap dan pintasan layanan untuk pengajuan legalisir ijazah, transkrip nilai, dan dokumen akademik lainnya langsung ke kampus pusat.",
       icon: (
         <svg
-          className="w-8 h-8"
+          className="w-7 h-7 md:w-8 md:h-8"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -115,7 +115,7 @@ export default function LayananAlumniPage() {
         "Salurkan kontribusi Anda melalui dana abadi alumni, atau daftarkan diri/kerabat untuk mendapatkan bantuan pendidikan dari ikatan alumni.",
       icon: (
         <svg
-          className="w-8 h-8"
+          className="w-7 h-7 md:w-8 md:h-8"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -137,18 +137,18 @@ export default function LayananAlumniPage() {
   return (
     <>
       <NavbarPublic />
-      <main className="bg-slate-50 min-h-screen pt-32 pb-20">
-        {/* HEADER SECTION */}
+      <main className="bg-[#F8F9FA] min-h-screen pt-32 pb-20 font-sans">
+        {/* HEADER SECTION (WORKSPACE STYLE) */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16 text-center animate-in fade-in slide-in-from-bottom-8 duration-700">
-          <h4 className="text-yellow-600 font-bold tracking-widest uppercase text-xs mb-3 flex items-center justify-center gap-3">
-            <span className="w-8 h-px bg-yellow-500"></span>
+          <h4 className="text-yellow-600 font-bold tracking-widest uppercase text-[10px] md:text-xs mb-3 flex items-center justify-center gap-3">
+            <span className="w-6 md:w-8 h-px bg-yellow-500"></span>
             Pusat Pelayanan
-            <span className="w-8 h-px bg-yellow-500"></span>
+            <span className="w-6 md:w-8 h-px bg-yellow-500"></span>
           </h4>
-          <h1 className="text-4xl md:text-5xl font-black text-blue-950 mb-6 tracking-tight">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-[#202124] mb-4 md:mb-6 tracking-tight">
             Layanan Alumni UII
           </h1>
-          <p className="text-slate-500 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
+          <p className="text-[#5F6368] text-sm md:text-base max-w-2xl mx-auto leading-relaxed px-2">
             Kami hadir untuk memberikan kemudahan, fasilitas, dan wadah
             pengembangan diri bagi seluruh keluarga besar alumni Universitas
             Islam Indonesia, khususnya di wilayah Daerah Istimewa Yogyakarta.
@@ -157,43 +157,43 @@ export default function LayananAlumniPage() {
 
         {/* SERVICES GRID */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {services.map((service, index) => (
               <div
                 key={service.id}
-                className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group flex flex-col animate-in fade-in slide-in-from-bottom-8"
+                className="bg-white rounded-[2rem] p-6 md:p-8 shadow-sm border border-[#DADCE0] hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group flex flex-col animate-in fade-in slide-in-from-bottom-8"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                {/* Icon Container */}
+                {/* Icon Container Workspace Colors */}
                 <div
-                  className={`w-16 h-16 rounded-2xl mb-6 flex items-center justify-center transition-colors
-                  ${service.color === "blue" ? "bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white" : ""}
-                  ${service.color === "yellow" ? "bg-yellow-50 text-yellow-600 group-hover:bg-yellow-500 group-hover:text-white" : ""}
-                  ${service.color === "green" ? "bg-green-50 text-green-600 group-hover:bg-green-600 group-hover:text-white" : ""}
-                  ${service.color === "purple" ? "bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white" : ""}
-                  ${service.color === "red" ? "bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white" : ""}
+                  className={`w-14 h-14 md:w-16 md:h-16 rounded-2xl mb-5 md:mb-6 flex items-center justify-center transition-colors shrink-0
+                  ${service.color === "blue" ? "bg-[#E8F0FE] text-[#1A73E8] group-hover:bg-[#1A73E8] group-hover:text-white" : ""}
+                  ${service.color === "yellow" ? "bg-[#FEF7E0] text-[#B06000] group-hover:bg-[#FBBC04] group-hover:text-[#202124]" : ""}
+                  ${service.color === "green" ? "bg-[#E6F4EA] text-[#1E8E3E] group-hover:bg-[#1E8E3E] group-hover:text-white" : ""}
+                  ${service.color === "purple" ? "bg-[#F3E8FD] text-[#A142F4] group-hover:bg-[#A142F4] group-hover:text-white" : ""}
+                  ${service.color === "red" ? "bg-[#FCE8E6] text-[#D93025] group-hover:bg-[#D93025] group-hover:text-white" : ""}
                 `}
                 >
                   {service.icon}
                 </div>
 
                 {/* Text Content */}
-                <h3 className="text-xl font-bold text-blue-950 mb-3 leading-snug">
+                <h3 className="text-lg md:text-xl font-bold text-[#202124] mb-2 leading-snug line-clamp-1">
                   {service.title}
                 </h3>
-                <p className="text-slate-500 text-sm leading-relaxed mb-8 flex-grow">
+                <p className="text-[#5F6368] text-xs md:text-sm leading-relaxed mb-6 md:mb-8 flex-grow">
                   {service.description}
                 </p>
 
-                {/* Action Button */}
+                {/* Action Button (Workspace Pill Style) */}
                 <Link
                   href={service.link}
-                  className={`inline-flex items-center justify-between w-full px-5 py-3.5 rounded-xl text-sm font-bold transition-colors
-                  ${service.color === "blue" ? "bg-blue-50 text-blue-700 hover:bg-blue-100" : ""}
-                  ${service.color === "yellow" ? "bg-yellow-50 text-yellow-700 hover:bg-yellow-100" : ""}
-                  ${service.color === "green" ? "bg-green-50 text-green-700 hover:bg-green-100" : ""}
-                  ${service.color === "purple" ? "bg-purple-50 text-purple-700 hover:bg-purple-100" : ""}
-                  ${service.color === "red" ? "bg-red-50 text-red-700 hover:bg-red-100" : ""}
+                  className={`inline-flex items-center justify-between w-full px-5 py-3.5 md:py-4 rounded-xl text-xs md:text-sm font-bold transition-all shadow-sm
+                  ${service.color === "blue" ? "bg-white border border-[#DADCE0] text-[#1A73E8] group-hover:bg-[#E8F0FE] group-hover:border-[#1A73E8]/30" : ""}
+                  ${service.color === "yellow" ? "bg-white border border-[#DADCE0] text-[#B06000] group-hover:bg-[#FEF7E0] group-hover:border-[#FBBC04]/30" : ""}
+                  ${service.color === "green" ? "bg-white border border-[#DADCE0] text-[#1E8E3E] group-hover:bg-[#E6F4EA] group-hover:border-[#1E8E3E]/30" : ""}
+                  ${service.color === "purple" ? "bg-white border border-[#DADCE0] text-[#A142F4] group-hover:bg-[#F3E8FD] group-hover:border-[#A142F4]/30" : ""}
+                  ${service.color === "red" ? "bg-white border border-[#DADCE0] text-[#D93025] group-hover:bg-[#FCE8E6] group-hover:border-[#D93025]/30" : ""}
                 `}
                 >
                   {service.actionText}
@@ -214,28 +214,43 @@ export default function LayananAlumniPage() {
               </div>
             ))}
 
-            {/* KARTU BANTUAN / KONTAK (Kartu Spesial) */}
+            {/* KARTU BANTUAN / KONTAK (Kartu Spesial - Workspace Dark Mode) */}
             <div
-              className="bg-blue-950 rounded-[2rem] p-8 shadow-xl hover:-translate-y-2 transition-all duration-300 flex flex-col justify-center relative overflow-hidden animate-in fade-in slide-in-from-bottom-8"
+              className="bg-[#202124] rounded-[2rem] p-6 md:p-8 shadow-xl hover:-translate-y-2 transition-all duration-300 flex flex-col justify-center relative overflow-hidden animate-in fade-in slide-in-from-bottom-8 md:col-span-2 lg:col-span-1"
               style={{ animationDelay: `500ms` }}
             >
               {/* Hiasan Latar */}
-              <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-blue-800/50 blur-2xl"></div>
-              <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-32 h-32 rounded-full bg-yellow-500/20 blur-2xl"></div>
+              <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-[#1A73E8]/30 blur-2xl"></div>
+              <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-32 h-32 rounded-full bg-[#FBBC04]/20 blur-2xl"></div>
 
-              <div className="relative z-10">
-                <h3 className="text-xl font-bold text-white mb-3">
-                  Butuh Bantuan Lainnya?
+              <div className="relative z-10 text-center lg:text-left">
+                <div className="w-12 h-12 bg-white/10 text-white rounded-full flex items-center justify-center mb-4 lg:mx-0 mx-auto">
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-xl md:text-2xl font-bold text-white mb-2 md:mb-3">
+                  Butuh Bantuan Lain?
                 </h3>
-                <p className="text-blue-200 text-sm leading-relaxed mb-8">
+                <p className="text-slate-400 text-xs md:text-sm leading-relaxed mb-6 md:mb-8">
                   Tim kesekretariatan DPW IKA UII DIY siap membantu segala
                   keperluan administrasi dan informasi alumni Anda.
                 </p>
                 <a
-                  href="https://wa.me/6285179594146" // Ganti dengan nomor WA resmi
+                  href="https://wa.me/6285179594146" // Nomor WA resmi
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center justify-center gap-2 w-full px-5 py-3.5 bg-yellow-500 hover:bg-yellow-400 text-blue-950 rounded-xl text-sm font-extrabold transition-colors shadow-md"
+                  className="inline-flex items-center justify-center gap-2 w-full px-5 py-3.5 md:py-4 bg-[#FBBC04] hover:bg-[#F9AB00] text-[#202124] rounded-xl text-xs md:text-sm font-bold transition-colors shadow-md"
                 >
                   <svg
                     className="w-5 h-5"
@@ -244,7 +259,7 @@ export default function LayananAlumniPage() {
                   >
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.405-.883-.733-1.48-1.638-1.653-1.935-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                   </svg>
-                  Hubungi Kesekretariatan
+                  Hubungi Sekretariat
                 </a>
               </div>
             </div>

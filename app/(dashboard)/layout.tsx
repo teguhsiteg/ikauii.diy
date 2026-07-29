@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { toast } from "@/lib/toast";
 import { usePathname, useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { signOut, onAuthStateChanged } from "firebase/auth";
@@ -44,6 +45,7 @@ export default function DashboardLayout({
     role: "loading",
     bidang: "",
     initials: "...",
+    aksesModul: [] as string[],
   });
 
   // 1. FETCH MASTER DATA BIDANG (Untuk Form Onboarding & Sidebar)
@@ -81,7 +83,7 @@ export default function DashboardLayout({
     fetchBidang();
   }, []);
 
-  // 2. PANTAU LOGIN & CEK APAKAH USER BARU
+  // 2. PANTAU LOGIN & SATPAM VIRTUAL (CEK HAK AKSES)
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -90,6 +92,13 @@ export default function DashboardLayout({
 
           if (userDoc.exists()) {
             const data = userDoc.data();
+
+            if (data.isActive === false) {
+              toast.error("Akun Admin Anda dinonaktifkan sementara.");
+              router.replace("/anggota");
+              return;
+            }
+
             const namaSistem =
               data.nama || user.displayName || user.email || "Admin";
             const initials = namaSistem
@@ -107,9 +116,18 @@ export default function DashboardLayout({
               role: data.role || "koordinator",
               bidang: data.bidang || "",
               initials: initials || "US",
+              aksesModul: data.aksesModul || [],
             });
             setNeedsOnboarding(false);
           } else {
+            const pengurusSnap = await getDoc(doc(db, "pengurus", user.uid));
+            const pendaftarSnap = await getDoc(doc(db, "pendaftar", user.uid));
+
+            if (pengurusSnap.exists() || pendaftarSnap.exists()) {
+              router.replace("/anggota");
+              return;
+            }
+
             setUserProfile((prev) => ({
               ...prev,
               uid: user.uid,
@@ -119,6 +137,7 @@ export default function DashboardLayout({
           }
         } catch (error) {
           console.error("Gagal memuat profil:", error);
+          router.replace("/anggota");
         }
       } else {
         router.push("/login");
@@ -128,12 +147,10 @@ export default function DashboardLayout({
     return () => unsubscribe();
   }, [router]);
 
-  // Tutup sidebar mobile saat pindah halaman
   useEffect(() => {
     setIsSidebarOpen(false);
   }, [pathname]);
 
-  // Tutup menu profil jika klik di luar area menu
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -153,7 +170,7 @@ export default function DashboardLayout({
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!onboardData.bidang) {
-      alert("Silakan pilih bidang Anda terlebih dahulu!");
+      toast.warning("Silakan pilih bidang Anda terlebih dahulu!");
       return;
     }
     setIsSavingProfile(true);
@@ -163,12 +180,14 @@ export default function DashboardLayout({
         email: userProfile.email,
         bidang: onboardData.bidang,
         role: "koordinator",
+        isActive: true,
+        aksesModul: ["ringkasan"],
         createdAt: new Date().toISOString(),
       });
       window.location.reload();
     } catch (error) {
       console.error("Gagal menyimpan profil", error);
-      alert("Gagal menyimpan data profil.");
+      toast.error("Gagal menyimpan data profil.");
       setIsSavingProfile(false);
     }
   };
@@ -180,7 +199,7 @@ export default function DashboardLayout({
     router.push("/login");
   };
 
-  // --- TAMPILAN LOADING (ENTERPRISE INITIALIZATION) ---
+  // --- TAMPILAN LOADING ---
   if (userProfile.role === "loading" && !needsOnboarding) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC]">
@@ -189,13 +208,13 @@ export default function DashboardLayout({
           <div className="absolute w-16 h-16 border-4 border-transparent border-t-blue-600 rounded-full animate-spin"></div>
         </div>
         <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] animate-pulse">
-          Autentikasi Sesi Anda...
+          MENGOTENTIKASI HAK AKSES...
         </p>
       </div>
     );
   }
 
-  // --- TAMPILAN ONBOARDING (USER BARU) ---
+  // --- TAMPILAN ONBOARDING ---
   if (needsOnboarding) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative font-sans">
@@ -213,7 +232,7 @@ export default function DashboardLayout({
               />
             </div>
             <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-1.5">
-              Setup Profil Anda
+              Setup Admin Workspace
             </h2>
             <p className="text-sm text-slate-500 leading-relaxed">
               Konfigurasi kredensial awal Anda agar sistem dapat
@@ -282,102 +301,135 @@ export default function DashboardLayout({
     );
   }
 
-  // --- LOGIKA FILTERING MENU (RBAC) ---
+  // --- LOGIKA FILTERING MENU (RBAC DINAMIS) 🔥 ---
   const isSuperAdmin = userProfile.role === "super_admin";
 
   const allTopMenuItems = [
     {
+      id: "ringkasan",
       name: "Ringkasan",
       path: "/dashboard",
       icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6",
-      access: "all",
+    },
+    // 🔥 MENU BARU: LMS MASTERCLASS (DITAMBAHKAN KEMBALI) 🔥
+    {
+      id: "masterclass_lms",
+      name: "LMS Masterclass",
+      path: "/dashboard/masterclass",
+      icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253",
+      badge: "PRO",
+      theme: "indigo", // Tema warna khusus
     },
     {
+      id: "bio_engine",
+      name: "Bio Engine",
+      path: "/dashboard/bio",
+      icon: "M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1",
+      badge: "Shortlink",
+      theme: "amber",
+    },
+    {
+      id: "registri_surat",
       name: "Registri Surat",
       path: "/dashboard/e-office",
       icon: "M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z",
-      access: "all",
     },
     {
+      id: "master_organisasi",
       name: "Master Organisasi",
       path: "/dashboard/master-data",
       icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10",
-      access: "super_admin",
     },
     {
-      // NEW MENU: VERIFIKASI ANGGOTA 🔥
+      id: "verifikasi_anggota",
       name: "Verifikasi Anggota",
       path: "/dashboard/verifikasi-anggota",
       icon: "M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z",
-      access: "super_admin",
     },
     {
+      id: "gudang_dokumen",
       name: "Gudang Dokumen",
       path: "/dashboard/dokumen",
       icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
-      access: "all",
     },
     {
+      id: "qr_tanda_tangan",
       name: "QR Tanda Tangan",
       path: "/dashboard/validasi",
       icon: "M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z",
-      access: "super_admin",
     },
     {
+      id: "cetak_kuitansi",
       name: "Cetak Kuitansi",
       path: "/dashboard/kuitansi",
       icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
-      access: "super_admin",
     },
     {
+      id: "data_pendaftar",
       name: "Data Pendaftar",
       path: "/dashboard/peserta",
       icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z",
-      access: "all",
     },
     {
+      id: "manajemen_pengguna",
       name: "Manajemen Pengguna",
       path: "/dashboard/users",
       icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z",
-      access: "super_admin",
+      requireSuperAdmin: true,
     },
     {
+      id: "kelola_direktori",
       name: "Kelola Direktori",
       path: "/dashboard/direktori",
       icon: "M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z",
-      access: "super_admin",
+    },
+    {
+      id: "manajemen_event_run",
+      name: "Manajemen Event Run",
+      path: "/admin-vr/offline",
+      icon: "M13 10V3L4 14h7v7l9-11h-7z",
+    },
+    {
+      id: "broadcast_sistem",
+      name: "Broadcast Email",
+      path: "/dashboard/broadcast",
+      icon: "M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z",
     },
   ];
 
   const allBottomMenuItems = [
     {
+      id: "atur_donasi",
       name: "Atur Donasi Jum'at",
       path: "/dashboard/donasi",
       icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
       isHighlight: true,
-      access: "sosial",
     },
     {
+      id: "pengaturan_web",
       name: "Pengaturan Web (CMS)",
       path: "/dashboard/pengaturan",
       icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z",
       isHighlight: false,
-      access: "super_admin",
     },
   ];
 
-  const visibleTopMenu = allTopMenuItems.filter(
-    (item) => isSuperAdmin || item.access === "all",
-  );
+  // 🔥 Filter Menu Utama Berdasarkan Hak Akses Array 🔥
+  const visibleTopMenu = allTopMenuItems.filter((item) => {
+    if (isSuperAdmin) return true;
+    if (item.requireSuperAdmin) return false;
+    return userProfile.aksesModul.includes(item.id);
+  });
+
+  // 🔥 Filter Menu Bawah Berdasarkan Hak Akses Array 🔥
   const visibleBottomMenu = allBottomMenuItems.filter((item) => {
     if (isSuperAdmin) return true;
-    if (
-      item.access === "sosial" &&
-      userProfile.bidang.toLowerCase().includes("sosial")
-    )
-      return true;
-    return false;
+    return userProfile.aksesModul.includes(item.id);
   });
+
+  // 🔥 Akses Menu Program Kerja 🔥
+  const hasAksesProker =
+    isSuperAdmin || userProfile.aksesModul.includes("program_kerja");
 
   const visibleBidangList = bidangList.filter((b) => {
     if (isSuperAdmin) return true;
@@ -445,11 +497,76 @@ export default function DashboardLayout({
           </p>
 
           <div className="space-y-1 mb-8 px-4">
-            {visibleTopMenu.map((item) => {
+            {visibleTopMenu.map((item: any) => {
               const isActive =
                 item.path === "/dashboard"
                   ? pathname === "/dashboard"
                   : pathname.startsWith(item.path);
+
+              // 🎨 LOGIKA STYLE DINAMIS UNTUK MENU BER-BADGE 🎨
+              if (item.badge) {
+                // Menentukan warna berdasarkan tema yang di-set di object menu
+                const colorConfig = {
+                  amber: {
+                    activeBg:
+                      "from-amber-500/20 to-transparent border-amber-500/50 text-amber-400",
+                    inactiveBg:
+                      "hover:bg-slate-800/50 border-transparent hover:border-amber-500/30 text-amber-500/70 hover:text-amber-400",
+                    iconActive: "text-amber-400",
+                    iconInactive:
+                      "text-amber-500/50 group-hover:text-amber-400",
+                    badgeActive: "bg-amber-400 text-slate-900",
+                    badgeInactive: "bg-amber-500/20 text-amber-500",
+                  },
+                  indigo: {
+                    activeBg:
+                      "from-indigo-500/20 to-transparent border-indigo-500/50 text-indigo-400",
+                    inactiveBg:
+                      "hover:bg-slate-800/50 border-transparent hover:border-indigo-500/30 text-indigo-400/70 hover:text-indigo-400",
+                    iconActive: "text-indigo-400",
+                    iconInactive:
+                      "text-indigo-400/50 group-hover:text-indigo-400",
+                    badgeActive: "bg-indigo-400 text-slate-900",
+                    badgeInactive: "bg-indigo-500/20 text-indigo-400",
+                  },
+                };
+
+                const theme =
+                  colorConfig[item.theme as keyof typeof colorConfig] ||
+                  colorConfig.amber;
+
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.path}
+                    className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all font-medium text-sm group border ${isActive ? `bg-gradient-to-r ${theme.activeBg}` : theme.inactiveBg}`}
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <svg
+                        className={`w-5 h-5 shrink-0 transition-colors ${isActive ? theme.iconActive : theme.iconInactive}`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={isActive ? 2.5 : 2}
+                          d={item.icon}
+                        />
+                      </svg>
+                      {item.name}
+                    </div>
+                    <span
+                      className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${isActive ? theme.badgeActive : theme.badgeInactive}`}
+                    >
+                      {item.badge}
+                    </span>
+                  </Link>
+                );
+              }
+
+              // Style Menu Normal (Default)
               return (
                 <Link
                   key={item.name}
@@ -475,7 +592,8 @@ export default function DashboardLayout({
             })}
           </div>
 
-          {visibleBidangList.length > 0 && (
+          {/* HANYA TAMPILKAN PROKER JIKA PUNYA AKSES */}
+          {hasAksesProker && visibleBidangList.length > 0 && (
             <>
               <p className="px-8 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
                 Ruang Kerja Bidang
@@ -650,7 +768,7 @@ export default function DashboardLayout({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
+                  d="M19 9l-7-7-7-7"
                 />
               </svg>
             </button>

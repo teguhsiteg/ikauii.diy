@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { toast } from "@/lib/toast";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc, onSnapshot } from "firebase/firestore";
 
@@ -68,7 +69,7 @@ export default function BibScannerPage() {
       inputRef.current?.focus();
     } catch (error) {
       console.error("Gagal simpan template", error);
-      alert("Gagal menyimpan template! Cek koneksi internet.");
+      toast.error("Gagal menyimpan template! Cek koneksi internet.");
     } finally {
       setIsSavingTemplate(false);
     }
@@ -136,7 +137,7 @@ export default function BibScannerPage() {
         ].slice(0, 30),
       );
     } catch (error) {
-      alert("Koneksi terputus!");
+      toast.error("Koneksi terputus!");
     } finally {
       setBibInput("");
       setIsProcessing(false);

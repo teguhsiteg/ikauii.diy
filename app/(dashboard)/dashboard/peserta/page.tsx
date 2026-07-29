@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import { toast } from "@/lib/toast";
 import { db, auth } from "@/lib/firebase";
 import {
   collection,
@@ -110,7 +111,7 @@ export default function PesertaAgendaPage() {
       setPesertaList(rawData);
     } catch (error: any) {
       console.log("Error Firebase:", error);
-      alert(
+      toast.error(
         "Gagal memuat daftar peserta. Cek koneksi internet atau Rules Firebase Anda. \nPesan Sistem: " +
           error.message,
       );
@@ -236,7 +237,7 @@ export default function PesertaAgendaPage() {
         setPesertaList(pesertaList.filter((p) => !selectedIds.includes(p.id)));
         setSelectedIds([]);
       } catch (error) {
-        alert("Gagal menghapus beberapa data.");
+        toast.error("Gagal menghapus beberapa data.");
       }
     }
   };
@@ -358,7 +359,7 @@ export default function PesertaAgendaPage() {
         setImportStep(2);
       } catch (error) {
         console.log("Error baca excel:", error);
-        alert("Gagal membaca file Excel. Pastikan formatnya benar.");
+        toast.error("Gagal membaca file Excel. Pastikan formatnya benar.");
       } finally {
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
@@ -371,9 +372,7 @@ export default function PesertaAgendaPage() {
     const dataReadyToSave = previewData.filter((row) => !row.isDuplicate);
 
     if (dataReadyToSave.length === 0) {
-      alert(
-        "⚠️ Semua data dalam file adalah duplikat. Tidak ada data baru yang ditambahkan.",
-      );
+      toast.warning("Semua data dalam file adalah duplikat. Tidak ada data baru yang ditambahkan.");
       return;
     }
 
@@ -401,14 +400,12 @@ export default function PesertaAgendaPage() {
       });
 
       await Promise.all(promises);
-      alert(
-        `✅ Berhasil! ${successCount} data pendaftar BARU telah ditambahkan.`,
-      );
+      toast.success(`Berhasil! ${successCount} data pendaftar BARU telah ditambahkan.`);
       closeImportModal();
       handleSelectAgenda(selectedAgenda);
     } catch (error) {
       console.log("Gagal simpan import:", error);
-      alert("Terjadi kesalahan saat memproses data ke server.");
+      toast.error("Terjadi kesalahan saat memproses data ke server.");
     } finally {
       setIsImportingData(false);
     }

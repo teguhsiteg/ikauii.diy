@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "@/lib/toast";
 import { db, auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -230,7 +231,7 @@ export default function PengelolaanDonasiPage() {
         status: "Aktif",
       });
     } catch (error) {
-      alert("Gagal membuat periode baru.");
+      toast.error("Gagal membuat periode baru.");
     } finally {
       setIsSubmitting(false);
     }
@@ -283,7 +284,7 @@ export default function PengelolaanDonasiPage() {
       );
       setTransaksiList(data);
     } catch (error) {
-      alert("Gagal menginput donasi.");
+      toast.error("Gagal menginput donasi.");
     } finally {
       setIsSubmitting(false);
     }

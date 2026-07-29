@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 export default function FooterPublic() {
   const [showTopBtn, setShowTopBtn] = useState(false);
+  const [landingData, setLandingData] = useState<any>(null);
 
-  // Deteksi scroll untuk memunculkan tombol Back to Top
+  // 1. Deteksi scroll untuk memunculkan tombol Back to Top
   useEffect(() => {
     const handleScroll = () => {
       setShowTopBtn(window.scrollY > 400);
@@ -15,9 +18,32 @@ export default function FooterPublic() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // 2. Fetch Data Pengaturan dari Firestore
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const docRef = doc(db, "settings", "landing_page");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setLandingData(docSnap.data());
+        }
+      } catch (error) {
+        console.error("Gagal menarik data pengaturan footer:", error);
+      }
+    };
+    fetchSettings();
+  }, []);
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  // 🔥 Format tanggal pembaruan otomatis (Mengikuti waktu rilis/akses saat ini)
+  const lastUpdated = new Date().toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <>
@@ -92,27 +118,124 @@ export default function FooterPublic() {
                   Dukung program sosial dan pengembangan almamater melalui
                   donasi terbaik Anda.
                 </p>
-                <div className="bg-white p-4 rounded-xl text-center">
+                <div className="bg-white p-4 rounded-xl text-center shadow-lg">
                   <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">
-                    Bank BPD DIY
+                    {landingData?.bankName || "Bank BPD DIY"}
                   </p>
-                  <p className="text-xl font-extrabold text-blue-950 tracking-wider mb-1">
-                    00 1111 00 1200
+                  <p className="text-xl font-extrabold text-blue-950 tracking-wider mb-1 font-mono">
+                    {landingData?.bankNumber || "00 1111 00 1200"}
                   </p>
                   <p className="text-slate-600 font-medium text-xs">
-                    a.n. DPW IKA UII DIY
+                    {landingData?.bankOwner
+                      ? `a.n. ${landingData.bankOwner}`
+                      : "a.n. DPW IKA UII DIY"}
                   </p>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* ==========================================
+              TAUTAN CEPAT & VISITOR COUNTER
+              ========================================== */}
+          <div className="border-t border-white/10 py-6 flex flex-col md:flex-row justify-between items-center gap-4 select-none text-center md:text-left">
+            {/* Tautan Cepat */}
+            <div className="flex flex-wrap justify-center md:justify-start items-center gap-x-6 gap-y-2 text-xs font-semibold text-slate-400">
+              <Link
+                href="/berita"
+                className="hover:text-yellow-400 transition-colors"
+              >
+                Berita & Rilis
+              </Link>
+              <Link
+                href="/agenda"
+                className="hover:text-yellow-400 transition-colors"
+              >
+                Agenda Kegiatan
+              </Link>
+              <Link
+                href="/galeri"
+                className="hover:text-yellow-400 transition-colors"
+              >
+                Galeri Foto
+              </Link>
+              <Link
+                href="/tentang-kami"
+                className="hover:text-yellow-400 transition-colors"
+              >
+                Tentang DPW
+              </Link>
+            </div>
+
+            {/* Flag Counter Tanpa Pembungkus Transparan */}
+            <div className="shrink-0">
+              <a
+                href="https://info.flagcounter.com/Xfqa"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block opacity-75 hover:opacity-100 transition-opacity duration-300"
+              >
+                <img
+                  src="https://s05.flagcounter.com/count2/Xfqa/bg_0B1221/txt_FFFFFF/border_0B1221/columns_3/maxflags_12/viewers_0/labels_0/pageviews_0/flags_0/percent_0/"
+                  alt="Flag Counter"
+                  className="h-auto max-w-full"
+                />
+              </a>
+            </div>
+          </div>
         </div>
 
-        {/* Copyright */}
-        <div className="border-t border-white/10 bg-black/40 relative z-10">
-          <div className="max-w-7xl mx-auto px-4 py-5 text-center text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-2">
-            <p>&copy; {new Date().getFullYear()} DPW IKA UII DIY.</p>
-            <p>Dikembangkan oleh Media & Publikasi - PT Guwigo Teknologi.</p>
+        {/* 🔥 COPYRIGHT & LEGAL BARU (SEJAJAR & RAPI) 🔥 */}
+        <div className="border-t border-white/10 bg-black/40 relative z-10 select-none">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500">
+            {/* Sisi Kiri: Copyright & Legal Links */}
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-3 gap-y-1.5 text-center md:text-left">
+              <p>
+                &copy; {new Date().getFullYear()}{" "}
+                <span className="text-slate-300 font-semibold">
+                  DPW IKA UII DIY
+                </span>
+                .
+              </p>
+              <span className="hidden sm:inline text-slate-700">|</span>
+              <Link
+                href="/kebijakan-privasi"
+                className="text-slate-400 hover:text-blue-400 transition-colors font-medium"
+              >
+                Kebijakan Privasi
+              </Link>
+              <span className="text-slate-700">•</span>
+              <Link
+                href="/syarat-ketentuan"
+                className="text-slate-400 hover:text-blue-400 transition-colors font-medium"
+              >
+                Syarat & Ketentuan
+              </Link>
+              <span className="text-slate-700">•</span>
+              <Link
+                href="/regulasi"
+                className="text-slate-400 hover:text-blue-400 transition-colors font-medium"
+              >
+                Regulasi & Edaran
+              </Link>
+            </div>
+
+            {/* Sisi Kanan: Keterangan Versi & Deployment */}
+            <div className="flex flex-col md:items-end text-center md:text-right gap-1">
+              <p className="text-[11px] leading-relaxed">
+                Dikembangkan melalui kerja sama Media & Publikasi DPW dengan{" "}
+                <span className="text-slate-300 font-medium">
+                  PT Guwigo Teknologi Indonesia
+                </span>
+                .
+              </p>
+              <p className="text-[10px] text-slate-600 font-medium tracking-wide">
+                Sistem dimutakhirkan secara berkala pada:{" "}
+                <span className="text-yellow-500/80 font-bold">
+                  {lastUpdated}
+                </span>
+              </p>
+            </div>
           </div>
         </div>
       </footer>

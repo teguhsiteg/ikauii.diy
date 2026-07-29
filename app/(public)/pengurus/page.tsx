@@ -75,12 +75,31 @@ export default function PengurusPage() {
           ...doc.data(),
         }));
 
-        const cleanData = rawData.filter(
-          (p: any) =>
+        // =========================================================================
+        // 🔥 GERBANG UTAMA: ATURAN ADMIN (Hanya Pengurus Sah yang lolos!) 🔥
+        // =========================================================================
+        const cleanData = rawData.filter((p: any) => {
+          // 1. Pastikan Admin sudah mencentang/menjadikan dia Pengurus
+          // (Cek beberapa variasi nama field dari panel Admin jenengan)
+          const isSahPengurus =
+            p.role === "pengurus" ||
+            p.isPengurus === true ||
+            p.tampilDiWeb === true ||
+            p.status_pengurus === "Aktif";
+
+          // 2. Pastikan bidangnya valid dan bukan anggota biasa
+          const hasBidang =
             p.bidang &&
             p.bidang.trim() !== "" &&
-            p.bidang !== "Belum Ditentukan",
-        );
+            p.bidang !== "Belum Ditentukan" &&
+            p.bidang !== "Anggota Biasa";
+
+          // Jika BUKAN pengurus sah DARI ADMIN, tendang keluar!
+          if (!isSahPengurus) return false;
+
+          // Lolos seleksi
+          return hasBidang;
+        });
 
         const sortedData = cleanData.sort((a: any, b: any) => {
           const rankDiff = getRank(b.jabatan) - getRank(a.jabatan);
@@ -345,7 +364,6 @@ export default function PengurusPage() {
                   namaBidang.includes("penasehat");
                 const isPengurusHarian = namaBidang.includes("harian");
 
-                // 🔥 Cek apakah sedang dicari/difilter ATAU sedang di-expand
                 const isExpanded =
                   searchTerm !== "" ||
                   activeBidang !== "Semua" ||
@@ -356,7 +374,6 @@ export default function PengurusPage() {
                     key={groupIdx}
                     className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden transition-all duration-300"
                   >
-                    {/* --- 🔥 DIVIDER / HEADER ACCORDION 🔥 --- */}
                     <div
                       onClick={() => toggleGroup(group.bidangName)}
                       className={`flex justify-between items-center p-5 md:p-6 cursor-pointer transition-colors ${isExpanded ? "bg-slate-50 border-b border-slate-100" : "hover:bg-slate-50"}`}
@@ -393,11 +410,9 @@ export default function PengurusPage() {
                       </div>
                     </div>
 
-                    {/* --- ISI / KONTEN DIVIDER --- */}
                     <div
                       className={`transition-all duration-500 ease-in-out origin-top ${isExpanded ? "opacity-100 max-h-[5000px] p-6 md:p-10" : "opacity-0 max-h-0 p-0 overflow-hidden"}`}
                     >
-                      {/* Mode Cari: Grid Biasa */}
                       {searchTerm || activeBidang !== "Semua" ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                           {group.items.map((p: any) => (
@@ -405,7 +420,6 @@ export default function PengurusPage() {
                           ))}
                         </div>
                       ) : (
-                        /* Mode Normal: Tree Diagram */
                         <>
                           {isCentralBlock ? (
                             <div className="relative flex flex-col items-center">

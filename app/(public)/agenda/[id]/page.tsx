@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, use, useRef } from "react";
+import { toast } from "@/lib/toast";
 import { db } from "@/lib/firebase";
 import {
   doc,
@@ -12,6 +13,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 import FooterPublic from "@/components/layout/FooterPublic";
+import { sendEmailAction } from "@/app/actions/email";
 
 export default function DetailAgendaPage({
   params,
@@ -193,14 +195,14 @@ export default function DetailAgendaPage({
   ]);
 
   const handleDownloadTwibbon = async () => {
-    if (!twibbonName) return alert("Silakan isi nama Anda terlebih dahulu!");
-    if (!userPhoto) return alert("Silakan pilih foto Anda terlebih dahulu!");
+    if (!twibbonName) { toast.warning("Silakan isi nama Anda terlebih dahulu!"); return; }
+    if (!userPhoto) { toast.warning("Silakan pilih foto Anda terlebih dahulu!"); return; }
     if (!canvasRef.current) return;
 
     canvasRef.current.toBlob(
       async (blob) => {
         if (!blob) {
-          alert("Terjadi kesalahan saat merender gambar.");
+          toast.error("Terjadi kesalahan saat merender gambar.");
           return;
         }
 
@@ -303,7 +305,7 @@ export default function DetailAgendaPage({
       });
       setDonasiStep(2);
     } catch (error) {
-      alert("Terjadi kesalahan, silakan coba lagi.");
+      toast.error("Terjadi kesalahan, silakan coba lagi.");
     } finally {
       setIsSubmittingDonasi(false);
     }
@@ -394,8 +396,24 @@ export default function DetailAgendaPage({
       setRegisteredId(docRef.id);
       setIsSuccess(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
+
+      // 📧 Kirim email konfirmasi pendaftaran agenda secara background menggunakan Server Action
+      sendEmailAction({
+        type: "agenda_registration",
+        email: formData.email,
+        nama: formData.nama,
+        detail: {
+          judulAgenda: agenda.judul,
+          tanggal: agenda.tanggal,
+          waktu: agenda.waktu,
+          format: agenda.format,
+          tipeDaftar: formData.tipeDaftar,
+          registeredId: docRef.id,
+        },
+      }).catch((err) => console.warn("Email notifikasi gagal:", err));
+
     } catch (error) {
-      alert("Terjadi kesalahan sistem. Silakan coba lagi.");
+      toast.error("Terjadi kesalahan sistem. Silakan coba lagi.");
     } finally {
       setIsSubmitting(false);
     }

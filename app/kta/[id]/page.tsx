@@ -1,46 +1,171 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { toast } from "@/lib/toast";
 import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { useParams } from "next/navigation";
+import { db, auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { useParams, useRouter } from "next/navigation";
 import QRCode from "react-qr-code";
-import html2canvas from "html2canvas";
+import { toPng } from "html-to-image";
+import jsPDF from "jspdf";
 import Link from "next/link";
+
+// ==============================================
+// 🔥 KOMPONEN SMART LOADER (PERSENTASE) 🔥
+// ==============================================
+const SmartLoader = () => {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setProgress((oldProgress) => {
+        if (oldProgress === 100) return 100;
+        const diff =
+          oldProgress < 50
+            ? Math.random() * 15
+            : oldProgress < 80
+              ? Math.random() * 5
+              : oldProgress < 99
+                ? Math.random() * 1
+                : 0;
+        const nextProgress = oldProgress + diff;
+        return nextProgress > 99 ? 99 : nextProgress;
+      });
+    }, 200);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="min-h-screen fixed inset-0 z-[9999] bg-[#0B2239] flex flex-col items-center justify-center p-6">
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/hexellence.png')] opacity-10"></div>
+      <div className="absolute inset-0 bg-gradient-to-t from-[#0B2239] via-transparent to-[#0B2239]"></div>
+
+      <div className="relative z-10 flex flex-col items-center w-full max-w-xs animate-in zoom-in-95 duration-500">
+        <div className="w-24 h-24 bg-white rounded-full p-4 mb-8 shadow-[0_0_30px_rgba(252,209,22,0.3)] animate-pulse border-2 border-[#FCD116]">
+          <img
+            src="/logo-dpp-ika.png"
+            alt="IKA UII Loading"
+            className="w-full h-full object-contain"
+          />
+        </div>
+        <h2 className="text-[#FCD116] font-black tracking-widest uppercase mb-1 text-sm">
+          Menyiapkan Sistem
+        </h2>
+        <p className="text-slate-400 text-xs mb-6 font-medium tracking-wide">
+          Memuat data aman terenkripsi...
+        </p>
+
+        <div className="w-full bg-[#1e3656] rounded-full h-3 mb-3 p-0.5 border border-white/10 shadow-inner overflow-hidden">
+          <div
+            className="bg-gradient-to-r from-[#F29900] to-[#FCD116] h-full rounded-full transition-all duration-300 ease-out relative"
+            style={{ width: `${Math.floor(progress)}%` }}
+          >
+            <div className="absolute top-0 right-0 bottom-0 left-0 bg-white/20 animate-[shimmer_1.5s_infinite]"></div>
+          </div>
+        </div>
+
+        <div className="flex justify-between w-full text-[10px] font-bold text-slate-300">
+          <span>0%</span>
+          <span className="text-[#FCD116] text-lg">
+            {Math.floor(progress)}%
+          </span>
+          <span>100%</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ==============================================
+// 🔥 KOMPONEN WATERMARK PENGAMAN KARTU 🔥
+// ==============================================
+const SecurityWatermark = () => (
+  <div className="absolute inset-0 z-20 overflow-hidden pointer-events-none opacity-[0.035] flex flex-wrap items-center justify-center p-2">
+    {Array.from({ length: 40 }).map((_, i) => (
+      <span
+        key={i}
+        className="text-[14px] font-mono font-bold text-slate-950 mx-2 my-2"
+        style={{ transform: "rotate(-30deg)" }}
+      >
+        IKA UII DIY VALID KTA
+      </span>
+    ))}
+  </div>
+);
 
 export default function KTAPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
 
   const [userData, setUserData] = useState<any>(null);
+  const [periodeData, setPeriodeData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false);
 
-  // State untuk Popup Preview
-  const [ktaImageBase64, setKtaImageBase64] = useState<string | null>(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isProcessingPNG, setIsProcessingPNG] = useState(false);
+  const [isProcessingPDF, setIsProcessingPDF] = useState(false);
 
-  const ktaRef = useRef<HTMLDivElement>(null);
+  const [isOwner, setIsOwner] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  const exportContainerRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [currentUrl, setCurrentUrl] = useState("");
   const [scale, setScale] = useState(1);
+  const [userKoleksi, setUserKoleksi] = useState("");
 
-  // 1. Fetch Data dari Firebase
+  // 1. CEK AUTH STATE
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setCurrentUrl(window.location.href);
-    }
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) setCurrentUser(user);
+      else setCurrentUser(null);
+    });
+    return () => unsubscribe();
+  }, []);
 
-    const fetchUser = async () => {
+  // 2. FETCH DATA & CEK OWNER
+  useEffect(() => {
+    if (typeof window !== "undefined") setCurrentUrl(window.location.href);
+
+    const fetchData = async () => {
       try {
-        const docRef = doc(db, "pengurus", id);
-        const docSnap = await getDoc(docRef);
+        let docRef = doc(db, "pengurus", id);
+        let docSnap = await getDoc(docRef);
+        let koleksiFound = "pengurus";
+
+        if (!docSnap.exists()) {
+          docRef = doc(db, "pendaftar", id);
+          docSnap = await getDoc(docRef);
+          koleksiFound = "pendaftar";
+        }
 
         if (docSnap.exists()) {
-          setUserData({ id: docSnap.id, ...docSnap.data() });
-        } else {
-          setUserData(null);
+          const uData = { id: docSnap.id, ...docSnap.data() };
+          setUserData(uData);
+          setUserKoleksi(koleksiFound);
+
+          if (currentUser) {
+            const isUidMatch = currentUser.uid === id;
+            const isEmailMatch =
+              uData.email &&
+              currentUser.email &&
+              uData.email.toLowerCase() === currentUser.email.toLowerCase();
+
+            if (isUidMatch || isEmailMatch) {
+              setIsOwner(true);
+            } else {
+              setIsOwner(false);
+            }
+          }
+
+          if (uData.periodeId) {
+            const pRef = doc(db, "periode", uData.periodeId);
+            const pSnap = await getDoc(pRef);
+            if (pSnap.exists()) setPeriodeData(pSnap.data());
+          }
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -49,252 +174,442 @@ export default function KTAPage() {
       }
     };
 
-    if (id) fetchUser();
-  }, [id]);
+    if (id && currentUser !== undefined) fetchData();
+  }, [id, currentUser]);
 
-  // 2. Kalkulasi Skala Responsif (Anti Kepotong)
+  // 3. LOGIKA RESPONSIVE SCALE
   useEffect(() => {
     const handleResize = () => {
       if (containerRef.current) {
-        // Kurangi padding agar shadow KTA tidak terpotong
-        const containerWidth = containerRef.current.offsetWidth - 32;
-        const newScale = Math.min(1, containerWidth / 600);
-        setScale(newScale);
+        const containerWidth = containerRef.current.offsetWidth;
+        const isDesktop = window.innerWidth >= 1024;
+        const baseWidth = isDesktop ? 840 : 400;
+        const newScale = Math.min(1, containerWidth / baseWidth);
+        setScale(newScale * 0.95);
       }
     };
-
-    handleResize();
+    setTimeout(handleResize, 150);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [userData]);
 
-  // 3. Helper: Generate Canvas KTA
-  const generateCanvas = async () => {
-    if (!ktaRef.current) return null;
-
-    // Pastikan DOM sudah update sebelum di-capture
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    const canvas = await html2canvas(ktaRef.current, {
-      scale: 4, // Resolusi Ultra HD
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: "#ffffff",
-      logging: false, // Mematikan log untuk mencegah error console
-    });
-
-    return canvas.toDataURL("image/png", 1.0);
-  };
-
-  // 4. Fungsi PREVIEW KTA
-  const handlePreview = async () => {
-    setIsProcessing(true);
-    try {
-      const base64Image = await generateCanvas();
-      if (base64Image) {
-        setKtaImageBase64(base64Image);
-        setIsPreviewOpen(true);
-      }
-    } catch (error) {
-      console.error("Gagal preview:", error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // 5. Fungsi DOWNLOAD & UPDATE DATABASE (DIPERBAIKI)
-  const handleDownload = async () => {
-    setIsProcessing(true);
-    try {
-      const currentDate = new Date().toISOString();
-      const currentCount = (userData?.printCount || 0) + 1;
-
-      // Update State Lokal dulu supaya langsung ter-render di KTA sebelum di-capture
-      setUserData((prev: any) => ({
-        ...prev,
-        printCount: currentCount,
-        lastPrintDate: currentDate,
-      }));
-
-      // ==========================================
-      // PERBAIKAN: TRY-CATCH KHUSUS UNTUK FIREBASE
-      // ==========================================
-      // Memisahkan proses update database agar jika rules Firebase memblokir
-      // atau koneksi jelek, proses download gambar TIDAK ikut gagal.
-      try {
-        await updateDoc(doc(db, "pengurus", id), {
-          printCount: increment(1),
-          lastPrintDate: currentDate,
-        });
-      } catch (dbError) {
-        console.warn(
-          "Izin Firebase ditolak atau gagal update counter cetak, namun proses unduh KTA akan dilanjutkan.",
-          dbError,
-        );
-      }
-      // ==========================================
-
-      // Generate Image dengan data baru (yang sudah diupdate statenya)
-      const base64Image = await generateCanvas();
-
-      if (base64Image) {
-        const link = document.createElement("a");
-        link.href = base64Image;
-        link.download = `E-KTA_IKA_UII_${userData?.nama ? userData.nama.replace(/\s+/g, "_") : "Anggota"}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-    } catch (error) {
-      console.error("Gagal memproses KTA:", error);
-      alert("Terjadi kesalahan saat memproses gambar KTA. Silakan coba lagi.");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // Format NIA
-  const getNIA = () => {
-    if (!userData) return "";
-    if (userData.nia) return userData.nia;
-    const year = new Date(userData.createdAt || Date.now()).getFullYear();
-    const month = String(
-      new Date(userData.createdAt || Date.now()).getMonth() + 1,
-    ).padStart(2, "0");
-    const unique = userData.id.substring(0, 6).toUpperCase();
-    return `${year}.${month}.${unique}`;
-  };
-
-  // Format Tanggal Cetak
-  const formatPrintDate = (isoString: string) => {
-    if (!isoString) return "-";
-    const date = new Date(isoString);
-    return date.toLocaleDateString("id-ID", {
+  const getTanggalDaftar = () => {
+    if (!userData || !userData.createdAt) return "-";
+    return new Date(userData.createdAt).toLocaleDateString("id-ID", {
       day: "2-digit",
       month: "short",
       year: "numeric",
     });
   };
 
+  const getNIA = () => {
+    if (!userData) return "";
+    if (userData.nia) return userData.nia;
+    return "MENUNGGU PENOMORAN";
+  };
+
+  const getSingkatanFakultas = (fakultas: string) => {
+    if (!fakultas) return "-";
+    const lower = fakultas.toLowerCase();
+    if (lower.includes("teknologi industri")) return "FTI";
+    if (lower.includes("matematika")) return "FMIPA";
+    if (lower.includes("hukum")) return "FH";
+    if (lower.includes("ekonomi")) return "FE/FBE";
+    if (lower.includes("kedokteran")) return "FK";
+    if (lower.includes("psikologi")) return "FPSB";
+    if (lower.includes("sipil")) return "FTSP";
+    if (lower.includes("agama")) return "FIAI";
+    return fakultas;
+  };
+
+  const updatePrintStats = async () => {
+    const currentDate = new Date().toISOString();
+    await updateDoc(doc(db, userKoleksi || "pendaftar", id), {
+      printCount: increment(1),
+      lastPrintDate: currentDate,
+    });
+  };
+
+  const handleDownloadPNG = async () => {
+    setIsProcessingPNG(true);
+    try {
+      await updatePrintStats();
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      if (!exportContainerRef.current)
+        throw new Error("Elemen tidak ditemukan");
+
+      const dataUrl = await toPng(exportContainerRef.current, {
+        cacheBust: true,
+        pixelRatio: 3,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+      });
+
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = `E-KTA_${userData?.nama ? userData.nama.replace(/\s+/g, "_") : "Anggota"}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat mengunduh gambar.");
+    } finally {
+      setIsProcessingPNG(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    setIsProcessingPDF(true);
+    try {
+      await updatePrintStats();
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      if (!exportContainerRef.current)
+        throw new Error("Elemen tidak ditemukan");
+
+      const dataUrl = await toPng(exportContainerRef.current, {
+        cacheBust: true,
+        pixelRatio: 3,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+      });
+
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const margin = 15;
+
+      const imgProps = pdf.getImageProperties(dataUrl);
+      const ratio = imgProps.height / imgProps.width;
+
+      let renderWidth = pdfWidth - margin * 2;
+      let renderHeight = renderWidth * ratio;
+
+      if (renderHeight > pdfHeight - margin * 2) {
+        renderHeight = pdfHeight - margin * 2;
+        renderWidth = renderHeight / ratio;
+      }
+
+      const xOffset = (pdfWidth - renderWidth) / 2;
+      const yOffset = (pdfHeight - renderHeight) / 2;
+
+      pdf.addImage(dataUrl, "PNG", xOffset, yOffset, renderWidth, renderHeight);
+      pdf.save(
+        `E-KTA_${userData?.nama ? userData.nama.replace(/\s+/g, "_") : "Anggota"}.pdf`,
+      );
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat mengunduh PDF.");
+    } finally {
+      setIsProcessingPDF(false);
+    }
+  };
+
+  // 🔥 DI SINI SMART LOADER DIPANGGIL 🔥
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F4F7F9]">
-        <div className="animate-spin w-12 h-12 border-4 border-blue-900 border-t-transparent rounded-full"></div>
-      </div>
-    );
+    return <SmartLoader />;
   }
 
   if (!userData) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F4F7F9] p-4">
-        <div className="bg-white p-10 rounded-2xl shadow-xl text-center max-w-md w-full border border-slate-200">
-          <div className="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-5">
-            <svg
-              className="w-10 h-10"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-black text-slate-800 mb-2">
-            Data Tidak Ditemukan
-          </h2>
-          <p className="text-slate-500 mb-8 text-sm">
-            Dokumen E-KTA dengan ID tersebut tidak terdaftar di sistem IKA UII
-            DIY.
-          </p>
-          <Link
-            href="/"
-            className="bg-blue-950 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-blue-900 transition-all shadow-lg"
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8F9FA] px-4 font-sans">
+        <div className="w-16 h-16 bg-slate-200 text-slate-400 rounded-full flex items-center justify-center mb-4">
+          <svg
+            className="w-8 h-8"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
           >
-            Kembali ke Beranda
-          </Link>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
         </div>
+        <h2 className="text-xl font-medium text-[#202124] mb-2">
+          Data Tidak Ditemukan
+        </h2>
+        <p className="text-sm text-[#5F6368] mb-6">
+          KTA ini tidak valid atau telah dicabut.
+        </p>
+        <button
+          onClick={() => router.back()}
+          className="text-sm font-medium text-[#1A73E8] border border-[#DADCE0] bg-white hover:bg-[#F8F9FA] px-6 py-2 rounded-md transition-colors"
+        >
+          Kembali
+        </button>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[#F0F2F5] font-sans flex flex-col">
-      {/* HEADER */}
-      <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-40 shrink-0 w-full">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
+  const startYear = periodeData?.tglMulai
+    ? new Date(periodeData.tglMulai).getFullYear()
+    : "";
+  const endYear = periodeData?.tglSelesai
+    ? new Date(periodeData.tglSelesai).getFullYear()
+    : "";
+  const displayPeriodeTahun =
+    startYear && endYear ? `${startYear} - ${endYear}` : "";
+
+  // ==============================================
+  // DESAIN KARTU DEPAN
+  // ==============================================
+  const CardFront = () => (
+    <div className="w-[380px] h-[600px] bg-white rounded-[20px] border border-[#DADCE0] overflow-hidden flex flex-col relative shadow-[0_15px_40px_rgba(0,0,0,0.12)] font-sans shrink-0 text-center">
+      <SecurityWatermark />
+      <img
+        src="/logo-dpp-ika.png"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 opacity-[0.04] grayscale pointer-events-none z-0"
+      />
+
+      <div className="relative pt-8 pb-5 w-full shrink-0 z-10 bg-[#0B1528] flex flex-col items-center justify-center">
+        <div className="absolute bottom-0 left-0 right-0 h-4 bg-[#224A9A]"></div>
+        <div className="bg-white p-1.5 rounded-full w-[64px] h-[64px] flex items-center justify-center shadow-md border-[3px] border-white/20 mb-3 relative z-10">
+          <img
+            src="/logo-dpp-ika.png"
+            alt="Logo UII"
+            className="w-full h-full object-contain"
+          />
+        </div>
+        <div className="flex flex-col z-10 px-4">
+          <h1 className="text-white font-black text-[18px] tracking-widest uppercase leading-none mb-1.5 drop-shadow-md">
+            KARTU TANDA {userData.isPengurus ? "PENGURUS" : "ANGGOTA"}
+          </h1>
+          <h2 className="text-[#F29900] font-bold text-[9px] tracking-[0.2em] uppercase drop-shadow-sm">
+            DPW IKA UII YOGYAKARTA
+          </h2>
+        </div>
+      </div>
+      <div className="h-[6px] w-full bg-[#F29900] shrink-0 z-10 relative shadow-sm"></div>
+
+      <div className="flex-grow flex flex-col items-center px-6 py-6 relative z-10">
+        <div className="w-[120px] h-[155px] bg-[#F8F9FA] rounded-xl border-[4px] border-white shadow-[0_8px_20px_rgba(0,0,0,0.15)] overflow-hidden shrink-0 mb-4">
+          {userData.fotoUrl ? (
             <img
-              src="/logo-dpp-ika.png"
-              alt="Logo"
-              className="w-10 h-10 object-contain"
+              src={userData.fotoUrl}
+              className="w-full h-full object-cover"
+              crossOrigin="anonymous"
+              style={{ objectPosition: userData.fotoPosition || "center" }}
             />
-            <div className="flex flex-col">
-              <h1 className="font-extrabold text-blue-950 text-sm sm:text-base leading-tight tracking-tight">
-                Portal Layanan Alumni
-              </h1>
-              <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">
-                DPW IKA UII DIY
-              </p>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-[#9AA0A6] text-xs font-medium bg-[#E8EAED]">
+              Tanpa Foto
             </div>
-          </Link>
-          <div className="text-right">
-            <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-              Status Dokumen
+          )}
+        </div>
+
+        <div className="w-full space-y-3.5">
+          <div>
+            <p className="text-[18px] font-black text-[#0B1528] uppercase leading-tight line-clamp-2 px-2">
+              {userData.namaLengkap || userData.nama}
             </p>
-            <p className="text-[10px] sm:text-xs font-bold text-green-600 flex items-center gap-1 justify-end">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>{" "}
-              Terverifikasi
+          </div>
+          <div>
+            <p className="text-[9px] font-bold text-[#9AA0A6] uppercase tracking-widest mb-0.5">
+              Nomor Induk {userData.isPengurus ? "Pengurus" : "Anggota"}
+            </p>
+            <p className="text-[15px] font-bold text-[#0B1528] tracking-widest leading-none font-mono bg-[#F8F9FA] inline-block px-4 py-1.5 rounded-md border border-[#EBEBEB]">
+              {getNIA()}
+            </p>
+          </div>
+          <div>
+            <p className="text-[9px] font-bold text-[#9AA0A6] uppercase tracking-widest mb-0.5">
+              Program Studi / Angkatan
+            </p>
+            <p className="text-[12px] font-black text-[#224A9A] uppercase leading-none">
+              {getSingkatanFakultas(userData.fakultas)} /{" "}
+              {userData.programStudi || "-"} /{" "}
+              {userData.angkatan || userData.tahunLulus || "-"}
+            </p>
+            {displayPeriodeTahun && (
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1.5">
+                Periode {displayPeriodeTahun}
+              </p>
+            )}
+
+            <div className="mt-2.5">
+              <span className="inline-block text-[11px] font-bold text-white bg-[#0B1528] px-3 py-1 rounded-sm uppercase tracking-wider shadow-sm">
+                {userData.jabatan === "Koordinator Bidang"
+                  ? `Koordinator ${userData.bidang}`
+                  : userData.jabatan === "Anggota"
+                    ? `Anggota ${userData.bidang}`
+                    : userData.jabatan}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-0.2 pb-3 bg-[#F8FAFC] border-t border-[#EBEBEB] shrink-0 z-10 relative flex items-center justify-center">
+        <p className="text-[12px] font-black tracking-[0.2em] uppercase flex items-center gap-0.5">
+          <span className="text-[#0B1528]">IKADIY.</span>
+          <span className="text-[#224A9A]">UII</span>
+          <span className="text-[#0B1528]">.AC.ID</span>
+        </p>
+      </div>
+    </div>
+  );
+
+  // ==============================================
+  // DESAIN KARTU BELAKANG
+  // ==============================================
+  const CardBack = () => (
+    <div className="w-[380px] h-[600px] bg-white rounded-[20px] border border-[#DADCE0] overflow-hidden flex flex-col relative shadow-[0_15px_40px_rgba(0,0,0,0.12)] font-sans shrink-0">
+      <SecurityWatermark />
+      <img
+        src="/logo-dpp-ika.png"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 opacity-[0.04] grayscale pointer-events-none z-0"
+      />
+      <div className="h-[24px] bg-[#0B1528] w-full shrink-0 z-10 flex">
+        <div className="w-[70%] bg-[#0B1528] h-full"></div>
+        <div
+          className="w-[30%] bg-[#224A9A] h-full"
+          style={{ clipPath: "polygon(15% 0, 100% 0, 100% 100%, 0% 100%)" }}
+        ></div>
+      </div>
+      <div className="h-[6px] bg-[#F29900] w-full shrink-0 z-10"></div>
+
+      <div className="flex-grow flex flex-col px-8 py-8 items-center z-10 relative">
+        <h3 className="text-[16px] font-black text-[#0B1528] uppercase tracking-widest mb-6 border-b-2 border-[#EBEBEB] pb-2 text-center w-full">
+          Ketentuan Penggunaan
+        </h3>
+        <ol className="text-[13px] text-[#5F6368] space-y-4 pl-4 list-decimal leading-relaxed text-justify w-full font-medium mb-auto">
+          <li>
+            Kartu ini diterbitkan oleh DPW IKA UII Yogyakarta dan merupakan
+            bukti keanggotaan yang sah.
+          </li>
+          <li>
+            Kartu tidak dapat dipindahtangankan dan wajib ditunjukkan untuk
+            mengakses layanan, acara, atau klaim potongan harga pada mitra
+            jaringan bisnis IKA UII DIY.
+          </li>
+          <li>
+            Apabila menemukan kartu ini, harap dikembalikan kepada Sekretariat
+            DPW IKA UII DIY melalui email: <strong>ika.diy@uii.ac.id</strong>.
+          </li>
+        </ol>
+        <div className="flex flex-col items-center justify-center w-full mt-8 pt-8 border-t border-[#EBEBEB]">
+          <div className="w-[140px] h-[140px] p-3 bg-white border border-[#DADCE0] rounded-xl shadow-sm mb-4 relative z-10 flex-shrink-0">
+            <QRCode
+              value={currentUrl}
+              size={128}
+              style={{ width: "100%", height: "100%" }}
+              level="M"
+            />
+          </div>
+          <div className="max-w-full overflow-hidden px-2">
+            <p className="text-[10px] sm:text-xs font-black text-[#0B1528] tracking-wider md:tracking-widest uppercase bg-[#F8F9FA] px-4 py-2 rounded-lg border border-[#EBEBEB] text-center whitespace-nowrap shadow-sm">
+              Scan Validasi Identitas
             </p>
           </div>
         </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-[#F8F9FA] font-sans flex flex-col overflow-hidden relative">
+      <div
+        style={{
+          position: "absolute",
+          top: "-10000px",
+          left: "-10000px",
+          width: "1200px",
+          height: "900px",
+        }}
+      >
+        <div
+          ref={exportContainerRef}
+          className="bg-white p-12 flex flex-row gap-10 justify-center items-center rounded-lg"
+          style={{
+            width: "960px",
+            height: "750px",
+            boxSizing: "border-box",
+          }}
+        >
+          <CardFront />
+          <CardBack />
+        </div>
+      </div>
+
+      <header className="bg-white border-b border-[#DADCE0] sticky top-0 z-40 shrink-0 w-full shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img
+              src="/logo-dpp-ika.png"
+              alt="Logo"
+              className="w-7 h-7 object-contain"
+            />
+            <h1 className="font-medium text-[#202124] text-sm sm:text-base">
+              Identitas KTA Digital
+            </h1>
+          </div>
+          <span
+            className={`text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider ${userData.status_pengurus === "Aktif" || userData.role === "pengurus" ? "bg-[#E6F4EA] text-[#1E8E3E] border border-[#CEEAD6]" : "bg-[#FEF7E0] text-[#B06000] border border-[#FCE8B2]"}`}
+          >
+            {userData.status_pengurus === "Aktif" ||
+            userData.role === "pengurus"
+              ? "Terverifikasi"
+              : "Pending"}
+          </span>
+        </div>
       </header>
 
-      {/* MAIN CONTENT */}
-      <main className="flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-8 w-full">
-        <div className="w-full max-w-[1000px] animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="bg-white shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] rounded-2xl overflow-hidden border border-slate-200 w-full">
-            <div className="bg-[#1E3A8A] px-5 sm:px-6 py-4 flex items-center gap-3 border-b-4 border-yellow-500">
-              <svg
-                className="w-5 h-5 text-yellow-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <h2 className="text-white font-bold text-base sm:text-lg tracking-wide">
-                Informasi Dokumen E-KTA
-              </h2>
+      <main className="flex-grow flex flex-col items-center py-6 sm:py-10 px-4 sm:px-6 w-full">
+        <div className="w-full max-w-7xl bg-white border border-[#DADCE0] rounded-2xl flex flex-col lg:flex-row overflow-hidden shadow-lg items-stretch mb-10">
+          <div
+            ref={containerRef}
+            className="w-full lg:w-[65%] bg-[#F1F3F4] sm:bg-[#F8F9FA] p-6 sm:p-10 border-b lg:border-b-0 lg:border-r border-[#DADCE0] flex flex-col items-center justify-center relative min-h-[650px]"
+          >
+            <div className="w-full flex justify-between items-center mb-10 max-w-[800px]">
+              <p className="text-sm text-[#5F6368] font-semibold flex items-center gap-2">
+                <svg
+                  className="w-4 h-4 text-[#1A73E8]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+                  />
+                </svg>
+                Preview Kartu
+              </p>
             </div>
 
-            <div className="flex flex-col lg:flex-row p-5 sm:p-8 lg:p-10 gap-8 lg:gap-12 items-center w-full">
-              {/* SISI KIRI: KARTU E-KTA */}
-              <div
-                ref={containerRef}
-                className="w-full lg:w-3/5 flex justify-center items-center bg-slate-50 p-4 sm:p-8 rounded-2xl border border-slate-100 shadow-inner group relative cursor-pointer"
-                onClick={handlePreview}
-              >
-                {/* WADAH SCALED */}
-                <div
-                  className="relative transition-transform duration-300 group-hover:scale-[1.03]"
-                  style={{
-                    width: `${600 * scale}px`,
-                    height: `${378 * scale}px`,
-                  }}
-                >
-                  <div className="absolute inset-0 z-50 bg-black/0 group-hover:bg-black/10 flex items-center justify-center transition-colors rounded-[20px]">
-                    <div className="bg-white/95 text-blue-900 px-5 py-2.5 rounded-full font-bold text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 shadow-xl">
+            <div
+              className="flex flex-col lg:flex-row items-center justify-center gap-8 w-full transition-transform duration-300"
+              style={{
+                transform: `scale(${scale})`,
+                transformOrigin: "top center",
+              }}
+            >
+              <CardFront />
+              <CardBack />
+            </div>
+          </div>
+
+          <div className="w-full lg:w-[35%] flex flex-col bg-white relative">
+            {isOwner ? (
+              <div className="p-6 sm:p-10 flex flex-col h-full lg:sticky lg:top-14">
+                <div className="mb-auto">
+                  <h3 className="text-2xl font-bold text-[#202124] mb-3 tracking-tight">
+                    Identitas Elektronik
+                  </h3>
+
+                  {!userData.fotoUrl && (
+                    <div className="text-[13px] text-[#D93025] mb-5 font-medium flex items-start gap-2 bg-[#FCE8E6] p-4 rounded-lg border border-[#FAD2CF]">
                       <svg
-                        className="w-4 h-4"
+                        className="w-5 h-5 shrink-0 mt-0.5"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -303,137 +618,96 @@ export default function KTAPage() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
                         />
                       </svg>
-                      Klik untuk perbesar
+                      Harap lengkapi Pas Foto di Pengaturan Profil agar KTA Anda
+                      sah dan dapat dicetak.
                     </div>
+                  )}
+
+                  <p className="text-[#5F6368] text-[15px] leading-relaxed mb-8">
+                    Identitas digital Anda kini lebih praktis. Tunjukkan E-KTA
+                    ini untuk keperluan presensi agenda IKA UII DIY, sekaligus
+                    sebagai akses untuk mengklaim berbagai manfaat istimewa dari
+                    mitra jaringan alumni.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-4 mt-6">
+                  <p className="text-xs font-semibold text-[#9AA0A6] uppercase tracking-wider">
+                    Opsi Unduhan KTA
+                  </p>
+
+                  <div className="flex flex-col gap-3">
+                    <button
+                      onClick={handleDownloadPDF}
+                      disabled={isProcessingPDF || isProcessingPNG}
+                      className="w-full bg-[#1A73E8] hover:bg-[#1557B0] text-white font-medium py-3.5 px-4 rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-50 text-sm shadow-md"
+                    >
+                      {isProcessingPDF ? (
+                        "Memproses PDF..."
+                      ) : (
+                        <>
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                          Unduh KTA (Versi PDF)
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={handleDownloadPNG}
+                      disabled={isProcessingPNG || isProcessingPDF}
+                      className="w-full bg-white border border-[#DADCE0] hover:bg-[#F8F9FA] text-[#1A73E8] font-medium py-3.5 px-4 rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-50 text-sm shadow-sm"
+                    >
+                      {isProcessingPNG ? (
+                        "Memproses PNG..."
+                      ) : (
+                        <>
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
+                          </svg>
+                          Unduh KTA (Versi Gambar)
+                        </>
+                      )}
+                    </button>
                   </div>
 
-                  {/* ELEMENT KARTU KTA (FIXED 600x378) */}
-                  <div
-                    ref={ktaRef}
-                    className="bg-white absolute top-0 left-0 flex flex-col shadow-[0_15px_40px_-10px_rgba(0,0,0,0.2)] rounded-[20px] overflow-hidden"
-                    style={{
-                      width: "600px",
-                      height: "378px",
-                      transform: `scale(${scale})`,
-                      transformOrigin: "top left",
-                    }}
+                  <Link
+                    href="/anggota"
+                    className="w-full text-center bg-[#F1F3F4] hover:bg-[#E8EAED] text-[#5F6368] hover:text-[#202124] font-medium py-3.5 mt-2 text-sm transition-colors rounded-lg"
                   >
-                    {/* Header KTA */}
-                    <div className="h-[90px] bg-[#0B1120] relative flex items-center px-8 border-b-[5px] border-yellow-500 shrink-0">
-                      <div className="w-14 h-14 bg-white rounded-full p-1.5 shadow-lg z-10 shrink-0">
-                        <img
-                          src="/logo-dpp-ika.png"
-                          alt="Logo"
-                          className="w-full h-full object-contain"
-                          crossOrigin="anonymous"
-                        />
-                      </div>
-                      <div className="ml-5 z-10">
-                        <h1 className="text-white font-black text-[22px] tracking-widest uppercase leading-none">
-                          Kartu Tanda Anggota
-                        </h1>
-                        <h2 className="text-yellow-500 font-bold text-[11px] tracking-[0.2em] uppercase mt-1.5">
-                          DPW IKA UII Yogyakarta
-                        </h2>
-                      </div>
-                      <div className="absolute right-0 top-0 bottom-0 w-[35%] bg-blue-900 skew-x-[-25deg] translate-x-16 z-0"></div>
-                    </div>
-
-                    {/* Body KTA */}
-                    <div className="flex-grow flex items-center px-10 relative bg-white">
-                      <img
-                        src="/logo-dpp-ika.png"
-                        className="absolute inset-0 m-auto w-64 h-64 opacity-[0.03] grayscale pointer-events-none"
-                        crossOrigin="anonymous"
-                      />
-                      <div className="w-[110px] h-[145px] bg-slate-200 rounded-xl border-2 border-slate-200 shadow-md overflow-hidden shrink-0 z-10 flex items-center justify-center">
-                        {userData.fotoUrl ? (
-                          <img
-                            src={userData.fotoUrl}
-                            className="w-full h-full object-cover object-top"
-                            crossOrigin="anonymous"
-                          />
-                        ) : (
-                          <img
-                            src="/logo-dpp-ika.png"
-                            className="w-12 h-12 object-contain opacity-30 grayscale"
-                            crossOrigin="anonymous"
-                          />
-                        )}
-                      </div>
-                      <div className="ml-8 flex-grow space-y-4 z-10">
-                        <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
-                            Nama Lengkap
-                          </p>
-                          <p className="text-[18px] font-black text-blue-950 uppercase leading-none">
-                            {userData.nama}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
-                            NIA (Nomor Induk Anggota)
-                          </p>
-                          <p className="text-[14px] font-bold text-slate-800 font-mono tracking-wider leading-none">
-                            {getNIA()}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
-                            Jabatan & Bidang
-                          </p>
-                          <p className="text-[13px] font-bold text-blue-800 uppercase leading-none">
-                            {userData.jabatan}
-                          </p>
-                          <p className="text-[10px] font-medium text-slate-500 mt-1 capitalize leading-none">
-                            {userData.bidang}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="shrink-0 flex flex-col items-center ml-4 z-10">
-                        <div className="w-[90px] h-[90px] p-1.5 bg-white border-2 border-slate-100 shadow-sm rounded-lg flex items-center justify-center">
-                          <QRCode
-                            value={currentUrl}
-                            size={128}
-                            style={{ width: "100%", height: "100%" }}
-                            level="M"
-                          />
-                        </div>
-                        <p className="text-[8px] font-black text-slate-400 mt-2.5 tracking-[0.3em] uppercase">
-                          Scan ID
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Footer KTA */}
-                    <div className="h-10 bg-slate-50 border-t border-slate-100 flex items-center justify-between px-8 shrink-0 z-10">
-                      <div className="flex flex-col justify-center">
-                        <p className="text-[8px] font-semibold text-slate-500 italic leading-tight">
-                          Identitas resmi kepengurusan & anggota IKA UII DIY.
-                        </p>
-                        {userData.printCount > 0 && (
-                          <p className="text-[7px] font-bold text-slate-400 uppercase mt-0.5">
-                            Cetak ke-{userData.printCount} :{" "}
-                            {formatPrintDate(userData.lastPrintDate)}
-                          </p>
-                        )}
-                      </div>
-                      <p className="text-[10px] font-black text-blue-950 uppercase tracking-widest">
-                        ikadiy.uii.ac.id
-                      </p>
-                    </div>
-                  </div>
+                    Kembali ke Dashboard
+                  </Link>
                 </div>
               </div>
-
-              {/* SISI KANAN: INSTRUKSI & TOMBOL */}
-              <div className="w-full lg:w-2/5 flex flex-col justify-center text-center lg:text-left">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4 sm:mb-6 mx-auto lg:mx-0 shadow-inner border border-blue-100">
+            ) : (
+              <div className="p-6 sm:p-10 flex flex-col justify-center items-center h-full min-h-[400px]">
+                <div className="w-24 h-24 bg-[#E6F4EA] text-[#1E8E3E] rounded-full flex items-center justify-center mb-6 shadow-md border-[6px] border-white ring-1 ring-[#CEEAD6]">
                   <svg
-                    className="w-7 h-7 sm:w-8 sm:h-8"
+                    className="w-12 h-12"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -441,145 +715,44 @@ export default function KTAPage() {
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"
+                      strokeWidth={3}
+                      d="M5 13l4 4L19 7"
                     />
                   </svg>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-black text-blue-950 mb-2 tracking-tight">
-                  E-KTA Anda Telah Terbit
+                <h3 className="text-3xl font-black text-[#202124] mb-3 tracking-tight">
+                  KTA Terverifikasi
                 </h3>
-
-                {/* Informasi Riwayat Cetak UI */}
-                {userData.printCount > 0 && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 mb-4 inline-flex items-center justify-center lg:justify-start gap-2 w-fit mx-auto lg:mx-0">
-                    <svg
-                      className="w-4 h-4 text-yellow-600"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <p className="text-xs font-bold text-yellow-800">
-                      Telah dicetak {userData.printCount} kali
-                    </p>
-                  </div>
-                )}
-
-                <p className="text-slate-600 text-xs sm:text-sm leading-relaxed mb-8">
-                  Anda dapat menyimpan Kartu Tanda Anggota (E-KTA) Elektronik ke
-                  galeri perangkat Anda dengan menekan tombol{" "}
-                  <strong>Unduh E-KTA</strong> di bawah ini. Pastikan untuk
-                  tidak membagikan QR Code kepada pihak yang tidak
-                  berkepentingan.
+                <p className="text-[#5F6368] text-[16px] leading-relaxed mb-8 text-center max-w-sm">
+                  Kartu Tanda Anggota ini adalah dokumen resmi yang sah dan
+                  terdaftar pada database{" "}
+                  <strong>DPW IKA UII Yogyakarta</strong>.
                 </p>
-
-                <div className="flex flex-col gap-3 w-full">
-                  <button
-                    onClick={handleDownload}
-                    disabled={isProcessing}
-                    className="w-full bg-blue-950 hover:bg-blue-900 text-white font-bold py-3.5 sm:py-4 px-6 rounded-xl shadow-[0_8px_20px_rgba(30,58,138,0.25)] hover:shadow-[0_12px_25px_rgba(30,58,138,0.4)] transition-all flex justify-center items-center gap-3 disabled:opacity-70 text-sm tracking-wide"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <svg
-                          className="animate-spin w-5 h-5 text-white"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>{" "}
-                        Memproses File HD...
-                      </>
-                    ) : (
-                      <>
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2.5}
-                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                          />
-                        </svg>{" "}
-                        Unduh E-KTA (PNG)
-                      </>
-                    )}
-                  </button>
-                  <Link
-                    href="/"
-                    className="w-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold py-3.5 px-6 rounded-xl shadow-sm transition-all text-center text-sm"
-                  >
-                    Kembali ke Beranda
-                  </Link>
-                </div>
+                <div className="w-full max-w-[200px] h-[2px] bg-[#EBEBEB] mb-8"></div>
+                <p className="text-xs text-[#9AA0A6] font-mono tracking-widest uppercase bg-[#F8F9FA] px-4 py-2 rounded-md border border-[#EBEBEB]">
+                  Verification Stamp
+                </p>
               </div>
-            </div>
-          </div>
-
-          <div className="text-center mt-6">
-            <p className="text-[10px] sm:text-xs text-slate-400 font-medium">
-              &copy; {new Date().getFullYear()} DPW IKA UII DIY.
-            </p>
+            )}
           </div>
         </div>
       </main>
 
-      {/* POPUP MODAL PREVIEW KTA */}
-      {isPreviewOpen && ktaImageBase64 && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 backdrop-blur-sm p-4 sm:p-8 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-2xl flex flex-col items-center">
-            <button
-              onClick={() => setIsPreviewOpen(false)}
-              className="absolute -top-14 right-0 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-all"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.5}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-            <img
-              src={ktaImageBase64}
-              alt="E-KTA Preview"
-              className="w-full h-auto rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] border border-white/20"
-            />
-            <p className="text-white/70 text-xs mt-6 font-medium tracking-wide">
-              Tekan lama (Long-press) pada gambar untuk menyimpan.
-            </p>
-          </div>
+      <footer className="w-full bg-[#0A1022] mt-auto shrink-0 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/hexellence.png')]"></div>
+        <div className="max-w-7xl mx-auto relative z-10 flex flex-col sm:flex-row justify-between items-center px-6 py-6 gap-3 text-center sm:text-left">
+          <p className="text-[11px] text-[#9AA0A6] font-medium tracking-wider">
+            &copy; {new Date().getFullYear()} DPW IKA UII DIY.
+          </p>
+          <p className="text-[11px] text-[#5F6368] font-medium tracking-wide">
+            Dikembangkan melalui kerja sama Media & Publikasi DPW dengan{" "}
+            <span className="text-[#A0B4B7]">
+              PT Guwigo Teknologi Indonesia
+            </span>
+            .
+          </p>
         </div>
-      )}
+      </footer>
     </div>
   );
 }

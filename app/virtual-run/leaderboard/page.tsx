@@ -11,11 +11,10 @@ export default function LeaderboardPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   // --- STATE FILTER & PENCARIAN ---
-  const [activeTab, setActiveTab] = useState("Semua"); // Kategori Peserta (Alumni/Umum)
-  const [activeJarak, setActiveJarak] = useState("Semua"); // Filter Jarak (5K, 10K, dll)
+  const [activeTab, setActiveTab] = useState("Semua");
+  const [activeJarak, setActiveJarak] = useState("Semua");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // State untuk menyimpan daftar opsi jarak secara dinamis dari data
   const [availableDistances, setAvailableDistances] = useState<string[]>([]);
 
   // --- STATE PAGINATION ---
@@ -71,7 +70,6 @@ export default function LeaderboardPage() {
           ...doc.data(),
         }));
 
-        // Ekstrak opsi jarak unik dari data peserta yang ada
         const distances = new Set<string>();
         participants.forEach((p: any) => {
           if (p.jarak) distances.add(p.jarak);
@@ -103,6 +101,7 @@ export default function LeaderboardPage() {
 
           let totalKm = 0;
           let finisherDate = null;
+          let totalSeconds = 0; // 🔥 LOGIKA KALKULASI DURASI
           const targetKm = parseInt(p.jarak?.replace(/\D/g, "")) || 0;
 
           for (const sub of userSubmissions) {
@@ -110,7 +109,53 @@ export default function LeaderboardPage() {
             if (totalKm >= targetKm && !finisherDate) {
               finisherDate = sub.createdAt;
             }
+
+            // 🔥 SUPER PARSER DURASI: Tahan Banting Segala Format
+            if (sub.durasi) {
+              let sec = 0;
+              const str = String(sub.durasi).toLowerCase().trim();
+
+              if (str.includes(":")) {
+                const parts = str
+                  .split(":")
+                  .map((n) => parseInt(n.replace(/\D/g, "")) || 0);
+                if (parts.length >= 3) {
+                  // Format HH:MM:SS
+                  sec = parts[0] * 3600 + parts[1] * 60 + parts[2];
+                } else if (parts.length === 2) {
+                  // Format MM:SS
+                  sec = parts[0] * 60 + parts[1];
+                }
+              } else if (
+                str.includes("j") ||
+                str.includes("h") ||
+                str.includes("m") ||
+                str.includes("s")
+              ) {
+                const jamMatch = str.match(/(\d+)\s*(j|h)/);
+                const menitMatch = str.match(/(\d+)\s*(m)/);
+                const detikMatch = str.match(/(\d+)\s*(s|d)/);
+                if (jamMatch) sec += parseInt(jamMatch[1]) * 3600;
+                if (menitMatch) sec += parseInt(menitMatch[1]) * 60;
+                if (detikMatch) sec += parseInt(detikMatch[1]);
+              } else {
+                // Kalau cuma ngetik angka misal "30", anggap itu menit
+                const num = parseFloat(str);
+                if (!isNaN(num)) sec = Math.floor(num * 60);
+              }
+              if (!isNaN(sec)) totalSeconds += sec;
+            }
           }
+
+          // Format hasil akhir durasi
+          const h = Math.floor(totalSeconds / 3600);
+          const m = Math.floor((totalSeconds % 3600) / 60);
+          const s = totalSeconds % 60;
+
+          let totalDurasiFormat = "0j 0m";
+          if (h > 0) totalDurasiFormat = `${h}j ${m}m`;
+          else if (m > 0) totalDurasiFormat = `${m}m ${s}s`;
+          else if (s > 0) totalDurasiFormat = `${s}s`;
 
           const isFinisher = totalKm >= targetKm;
           const persentase =
@@ -121,6 +166,7 @@ export default function LeaderboardPage() {
             kategori: p.kategori || "Umum",
             totalKm,
             targetKm,
+            totalDurasiFormat, // Format Durasi tersimpan
             isFinisher,
             persentase,
             finisherDate,
@@ -131,6 +177,7 @@ export default function LeaderboardPage() {
 
         calculatedData.sort((a, b) => {
           if (b.totalKm !== a.totalKm) return b.totalKm - a.totalKm;
+          // Kalau KM sama, yang duluan finisher ditaruh atas
           if (
             a.isFinisher &&
             b.isFinisher &&
@@ -156,7 +203,6 @@ export default function LeaderboardPage() {
       }
     };
 
-    // 2. Cek Status Login User
     const checkLogin = async () => {
       try {
         const savedEmail = localStorage.getItem("vr_user_email");
@@ -192,10 +238,8 @@ export default function LeaderboardPage() {
     checkLogin();
   }, []);
 
-  // --- LOGIK FILTER (GANDA) & PENCARIAN ---
   const filteredLeaderboard = leaderboard.filter((p) => {
     const matchKategori = activeTab === "Semua" || p.kategori === activeTab;
-    // Tambahan logika filter Jarak
     const matchJarak = activeJarak === "Semua" || p.jarak === activeJarak;
     const matchSearch = p.nama
       .toLowerCase()
@@ -204,18 +248,46 @@ export default function LeaderboardPage() {
     return matchKategori && matchJarak && matchSearch;
   });
 
-  // Reset pagination jika filter diubah
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, activeTab, activeJarak, itemsPerPage]);
 
-  // --- LOGIK PAGINATION ---
   const totalPages = Math.ceil(filteredLeaderboard.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedData = filteredLeaderboard.slice(
     startIndex,
     startIndex + itemsPerPage,
   );
+
+  const isPageOne = currentPage === 1;
+  const podiumData = isPageOne ? paginatedData.slice(0, 3) : [];
+  const listData = isPageOne ? paginatedData.slice(3) : paginatedData;
+
+  // 🔥 DESAIN PODIUM PROFESIONAL
+  const podiumOrder = [
+    {
+      rank: 2,
+      data: podiumData[1],
+      height: "h-36",
+      bgClass: "bg-gradient-to-t from-slate-200 to-slate-50",
+      rankColor: "bg-slate-500",
+    },
+    {
+      rank: 1,
+      data: podiumData[0],
+      height: "h-44",
+      bgClass: "bg-gradient-to-t from-yellow-200 to-yellow-50",
+      rankColor: "bg-yellow-500",
+      scale: "z-10 shadow-xl", // Ditinggikan sedikit tapi elegan
+    },
+    {
+      rank: 3,
+      data: podiumData[2],
+      height: "h-28",
+      bgClass: "bg-gradient-to-t from-orange-200 to-orange-50",
+      rankColor: "bg-orange-600",
+    },
+  ];
 
   if (isLoading) {
     return (
@@ -230,9 +302,7 @@ export default function LeaderboardPage() {
 
   return (
     <div className="min-h-screen bg-[#F4F7FB] font-sans flex flex-col selection:bg-yellow-300 selection:text-blue-900">
-      {/* ========================================= */}
       {/* HEADER UNIVERSAL */}
-      {/* ========================================= */}
       <header className="fixed top-0 left-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <Link
@@ -287,12 +357,12 @@ export default function LeaderboardPage() {
             >
               Paket Lari
             </a>
-            <a
+            <Link
               href="/virtual-run/leaderboard"
-              className="text-blue-600 transition-colors"
+              className="text-blue-600 transition-colors border-b-2 border-blue-600 pb-1"
             >
               Lihat Klasemen
-            </a>
+            </Link>
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
@@ -394,58 +464,49 @@ export default function LeaderboardPage() {
             >
               Paket Lari
             </a>
-            <a
+            <Link
               href="/virtual-run/leaderboard"
               onClick={() => setIsMobileMenuOpen(false)}
               className="text-blue-600 py-2"
             >
               Lihat Klasemen
-            </a>
+            </Link>
           </div>
         )}
       </header>
 
-      {/* ========================================= */}
-      {/* HERO LEADERBOARD                          */}
-      {/* ========================================= */}
+      {/* HERO LEADERBOARD */}
       <div className="bg-[#1E3A8A] pt-32 pb-28 px-4 text-center text-white relative overflow-hidden shrink-0">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-        <div className="relative z-10 max-w-2xl mx-auto">
-          <div className="inline-block bg-yellow-400 text-blue-900 text-[10px] font-black px-4 py-1.5 rounded-full mb-5 uppercase tracking-widest shadow-lg flex items-center gap-2 w-fit mx-auto">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-            </span>
-            Live Update
+        <div className="relative z-10 max-w-3xl mx-auto">
+          <div className="inline-block bg-yellow-400 text-blue-900 text-[9px] font-black px-4 py-1.5 rounded-full mb-5 uppercase tracking-widest shadow-lg flex items-center gap-2 w-fit mx-auto">
+            <span className="relative flex h-2 w-2"></span>
+            Live Leaderboard
           </div>
-          <h1 className="text-4xl sm:text-4xl font-black mb-3 tracking-tight">
+          <h1 className="text-4xl sm:text-5xl font-black mb-4 tracking-tight">
             Klasemen Pelari
           </h1>
           <p className="text-blue-200 text-sm sm:text-base font-medium max-w-lg mx-auto">
-            Pantau pencapaian jarak seluruh peserta. Setiap langkah membawa kita
-            lebih dekat ke garis akhir.
+            Pantau pencapaian jarak seluruh peserta secara *real-time*. Setiap
+            langkah membawa kita lebih dekat ke garis akhir.
           </p>
         </div>
       </div>
 
-      {/* ========================================= */}
-      {/* MAIN KONTEN (FILTER & TABLE)              */}
-      {/* ========================================= */}
-      <main className="flex-grow max-w-4xl mx-auto w-full px-4 sm:px-6 -mt-16 relative z-20 pb-20">
+      {/* MAIN KONTEN */}
+      <main className="flex-grow max-w-5xl mx-auto w-full px-4 sm:px-6 -mt-16 relative z-20 pb-20">
         {/* KONTROL FILTER & SEARCH */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-3 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
-          {/* Kelompok Tabs (Kategori & Jarak) */}
+        <div className="bg-white rounded-2xl shadow-md border border-slate-200 p-4 mb-10 flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="flex flex-col sm:flex-row w-full md:w-auto gap-3">
-            {/* Filter Kategori Peserta */}
-            <div className="flex w-full sm:w-auto bg-slate-100 p-1 rounded-xl">
+            <div className="flex w-full sm:w-auto bg-slate-100 p-1.5 rounded-xl">
               {["Semua", "Alumni", "Umum"].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                  className={`flex-1 sm:flex-none px-5 py-2 rounded-lg text-xs font-bold transition-all ${
                     activeTab === tab
-                      ? "bg-white text-blue-900 shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
+                      ? "bg-white text-blue-700 shadow-sm border border-slate-200"
+                      : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
                   {tab}
@@ -453,14 +514,13 @@ export default function LeaderboardPage() {
               ))}
             </div>
 
-            {/* Filter Jarak Dinamis */}
             <div className="flex w-full sm:w-auto items-center">
               <select
                 value={activeJarak}
                 onChange={(e) => setActiveJarak(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer transition-all"
+                className="w-full bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 rounded-xl px-5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white cursor-pointer transition-all"
               >
-                <option value="Semua">Semua Jarak</option>
+                <option value="Semua">Semua Kategori Jarak</option>
                 {availableDistances.map((jarak) => (
                   <option key={jarak} value={jarak}>
                     Kategori {jarak}
@@ -470,17 +530,16 @@ export default function LeaderboardPage() {
             </div>
           </div>
 
-          {/* Search Bar */}
-          <div className="relative w-full md:w-64">
+          <div className="relative w-full md:w-72">
             <input
               type="text"
               placeholder="Cari nama pelari..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              className="w-full bg-slate-50 border border-slate-200 text-sm font-medium rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
             />
             <svg
-              className="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5"
+              className="w-4 h-4 text-slate-400 absolute left-3.5 top-3"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -495,8 +554,72 @@ export default function LeaderboardPage() {
           </div>
         </div>
 
-        {/* Tabel / List Leaderboard */}
-        <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden mb-6">
+        {/* 🔥 PODIUM JUARA TOP 3 🔥 */}
+        {isPageOne && podiumData.length > 0 && (
+          <div className="flex justify-center items-end gap-3 sm:gap-6 mb-12 mt-16 px-2">
+            {podiumOrder.map((item) => {
+              if (!item.data) {
+                return <div key={item.rank} className="w-1/3 opacity-0"></div>;
+              }
+
+              return (
+                <div
+                  key={item.rank}
+                  className={`w-1/3 max-w-[200px] flex flex-col items-center relative transition-transform hover:-translate-y-1 ${item.scale || ""}`}
+                >
+                  <Link
+                    href={`/u/${item.data.slug || item.data.id}`}
+                    className="relative z-20 -mb-6 group"
+                  >
+                    {/* Logika Avatar & Foto Profil */}
+                    {item.data.fotoProfilUrl ? (
+                      <img
+                        src={item.data.fotoProfilUrl}
+                        alt={item.data.nama}
+                        className={`w-14 h-14 sm:w-20 sm:h-20 rounded-full object-cover border-4 border-white shadow-md group-hover:opacity-90 transition-opacity ${item.rank === 1 ? "sm:w-24 sm:h-24" : ""}`}
+                      />
+                    ) : (
+                      <div
+                        className={`w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black text-2xl border-4 border-white shadow-md group-hover:opacity-90 transition-opacity ${item.rank === 1 ? "sm:w-24 sm:h-24" : ""}`}
+                      >
+                        {item.data.nama.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    {/* Badge Nomor Rank di atas Avatar */}
+                    <div
+                      className={`absolute -bottom-1 sm:-bottom-2 right-0 w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-white shadow-sm ${item.rankColor}`}
+                    >
+                      {item.rank}
+                    </div>
+                  </Link>
+
+                  {/* Kotak Podium */}
+                  <div
+                    className={`w-full ${item.bgClass} rounded-t-2xl shadow-md border border-slate-200/50 flex flex-col items-center justify-start pt-10 sm:pt-12 px-2 text-center pb-4 ${item.height}`}
+                  >
+                    <p className="font-bold text-[10px] sm:text-[13px] text-slate-800 leading-tight mb-1 line-clamp-2 w-full px-1">
+                      {item.data.nama}
+                    </p>
+                    <p className="font-mono font-bold text-[9px] sm:text-[10px] text-slate-500 mb-2">
+                      BIB: {item.data.nomorBibLengkap || "-"}
+                    </p>
+                    <div className="bg-white/60 w-full sm:w-11/12 mx-auto py-2 rounded-xl flex flex-col gap-0.5 border border-white/50">
+                      <span className="font-black text-xs sm:text-sm text-blue-900">
+                        {item.data.totalKm.toFixed(2)} KM
+                      </span>
+                      <span className="text-[9px] font-bold text-slate-500">
+                        {item.data.totalDurasiFormat || "0j 0m"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Tabel / List Leaderboard Sisa */}
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-6">
           {paginatedData.length === 0 ? (
             <div className="text-center py-20 px-4">
               <div className="text-5xl mb-4 opacity-30 grayscale">🏃‍♂️</div>
@@ -510,125 +633,104 @@ export default function LeaderboardPage() {
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {paginatedData.map((pelari, index) => {
-                // Perhitungan Rank Global (bukan rank per halaman)
-                const rank = startIndex + index + 1;
-                let rankStyle = "bg-slate-100 text-slate-500 font-bold";
-                let badgeIcon = null;
+              {listData.length === 0 && isPageOne ? (
+                <div className="text-center py-10 text-slate-400 font-medium text-sm bg-slate-50">
+                  <p>
+                    Hanya terdapat {podiumData.length} pelari pada kategori ini.
+                  </p>
+                </div>
+              ) : (
+                listData.map((pelari, index) => {
+                  const rank = isPageOne ? index + 4 : startIndex + index + 1;
 
-                if (rank === 1) {
-                  rankStyle =
-                    "bg-gradient-to-br from-yellow-300 to-yellow-500 text-yellow-900 shadow-md shadow-yellow-500/30 scale-110";
-                  badgeIcon = "👑";
-                } else if (rank === 2) {
-                  rankStyle =
-                    "bg-gradient-to-br from-slate-300 to-slate-400 text-slate-800 shadow-md";
-                } else if (rank === 3) {
-                  rankStyle =
-                    "bg-gradient-to-br from-orange-300 to-orange-500 text-orange-950 shadow-md";
-                }
-
-                return (
-                  <Link
-                    href={`/u/${pelari.slug || pelari.id}`}
-                    key={pelari.id}
-                    className="flex flex-col sm:flex-row sm:items-center p-5 sm:p-6 hover:bg-slate-50 transition-colors group cursor-pointer relative"
-                  >
-                    <div className="absolute top-4 right-4 sm:hidden">
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${rankStyle}`}
-                      >
-                        {rank}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center w-full sm:w-auto">
-                      <div
-                        className={`hidden sm:flex w-10 h-10 rounded-full items-center justify-center text-base shrink-0 ${rankStyle}`}
-                      >
-                        {rank}
+                  return (
+                    <Link
+                      href={`/u/${pelari.slug || pelari.id}`}
+                      key={pelari.id}
+                      className="flex flex-col sm:flex-row sm:items-center p-5 sm:p-6 hover:bg-slate-50 transition-colors group cursor-pointer relative"
+                    >
+                      {/* Rank Badge Mobile */}
+                      <div className="absolute top-5 right-5 sm:hidden">
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs bg-slate-100 text-slate-500 font-bold border border-slate-200">
+                          {rank}
+                        </div>
                       </div>
 
-                      <div className="relative ml-0 sm:ml-5 shrink-0">
-                        {pelari.fotoProfilUrl ? (
-                          <img
-                            src={pelari.fotoProfilUrl}
-                            alt={pelari.nama}
-                            className="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-4 border-white shadow-md"
-                          />
-                        ) : (
-                          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black text-2xl border-4 border-white shadow-md">
-                            {pelari.nama.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        {badgeIcon && (
-                          <span className="absolute -bottom-2 -right-2 text-xl filter drop-shadow-md">
-                            {badgeIcon}
-                          </span>
-                        )}
-                      </div>
+                      <div className="flex items-center w-full sm:w-auto">
+                        {/* Rank Badge Desktop */}
+                        <div className="hidden sm:flex w-10 h-10 rounded-full items-center justify-center text-sm font-bold shrink-0 bg-slate-100 text-slate-500 border border-slate-200 group-hover:bg-blue-100 group-hover:text-blue-700 group-hover:border-blue-200 transition-colors">
+                          {rank}
+                        </div>
 
-                      <div className="ml-4 min-w-0 pr-8 sm:pr-0">
-                        <h4 className="font-black text-slate-800 text-base sm:text-lg truncate group-hover:text-blue-600 transition-colors">
-                          {pelari.nama}
-                        </h4>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          <span className="text-[10px] font-bold text-slate-600 uppercase bg-slate-100 px-2.5 py-0.5 rounded-full">
-                            {pelari.kategori}
-                          </span>
-                          <span className="text-[10px] font-bold text-blue-700 uppercase bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
-                            {pelari.jarak}
-                          </span>
-                          {pelari.isFinisher && (
-                            <span className="text-[10px] font-bold text-emerald-700 uppercase bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                              🏅 Finisher
-                            </span>
+                        <div className="relative ml-0 sm:ml-5 shrink-0">
+                          {/* Logika Avatar & Foto Profil */}
+                          {pelari.fotoProfilUrl ? (
+                            <img
+                              src={pelari.fotoProfilUrl}
+                              alt={pelari.nama}
+                              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-4 border-white shadow-sm"
+                            />
+                          ) : (
+                            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black text-2xl border-4 border-white shadow-sm">
+                              {pelari.nama.charAt(0).toUpperCase()}
+                            </div>
                           )}
                         </div>
-                      </div>
-                    </div>
 
-                    <div className="mt-4 sm:mt-0 flex-grow sm:ml-8 flex flex-col justify-center">
-                      <div className="flex items-end justify-between mb-1.5">
-                        <div className="text-[10px] text-slate-500 font-medium">
-                          Progress Jarak
-                        </div>
-                        <div className="text-right">
-                          <p className="font-black text-lg text-blue-950 leading-none">
-                            {pelari.totalKm.toFixed(2)}{" "}
-                            <span className="text-xs text-slate-500 font-bold">
-                              / {pelari.targetKm} KM
+                        <div className="ml-4 min-w-0 pr-8 sm:pr-0">
+                          <h4 className="font-black text-slate-800 text-base sm:text-lg truncate group-hover:text-blue-600 transition-colors mb-0.5">
+                            {pelari.nama}
+                          </h4>
+                          {/* Info Detail Pelari */}
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                            <span className="text-[10px] font-bold text-slate-600 uppercase bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                              {pelari.kategori}
                             </span>
-                          </p>
+                            <span className="text-[10px] font-bold text-blue-700 uppercase bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                              {pelari.jarak}
+                            </span>
+                            {pelari.nomorBibLengkap && (
+                              <span className="text-[10px] font-mono font-bold text-slate-500 uppercase bg-white px-2 py-0.5 rounded border border-slate-200">
+                                BIB: {pelari.nomorBibLengkap}
+                              </span>
+                            )}
+                            {pelari.isFinisher && (
+                              <span className="text-[10px] font-bold text-emerald-700 uppercase bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                🏅 Finisher
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                      <div className="w-full bg-slate-100 rounded-full h-2 mb-3 overflow-hidden shadow-inner">
-                        <div
-                          className={`h-2 rounded-full transition-all duration-1000 ${pelari.isFinisher ? "bg-emerald-500" : "bg-yellow-400"}`}
-                          style={{ width: `${pelari.persentase}%` }}
-                        ></div>
-                      </div>
-
-                      <div className="flex items-center justify-between text-[9px] sm:text-[10px]">
-                        <div className="text-slate-500 flex items-center gap-1">
-                          <svg
-                            className="w-3 h-3"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z"
-                            />
-                          </svg>
-                          Daftar: {formatDate(pelari.registeredDate)}
+                      <div className="mt-4 sm:mt-0 flex-grow sm:ml-8 flex flex-col justify-center">
+                        <div className="flex items-end justify-between mb-1.5">
+                          <div className="text-[10px] text-slate-500 font-medium uppercase tracking-widest flex items-center gap-2">
+                            <span>Progress</span>
+                            <span className="bg-slate-200 w-1 h-1 rounded-full"></span>
+                            <span>
+                              ⏱️ {pelari.totalDurasiFormat || "0j 0m"}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-black text-lg text-blue-950 leading-none">
+                              {pelari.totalKm.toFixed(2)}{" "}
+                              <span className="text-xs text-slate-500 font-bold">
+                                / {pelari.targetKm} KM
+                              </span>
+                            </p>
+                          </div>
                         </div>
-                        {pelari.isFinisher && pelari.finisherDate && (
-                          <div className="text-emerald-600 font-bold flex items-center gap-1">
+
+                        <div className="w-full bg-slate-100 rounded-full h-2.5 mb-3 overflow-hidden shadow-inner">
+                          <div
+                            className={`h-2.5 rounded-full transition-all duration-1000 ${pelari.isFinisher ? "bg-emerald-500" : "bg-gradient-to-r from-blue-400 to-blue-600"}`}
+                            style={{ width: `${pelari.persentase}%` }}
+                          ></div>
+                        </div>
+
+                        <div className="flex items-center justify-between text-[9px] sm:text-[10px]">
+                          <div className="text-slate-500 flex items-center gap-1 font-medium">
                             <svg
                               className="w-3 h-3"
                               fill="none"
@@ -639,34 +741,53 @@ export default function LeaderboardPage() {
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 strokeWidth={2}
-                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z"
                               />
                             </svg>
-                            Selesai: {formatDate(pelari.finisherDate)}
+                            Daftar: {formatDate(pelari.registeredDate)}
                           </div>
-                        )}
+                          {pelari.isFinisher && pelari.finisherDate && (
+                            <div className="text-emerald-600 font-bold flex items-center gap-1">
+                              <svg
+                                className="w-3 h-3"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2.5}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                              Selesai: {formatDate(pelari.finisherDate)}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </Link>
-                );
-              })}
+                    </Link>
+                  );
+                })
+              )}
             </div>
           )}
         </div>
 
         {/* --- KONTROL PAGINATION --- */}
         {filteredLeaderboard.length > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mt-6">
+            <div className="flex items-center gap-3 text-xs text-slate-500 font-bold uppercase tracking-widest">
               Tampilkan
               <select
                 value={itemsPerPage}
                 onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer font-sans"
               >
                 <option value={10}>10</option>
-                <option value={20}>20</option>
+                <option value={25}>25</option>
                 <option value={50}>50</option>
+                <option value={100}>100</option>
               </select>
               data
             </div>
@@ -675,32 +796,30 @@ export default function LeaderboardPage() {
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border border-slate-200 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-50 active:bg-slate-100"
+                className="px-4 py-2 rounded-lg text-xs font-bold transition-all border border-slate-200 text-slate-600 disabled:opacity-40 disabled:bg-slate-50 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 active:scale-95"
               >
-                Sebelumnya
+                &larr; Sebelumnya
               </button>
 
-              <div className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg">
-                Hal {currentPage} dari {totalPages}
+              <div className="text-xs font-black text-blue-900 bg-blue-100 px-3 py-2 rounded-lg border border-blue-200 shadow-inner">
+                Hal {currentPage} / {totalPages}
               </div>
 
               <button
                 onClick={() =>
                   setCurrentPage((prev) => Math.min(prev + 1, totalPages))
                 }
-                disabled={currentPage === totalPages}
-                className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border border-slate-200 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-50 active:bg-slate-100"
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="px-4 py-2 rounded-lg text-xs font-bold transition-all border border-slate-200 text-slate-600 disabled:opacity-40 disabled:bg-slate-50 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 active:scale-95"
               >
-                Selanjutnya
+                Selanjutnya &rarr;
               </button>
             </div>
           </div>
         )}
       </main>
 
-      {/* ========================================= */}
       {/* FOOTER RESMI */}
-      {/* ========================================= */}
       <footer className="bg-slate-900 text-slate-400 py-12 border-t border-slate-800 mt-auto shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>

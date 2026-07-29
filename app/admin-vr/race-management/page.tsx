@@ -12,10 +12,11 @@ import {
   onSnapshot,
   addDoc,
   deleteDoc,
+  writeBatch,
 } from "firebase/firestore";
 import * as XLSX from "xlsx";
 
-// --- SVG Icons (Menggantikan Emoji) ---
+// --- SVG Icons ---
 const IconTimer = () => (
   <svg
     className="w-5 h-5"
@@ -76,21 +77,6 @@ const IconExternal = () => (
     />
   </svg>
 );
-const IconFlag = () => (
-  <svg
-    className="w-8 h-8 text-slate-400"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.5}
-      d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
-    />
-  </svg>
-);
 const IconBox = () => (
   <svg
     className="w-5 h-5 text-amber-500"
@@ -103,21 +89,6 @@ const IconBox = () => (
       strokeLinejoin="round"
       strokeWidth={2}
       d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-    />
-  </svg>
-);
-const IconDice = () => (
-  <svg
-    className="w-5 h-5"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
     />
   </svg>
 );
@@ -166,8 +137,22 @@ const IconLink = () => (
     />
   </svg>
 );
+const IconTrash = () => (
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+    />
+  </svg>
+);
 
-// Pilihan Warna Dinamis untuk Kartu Jarak
 const colorThemes = [
   {
     border: "border-blue-200",
@@ -278,6 +263,24 @@ export default function RaceManagementPage() {
     setTimeout(() => setMessage({ type: "", text: "" }), 3500);
   };
 
+  // 🔥 PERBAIKAN 1: Query Firestore yang lebih robust untuk mendeteksi finisher
+  useEffect(() => {
+    // Ubah dari != null menjadi > 0 agar index firestore lebih akurat menarik data baru
+    const q = query(
+      collection(db, "offline_participants"),
+      where("waktuFinish", ">", 0),
+    );
+    const unsub = onSnapshot(q, (snapshot) => {
+      const liveFinishers = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      liveFinishers.sort((a: any, b: any) => b.waktuFinish - a.waktuFinish);
+      setFinishers(liveFinishers);
+    });
+    return () => unsub();
+  }, []);
+
   // --- 🔥 SINKRONISASI SETTING & JARAK DINAMIS 🔥 ---
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "settings", "virtual_run"), (docSnap) => {
@@ -285,7 +288,6 @@ export default function RaceManagementPage() {
         const data = docSnap.data();
         setSettings(data);
 
-        // Ekstrak Kategori Jarak Langsung Dari Inputan Admin (offlinePackages)
         let availDistances: string[] = [];
         if (data.offlinePackages && data.offlinePackages.length > 0) {
           availDistances = Array.from(
@@ -296,14 +298,12 @@ export default function RaceManagementPage() {
             new Set(data.virtualPackages.map((p: any) => p.jarak)),
           ) as string[];
         }
-
         setDistances(availDistances);
 
-        // Inisialisasi input COT
         setCotInputs((prev) => {
           const newCot = { ...prev };
           availDistances.forEach((dist) => {
-            const safeDistKey = dist.replace(/\./g, "_"); // 🔥 PERBAIKAN 1: Bersihkan nama jarak
+            const safeDistKey = dist.replace(/\./g, "_");
             if (!newCot[dist])
               newCot[dist] = data[`cot${safeDistKey}`] || "120";
           });
@@ -316,7 +316,6 @@ export default function RaceManagementPage() {
 
   const syncPeserta = async () => {
     setIsProcessing(true);
-    showMsg("success", "Sinkronisasi dimulai... Mengecek database.");
     try {
       const snapOffline = await getDocs(collection(db, "offline_participants"));
       const allOffline = snapOffline.docs.map((d) => ({
@@ -337,11 +336,6 @@ export default function RaceManagementPage() {
       });
       setOfflineParticipants(lunasOffline);
 
-      const finished = lunasOffline
-        .filter((p: any) => p.waktuFinish)
-        .sort((a: any, b: any) => b.waktuFinish - a.waktuFinish);
-      setFinishers(finished);
-
       const snapVR = await getDocs(collection(db, "vr_participants"));
       const allVR = snapVR.docs.map((d) => ({
         id: d.id,
@@ -360,11 +354,7 @@ export default function RaceManagementPage() {
         );
       });
       setVrParticipants(lunasVR);
-
-      showMsg(
-        "success",
-        `Ditemukan ${lunasOffline.length} pelari Offline & ${lunasVR.length} VR.`,
-      );
+      showMsg("success", "Sinkronisasi data kolam berhasil.");
     } catch (error) {
       showMsg("error", "Gagal menarik data dari database.");
     } finally {
@@ -425,7 +415,6 @@ export default function RaceManagementPage() {
               ""
             ).toLowerCase() !== "alumni",
         );
-      case "all":
       default:
         return allCandidates;
     }
@@ -553,9 +542,8 @@ export default function RaceManagementPage() {
     showMsg("success", `${manualInput.nama} masuk ke Kolam Undian!`);
   };
 
-  // --- 🔥 AKSI GUN TIME DENGAN CUSTOM MODAL 🔥 ---
   const handleStartRace = (dist: string) => {
-    const safeDistKey = dist.replace(/\./g, "_"); // 🔥 PERBAIKAN 2: Hilangkan titik di keys
+    const safeDistKey = dist.replace(/\./g, "_");
     setConfirmDialog({
       isOpen: true,
       title: `Mulai Race ${dist}?`,
@@ -577,7 +565,7 @@ export default function RaceManagementPage() {
   };
 
   const handleResetGunTime = (dist: string) => {
-    const safeDistKey = dist.replace(/\./g, "_"); // 🔥 PERBAIKAN 3: Hilangkan titik di keys
+    const safeDistKey = dist.replace(/\./g, "_");
     setConfirmDialog({
       isOpen: true,
       title: `Reset Timer ${dist}?`,
@@ -599,7 +587,7 @@ export default function RaceManagementPage() {
   };
 
   const handleUpdateCOT = async (dist: string) => {
-    const safeDistKey = dist.replace(/\./g, "_"); // 🔥 PERBAIKAN 4: Hilangkan titik di keys
+    const safeDistKey = dist.replace(/\./g, "_");
     try {
       await updateDoc(doc(db, "settings", "virtual_run"), {
         [`cot${safeDistKey}`]: Number(cotInputs[dist]),
@@ -610,60 +598,156 @@ export default function RaceManagementPage() {
 
   const handleSubmitFinish = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!bibInput.trim()) return;
+    const cleanBib = bibInput.trim().toUpperCase();
+    if (!cleanBib) return;
     setIsProcessing(true);
-    try {
-      const peserta = offlineParticipants.find(
-        (p) =>
-          p.nomorBIB === bibInput.trim().toUpperCase() ||
-          p.namaBib === bibInput.trim().toUpperCase(),
-      );
-      if (!peserta) {
-        showMsg("error", `BIB ${bibInput} tidak valid/belum lunas!`);
-      } else if (peserta.waktuFinish) {
-        showMsg("error", `BIB ${bibInput} sudah finish sebelumnya!`);
-      } else {
-        const safeDistKey = peserta.jarak.replace(/\./g, "_"); // 🔥 PERBAIKAN 5: Validasi saat finish
-        const gunTime = settings[`gunTime${safeDistKey}`];
 
-        if (!gunTime) {
-          showMsg(
-            "error",
-            `Race ${peserta.jarak} belum dimulai! Tekan tombol START dulu.`,
-          );
-        } else {
-          await updateDoc(doc(db, "offline_participants", peserta.id), {
-            waktuFinish: Date.now(),
-          });
-          showMsg("success", `FINISH: ${peserta.namaLengkap || peserta.nama}`);
-        }
+    try {
+      const snap = await getDocs(collection(db, "offline_participants"));
+      const currentOffline = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+      const peserta = currentOffline.find(
+        (p: any) =>
+          p.nomorBIB === cleanBib ||
+          (p.namaBib && p.namaBib.toUpperCase() === cleanBib),
+      );
+
+      if (!peserta) {
+        showMsg(
+          "error",
+          `BIB ${cleanBib} tidak valid / belum terdaftar lunas!`,
+        );
+        setIsProcessing(false);
+        setBibInput("");
+        return;
       }
+      if (peserta.waktuFinish) {
+        showMsg("error", `BIB ${cleanBib} sudah terdaftar finish sebelumnya!`);
+        setIsProcessing(false);
+        setBibInput("");
+        return;
+      }
+
+      const safeDistKey = peserta.jarak.replace(/\./g, "_");
+      const gunTime = settings[`gunTime${safeDistKey}`];
+
+      if (!gunTime) {
+        showMsg(
+          "error",
+          `Race ${peserta.jarak} belum dimulai! Tekan tombol START dulu.`,
+        );
+        setIsProcessing(false);
+        setBibInput("");
+        return;
+      }
+
+      const nowTimestamp = Date.now();
+      const calculatedDurationMs = nowTimestamp - gunTime;
+
+      const cotLimitMinutes = settings[`cot${safeDistKey}`] || 120;
+      const calculatedDurationMinutes = calculatedDurationMs / 60000;
+      const overCOT = calculatedDurationMinutes > cotLimitMinutes;
+
+      const sameCategoryFinishers = currentOffline.filter(
+        (p: any) => p.jarak === peserta.jarak && p.waktuFinish,
+      );
+      const rankKategori = sameCategoryFinishers.length + 1;
+
+      await updateDoc(doc(db, "offline_participants", peserta.id), {
+        waktuFinish: nowTimestamp,
+        netTimeMs: calculatedDurationMs,
+        isOverCOT: overCOT,
+        rankKategori: rankKategori,
+        activeBibCheck: "",
+      });
+
+      await updateDoc(doc(db, "settings", "virtual_run"), {
+        activeBibCheck: cleanBib,
+      });
+
+      showMsg(
+        "success",
+        `BERHASIL FINISH: P peringkat ${rankKategori} [${peserta.jarak}] - BIB ${cleanBib}`,
+      );
     } catch (error) {
-      showMsg("error", "Gagal mencatat waktu finish.");
+      showMsg("error", "Gagal menyimpan detail waktu finish.");
     } finally {
       setBibInput("");
       setIsProcessing(false);
-      bibInputRef.current?.focus();
+      setTimeout(() => bibInputRef.current?.focus(), 100);
     }
   };
 
-  // Fungsi mengubah durasi Ms ke Format HH:MM:SS
+  const handleResetLeaderboard = () => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "KOSONGKAN SELURUH LEADERBOARD?",
+      message:
+        "Tindakan ini akan menghapus data Waktu Finish, Durasi Net Time, dan Rangking seluruh pelari secara permanen dari database. Data pendaftaran peserta tidak akan terhapus. Lanjutkan?",
+      type: "danger",
+      confirmText: "Ya, Hapus Semua Catatan",
+      onConfirm: async () => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        setIsProcessing(true);
+        try {
+          const snap = await getDocs(collection(db, "offline_participants"));
+          const batch = writeBatch(db);
+          let count = 0;
+
+          snap.docs.forEach((document) => {
+            const data = document.data();
+            if (
+              data.waktuFinish !== undefined ||
+              data.netTimeMs !== undefined
+            ) {
+              const docRef = doc(db, "offline_participants", document.id);
+              batch.update(docRef, {
+                waktuFinish: null,
+                netTimeMs: null,
+                isOverCOT: null,
+                rankKategori: null,
+              });
+              count++;
+            }
+          });
+
+          if (count > 0) {
+            await batch.commit();
+          }
+
+          await updateDoc(doc(db, "settings", "virtual_run"), {
+            activeBibCheck: "",
+          });
+
+          setFinishers([]);
+          showMsg(
+            "success",
+            `Leaderboard berhasil dibersihkan! ${count} Catatan pelari direset.`,
+          );
+        } catch (error) {
+          showMsg("error", "Gagal mereset database klasemen.");
+        } finally {
+          setIsProcessing(false);
+        }
+      },
+    });
+  };
+
+  // 🔥 PERBAIKAN 2: Logic formatter waktu yang kebal falsy values
   const formatDuration = (start: number, end: number) => {
-    if (!start || !end) return "--:--:--";
+    if (
+      start === null ||
+      start === undefined ||
+      end === null ||
+      end === undefined
+    )
+      return "--:--:--";
     const diffMs = end - start;
     if (diffMs < 0) return "00:00:00";
     const hrs = Math.floor(diffMs / 3600000);
     const mins = Math.floor((diffMs % 3600000) / 60000);
     const secs = Math.floor((diffMs % 60000) / 1000);
     return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  const isOverCOT = (jarak: string, start: number, end: number) => {
-    if (!start || !end) return false;
-    const diffMins = (end - start) / 60000;
-    const safeDistKey = jarak.replace(/\./g, "_"); // 🔥 PERBAIKAN 6: Validasi COT
-    const cotLimit = settings[`cot${safeDistKey}`] || 120;
-    return diffMins > cotLimit;
   };
 
   const handleRemoteDoorprize = async (action: "idle" | "spin") => {
@@ -811,7 +895,7 @@ export default function RaceManagementPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col selection:bg-blue-100">
-      {/* 🔥 CUSTOM MODAL KONFIRMASI 🔥 */}
+      {/* 🔥 CUSTOM MODAL KONFIRMASI (Bisa Dipakai Di Semua Fitur) 🔥 */}
       {confirmDialog.isOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
@@ -822,33 +906,9 @@ export default function RaceManagementPage() {
                 className={`w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-3 shadow-sm border bg-white ${confirmDialog.type === "danger" ? "text-rose-500 border-rose-200" : "text-[#1A73E8] border-blue-200"}`}
               >
                 {confirmDialog.type === "danger" ? (
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2.5}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
+                  <IconTrash />
                 ) : (
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2.5}
-                      d="M13 10V3L4 14h7v7l9-11h-7z"
-                    />
-                  </svg>
+                  <IconTimer />
                 )}
               </div>
               <h3 className="text-lg font-black text-slate-800 tracking-tight">
@@ -864,13 +924,13 @@ export default function RaceManagementPage() {
                   onClick={() =>
                     setConfirmDialog({ ...confirmDialog, isOpen: false })
                   }
-                  className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-xl transition-colors"
+                  className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-xl transition-colors text-sm"
                 >
                   Batal
                 </button>
                 <button
                   onClick={confirmDialog.onConfirm}
-                  className={`w-full font-bold py-3 rounded-xl transition-colors text-white shadow-md ${confirmDialog.type === "danger" ? "bg-rose-500 hover:bg-rose-600" : "bg-[#1A73E8] hover:bg-[#1557b0]"}`}
+                  className={`w-full font-bold py-3 rounded-xl transition-colors text-white shadow-md text-sm ${confirmDialog.type === "danger" ? "bg-rose-500 hover:bg-rose-600" : "bg-[#1A73E8] hover:bg-[#1557b0]"}`}
                 >
                   {confirmDialog.confirmText}
                 </button>
@@ -880,6 +940,7 @@ export default function RaceManagementPage() {
         </div>
       )}
 
+      {/* HEADER BAR */}
       <header className="bg-white/90 backdrop-blur-xl border-b border-slate-200 px-8 py-5 flex justify-between items-center shrink-0 z-20 sticky top-0 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="w-3 h-3 rounded-full bg-[#1A73E8] shadow-[0_0_10px_rgba(26,115,232,0.5)] animate-pulse"></div>
@@ -887,18 +948,12 @@ export default function RaceManagementPage() {
             Live Control Room
           </h1>
         </div>
-        {message.text && (
-          <div
-            className={`fixed top-5 left-1/2 -translate-x-1/2 px-6 py-2.5 rounded-full text-xs font-black shadow-xl z-50 uppercase tracking-widest border ${message.type === "success" ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-rose-50 text-rose-600 border-rose-200"}`}
-          >
-            {message.text}
-          </div>
-        )}
         <div className="font-mono text-sm font-bold tracking-widest text-[#152B5B] bg-slate-100 px-4 py-2 rounded-lg border border-slate-200">
           {formatJam}
         </div>
       </header>
 
+      {/* TABS NAVIGATION */}
       <nav className="flex gap-2 px-8 pt-6 shrink-0 border-b border-slate-200 bg-white">
         {[
           { id: "timing", icon: <IconTimer />, label: "Finish Line & COT" },
@@ -915,23 +970,17 @@ export default function RaceManagementPage() {
         ))}
       </nav>
 
+      {/* TABS CONTENT */}
       <main className="flex-grow p-8 overflow-hidden flex flex-col">
         {/* ============================================================== */}
         {/* TAB 1: TIMING & FINISH LINE */}
         {/* ============================================================== */}
         {activeTab === "timing" && (
           <div className="h-full flex flex-col gap-8">
-            {/* 🔥 KARTU GUN TIME DINAMIS 🔥 */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 shrink-0">
-              {distances.length === 0 && (
-                <div className="col-span-full text-center py-6 text-slate-400 font-medium italic border border-dashed border-slate-300 rounded-xl flex flex-col items-center gap-2">
-                  <IconFlag />
-                  Belum ada paket jarak lari yang di-setting dari menu Admin.
-                </div>
-              )}
               {distances.map((dist, index) => {
                 const theme = colorThemes[index % colorThemes.length];
-                const safeDistKey = dist.replace(/\./g, "_"); // Mencegah bug titik di nama field
+                const safeDistKey = dist.replace(/\./g, "_");
                 const gunTime = settings[`gunTime${safeDistKey}`];
                 const cotValue =
                   cotInputs[dist] || settings[`cot${safeDistKey}`] || "120";
@@ -939,19 +988,16 @@ export default function RaceManagementPage() {
                 return (
                   <div
                     key={dist}
-                    className={`bg-white border ${theme.border} rounded-2xl p-6 flex flex-col gap-5 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow`}
+                    className={`bg-white border ${theme.border} rounded-2xl p-6 flex flex-col gap-5 shadow-sm relative overflow-hidden group hover:shadow-md transition-all`}
                   >
                     <div
                       className={`absolute top-0 right-0 w-32 h-32 ${theme.bgBlur} rounded-full blur-2xl transition-all ${theme.hoverBgBlur}`}
                     ></div>
-
                     <div className="flex justify-between items-start relative z-10">
                       <div className="flex-grow">
                         <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                           KATEGORI {dist}
                         </h3>
-
-                        {/* 🔥 LOGIKA LIVE TIMER (STOPWATCH) 🔥 */}
                         {gunTime ? (
                           <>
                             <div
@@ -962,7 +1008,7 @@ export default function RaceManagementPage() {
                             <div
                               className={`text-xs font-bold ${theme.textSub} mt-1`}
                             >
-                              Waktu Mulai:{" "}
+                              Start:{" "}
                               {new Date(gunTime).toLocaleTimeString("id-ID")}
                             </div>
                           </>
@@ -974,12 +1020,11 @@ export default function RaceManagementPage() {
                           </div>
                         )}
                       </div>
-
-                      <div className="shrink-0 flex flex-col gap-2">
+                      <div className="shrink-0">
                         {gunTime ? (
                           <button
                             onClick={() => handleResetGunTime(dist)}
-                            className="text-[10px] font-bold text-rose-500 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-200 px-4 py-2 rounded-lg transition-colors shadow-sm uppercase tracking-widest"
+                            className="text-[10px] font-bold text-rose-500 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-200 px-4 py-2 rounded-lg transition-colors uppercase tracking-widest shadow-sm"
                           >
                             Reset
                           </button>
@@ -996,7 +1041,7 @@ export default function RaceManagementPage() {
 
                     <div className="flex items-center justify-between pt-4 border-t border-slate-100 relative z-10 mt-auto">
                       <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                        Batas Waktu (COT):
+                        Batas COT:
                       </label>
                       <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-lg border border-slate-200">
                         <input
@@ -1027,25 +1072,19 @@ export default function RaceManagementPage() {
             </div>
 
             <div className="flex-grow grid grid-cols-1 xl:grid-cols-3 gap-8 min-h-0">
-              {/* KOLOM SCANNER */}
-              <div className="xl:col-span-1 bg-white border border-slate-200 rounded-2xl p-8 flex flex-col shadow-sm text-center relative overflow-hidden">
-                <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-emerald-50 rounded-full blur-3xl pointer-events-none"></div>
-                <div className="w-16 h-16 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center text-3xl mx-auto mb-6 relative z-10">
-                  <IconFlag />
+              {/* KOLOM LOGGING SCANNER */}
+              <div className="xl:col-span-1 bg-white border border-slate-200 rounded-2xl p-8 flex flex-col shadow-sm text-center">
+                <div className="w-16 h-16 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+                  🏁
                 </div>
-                <h2 className="text-lg font-black text-[#152B5B] mb-2 uppercase tracking-widest relative z-10">
+                <h2 className="text-base font-black text-[#152B5B] mb-2 uppercase tracking-widest">
                   Scanner Finish
                 </h2>
-                <p className="text-xs text-slate-500 mb-8 relative z-10 leading-relaxed">
-                  Ketik nomor BIB pelari, lalu tekan{" "}
-                  <span className="text-slate-700 font-bold bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
-                    Enter
-                  </span>
+                <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+                  Ketik nomor BIB pelari lalu tekan <b>Enter</b>.
                 </p>
-                <form
-                  onSubmit={handleSubmitFinish}
-                  className="mt-auto mb-auto relative z-10"
-                >
+
+                <form onSubmit={handleSubmitFinish} className="my-auto">
                   <input
                     ref={bibInputRef}
                     type="text"
@@ -1053,113 +1092,106 @@ export default function RaceManagementPage() {
                     value={bibInput}
                     onChange={(e) => setBibInput(e.target.value)}
                     disabled={isProcessing}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-center text-4xl font-black py-8 rounded-2xl focus:outline-none focus:border-[#1A73E8] focus:shadow-[0_0_20px_rgba(26,115,232,0.15)] uppercase tracking-widest transition-all placeholder:text-slate-300"
-                    placeholder="BIB"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-center text-4xl font-black py-8 rounded-2xl focus:outline-none focus:border-[#1A73E8] focus:shadow-[0_0_20px_rgba(26,115,232,0.15)] uppercase tracking-widest transition-all placeholder:text-slate-200 shadow-inner"
+                    placeholder="000"
                   />
                   <button
                     type="submit"
                     disabled={isProcessing || !bibInput}
-                    className="w-full mt-6 bg-[#1A73E8] hover:bg-[#1557b0] text-white text-sm font-black py-4 rounded-xl disabled:opacity-50 transition-all uppercase tracking-widest shadow-md flex justify-center items-center gap-2"
+                    className="w-full mt-6 bg-[#1A73E8] hover:bg-[#1557b0] text-white text-sm font-black py-4 rounded-xl disabled:opacity-50 transition-all uppercase tracking-widest shadow-md"
                   >
-                    {isProcessing ? (
-                      <>
-                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>{" "}
-                        Menyimpan...
-                      </>
-                    ) : (
-                      "Catat Waktu"
-                    )}
+                    {isProcessing ? "Menyimpan..." : "Catat Finisher"}
                   </button>
                 </form>
               </div>
 
-              {/* KOLOM RIWAYAT FINISH */}
+              {/* TABEL LIVE RIWAYAT FINISH DETAIL */}
               <div className="xl:col-span-2 bg-white border border-slate-200 rounded-2xl flex flex-col min-h-0 overflow-hidden shadow-sm">
                 <div className="p-5 border-b border-slate-100 flex justify-between items-center shrink-0 bg-slate-50">
-                  <h3 className="font-bold text-slate-700 text-sm uppercase tracking-widest flex items-center gap-2">
+                  <h3 className="font-bold text-slate-700 text-xs uppercase tracking-widest flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>{" "}
-                    Riwayat Finish
+                    Riwayat Finisher Terkini
                   </h3>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-[#152B5B] bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-lg">
-                    {finishers.length} Masuk
+                    {finishers.length} Terdata
                   </span>
                 </div>
                 <div className="flex-grow overflow-y-auto p-2 custom-scrollbar">
                   <table className="w-full text-left whitespace-nowrap">
-                    <thead className="text-slate-400 text-[10px] uppercase tracking-widest sticky top-0 bg-white z-10">
+                    <thead className="text-slate-400 text-[10px] uppercase tracking-widest sticky top-0 bg-white z-10 border-b border-slate-100">
                       <tr>
-                        <th className="px-5 py-4 font-bold border-b border-slate-100">
-                          Jam Masuk
+                        <th className="px-5 py-4 font-bold">Peringkat</th>
+                        <th className="px-5 py-4 font-bold">BIB</th>
+                        <th className="px-5 py-4 font-bold">Nama Pelari</th>
+                        <th className="px-4 py-4 font-bold">Kategori</th>
+                        <th className="px-5 py-4 font-bold text-center">
+                          Status COT
                         </th>
-                        <th className="px-5 py-4 font-bold border-b border-slate-100">
-                          BIB
-                        </th>
-                        <th className="px-5 py-4 font-bold border-b border-slate-100">
-                          Pelari
-                        </th>
-                        <th className="px-5 py-4 font-bold border-b border-slate-100">
-                          Kategori
-                        </th>
-                        <th className="px-5 py-4 font-bold border-b border-slate-100 text-right">
-                          Net Time
+                        <th className="px-5 py-4 font-bold text-right">
+                          Waktu Finish
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50">
+                    <tbody className="divide-y divide-slate-100">
                       {finishers.length === 0 && (
                         <tr>
                           <td
-                            colSpan={5}
-                            className="text-center py-12 text-slate-400 text-xs italic font-medium"
+                            colSpan={6}
+                            className="text-center py-12 text-slate-400 text-xs italic"
                           >
-                            Belum ada pelari finish.
+                            Belum ada aktivitas di garis finish.
                           </td>
                         </tr>
                       )}
-                      {finishers.map((p) => {
-                        const safeDistKey = p.jarak.replace(/\./g, "_");
-                        const gunTime = settings[`gunTime${safeDistKey}`];
-                        const overCOT = isOverCOT(
-                          p.jarak,
-                          gunTime,
-                          p.waktuFinish,
-                        );
-                        return (
-                          <tr
-                            key={p.id}
-                            className="hover:bg-blue-50/50 transition-colors"
-                          >
-                            <td className="px-5 py-4 text-slate-500 font-mono text-[11px]">
-                              {new Date(p.waktuFinish).toLocaleTimeString(
-                                "id-ID",
-                              )}
-                            </td>
-                            <td className="px-5 py-4 font-black text-slate-800 text-lg">
-                              {p.nomorBIB || p.namaBib || "-"}
-                            </td>
-                            <td className="px-5 py-4 text-slate-600 text-xs font-bold truncate max-w-[200px]">
-                              {p.namaLengkap || p.nama}
-                            </td>
-                            <td className="px-5 py-4">
-                              <span className="text-[9px] font-bold px-2 py-1 rounded-md uppercase tracking-wider bg-slate-100 text-slate-500 border border-slate-200">
-                                {p.jarak}
+                      {finishers.map((p) => (
+                        <tr
+                          key={p.id}
+                          className="hover:bg-blue-50/40 transition-colors"
+                        >
+                          <td className="px-5 py-4 font-black text-[#152B5B] text-center">
+                            #{p.rankKategori || "-"}
+                          </td>
+                          <td className="px-5 py-4 font-mono font-black text-slate-800 text-base">
+                            {p.nomorBIB || "-"}
+                          </td>
+                          <td className="px-5 py-4 text-xs font-bold text-slate-700 max-w-[180px] truncate">
+                            {p.namaLengkap}
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="text-[9px] font-black px-2 py-1 rounded bg-slate-100 border border-slate-200 text-slate-500 uppercase">
+                              {p.jarak}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4 text-center">
+                            {p.isOverCOT ? (
+                              <span className="text-[9px] font-black px-2 py-0.5 bg-rose-50 text-rose-600 rounded border border-rose-200 uppercase">
+                                Over COT
                               </span>
-                            </td>
-                            <td className="px-5 py-4 text-right">
-                              <span
-                                className={`font-mono text-base font-black ${overCOT ? "text-rose-500" : "text-emerald-600"}`}
-                              >
-                                {formatDuration(gunTime, p.waktuFinish)}
+                            ) : (
+                              <span className="text-[9px] font-black px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded border border-emerald-200 uppercase">
+                                Safe
                               </span>
-                              {overCOT && (
-                                <span className="block text-[9px] text-rose-500 font-black uppercase mt-1 tracking-widest">
-                                  Over COT
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
+                            )}
+                          </td>
+                          <td className="px-5 py-4 text-right">
+                            <div className="font-mono font-black text-slate-800 text-sm">
+                              {/* 🔥 SINTAKS FORMAT WAKTU YANG SUDAH KEBALL BUG Falsy 0 🔥 */}
+                              {p.netTimeMs
+                                ? formatDuration(0, p.netTimeMs)
+                                : "--:--:--"}
+                            </div>
+                            {/* Tambahan Info Jam Aktual */}
+                            {p.waktuFinish && (
+                              <div className="text-[9px] text-slate-400 font-bold uppercase mt-0.5 tracking-widest">
+                                Jam:{" "}
+                                {new Date(p.waktuFinish).toLocaleTimeString(
+                                  "id-ID",
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -1182,12 +1214,12 @@ export default function RaceManagementPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={downloadPrizeTemplate}
-                      className="text-[9px] font-bold uppercase tracking-widest bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded transition-colors border border-slate-200"
+                      className="text-[9px] font-bold uppercase tracking-widest bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded border border-slate-200 transition-colors"
                     >
                       Template
                     </button>
                     <label className="text-[9px] font-bold uppercase tracking-widest bg-[#1A73E8] hover:bg-[#1557b0] text-white px-3 py-1.5 rounded cursor-pointer transition-colors shadow-sm">
-                      {isProcessing ? "Memuat..." : "Import Excel"}
+                      Import Excel
                       <input
                         type="file"
                         accept=".xlsx, .xls"
@@ -1200,20 +1232,17 @@ export default function RaceManagementPage() {
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
-                    Pilih Hadiah (Dropdown)
-                  </label>
                   <select
                     value={selectedPrizeId}
                     onChange={(e) => setSelectedPrizeId(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 focus:outline-none focus:border-[#D4AF37] shadow-inner"
                   >
-                    <option value="">-- Sentuh untuk memilih --</option>
+                    <option value="">-- Pilih Hadiah Undian --</option>
                     {prizeList.map((p) => {
                       const sisa = p.jumlah - (p.terundi || 0);
                       return (
                         <option key={p.id} value={p.id} disabled={sisa <= 0}>
-                          {p.namaHadiah} ({p.kategori}) - Kuota Sisa: {sisa}/
+                          {p.namaHadiah} ({p.kategori}) - Sisa: {sisa}/
                           {p.jumlah}
                         </option>
                       );
@@ -1221,95 +1250,85 @@ export default function RaceManagementPage() {
                   </select>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-slate-100">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
-                    Atau Tambah Manual
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Nama Hadiah"
-                      value={manualPrize.namaHadiah}
-                      onChange={(e) =>
-                        setManualPrize({
-                          ...manualPrize,
-                          namaHadiah: e.target.value,
-                        })
-                      }
-                      className="flex-grow bg-slate-50 border border-slate-300 rounded px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#1A73E8]"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Qty"
-                      min="1"
-                      value={manualPrize.jumlah}
-                      onChange={(e) =>
-                        setManualPrize({
-                          ...manualPrize,
-                          jumlah: parseInt(e.target.value),
-                        })
-                      }
-                      className="w-16 bg-slate-50 border border-slate-300 rounded px-2 py-2 text-xs text-center text-slate-800 focus:outline-none focus:border-[#1A73E8]"
-                    />
-                    <button
-                      onClick={handleAddManualPrize}
-                      disabled={isProcessing}
-                      className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 px-3 rounded text-[10px] font-bold uppercase transition-colors"
-                    >
-                      Add
-                    </button>
-                  </div>
+                <div className="mt-4 pt-4 border-t border-slate-100 flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Nama Hadiah"
+                    value={manualPrize.namaHadiah}
+                    onChange={(e) =>
+                      setManualPrize({
+                        ...manualPrize,
+                        namaHadiah: e.target.value,
+                      })
+                    }
+                    className="flex-grow bg-slate-50 border border-slate-300 rounded px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#1A73E8]"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Qty"
+                    min="1"
+                    value={manualPrize.jumlah}
+                    onChange={(e) =>
+                      setManualPrize({
+                        ...manualPrize,
+                        jumlah: parseInt(e.target.value),
+                      })
+                    }
+                    className="w-12 bg-slate-50 border border-slate-300 rounded px-2 py-2 text-xs text-center text-slate-800 focus:outline-none"
+                  />
+                  <button
+                    onClick={handleAddManualPrize}
+                    disabled={isProcessing}
+                    className="bg-slate-800 text-white font-bold px-3 py-2 rounded text-[10px] uppercase"
+                  >
+                    Add
+                  </button>
                 </div>
 
                 <div className="flex justify-between items-center mt-3 pt-4 border-t border-slate-100">
-                  <span className="text-[10px] font-medium text-slate-500">
-                    Tersedia {prizeList.length} macam hadiah
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    Tercatat {prizeList.length} macam barang
                   </span>
                   {prizeList.length > 0 && (
                     <button
                       onClick={handleClearPrizes}
-                      className="text-[10px] font-bold text-rose-500 hover:text-rose-700 uppercase tracking-wider transition-colors"
+                      className="text-[10px] font-bold text-rose-500 hover:text-rose-700 uppercase"
                     >
-                      Reset Database
+                      Clear All
                     </button>
                   )}
                 </div>
               </div>
 
-              <div className="bg-white border border-[#D4AF37]/30 rounded-2xl p-6 shadow-md shrink-0 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-40 h-40 bg-amber-50 rounded-full blur-3xl pointer-events-none"></div>
-                <h2 className="text-xs font-black text-[#152B5B] mb-5 uppercase tracking-widest flex items-center justify-between relative z-10">
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm shrink-0">
+                <h2 className="text-xs font-black text-[#152B5B] mb-4 uppercase tracking-widest flex items-center justify-between">
                   <span className="flex items-center gap-2">
-                    <IconBroadcast /> Layar Studio
+                    <IconBroadcast /> Live Draw Screen
                   </span>
                   <a
                     href="/doorprize-screen"
                     target="_blank"
-                    className="text-[9px] text-[#D4AF37] hover:text-amber-600 flex items-center gap-1 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded transition-colors"
+                    className="text-[9px] text-[#D4AF37] hover:bg-amber-50 border border-amber-200 px-2.5 py-1 rounded flex items-center gap-1"
                   >
-                    Buka Proyektor <IconExternal />
+                    <IconExternal /> Buka Layar
                   </a>
                 </h2>
 
-                <div className="space-y-4 relative z-10">
+                <div className="space-y-4">
                   <button
                     onClick={syncPeserta}
-                    disabled={isProcessing}
-                    className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-[10px] font-bold py-2 rounded-lg transition-colors uppercase tracking-widest mb-2 flex items-center justify-center gap-2"
+                    className="w-full bg-blue-50 text-blue-600 font-bold py-2 rounded-lg text-[10px] uppercase tracking-widest border border-blue-200"
                   >
-                    {isProcessing
-                      ? "Menarik Data..."
-                      : "Sinkronisasi Data Peserta Lunas"}
+                    Re-sync Pool Peserta
                   </button>
-
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
                       Filter Kolam Undian
                     </label>
                     <select
                       value={filterDoorprize}
                       onChange={(e) => setFilterDoorprize(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 focus:outline-none focus:border-[#D4AF37] shadow-inner"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-800 focus:outline-none"
                     >
                       <option value="all">
                         Semua Peserta Lunas (VR & Offline)
@@ -1317,85 +1336,47 @@ export default function RaceManagementPage() {
                       <option value="vr">Khusus Virtual Run Saja</option>
                       <option value="offline">Khusus Offline Run Saja</option>
                       <option value="finish">
-                        Peserta Offline (Sudah Finish)
-                      </option>
-                      <option value="alumni">Peserta Status ALUMNI</option>
-                      <option value="umum">
-                        Peserta Status UMUM (Non-Alumni)
+                        Peserta Offline yang Sudah Finish
                       </option>
                     </select>
                   </div>
-
-                  <div className="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-200">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                      Durasi Putar Acak
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="1"
-                        max="30"
-                        value={spinDuration}
-                        onChange={(e) =>
-                          setSpinDuration(Number(e.target.value))
-                        }
-                        className="w-14 bg-transparent border-b border-slate-300 text-center text-sm font-bold text-slate-800 focus:outline-none focus:border-[#D4AF37]"
-                      />
-                      <span className="text-xs text-slate-500 font-medium">
-                        detik
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 mt-2 border-t border-slate-100">
-                    <button
-                      onClick={() => handleRemoteDoorprize("spin")}
-                      disabled={isSpinning}
-                      className={`w-full text-white text-sm font-black py-4 rounded-xl transition-all uppercase tracking-widest shadow-md flex items-center justify-center gap-2 ${isSpinning ? "bg-slate-400 cursor-not-allowed" : "bg-[#D4AF37] hover:bg-yellow-600 hover:scale-105"}`}
-                    >
-                      {isSpinning ? (
-                        <>
-                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>{" "}
-                          Mengundi...
-                        </>
-                      ) : (
-                        <>
-                          <IconDice /> Putar & Undi Otomatis
-                        </>
-                      )}
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => handleRemoteDoorprize("spin")}
+                    disabled={isSpinning}
+                    className="w-full bg-[#0B2239] hover:bg-blue-950 text-white font-black py-3.5 rounded-xl uppercase text-xs tracking-widest shadow-md"
+                  >
+                    {isSpinning ? "Mengocok..." : "Undi Hadiah"}
+                  </button>
                   <button
                     onClick={() => handleRemoteDoorprize("idle")}
-                    className="w-full bg-white hover:bg-slate-50 text-slate-500 text-[10px] font-bold py-3 rounded-lg transition-colors uppercase tracking-widest border border-slate-300 mt-1 shadow-sm"
+                    className="w-full bg-slate-100 border border-slate-200 text-slate-500 text-[9px] font-bold py-2.5 rounded-xl uppercase"
                   >
-                    Reset Layar (Kembali ke Idle)
+                    Reset Layar Panggung
                   </button>
                 </div>
               </div>
             </div>
 
             <div className="lg:col-span-8 grid grid-cols-1 xl:grid-cols-2 gap-6 min-h-0">
-              {/* KOLAM KANDIDAT */}
+              {/* KOLAM KANDIDAT UNDIAN */}
               <div className="bg-white border border-slate-200 rounded-2xl flex flex-col min-h-0 overflow-hidden shadow-sm">
                 <div className="p-4 border-b border-slate-100 flex justify-between items-center shrink-0 bg-slate-50">
                   <h3 className="font-bold text-slate-700 text-xs uppercase tracking-widest flex items-center gap-2">
-                    <IconUsers /> Kolam Undian
+                    <IconUsers /> Kandidat Doorprize
                   </h3>
-                  <span className="text-[10px] font-bold uppercase text-[#152B5B] bg-blue-50 border border-blue-200 px-2 py-1 rounded">
-                    {candidates.length} Orang
+                  <span className="text-[10px] font-bold bg-blue-50 border border-blue-100 px-2 py-1 rounded text-blue-700">
+                    {candidates.length} Slot
                   </span>
                 </div>
-
-                <div className="p-3 bg-slate-50 border-b border-slate-100 flex gap-2">
+                <div className="p-2 bg-slate-50 flex gap-1 border-b border-slate-100">
                   <input
                     type="text"
-                    placeholder="Nama Peserta"
+                    placeholder="Nama"
                     value={manualInput.nama}
                     onChange={(e) =>
                       setManualInput({ ...manualInput, nama: e.target.value })
                     }
-                    className="w-full bg-white border border-slate-300 rounded px-2 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-[#1A73E8]"
+                    className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-xs"
                   />
                   <input
                     type="text"
@@ -1404,63 +1385,28 @@ export default function RaceManagementPage() {
                     onChange={(e) =>
                       setManualInput({ ...manualInput, bib: e.target.value })
                     }
-                    className="w-16 bg-white border border-slate-300 rounded px-2 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-[#1A73E8]"
+                    className="w-16 bg-white border border-slate-300 rounded px-2 py-1 text-xs text-center"
                   />
                   <button
                     onClick={handleAddManualParticipant}
-                    className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 rounded text-[10px] font-bold uppercase transition-colors whitespace-nowrap border border-slate-300"
+                    className="bg-white hover:bg-slate-100 border border-slate-300 px-3 rounded text-[9px] font-bold uppercase"
                   >
-                    + Manual
+                    Tambah
                   </button>
                 </div>
-
                 <div className="flex-grow overflow-y-auto p-2 custom-scrollbar">
                   <table className="w-full text-left whitespace-nowrap">
-                    <thead className="text-slate-400 text-[9px] uppercase tracking-widest sticky top-0 bg-white/95 backdrop-blur-sm z-10">
-                      <tr>
-                        <th className="px-4 py-3 font-bold border-b border-slate-100">
-                          BIB / Asal
-                        </th>
-                        <th className="px-4 py-3 font-bold border-b border-slate-100">
-                          Nama Kandidat
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {candidates.length === 0 && (
-                        <tr>
-                          <td
-                            colSpan={2}
-                            className="text-center py-10 text-slate-400 text-xs italic"
-                          >
-                            Klik "Sinkronisasi" atau pastikan filter sesuai.
-                          </td>
-                        </tr>
-                      )}
+                    <tbody className="divide-y divide-slate-100 text-xs">
                       {candidates.map((c) => (
-                        <tr key={c.id} className="hover:bg-blue-50/50">
-                          <td className="px-4 py-3">
-                            <span
-                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${c.source === "vr" ? "bg-purple-50 text-purple-600 border border-purple-200" : c.source === "manual" ? "bg-amber-50 text-amber-600 border border-amber-200" : "bg-blue-50 text-blue-600 border border-blue-200"}`}
-                            >
-                              {c.source}
-                            </span>
-                            {c.nomorBIB && (
-                              <div className="text-[10px] font-mono text-slate-500 mt-1 font-bold">
-                                {c.nomorBIB}
-                              </div>
-                            )}
+                        <tr key={c.id} className="hover:bg-slate-50">
+                          <td className="px-4 py-2.5 font-bold text-slate-400 uppercase tracking-tighter w-20">
+                            [{c.source}]
                           </td>
-                          <td className="px-4 py-3">
-                            <div className="text-xs font-bold text-slate-700 truncate max-w-[150px]">
-                              {c.namaLengkap || c.nama}
-                            </div>
-                            <div className="text-[9px] text-slate-500 uppercase mt-0.5 font-medium">
-                              {c.kategoriPeserta ||
-                                c.kategori ||
-                                c.tipePeserta ||
-                                "UMUM"}
-                            </div>
+                          <td className="px-4 py-2.5 font-black text-slate-800 font-mono">
+                            {c.nomorBIB || "-"}
+                          </td>
+                          <td className="px-4 py-2.5 text-slate-700 font-medium truncate max-w-[150px]">
+                            {c.namaLengkap || c.nama}
                           </td>
                         </tr>
                       ))}
@@ -1469,55 +1415,38 @@ export default function RaceManagementPage() {
                 </div>
               </div>
 
-              {/* DAFTAR PEMENANG */}
-              <div className="bg-white border border-[#D4AF37]/30 rounded-2xl flex flex-col min-h-0 overflow-hidden shadow-sm">
+              {/* TABEL LIVE DAFTAR PEMENANG */}
+              <div className="bg-white border border-slate-200 rounded-2xl flex flex-col min-h-0 overflow-hidden shadow-sm">
                 <div className="p-4 border-b border-slate-100 flex justify-between items-center shrink-0 bg-slate-50">
                   <h3 className="font-bold text-slate-700 text-xs uppercase tracking-widest flex items-center gap-2">
-                    <IconTrophy /> Pemenang
+                    <IconTrophy /> Log Pemenang
                   </h3>
-                  <span className="text-[10px] font-bold uppercase text-[#152B5B] bg-amber-50 border border-amber-200 px-2 py-1 rounded">
-                    {winners.length} Orang
+                  <span className="text-[10px] font-bold bg-amber-50 border border-amber-200 px-2 py-1 rounded text-amber-700">
+                    {winners.length} Winner
                   </span>
                 </div>
                 <div className="flex-grow overflow-y-auto p-2 custom-scrollbar">
-                  <table className="w-full text-left whitespace-nowrap">
-                    <thead className="text-slate-400 text-[9px] uppercase tracking-widest sticky top-0 bg-white/95 backdrop-blur-sm z-10">
-                      <tr>
-                        <th className="px-4 py-3 font-bold border-b border-slate-100">
-                          Peserta
-                        </th>
-                        <th className="px-4 py-3 font-bold border-b border-slate-100 text-right">
-                          Aksi
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {winners.length === 0 && (
-                        <tr>
-                          <td
-                            colSpan={2}
-                            className="text-center py-10 text-slate-400 text-xs italic"
-                          >
-                            Belum ada pemenang.
-                          </td>
-                        </tr>
-                      )}
+                  <table className="w-full text-left whitespace-nowrap text-xs">
+                    <tbody className="divide-y divide-slate-100">
                       {winners.map((p) => (
-                        <tr key={p.id} className="hover:bg-amber-50/50">
-                          <td className="px-4 py-3">
-                            <div className="text-xs font-bold text-slate-800 truncate max-w-[150px]">
-                              {p.namaLengkap || p.nama}
+                        <tr key={p.id} className="hover:bg-amber-50/40">
+                          <td className="px-4 py-3 font-bold text-slate-800">
+                            <div>
+                              {p.namaLengkap || p.nama}{" "}
+                              <span className="font-mono text-[10px] text-slate-400">
+                                ({p.nomorBIB})
+                              </span>
                             </div>
-                            <div className="text-[10px] font-bold text-[#D4AF37] mt-0.5 truncate max-w-[150px] flex items-center gap-1">
+                            <div className="text-[10px] text-[#D4AF37] font-black uppercase mt-1 flex items-center gap-1">
                               <IconGift /> {p.doorprizeWon}
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-right align-top">
+                          <td className="px-4 py-3 text-right">
                             <button
                               onClick={() => handleCancelWinner(p)}
-                              className="text-[9px] font-bold text-rose-500 hover:text-white bg-rose-50 hover:bg-rose-500 border border-rose-200 px-2 py-1 rounded transition-colors uppercase tracking-wider"
+                              className="text-[9px] font-bold text-rose-500 bg-rose-50 hover:bg-rose-500 hover:text-white px-2 py-1 rounded transition-colors border border-rose-200 uppercase"
                             >
-                              Batal
+                              Diskualifikasi
                             </button>
                           </td>
                         </tr>
@@ -1531,13 +1460,12 @@ export default function RaceManagementPage() {
         )}
 
         {/* ============================================================== */}
-        {/* TAB 3: BROADCASTING & LEADERBOARD */}
+        {/* TAB 3: BROADCASTING & RESET CLASSIFICATION */}
         {/* ============================================================== */}
         {activeTab === "broadcast" && (
-          <div className="max-w-2xl mx-auto w-full flex flex-col gap-8 mt-6">
-            <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl pointer-events-none"></div>
-              <h2 className="text-xs font-black text-[#152B5B] mb-5 uppercase tracking-widest border-b border-slate-100 pb-4 flex items-center gap-2 relative z-10">
+          <div className="max-w-2xl mx-auto w-full flex flex-col gap-6 mt-6 animate-in fade-in duration-300">
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <h2 className="text-xs font-black text-[#152B5B] mb-4 uppercase tracking-widest border-b border-slate-100 pb-3 flex items-center gap-2">
                 <IconLink /> Tautan Video Call Pemenang
               </h2>
               <input
@@ -1547,18 +1475,13 @@ export default function RaceManagementPage() {
                   handleUpdateSetting("zoomLink", e.target.value)
                 }
                 placeholder="https://zoom.us/j/..."
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-5 py-4 text-sm font-medium text-slate-800 focus:outline-none focus:border-[#1A73E8] shadow-inner transition-colors relative z-10"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-[#1A73E8]"
               />
-              <p className="text-[10px] text-slate-500 mt-3 font-medium leading-relaxed relative z-10">
-                Masukkan link Zoom/G-Meet. Peserta yang menang di Web Publik
-                akan melihat tombol untuk bergabung live.
-              </p>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-rose-50 rounded-full blur-3xl pointer-events-none"></div>
-              <h2 className="text-xs font-black text-[#152B5B] mb-5 uppercase tracking-widest border-b border-slate-100 pb-4 flex items-center gap-2 relative z-10">
-                <span className="w-3 h-3 rounded-full bg-rose-500 animate-pulse border-2 border-rose-200"></span>{" "}
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <h2 className="text-xs font-black text-[#152B5B] mb-4 uppercase tracking-widest border-b border-slate-100 pb-3 flex items-center gap-2">
+                <span className="w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping"></span>{" "}
                 YouTube Live Streaming
               </h2>
               <input
@@ -1568,21 +1491,17 @@ export default function RaceManagementPage() {
                   handleUpdateSetting("liveStreamLink", e.target.value)
                 }
                 placeholder="https://youtube.com/live/..."
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-5 py-4 text-sm font-medium text-slate-800 focus:outline-none focus:border-rose-500 shadow-inner transition-colors relative z-10"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-rose-500"
               />
-              <p className="text-[10px] text-slate-500 mt-3 font-medium leading-relaxed relative z-10">
-                Tautkan video Live YouTube. Akan muncul jendela pemutar video di
-                beranda web.
-              </p>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 flex justify-between items-center shadow-sm">
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 flex justify-between items-center shadow-sm">
               <div>
                 <h2 className="text-xs font-black text-[#152B5B] uppercase tracking-widest mb-1">
                   Publikasi Leaderboard
                 </h2>
                 <p className="text-[10px] text-slate-500 font-medium">
-                  Buka akses publik untuk melihat klasemen.
+                  Izinkan publik memantau klasemen langsung di halaman depan.
                 </p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -1594,8 +1513,29 @@ export default function RaceManagementPage() {
                     handleUpdateSetting("showLeaderboard", e.target.checked)
                   }
                 />
-                <div className="w-12 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                <div className="w-12 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
               </label>
+            </div>
+
+            {/* ========================================================= */}
+            {/* 🔥 2. PERBAIKAN UTAMA: TOMBOL RESET DATABASE CLASSEMET LEADERBOARD 🔥 */}
+            {/* ========================================================= */}
+            <div className="bg-rose-50/50 border border-rose-200 rounded-2xl p-6 shadow-sm mt-4">
+              <h2 className="text-xs font-black text-rose-800 uppercase tracking-widest mb-2 flex items-center gap-2">
+                ⚠️ Danger Zone (Area Krusial)
+              </h2>
+              <p className="text-[11px] text-slate-500 leading-relaxed mb-4 font-medium">
+                Gunakan fitur ini hanya saat ingin melakukan simulasi ulang
+                balapan atau membersihkan catatan kotor pasca uji coba alat
+                sebelum hari-H. Seluruh peringkat akan kembali kosong.
+              </p>
+              <button
+                onClick={handleResetLeaderboard}
+                disabled={isProcessing}
+                className="w-full bg-rose-600 hover:bg-rose-700 text-white font-black text-xs uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-md disabled:opacity-40 flex items-center justify-center gap-2"
+              >
+                <IconTrash /> Reset Seluruh Klasemen Balapan
+              </button>
             </div>
           </div>
         )}

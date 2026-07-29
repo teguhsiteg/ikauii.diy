@@ -254,13 +254,13 @@ export default function NavbarPublic() {
                 Direktori Bisnis
               </Link>
               <Link
-                href="/#berita"
+                href="/berita"
                 className="text-sm font-semibold text-slate-600 hover:text-blue-900 transition-colors hover:underline underline-offset-8 decoration-yellow-500 decoration-2"
               >
                 Berita
               </Link>
               <Link
-                href="/#agenda"
+                href="/agenda"
                 className="text-sm font-semibold text-slate-600 hover:text-blue-900 transition-colors hover:underline underline-offset-8 decoration-yellow-500 decoration-2"
               >
                 Agenda
@@ -408,14 +408,14 @@ export default function NavbarPublic() {
             Direktori Bisnis
           </Link>
           <Link
-            href="/#berita"
+            href="/berita"
             onClick={() => setIsMobileMenuOpen(false)}
             className="text-base font-bold text-slate-700 transition-colors w-full pb-3 border-b border-slate-100"
           >
             Berita
           </Link>
           <Link
-            href="/#agenda"
+            href="/agenda"
             onClick={() => setIsMobileMenuOpen(false)}
             className="text-base font-bold text-slate-700 transition-colors w-full pb-3 border-b border-slate-100"
           >
@@ -428,7 +428,7 @@ export default function NavbarPublic() {
             onClick={() => setIsMobileMenuOpen(false)}
             className="mt-4 text-sm font-bold bg-yellow-500 text-blue-950 w-full py-4 rounded-xl hover:bg-yellow-400 transition-all shadow-[0_4px_15px_rgba(234,179,8,0.3)] active:scale-[0.98]"
           >
-            Bergabung IKA UII DIY
+            Bergabung
           </Link>
         </div>
       </div>

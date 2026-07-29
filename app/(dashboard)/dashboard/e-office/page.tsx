@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { toast } from "@/lib/toast";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -12,67 +13,185 @@ import {
   doc,
   deleteDoc,
 } from "firebase/firestore";
+import Link from "next/link";
 
 export default function ManajemenNomorSuratPage() {
   const [nomorList, setNomorList] = useState<any[]>([]);
-  const [filterStatus, setFilterStatus] = useState("semua"); // semua, terpakai, belum
+  const [pengurusList, setPengurusList] = useState<any[]>([]);
+  const [filterStatus, setFilterStatus] = useState("semua");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  // --- STATE PAGINATION ---
+  // State untuk mode edit
+  const [editId, setEditId] = useState<string | null>(null);
+
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
   const [currentPage, setCurrentPage] = useState<number>(1);
 
-  // Form Generator Nomor
+  const [searchPenerima, setSearchPenerima] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // 🔥 Form Generator Nomor & Setup Surat (Ditambah Penutup & Jabatan) 🔥
   const [genForm, setGenForm] = useState({
     nomorUrut: "",
-    jenis: "Surat Biasa",
-    kategori: "Eksternal",
-    index: "SR", // Default disesuaikan dengan opsi pertama
+    jenis: "Surat Undangan",
+    kategori: "Internal",
+    index: "UND",
     perihal: "",
+    isiSurat: "",
+    penutupSurat:
+      "Demikian surat undangan ini kami sampaikan. Atas perhatian dan kehadirannya, kami ucapkan terima kasih.",
     pembuat: "",
+    jabatanPembuat: "",
     tglMasehi: new Date().toISOString().split("T")[0],
     preview: "",
+    templateSurat: "Undangan Lipat 3",
+    penerima: [] as string[],
+    tglPelaksanaan: "",
+    waktuPelaksanaan: "",
+    tempatPelaksanaan: "",
   });
 
-  // 1. Tarik Data Real-time
+  // 🔥 TAMBAHAN STATE UNTUK MODE AMBIL NOMOR SAJA 🔥
+  const [modeForm, setModeForm] = useState<"lengkap" | "cepat">("lengkap");
+  const [formCepat, setFormCepat] = useState({
+    jenisSurat: "Surat Keluar Umum",
+    perihal: "",
+    tujuan: "",
+    tanggalSurat: new Date().toISOString().split("T")[0],
+  });
+
+  const handleAmbilNomor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      // 1. Cari nomor urut terakhir
+      let nextNo = "001";
+      if (nomorList.length > 0) {
+        const lastNumber = parseInt(nomorList[0].nomor.split("/")[0]);
+        if (!isNaN(lastNumber)) {
+          nextNo = String(lastNumber + 1).padStart(3, "0");
+        }
+      }
+
+      // 2. Format Romawi Bulan & Tahun
+      const arrBulan = [
+        "I",
+        "II",
+        "III",
+        "IV",
+        "V",
+        "VI",
+        "VII",
+        "VIII",
+        "IX",
+        "X",
+        "XI",
+        "XII",
+      ];
+      const d = new Date(formCepat.tanggalSurat);
+      const bln = arrBulan[d.getMonth()];
+      const thn = d.getFullYear().toString();
+
+      // 3. Tentukan Kode (Bisa disesuaikan)
+      let kode = "UM";
+      if (formCepat.jenisSurat === "Surat Keputusan") kode = "SKep";
+      if (formCepat.jenisSurat === "Surat Tugas") kode = "ST";
+      if (formCepat.jenisSurat === "Surat Keterangan") kode = "SK";
+
+      const generatedNomor = `${nextNo}/IKA-UII/DIY/${kode}/${bln}/${thn}`;
+
+      const payload = {
+        nomor: generatedNomor,
+        jenis: formCepat.jenisSurat,
+        perihal: formCepat.perihal,
+        penerima: formCepat.tujuan ? [formCepat.tujuan] : [],
+        tanggal: formCepat.tanggalSurat,
+        tipeForm: "Buku Agenda Manual",
+        status: "Sudah terpakai", // Langsung terpakai agar tidak diambil orang lain
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      await addDoc(collection(db, "nomor_surat"), payload);
+      toast.success(`Berhasil! Nomor Surat Anda: ${generatedNomor}. Silakan salin nomor tersebut ke dokumen Word Anda.`);
+
+      setFormCepat({ ...formCepat, perihal: "", tujuan: "" });
+      setIsModalOpen(false);
+      fetchData();
+    } catch (error) {
+      toast.error("Gagal mengambil nomor surat.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const fetchData = async () => {
     setIsLoading(true);
-    const q = query(
-      collection(db, "nomor_surat"),
-      orderBy("createdAt", "desc"),
-    );
-    const snap = await getDocs(q);
-    const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    setNomorList(data);
+    try {
+      const q = query(
+        collection(db, "nomor_surat"),
+        orderBy("createdAt", "desc"),
+      );
+      const snap = await getDocs(q);
+      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setNomorList(data);
 
-    // Auto-suggest Nomor Urut Berikutnya (Jika form baru dibuka)
-    if (data.length > 0 && !genForm.nomorUrut) {
-      const lastNumber = parseInt(data[0].nomor.split("/")[0]);
-      if (!isNaN(lastNumber)) {
-        setGenForm((prev) => ({
-          ...prev,
-          nomorUrut: String(lastNumber + 1).padStart(3, "0"),
-        }));
+      const qPengurus = query(
+        collection(db, "pengurus"),
+        orderBy("nama", "asc"),
+      );
+      const snapPengurus = await getDocs(qPengurus);
+      const dataPengurus = snapPengurus.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      }));
+      setPengurusList(dataPengurus);
+
+      // Auto-suggest Nomor Urut hanya jika TIDAK sedang mode edit
+      if (!editId) {
+        if (data.length > 0 && !genForm.nomorUrut) {
+          const lastNumber = parseInt(data[0].nomor.split("/")[0]);
+          if (!isNaN(lastNumber)) {
+            setGenForm((prev) => ({
+              ...prev,
+              nomorUrut: String(lastNumber + 1).padStart(3, "0"),
+            }));
+          }
+        } else if (data.length === 0) {
+          setGenForm((prev) => ({ ...prev, nomorUrut: "001" }));
+        }
       }
-    } else if (data.length === 0) {
-      setGenForm((prev) => ({ ...prev, nomorUrut: "001" }));
+    } catch (error) {
+      console.error("Gagal menarik data:", error);
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  // Reset pagination ke halaman 1 setiap kali filter atau itemsPerPage berubah
   useEffect(() => {
     setCurrentPage(1);
   }, [filterStatus, itemsPerPage]);
 
-  // 2. Auto Preview Generator Nomor
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   useEffect(() => {
     const arrBulan = [
       "I",
@@ -92,53 +211,108 @@ export default function ManajemenNomorSuratPage() {
     const bln = isNaN(d.getTime()) ? "..." : arrBulan[d.getMonth()];
     const thn = isNaN(d.getTime()) ? "..." : d.getFullYear().toString();
     const no = genForm.nomorUrut || "000";
-    const kode = genForm.index; // Karena value-nya murni kode (misal: SR, UND)
-
-    // Format Baku DPW IKA UII DIY
-    const result = `[NO]/DPW-IKA-UII/DIY/[KODE]/[BLN]/[THN]`
+    const kode = genForm.index;
+    const result = `[NO]/IKA-UII/DIY/[KODE]/[BLN]/[THN]`
       .replace("[NO]", no)
       .replace("[KODE]", kode)
       .replace("[BLN]", bln)
       .replace("[THN]", thn);
-
     setGenForm((prev) => ({ ...prev, preview: result }));
   }, [genForm.nomorUrut, genForm.index, genForm.tglMasehi]);
 
-  // 3. Simpan ke Database
-  const handleGenerate = async () => {
-    if (!genForm.perihal || !genForm.pembuat || !genForm.nomorUrut) {
-      return alert("Nomor, Perihal, dan Nama Pembuat wajib diisi!");
-    }
+  const handleEdit = (docData: any) => {
+    const parts = docData.nomor.split("/");
+    const noUrut = parts[0] || "";
+    const kode = parts[3] || "UND";
 
+    setGenForm({
+      nomorUrut: noUrut,
+      index: kode,
+      jenis: docData.jenis || "Surat Undangan",
+      kategori: docData.kategori || "Internal",
+      perihal: docData.perihal || "",
+      isiSurat: docData.isiSurat || "",
+      penutupSurat:
+        docData.penutupSurat ||
+        "Demikian surat undangan ini kami sampaikan. Atas perhatian dan kehadirannya, kami ucapkan terima kasih.",
+      pembuat: docData.pembuat || "",
+      jabatanPembuat: docData.jabatanPembuat || "",
+      tglMasehi: docData.tanggal || new Date().toISOString().split("T")[0],
+      preview: docData.nomor || "",
+      templateSurat: docData.templateSurat || "Undangan Lipat 3",
+      penerima: docData.penerima || [],
+      tglPelaksanaan: docData.tglPelaksanaan || "",
+      waktuPelaksanaan: docData.waktuPelaksanaan || "",
+      tempatPelaksanaan: docData.tempatPelaksanaan || "",
+    });
+    setEditId(docData.id);
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async () => {
+      toast.warning("Nomor, Perihal, dan Nama Pembuat wajib diisi!");
+      return;
     setIsSaving(true);
     try {
-      await addDoc(collection(db, "nomor_surat"), {
+      const payload = {
         nomor: genForm.preview,
         perihal: genForm.perihal,
+        isiSurat: genForm.isiSurat,
+        penutupSurat: genForm.penutupSurat,
+        tglPelaksanaan: genForm.tglPelaksanaan,
+        waktuPelaksanaan: genForm.waktuPelaksanaan,
+        tempatPelaksanaan: genForm.tempatPelaksanaan,
         jenis: genForm.jenis,
         kategori: genForm.kategori,
         tanggal: genForm.tglMasehi,
         pembuat: genForm.pembuat,
-        status: "Belum terpakai",
-        createdAt: Date.now(),
-      });
+        jabatanPembuat: genForm.jabatanPembuat,
+        templateSurat: genForm.templateSurat,
+        penerima: genForm.penerima,
+        updatedAt: Date.now(),
+      };
+
+      if (editId) {
+        await updateDoc(doc(db, "nomor_surat", editId), payload);
+      } else {
+        await addDoc(collection(db, "nomor_surat"), {
+          ...payload,
+          status: "Belum terpakai",
+          createdAt: Date.now(),
+        });
+      }
 
       setIsModalOpen(false);
-      setGenForm((prev) => ({
-        ...prev,
+      setEditId(null);
+      setGenForm({
+        nomorUrut: "",
+        jenis: "Surat Undangan",
+        kategori: "Internal",
+        index: "UND",
         perihal: "",
+        isiSurat: "",
+        penutupSurat:
+          "Demikian surat undangan ini kami sampaikan. Atas perhatian dan kehadirannya, kami ucapkan terima kasih.",
         pembuat: "",
-        nomorUrut: String(parseInt(prev.nomorUrut) + 1).padStart(3, "0"),
-      }));
-      fetchData(); // Refresh Data
+        jabatanPembuat: "",
+        tglMasehi: new Date().toISOString().split("T")[0],
+        preview: "",
+        templateSurat: "Undangan Lipat 3",
+        penerima: [],
+        tglPelaksanaan: "",
+        waktuPelaksanaan: "",
+        tempatPelaksanaan: "",
+      });
+      setSearchPenerima("");
+      fetchData();
     } catch (error) {
-      alert("Gagal membuat nomor surat.");
+      toast.error("Gagal menyimpan dokumen.");
+      console.error(error);
     } finally {
       setIsSaving(false);
     }
   };
 
-  // 4. Ubah Status & Hapus
   const toggleStatus = async (id: string, currentStatus: string) => {
     const newStatus =
       currentStatus === "Sudah terpakai" ? "Belum terpakai" : "Sudah terpakai";
@@ -146,17 +320,56 @@ export default function ManajemenNomorSuratPage() {
       status: newStatus,
       updatedAt: Date.now(),
     });
-    fetchData(); // Refresh Data
+    fetchData();
   };
 
   const handleDelete = async (id: string) => {
     if (confirm("Yakin ingin menghapus nomor surat ini secara permanen?")) {
       await deleteDoc(doc(db, "nomor_surat", id));
-      fetchData(); // Refresh Data
+      fetchData();
     }
   };
 
-  // --- LOGIKA FILTER & PAGINATION ---
+  // 🔥 FITUR MANAJEMEN PENERIMA ANTI REPOT 🔥
+  const filteredPengurus = pengurusList.filter(
+    (p) =>
+      p.nama?.toLowerCase().includes(searchPenerima.toLowerCase()) &&
+      !genForm.penerima.includes(p.nama),
+  );
+
+  const addPenerima = (nama: string) => {
+    if (!nama.trim()) return;
+    setGenForm((prev) => ({
+      ...prev,
+      penerima: [...prev.penerima, nama.trim()],
+    }));
+    setSearchPenerima("");
+    setIsDropdownOpen(false);
+  };
+
+  const removePenerima = (nama: string) => {
+    setGenForm((prev) => ({
+      ...prev,
+      penerima: prev.penerima.filter((n) => n !== nama),
+    }));
+  };
+
+  const addSemuaPengurus = () => {
+    const semuaNama = pengurusList.map((p) => p.nama).filter((n) => n);
+    setGenForm((prev) => ({ ...prev, penerima: semuaNama }));
+  };
+
+  const hapusSemuaPengurus = () => {
+    setGenForm((prev) => ({ ...prev, penerima: [] }));
+  };
+
+  const handleKeyDownPenerima = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addPenerima(searchPenerima);
+    }
+  };
+
   const filteredList = nomorList.filter((n) => {
     if (filterStatus === "terpakai") return n.status === "Sudah terpakai";
     if (filterStatus === "belum") return n.status === "Belum terpakai";
@@ -166,7 +379,6 @@ export default function ManajemenNomorSuratPage() {
   const totalItems = filteredList.length;
   const totalPages =
     itemsPerPage === 0 ? 1 : Math.ceil(totalItems / itemsPerPage);
-
   const currentTableData =
     itemsPerPage === 0
       ? filteredList
@@ -174,7 +386,6 @@ export default function ManajemenNomorSuratPage() {
           (currentPage - 1) * itemsPerPage,
           currentPage * itemsPerPage,
         );
-
   const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const endItem =
     itemsPerPage === 0
@@ -183,22 +394,20 @@ export default function ManajemenNomorSuratPage() {
 
   if (isLoading && nomorList.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
-        <div className="animate-spin w-8 h-8 border-4 border-slate-200 border-t-[#152B5B] rounded-full"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA]">
+        <div className="animate-spin w-8 h-8 border-4 border-[#DADCE0] border-t-[#1A73E8] rounded-full"></div>
       </div>
     );
   }
 
-  // --- KOMPONEN DROPDOWN INDEX KODE ---
   const DropdownIndexKode = () => (
     <select
       value={genForm.index}
       onChange={(e) => setGenForm({ ...genForm, index: e.target.value })}
-      className="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl text-sm font-semibold text-slate-800 outline-none focus:border-[#1A73E8] focus:bg-white transition-colors custom-scrollbar"
+      className="w-full bg-white border border-[#DADCE0] px-3 py-2 rounded-md text-sm text-[#202124] outline-none focus:border-[#1A73E8] focus:ring-1 focus:ring-[#1A73E8] transition-colors"
     >
       <option value="SR">SR (Surat Rekomendasi)</option>
       <option value="UND">UND (Surat Undangan)</option>
-      <option value="ST">ST (Surat Tugas)</option>
       <option value="SK">SK (Surat Keterangan)</option>
       <option value="SKep">SKep (Surat Keputusan)</option>
       <option value="SPT">SPT (Surat Pemberitahuan)</option>
@@ -222,189 +431,136 @@ export default function ManajemenNomorSuratPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-12 font-sans selection:bg-blue-100 selection:text-[#152B5B]">
-      <div className="max-w-6xl mx-auto animate-in fade-in duration-500 pt-8 px-4 sm:px-6 lg:px-8">
-        {/* HEADER GOOGLE STYLE */}
-        <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="min-h-screen bg-[#F8F9FA] pb-12 font-sans text-[#202124]">
+      <div className="max-w-7xl mx-auto animate-in fade-in duration-500 pt-8 px-4 sm:px-6 lg:px-8">
+        {/* HEADER */}
+        <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#DADCE0] pb-5">
           <div>
-            <h1 className="text-2xl font-black text-[#152B5B] tracking-tight">
-              Registri Surat
+            <h1 className="text-2xl font-normal text-[#202124] tracking-tight">
+              Registri & Templat Surat
             </h1>
-            <p className="text-slate-500 text-sm mt-1">
-              Database penomoran dokumen resmi IKA UII DIY.
+            <p className="text-[#5F6368] text-sm mt-1">
+              Manajemen penomoran dan draf dokumen resmi IKA UII DIY.
             </p>
           </div>
           <button
-            onClick={() => setIsModalOpen(true)}
-            className="w-full sm:w-auto bg-[#1A73E8] hover:bg-[#1557B0] text-white px-5 py-2.5 rounded-lg font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2"
+            onClick={() => {
+              setEditId(null);
+              setGenForm({
+                nomorUrut: "",
+                jenis: "Surat Undangan",
+                kategori: "Internal",
+                index: "UND",
+                perihal: "",
+                isiSurat: "",
+                penutupSurat:
+                  "Demikian surat undangan ini kami sampaikan. Atas perhatian dan kehadirannya, kami ucapkan terima kasih.",
+                pembuat: "",
+                jabatanPembuat: "",
+                tglMasehi: new Date().toISOString().split("T")[0],
+                preview: "",
+                templateSurat: "Undangan Lipat 3",
+                penerima: [],
+                tglPelaksanaan: "",
+                waktuPelaksanaan: "",
+                tempatPelaksanaan: "",
+              });
+              fetchData();
+              setIsModalOpen(true);
+            }}
+            className="w-full sm:w-auto bg-[#1A73E8] hover:bg-[#1557B0] text-white px-5 py-2.5 rounded-md font-medium text-sm shadow-sm transition-colors flex items-center justify-center gap-2"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2.5}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            Buat Nomor Baru
+            Buat Dokumen Baru
           </button>
         </div>
 
-        {/* KARTU STATISTIK (ELEGANT) */}
+        {/* STATISTIK */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
           <div
             onClick={() => setFilterStatus("semua")}
-            className={`p-5 rounded-xl cursor-pointer transition-all border ${filterStatus === "semua" ? "border-[#1A73E8] bg-blue-50/40 ring-1 ring-[#1A73E8]" : "bg-white border-slate-200 hover:border-slate-300"}`}
+            className={`p-5 rounded-lg cursor-pointer transition-all border ${filterStatus === "semua" ? "border-[#1A73E8] bg-[#E8F0FE]" : "bg-white border-[#DADCE0] hover:bg-[#F8F9FA]"}`}
           >
-            <div className="flex justify-between items-start mb-2">
-              <span
-                className={`text-xs font-bold ${filterStatus === "semua" ? "text-[#1A73E8]" : "text-slate-500"}`}
-              >
-                Semua Nomor
-              </span>
-              <svg
-                className={`w-5 h-5 ${filterStatus === "semua" ? "text-[#1A73E8]" : "text-slate-400"}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                />
-              </svg>
+            <div className="text-xs font-medium text-[#5F6368] mb-1">
+              Total Dokumen
             </div>
-            <h3 className="text-3xl font-black text-slate-800">
+            <h3
+              className={`text-3xl font-normal ${filterStatus === "semua" ? "text-[#1A73E8]" : "text-[#202124]"}`}
+            >
               {nomorList.length}
             </h3>
           </div>
-
           <div
             onClick={() => setFilterStatus("belum")}
-            className={`p-5 rounded-xl cursor-pointer transition-all border ${filterStatus === "belum" ? "border-amber-500 bg-amber-50/40 ring-1 ring-amber-500" : "bg-white border-slate-200 hover:border-slate-300"}`}
+            className={`p-5 rounded-lg cursor-pointer transition-all border ${filterStatus === "belum" ? "border-[#F29900] bg-[#FEF7E0]" : "bg-white border-[#DADCE0] hover:bg-[#F8F9FA]"}`}
           >
-            <div className="flex justify-between items-start mb-2">
-              <span
-                className={`text-xs font-bold ${filterStatus === "belum" ? "text-amber-700" : "text-slate-500"}`}
-              >
-                Belum Terpakai
-              </span>
-              <svg
-                className={`w-5 h-5 ${filterStatus === "belum" ? "text-amber-600" : "text-slate-400"}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+            <div className="text-xs font-medium text-[#5F6368] mb-1">
+              Draf / Belum Terpakai
             </div>
-            <h3 className="text-3xl font-black text-slate-800">
+            <h3
+              className={`text-3xl font-normal ${filterStatus === "belum" ? "text-[#E37400]" : "text-[#202124]"}`}
+            >
               {nomorList.filter((n) => n.status === "Belum terpakai").length}
             </h3>
           </div>
-
           <div
             onClick={() => setFilterStatus("terpakai")}
-            className={`p-5 rounded-xl cursor-pointer transition-all border ${filterStatus === "terpakai" ? "border-emerald-500 bg-emerald-50/40 ring-1 ring-emerald-500" : "bg-white border-slate-200 hover:border-slate-300"}`}
+            className={`p-5 rounded-lg cursor-pointer transition-all border ${filterStatus === "terpakai" ? "border-[#1E8E3E] bg-[#E6F4EA]" : "bg-white border-[#DADCE0] hover:bg-[#F8F9FA]"}`}
           >
-            <div className="flex justify-between items-start mb-2">
-              <span
-                className={`text-xs font-bold ${filterStatus === "terpakai" ? "text-emerald-700" : "text-slate-500"}`}
-              >
-                Sudah Terpakai
-              </span>
-              <svg
-                className={`w-5 h-5 ${filterStatus === "terpakai" ? "text-emerald-600" : "text-slate-400"}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+            <div className="text-xs font-medium text-[#5F6368] mb-1">
+              Dokumen Final
             </div>
-            <h3 className="text-3xl font-black text-slate-800">
+            <h3
+              className={`text-3xl font-normal ${filterStatus === "terpakai" ? "text-[#1E8E3E]" : "text-[#202124]"}`}
+            >
               {nomorList.filter((n) => n.status === "Sudah terpakai").length}
             </h3>
           </div>
         </div>
 
-        {/* TABEL DATABASE (DENGAN PAGINATION & FILTER) */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-          {/* Table Toolbar */}
-          <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4 bg-white">
+        {/* TABEL DATABASE */}
+        <div className="bg-white rounded-lg shadow-sm border border-[#DADCE0] overflow-hidden flex flex-col">
+          <div className="p-4 border-b border-[#DADCE0] flex flex-col sm:flex-row justify-between items-center gap-4 bg-white">
             <div className="flex items-center gap-3">
-              <h3 className="font-bold text-slate-800 text-sm">
-                Data Registri
+              <h3 className="font-medium text-[#202124] text-sm">
+                Daftar Registri
               </h3>
-              <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-full">
+              <span className="bg-[#F1F3F4] text-[#5F6368] border border-[#DADCE0] text-[10px] font-medium px-2 py-0.5 rounded">
                 {filterStatus.toUpperCase()}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-600">
-              <span className="font-medium">Tampilkan</span>
+            <div className="flex items-center gap-2 text-xs text-[#5F6368]">
+              <span>Tampilkan:</span>
               <select
                 value={itemsPerPage}
                 onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                className="border border-slate-300 rounded-md px-2 py-1.5 outline-none focus:border-[#1A73E8] bg-white cursor-pointer font-medium"
+                className="border border-[#DADCE0] rounded px-2 py-1 outline-none focus:border-[#1A73E8] bg-white cursor-pointer"
               >
-                <option value={10}>10 baris</option>
-                <option value={20}>20 baris</option>
-                <option value={50}>50 baris</option>
-                <option value={0}>Semua data</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={0}>Semua</option>
               </select>
             </div>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[11px] uppercase tracking-wider">
+              <thead className="bg-[#F8F9FA] border-b border-[#DADCE0] text-[#5F6368] text-xs font-medium">
                 <tr>
-                  <th className="px-6 py-4 font-semibold">Nomor & Perihal</th>
-                  <th className="px-6 py-4 font-semibold">Jenis & Tanggal</th>
-                  <th className="px-6 py-4 font-semibold">Pembuat</th>
-                  <th className="px-6 py-4 font-semibold text-center">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 font-semibold text-right">Aksi</th>
+                  <th className="px-6 py-3 font-medium">Nomor Dokumen</th>
+                  <th className="px-6 py-3 font-medium">Perihal & Template</th>
+                  <th className="px-6 py-3 font-medium">Pembuat / Tanggal</th>
+                  <th className="px-6 py-3 font-medium text-center">Status</th>
+                  <th className="px-6 py-3 font-medium text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#E8EAED]">
                 {currentTableData.length === 0 ? (
                   <tr>
                     <td
                       colSpan={5}
-                      className="py-12 text-center text-slate-400 text-sm"
+                      className="py-12 text-center text-[#5F6368] text-sm"
                     >
-                      <svg
-                        className="w-8 h-8 mx-auto mb-3 text-slate-300"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1.5}
-                          d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                        />
-                      </svg>
                       Tidak ada data untuk ditampilkan.
                     </td>
                   </tr>
@@ -412,21 +568,34 @@ export default function ManajemenNomorSuratPage() {
                   currentTableData.map((n) => (
                     <tr
                       key={n.id}
-                      className="hover:bg-slate-50/80 transition-colors"
+                      className="hover:bg-[#F8F9FA] transition-colors"
                     >
                       <td className="px-6 py-4">
-                        <div className="font-bold text-[#152B5B] font-mono text-[13px]">
+                        <div className="font-medium text-[#1A73E8] text-[13px]">
                           {n.nomor}
                         </div>
-                        <div className="text-slate-500 text-xs mt-1 whitespace-normal line-clamp-2 max-w-sm">
-                          {n.perihal}
+                        <div className="text-xs text-[#5F6368] mt-1">
+                          {n.kategori} • {n.jenis}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-bold px-2 py-0.5 rounded-sm">
-                          {n.jenis}
-                        </span>
-                        <div className="text-xs text-slate-500 mt-1.5">
+                        <div className="text-[#202124] text-sm whitespace-normal line-clamp-2 max-w-sm">
+                          {n.perihal}
+                        </div>
+                        <div className="text-[10px] text-[#5F6368] mt-1 bg-[#F1F3F4] px-1.5 py-0.5 rounded border border-[#DADCE0] w-fit">
+                          Template: {n.templateSurat || "Standar A4"}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-[#202124]">
+                          {n.pembuat}
+                          {n.jabatanPembuat && (
+                            <span className="text-[10px] text-gray-500 block">
+                              {n.jabatanPembuat}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-[#5F6368] mt-0.5">
                           {new Date(n.tanggal).toLocaleDateString("id-ID", {
                             day: "numeric",
                             month: "short",
@@ -434,44 +603,62 @@ export default function ManajemenNomorSuratPage() {
                           })}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-xs font-semibold text-slate-700">
-                          {n.pembuat}
-                        </div>
-                        <div className="text-[10px] text-slate-400 mt-0.5">
-                          Pemohon
-                        </div>
-                      </td>
                       <td className="px-6 py-4 text-center">
                         <button
                           onClick={() => toggleStatus(n.id, n.status)}
-                          className={`text-[10px] font-bold px-3 py-1.5 rounded-full transition-all border ${n.status === "Sudah terpakai" ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100" : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"}`}
+                          className={`text-[11px] font-medium px-2.5 py-1 rounded transition-colors border ${n.status === "Sudah terpakai" ? "bg-[#E6F4EA] text-[#1E8E3E] border-[#CEEAD6] hover:bg-[#CEEAD6]" : "bg-[#F8F9FA] text-[#5F6368] border-[#DADCE0] hover:bg-[#E8EAED]"}`}
                         >
-                          {n.status === "Sudah terpakai"
-                            ? "Terpakai"
-                            : "Belum Terpakai"}
+                          {n.status === "Sudah terpakai" ? "Final" : "Draf"}
                         </button>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => handleDelete(n.id)}
-                          className="text-slate-400 hover:text-rose-600 p-2 rounded-md hover:bg-rose-50 transition-colors"
-                          title="Hapus"
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={`/dashboard/e-office/print/${n.id}`}
+                            target="_blank"
+                            className="text-[#1A73E8] hover:text-[#1557B0] bg-[#E8F0FE] hover:bg-[#D2E3FC] px-3 py-1.5 rounded text-xs font-medium transition-colors"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                        </button>
+                            Cetak
+                          </Link>
+                          <button
+                            onClick={() => handleEdit(n)}
+                            className="text-[#5F6368] hover:text-[#E37400] p-1.5 rounded hover:bg-[#FEF7E0] transition-colors"
+                            title="Edit Dokumen"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(n.id)}
+                            className="text-[#5F6368] hover:text-[#D93025] p-1.5 rounded hover:bg-[#FCE8E6] transition-colors"
+                            title="Hapus"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -480,22 +667,16 @@ export default function ManajemenNomorSuratPage() {
             </table>
           </div>
 
-          {/* Footer Pagination */}
           {totalItems > 0 && itemsPerPage > 0 && (
-            <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-500">
+            <div className="px-6 py-3 border-t border-[#DADCE0] bg-white flex justify-between items-center text-xs text-[#5F6368]">
               <div>
-                Menampilkan{" "}
-                <span className="font-bold text-slate-700">{startItem}</span>{" "}
-                hingga{" "}
-                <span className="font-bold text-slate-700">{endItem}</span> dari{" "}
-                <span className="font-bold text-slate-700">{totalItems}</span>{" "}
-                entri
+                Menampilkan {startItem}-{endItem} dari {totalItems}
               </div>
-              <div className="flex gap-1.5">
+              <div className="flex gap-2">
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1.5 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+                  className="px-2 py-1 bg-white border border-[#DADCE0] rounded hover:bg-[#F8F9FA] disabled:opacity-50 transition-colors"
                 >
                   Sebelumnya
                 </button>
@@ -504,7 +685,7 @@ export default function ManajemenNomorSuratPage() {
                     setCurrentPage((p) => Math.min(totalPages, p + 1))
                   }
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1.5 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+                  className="px-2 py-1 bg-white border border-[#DADCE0] rounded hover:bg-[#F8F9FA] disabled:opacity-50 transition-colors"
                 >
                   Selanjutnya
                 </button>
@@ -514,19 +695,17 @@ export default function ManajemenNomorSuratPage() {
         </div>
       </div>
 
-      {/* ========================================================
-          MODAL GENERATOR NOMOR SURAT 
-          ======================================================== */}
+      {/* MODAL PEMBUATAN / EDIT DOKUMEN */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
-            <div className="bg-white px-8 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
-              <h2 className="text-lg font-bold text-slate-800">
-                Buat Nomor Surat Baru
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#202124]/40 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl flex flex-col max-h-[95vh] border border-[#DADCE0]">
+            <div className="px-6 py-4 border-b border-[#DADCE0] flex justify-between items-center bg-white rounded-t-lg">
+              <h2 className="text-lg font-normal text-[#202124]">
+                {editId ? "Edit Dokumen Registri" : "Setup Dokumen Baru"}
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-rose-500 p-1 rounded-md hover:bg-rose-50 transition-colors"
+                className="text-[#5F6368] hover:bg-[#F1F3F4] p-1.5 rounded-full transition-colors"
               >
                 <svg
                   className="w-5 h-5"
@@ -543,158 +722,545 @@ export default function ManajemenNomorSuratPage() {
                 </svg>
               </button>
             </div>
-            <div className="p-8 overflow-y-auto custom-scrollbar">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                {/* KOLOM 1 */}
-                <div className="space-y-5">
-                  <div className="grid grid-cols-2 gap-4">
+
+            {/* 🔥 TOGGLE MODE (Hanya Muncul Saat Buat Baru) 🔥 */}
+            {!editId && (
+              <div className="px-6 pt-5 bg-white">
+                <div className="flex bg-[#F1F3F4] p-1 rounded-lg w-fit border border-[#DADCE0]">
+                  <button
+                    onClick={() => setModeForm("lengkap")}
+                    className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${modeForm === "lengkap" ? "bg-white text-[#1A73E8] shadow-sm" : "text-[#5F6368] hover:text-[#202124]"}`}
+                  >
+                    📝 Form Surat Lengkap (Web)
+                  </button>
+                  <button
+                    onClick={() => setModeForm("cepat")}
+                    className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${modeForm === "cepat" ? "bg-white text-[#1E8E3E] shadow-sm" : "text-[#5F6368] hover:text-[#202124]"}`}
+                  >
+                    ⚡ Ambil Nomor Urut Saja
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 🔥 KONDISIONAL RENDER FORM 🔥 */}
+            {modeForm === "lengkap" || editId ? (
+              <>
+                {/* INI FORM LENGKAP LAMA JENENGAN (KOLOM KIRI & KANAN) */}
+                <div className="p-6 overflow-y-auto bg-white grid grid-cols-1 md:grid-cols-2 gap-8 custom-scrollbar">
+                  {/* KOLOM KIRI */}
+                  <div className="space-y-5">
+                    <h3 className="text-sm font-medium text-[#1A73E8] border-b border-[#E8EAED] pb-2">
+                      Pengaturan Penomoran & Acara
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-[#5F6368] mb-1">
+                          Nomor Urut
+                        </label>
+                        <input
+                          type="text"
+                          value={genForm.nomorUrut}
+                          onChange={(e) =>
+                            setGenForm({
+                              ...genForm,
+                              nomorUrut: e.target.value,
+                            })
+                          }
+                          className="w-full border border-[#DADCE0] px-3 py-2 rounded text-sm outline-none focus:border-[#1A73E8] focus:ring-1 focus:ring-[#1A73E8]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-[#5F6368] mb-1">
+                          Index Kode
+                        </label>
+                        <DropdownIndexKode />
+                      </div>
+                    </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                        Nomor Urut <span className="text-rose-500">*</span>
+                      <label className="block text-xs font-medium text-[#5F6368] mb-1">
+                        Tanggal Surat / Dokumen
+                      </label>
+                      <input
+                        type="date"
+                        value={genForm.tglMasehi}
+                        onChange={(e) =>
+                          setGenForm({ ...genForm, tglMasehi: e.target.value })
+                        }
+                        className="w-full border border-[#DADCE0] px-3 py-2 rounded text-sm outline-none focus:border-[#1A73E8] focus:ring-1 focus:ring-[#1A73E8]"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-[#5F6368] mb-1">
+                          Jenis Surat
+                        </label>
+                        <select
+                          value={genForm.jenis}
+                          onChange={(e) =>
+                            setGenForm({ ...genForm, jenis: e.target.value })
+                          }
+                          className="w-full border border-[#DADCE0] px-3 py-2 rounded text-sm outline-none focus:border-[#1A73E8] focus:ring-1 focus:ring-[#1A73E8]"
+                        >
+                          <option value="Surat Undangan">Surat Undangan</option>
+                          <option value="Surat Rekomendasi">
+                            Surat Rekomendasi
+                          </option>
+                          <option value="Surat Keterangan">
+                            Surat Keterangan
+                          </option>
+                          <option value="Surat Keputusan">
+                            Surat Keputusan
+                          </option>
+                          <option value="Surat Pemberitahuan">
+                            Surat Pemberitahuan
+                          </option>
+                          <option value="Surat Permohonan">
+                            Surat Permohonan
+                          </option>
+                          <option value="Surat Edaran">Surat Edaran</option>
+                          <option value="Surat Balasan">Surat Balasan</option>
+                          <option value="Nota Dinas">Nota Dinas</option>
+                          <option value="Memo">Memo</option>
+                          <option value="Surat Biasa">
+                            Surat Biasa (Lainnya)
+                          </option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-[#5F6368] mb-1">
+                          Kategori
+                        </label>
+                        <select
+                          value={genForm.kategori}
+                          onChange={(e) =>
+                            setGenForm({ ...genForm, kategori: e.target.value })
+                          }
+                          className="w-full border border-[#DADCE0] px-3 py-2 rounded text-sm outline-none focus:border-[#1A73E8] focus:ring-1 focus:ring-[#1A73E8]"
+                        >
+                          <option value="Eksternal">Eksternal</option>
+                          <option value="Internal">Internal</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-[#5F6368] mb-1">
+                          Penanda Tangan <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          required
+                          value={genForm.pembuat}
+                          onChange={(e) => {
+                            const selectedNama = e.target.value;
+                            const pengurus = pengurusList.find(
+                              (p) => p.nama === selectedNama,
+                            );
+                            setGenForm({
+                              ...genForm,
+                              pembuat: selectedNama,
+                              jabatanPembuat: pengurus ? pengurus.jabatan : "",
+                            });
+                          }}
+                          className="w-full bg-white border border-[#DADCE0] px-3 py-2 rounded text-sm outline-none focus:ring-1 focus:ring-[#1A73E8] focus:border-[#1A73E8] text-[#202124]"
+                        >
+                          <option value="">-- Pilih Nama --</option>
+                          {pengurusList
+                            .filter((p) => p.nama)
+                            .map((p) => (
+                              <option key={p.id} value={p.nama}>
+                                {p.nama}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-[#5F6368] mb-1">
+                          Jabatan di Surat
+                        </label>
+                        <input
+                          type="text"
+                          value={genForm.jabatanPembuat}
+                          onChange={(e) =>
+                            setGenForm({
+                              ...genForm,
+                              jabatanPembuat: e.target.value,
+                            })
+                          }
+                          placeholder="Cth: Ketua Umum / a.n. Sekjen"
+                          className="w-full border border-[#DADCE0] px-3 py-2 rounded text-sm outline-none focus:border-[#1A73E8] focus:ring-1 focus:ring-[#1A73E8]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* KOLOM KANAN */}
+                  <div className="space-y-5">
+                    <h3 className="text-sm font-medium text-[#1E8E3E] border-b border-[#E8EAED] pb-2">
+                      Konten & Target Undangan
+                    </h3>
+                    <div>
+                      <label className="block text-xs font-medium text-[#5F6368] mb-1">
+                        Format Template Web
+                      </label>
+                      <select
+                        value={genForm.templateSurat}
+                        onChange={(e) =>
+                          setGenForm({
+                            ...genForm,
+                            templateSurat: e.target.value,
+                          })
+                        }
+                        className="w-full border border-[#DADCE0] px-3 py-2 rounded text-sm outline-none focus:border-[#1E8E3E] focus:ring-1 focus:ring-[#1E8E3E] font-medium text-[#1E8E3E] bg-[#E6F4EA]/30"
+                      >
+                        <option value="Undangan Lipat 3">
+                          Undangan Rapat/Acara (Landscape Lipat 3)
+                        </option>
+                        <option value="Standar A4">
+                          Surat Resmi Standar (A4)
+                        </option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-[#5F6368] mb-1">
+                        Perihal / Topik Kegiatan
                       </label>
                       <input
                         type="text"
-                        value={genForm.nomorUrut}
+                        value={genForm.perihal}
                         onChange={(e) =>
-                          setGenForm({ ...genForm, nomorUrut: e.target.value })
+                          setGenForm({ ...genForm, perihal: e.target.value })
                         }
-                        className="w-full bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-lg text-sm font-mono font-bold text-slate-800 outline-none focus:border-[#1A73E8] focus:bg-white transition-colors"
+                        placeholder="Cth: Rapat Koordinasi Pengurus..."
+                        className="w-full border border-[#DADCE0] px-3 py-2 rounded text-sm outline-none focus:border-[#1E8E3E] focus:ring-1 focus:ring-[#1E8E3E]"
                       />
                     </div>
+                    <div className="grid grid-cols-2 gap-4 bg-[#F8F9FA] p-3 rounded border border-[#DADCE0]">
+                      <div className="col-span-2">
+                        <label className="block text-[10px] font-bold text-[#5F6368] uppercase tracking-widest mb-1">
+                          Waktu & Tempat
+                        </label>
+                      </div>
+                      <div>
+                        <input
+                          type="date"
+                          value={genForm.tglPelaksanaan}
+                          onChange={(e) =>
+                            setGenForm({
+                              ...genForm,
+                              tglPelaksanaan: e.target.value,
+                            })
+                          }
+                          className="w-full border border-[#DADCE0] px-2 py-1.5 rounded text-xs outline-none focus:border-[#1E8E3E]"
+                        />
+                      </div>
+                      <div>
+                        <input
+                          type="time"
+                          value={genForm.waktuPelaksanaan}
+                          onChange={(e) =>
+                            setGenForm({
+                              ...genForm,
+                              waktuPelaksanaan: e.target.value,
+                            })
+                          }
+                          className="w-full border border-[#DADCE0] px-2 py-1.5 rounded text-xs outline-none focus:border-[#1E8E3E]"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <input
+                          type="text"
+                          value={genForm.tempatPelaksanaan}
+                          onChange={(e) =>
+                            setGenForm({
+                              ...genForm,
+                              tempatPelaksanaan: e.target.value,
+                            })
+                          }
+                          placeholder="Tempat / Lokasi"
+                          className="w-full border border-[#DADCE0] px-2 py-1.5 rounded text-xs outline-none focus:border-[#1E8E3E]"
+                        />
+                      </div>
+                    </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                        Index Kode <span className="text-rose-500">*</span>
+                      <label className="block text-xs font-medium text-[#5F6368] mb-1">
+                        Isi / Pesan Pembuka
                       </label>
-                      <DropdownIndexKode />
+                      <textarea
+                        value={genForm.isiSurat}
+                        onChange={(e) =>
+                          setGenForm({ ...genForm, isiSurat: e.target.value })
+                        }
+                        placeholder="Assalamu'alaikum wr. wb. Mengharap kehadiran Bapak/Ibu pada kegiatan..."
+                        rows={2}
+                        className="w-full border border-[#DADCE0] px-3 py-2 rounded text-sm outline-none focus:border-[#1E8E3E] focus:ring-1 focus:ring-[#1E8E3E] resize-none custom-scrollbar"
+                      ></textarea>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-[#5F6368] mb-1">
+                        Kalimat Penutup
+                      </label>
+                      <textarea
+                        value={genForm.penutupSurat}
+                        onChange={(e) =>
+                          setGenForm({
+                            ...genForm,
+                            penutupSurat: e.target.value,
+                          })
+                        }
+                        placeholder="Demikian surat ini..."
+                        rows={2}
+                        className="w-full border border-[#DADCE0] px-3 py-2 rounded text-sm outline-none focus:border-[#1E8E3E] focus:ring-1 focus:ring-[#1E8E3E] resize-none custom-scrollbar"
+                      ></textarea>
+                    </div>
+                    <div className="relative" ref={dropdownRef}>
+                      <div className="flex justify-between items-end mb-1">
+                        <label className="block text-xs font-medium text-[#5F6368]">
+                          Peserta / Undangan
+                        </label>
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={addSemuaPengurus}
+                            className="text-[10px] text-[#1A73E8] hover:underline font-medium"
+                          >
+                            Pilih Semua
+                          </button>
+                          <button
+                            type="button"
+                            onClick={hapusSemuaPengurus}
+                            className="text-[10px] text-[#D93025] hover:underline font-medium"
+                          >
+                            Hapus Semua
+                          </button>
+                        </div>
+                      </div>
+                      <div className="min-h-[42px] border border-[#DADCE0] rounded flex flex-wrap gap-1.5 p-1.5 focus-within:border-[#1E8E3E] focus-within:ring-1 focus-within:ring-[#1E8E3E] transition-all bg-white max-h-24 overflow-y-auto custom-scrollbar">
+                        {genForm.penerima.map((nama) => (
+                          <span
+                            key={nama}
+                            className="bg-[#E8F0FE] text-[#1A73E8] border border-[#D2E3FC] text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1"
+                          >
+                            {nama}
+                            <button
+                              type="button"
+                              onClick={() => removePenerima(nama)}
+                              className="hover:text-[#D93025] hover:bg-[#D2E3FC] rounded-full p-0.5 leading-none"
+                            >
+                              &times;
+                            </button>
+                          </span>
+                        ))}
+                        <input
+                          type="text"
+                          placeholder={
+                            genForm.penerima.length === 0
+                              ? "Ketik nama & tekan Enter..."
+                              : "Ketik lalu Enter..."
+                          }
+                          value={searchPenerima}
+                          onChange={(e) => {
+                            setSearchPenerima(e.target.value);
+                            setIsDropdownOpen(true);
+                          }}
+                          onFocus={() => setIsDropdownOpen(true)}
+                          onKeyDown={handleKeyDownPenerima}
+                          className="flex-1 min-w-[120px] outline-none text-xs px-1 bg-transparent"
+                        />
+                      </div>
+                      {isDropdownOpen &&
+                        (searchPenerima.length > 0 ||
+                          filteredPengurus.length > 0) && (
+                          <div className="absolute bottom-full mb-1 z-50 w-full bg-white border border-[#DADCE0] rounded-md shadow-lg max-h-40 overflow-y-auto custom-scrollbar">
+                            {filteredPengurus.length > 0 ? (
+                              filteredPengurus.map((p) => (
+                                <div
+                                  key={p.id}
+                                  onClick={() => addPenerima(p.nama)}
+                                  className="px-3 py-2 text-sm text-[#202124] hover:bg-[#F1F3F4] cursor-pointer border-b border-[#F1F3F4] last:border-0"
+                                >
+                                  <div className="font-medium">{p.nama}</div>
+                                  <div className="text-[10px] text-[#5F6368]">
+                                    {p.jabatan} • {p.bidang}
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="px-3 py-2 text-[11px] text-[#5F6368] italic flex items-center gap-2">
+                                <span className="bg-slate-100 p-1 rounded">
+                                  Enter ↵
+                                </span>{" "}
+                                Tekan Enter untuk menambah undangan external
+                              </div>
+                            )}
+                          </div>
+                        )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="px-6 py-4 bg-[#F8F9FA] border-t border-[#DADCE0] flex flex-col sm:flex-row justify-between items-center gap-4 rounded-b-lg">
+                  <div className="flex-1 w-full">
+                    <label className="block text-[10px] font-medium text-[#5F6368] uppercase tracking-wider mb-1">
+                      Preview Nomor
+                    </label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={genForm.preview}
+                      className="w-full bg-transparent border-none text-[#1A73E8] text-base font-medium outline-none select-all p-0"
+                    />
+                  </div>
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <button
+                      onClick={() => setIsModalOpen(false)}
+                      className="px-4 py-2 text-sm font-medium text-[#5F6368] hover:bg-[#E8EAED] rounded transition-colors w-full sm:w-auto"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      disabled={isSaving}
+                      className="px-6 py-2 bg-[#1A73E8] hover:bg-[#1557B0] text-white text-sm font-medium rounded shadow-sm disabled:opacity-50 transition-colors w-full sm:w-auto"
+                    >
+                      {isSaving
+                        ? "Menyimpan..."
+                        : editId
+                          ? "Update Dokumen"
+                          : "Simpan Dokumen"}
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* 🔥 INI FORM "AMBIL NOMOR SAJA" 🔥 */
+              <div className="p-6 overflow-y-auto bg-white custom-scrollbar flex flex-col items-center">
+                <div className="w-full max-w-lg">
+                  <div className="bg-[#E6F4EA] border border-[#CEEAD6] p-4 rounded-lg mb-6 flex gap-3 text-[#1E8E3E]">
+                    <svg
+                      className="w-5 h-5 shrink-0 mt-0.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <div>
+                      <h4 className="font-bold text-sm">
+                        Mode Buku Agenda (Manual)
+                      </h4>
+                      <p className="text-xs mt-1">
+                        Gunakan ini jika Anda sudah punya dokumen di Microsoft
+                        Word dan hanya butuh nomor registrasi resmi dari sistem
+                        agar urutannya tidak terloncat.
+                      </p>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                      Tanggal Surat <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      value={genForm.tglMasehi}
-                      onChange={(e) =>
-                        setGenForm({ ...genForm, tglMasehi: e.target.value })
-                      }
-                      className="w-full bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-800 outline-none focus:border-[#1A73E8] focus:bg-white transition-colors"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
+                  <form onSubmit={handleAmbilNomor} className="space-y-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                        Jenis Surat <span className="text-rose-500">*</span>
+                      <label className="block text-xs font-bold text-[#5F6368] mb-1">
+                        Jenis Surat
                       </label>
                       <select
-                        value={genForm.jenis}
+                        required
+                        value={formCepat.jenisSurat}
                         onChange={(e) =>
-                          setGenForm({ ...genForm, jenis: e.target.value })
+                          setFormCepat({
+                            ...formCepat,
+                            jenisSurat: e.target.value,
+                          })
                         }
-                        className="w-full bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-800 outline-none focus:border-[#1A73E8] focus:bg-white transition-colors custom-scrollbar"
+                        className="w-full border border-[#DADCE0] rounded p-2.5 text-sm focus:border-[#1E8E3E] outline-none"
                       >
-                        <option value="Surat Rekomendasi">
-                          Surat Rekomendasi
+                        <option value="Surat Keluar Umum">
+                          Surat Keluar Umum
                         </option>
-                        <option value="Surat Undangan">Surat Undangan</option>
+                        <option value="Surat Keputusan">
+                          Surat Keputusan (SK)
+                        </option>
                         <option value="Surat Tugas">Surat Tugas</option>
                         <option value="Surat Keterangan">
                           Surat Keterangan
                         </option>
-                        <option value="Surat Keputusan">Surat Keputusan</option>
-                        <option value="Surat Pemberitahuan">
-                          Surat Pemberitahuan
-                        </option>
-                        <option value="Surat Permohonan">
-                          Surat Permohonan
-                        </option>
-                        <option value="Surat Edaran">Surat Edaran</option>
-                        <option value="Surat Balasan">Surat Balasan</option>
-                        <option value="Nota Dinas">Nota Dinas</option>
-                        <option value="Memo">Memo</option>
-                        <option value="Surat Biasa">
-                          Surat Biasa (Lainnya)
-                        </option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                        Kategori <span className="text-rose-500">*</span>
+                      <label className="block text-xs font-bold text-[#5F6368] mb-1">
+                        Perihal / Tentang
                       </label>
-                      <select
-                        value={genForm.kategori}
+                      <input
+                        required
+                        type="text"
+                        value={formCepat.perihal}
                         onChange={(e) =>
-                          setGenForm({ ...genForm, kategori: e.target.value })
+                          setFormCepat({
+                            ...formCepat,
+                            perihal: e.target.value,
+                          })
                         }
-                        className="w-full bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-800 outline-none focus:border-[#1A73E8] focus:bg-white transition-colors"
-                      >
-                        <option value="Eksternal">Eksternal</option>
-                        <option value="Internal">Internal</option>
-                      </select>
+                        className="w-full border border-[#DADCE0] rounded p-2.5 text-sm focus:border-[#1E8E3E] outline-none"
+                        placeholder="Contoh: Permohonan Audiensi Pengurus"
+                      />
                     </div>
-                  </div>
-                </div>
+                    <div>
+                      <label className="block text-xs font-bold text-[#5F6368] mb-1">
+                        Tujuan / Kepada Yth.
+                      </label>
+                      <input
+                        required
+                        type="text"
+                        value={formCepat.tujuan}
+                        onChange={(e) =>
+                          setFormCepat({ ...formCepat, tujuan: e.target.value })
+                        }
+                        className="w-full border border-[#DADCE0] rounded p-2.5 text-sm focus:border-[#1E8E3E] outline-none"
+                        placeholder="Contoh: Rektor UII"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-[#5F6368] mb-1">
+                        Tanggal Surat
+                      </label>
+                      <input
+                        required
+                        type="date"
+                        value={formCepat.tanggalSurat}
+                        onChange={(e) =>
+                          setFormCepat({
+                            ...formCepat,
+                            tanggalSurat: e.target.value,
+                          })
+                        }
+                        className="w-full border border-[#DADCE0] rounded p-2.5 text-sm focus:border-[#1E8E3E] outline-none"
+                      />
+                    </div>
 
-                {/* KOLOM 2 */}
-                <div className="space-y-5">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                      Pemohon / Nama Pembuat{" "}
-                      <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={genForm.pembuat}
-                      onChange={(e) =>
-                        setGenForm({ ...genForm, pembuat: e.target.value })
-                      }
-                      placeholder="Cth: Teguh Dwi"
-                      className="w-full bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-800 outline-none focus:border-[#1A73E8] focus:bg-white transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                      Perihal / Keterangan{" "}
-                      <span className="text-rose-500">*</span>
-                    </label>
-                    <textarea
-                      value={genForm.perihal}
-                      onChange={(e) =>
-                        setGenForm({ ...genForm, perihal: e.target.value })
-                      }
-                      placeholder="Cth: Undangan Rapat Evaluasi Proker"
-                      rows={4}
-                      className="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-lg text-sm font-semibold text-slate-800 outline-none focus:border-[#1A73E8] focus:bg-white transition-colors resize-none"
-                    ></textarea>
-                  </div>
+                    <div className="pt-4 flex gap-2 justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setIsModalOpen(false)}
+                        className="px-5 py-2 text-sm font-medium text-[#5F6368] hover:bg-[#E8EAED] rounded transition-colors"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSaving}
+                        className="px-6 py-2 bg-[#1E8E3E] hover:bg-[#137333] text-white text-sm font-bold rounded shadow-sm disabled:opacity-50 transition-colors"
+                      >
+                        {isSaving ? "Memproses..." : "Generate & Ambil Nomor"}
+                      </button>
+                    </div>
+                  </form>
                 </div>
               </div>
-
-              {/* PREVIEW KOTAK BAWAH */}
-              <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-6">
-                <div className="flex-1 w-full">
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
-                    Preview Nomor Registri
-                  </label>
-                  <input
-                    type="text"
-                    readOnly
-                    value={genForm.preview}
-                    className="w-full bg-white border border-slate-300 text-slate-800 px-4 py-2.5 rounded-lg text-base sm:text-lg font-mono font-bold outline-none select-all text-center sm:text-left"
-                  />
-                </div>
-                <button
-                  onClick={handleGenerate}
-                  disabled={isSaving}
-                  className="w-full sm:w-auto bg-[#1A73E8] hover:bg-[#1557B0] text-white font-bold px-8 py-3.5 rounded-lg shadow-sm transition-colors disabled:opacity-70 flex items-center justify-center text-sm shrink-0"
-                >
-                  {isSaving ? "Menyimpan..." : "Simpan & Daftarkan"}
-                </button>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       )}

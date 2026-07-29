@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { toast } from "@/lib/toast";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -205,12 +206,10 @@ export default function ScannerGatePage() {
         statusCheckIn: false,
         waktuCheckIn: null, // Reset waktu
       });
-      alert(
-        `✅ Presensi ${peserta.nama} berhasil dibatalkan. Tiket bisa di-scan ulang.`,
-      );
+      toast.success(`Presensi ${peserta.nama} berhasil dibatalkan. Tiket bisa di-scan ulang.`);
     } catch (error) {
       console.error("Gagal membatalkan:", error);
-      alert("❌ Gagal membatalkan presensi. Periksa koneksi internet.");
+      toast.error("Gagal membatalkan presensi. Periksa koneksi internet.");
     }
   };
 

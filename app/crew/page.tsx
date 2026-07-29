@@ -1,112 +1,315 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { Roboto } from "next/font/google";
 import { db } from "@/lib/firebase";
 import {
   collection,
   addDoc,
-  doc,
   onSnapshot,
   query,
   where,
+  getDocs,
 } from "firebase/firestore";
 import Link from "next/link";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import NavbarPublic from "@/components/layout/NavbarPublic";
+import FooterPublic from "@/components/layout/FooterPublic";
+import imageCompression from "browser-image-compression";
 
-// --- TYPE DEFINITIONS ---
+// --- SETTING FONT ROBOTO ---
+const roboto = Roboto({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "700", "900"],
+  variable: "--font-roboto",
+});
+
+// --- IKON MATERIAL MODERN ---
+const IconCheckCircle = () => (
+  <svg
+    className="w-5 h-5 text-emerald-500"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
+  </svg>
+);
+const IconErrorCircle = () => (
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
+  </svg>
+);
+const IconSpinner = () => (
+  <svg
+    className="w-5 h-5 animate-spin text-white"
+    fill="none"
+    viewBox="0 0 24 24"
+  >
+    <circle
+      className="opacity-25"
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      strokeWidth="4"
+    ></circle>
+    <path
+      className="opacity-75"
+      fill="currentColor"
+      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+    ></path>
+  </svg>
+);
+const IconLink = () => (
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+    />
+  </svg>
+);
+const IconJersey = () => (
+  <svg
+    className="w-6 h-6 text-[#0F2147]"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M9 7h6m2 0v4a3 3 0 01-3 3h-4a3 3 0 01-3-3V7m10-3l-2 2M5 4l2 2M4 9h16v11a2 2 0 01-2 2H6a2 2 0 01-2-2V9z"
+    />
+  </svg>
+);
+const IconCertificate = () => (
+  <svg
+    className="w-6 h-6 text-[#0F2147]"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M9 12l2 2 4-4M7.5 12h.01M7.5 14.5h.01M7.5 9.5h.01M12 21a9 9 0 100-18 9 9 0 000 18z"
+    />
+  </svg>
+);
+const IconSponsor = () => (
+  <svg
+    className="w-6 h-6 text-[#0F2147]"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M20 7H4M4 7a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2M4 7V5a2 2 0 012-2h12a2 2 0 012 2v2M9 3v4m6-4v4"
+    />
+  </svg>
+);
+const IconMoney = () => (
+  <svg
+    className="w-6 h-6 text-[#0F2147]"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
+  </svg>
+);
+const IconMeals = () => (
+  <svg
+    className="w-6 h-6 text-[#0F2147]"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"
+    />
+  </svg>
+);
+
+// --- TYPES ---
 interface RolePosition {
   id: string;
   nama: string;
   kuota: number;
+  deskripsi?: string;
 }
-
 interface DivisionGroup {
   id: string;
   title: string;
   roles: RolePosition[];
 }
-
 interface EventRecruitment {
   id: string;
   title: string;
   requirements: string;
   isActive: boolean;
+  linkGrupBesar: string;
   groups: DivisionGroup[];
 }
-
 interface CrewMember {
   roleId: string;
   status: string;
+  nama: string;
 }
 
-export default function CrewRegistrationPage() {
+export default function OprecRegistrationPage() {
+  const [isMounted, setIsMounted] = useState(false);
   const [events, setEvents] = useState<EventRecruitment[]>([]);
   const [allAcceptedCrew, setAllAcceptedCrew] = useState<CrewMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
 
-  // 🔥 STATE UNTUK WIZARD STEP-BY-STEP
+  // UI States
   const [currentStep, setCurrentStep] = useState(1);
+  const [popup, setPopup] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+  const [successModal, setSuccessModal] = useState(false);
+
+  // Validation States
+  const [emailErr, setEmailErr] = useState("");
+  const [waErr, setWaErr] = useState("");
+  const [uploadProgress, setUploadProgress] = useState("");
 
   const { executeRecaptcha } = useGoogleReCaptcha();
+  const formRef = useRef<HTMLDivElement>(null);
 
   const [formData, setFormData] = useState({
     eventId: "",
     roleId: "",
     nama: "",
+    jenisKelamin: "",
+    tempatLahir: "",
+    tanggalLahir: "",
     email: "",
     whatsapp: "",
-    tipe: "mahasiswa", // mahasiswa | alumni | ukm | himpunan
+    instagram: "",
+    riwayatPenyakit: "",
+    tipe: "mahasiswa",
     fakultas: "",
     nim: "",
     angkatan: "",
     instansi: "",
     jabatan: "",
     domisili: "",
+    ukuranJersey: "",
+    fotoIdCard: "",
     motivasi: "",
     pengalaman: "",
+    alasanDivisi: "",
+    bersediaPindahDivisi: "",
+    kendaraan: "",
+    bersediaPelatihan: "",
   });
 
   const [isAgreed, setIsAgreed] = useState(false);
 
+  // 🔥 PROTEKSI HYDRATION MISMATCH 🔥
   useEffect(() => {
-    // 1. Fetch Events
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
+
+    // 🔥 PENAMBAHAN CALLBACK ERROR UNTUK MENCEGAH LOADING ABADI 🔥
+    const qEvents = query(
+      collection(db, "oprec_master"),
+      where("isActive", "==", true),
+    );
     const unsubSettings = onSnapshot(
-      doc(db, "settings", "virtual_run"),
-      (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          const activeEvents = (data.crewRecruitments || []).filter(
-            (e: EventRecruitment) => e.isActive,
-          );
-          setEvents(activeEvents);
-          if (activeEvents.length > 0 && !formData.eventId) {
-            setFormData((prev) => ({ ...prev, eventId: activeEvents[0].id }));
-          }
+      qEvents,
+      (snap) => {
+        const activeEvents = snap.docs.map(
+          (doc) => ({ id: doc.id, ...doc.data() }) as EventRecruitment,
+        );
+        setEvents(activeEvents);
+        if (activeEvents.length > 0 && !formData.eventId) {
+          setFormData((prev) => ({ ...prev, eventId: activeEvents[0].id }));
         }
+      },
+      (error) => {
+        console.error("Gagal load Oprec Master:", error);
+        setIsLoading(false); // Paksa berhenti loading jika ditolak Firebase
       },
     );
 
-    // 2. Fetch Kuota
     const qAccepted = query(
-      collection(db, "crew_volunteers"),
+      collection(db, "oprec_pelamar"),
       where("status", "==", "accepted"),
     );
-    const unsubAccepted = onSnapshot(qAccepted, (snap) => {
-      const data = snap.docs.map(
-        (d) =>
-          ({ roleId: d.data().roleId, status: d.data().status }) as CrewMember,
-      );
-      setAllAcceptedCrew(data);
-      setIsLoading(false);
-    });
+    const unsubAccepted = onSnapshot(
+      qAccepted,
+      (snap) => {
+        const data = snap.docs.map(
+          (d) =>
+            ({
+              roleId: d.data().roleId,
+              status: d.data().status,
+              nama: d.data().nama,
+            }) as CrewMember,
+        );
+        setAllAcceptedCrew(data);
+        setTimeout(() => setIsLoading(false), 600);
+      },
+      (error) => {
+        console.error("Gagal load Oprec Pelamar:", error);
+        setIsLoading(false); // Paksa berhenti loading jika ditolak Firebase
+      },
+    );
 
     return () => {
       unsubSettings();
       unsubAccepted();
     };
-  }, []);
+  }, [isMounted]);
+
+  const showNotif = (type: "success" | "error", text: string) => {
+    setPopup({ type, text });
+    setTimeout(() => setPopup(null), 4000);
+  };
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -129,90 +332,152 @@ export default function CrewRegistrationPage() {
     });
   };
 
-  // 🔥 VALIDASI PER LANGKAH 🔥
-  const nextStep1 = () => {
-    if (!formData.eventId || !formData.roleId) {
-      alert(
-        "Silakan pilih Event dan Formasi (Sesi) yang ingin dilamar terlebih dahulu.",
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadProgress("Mengompresi foto...");
+
+    try {
+      const options = {
+        maxSizeMB: 0.3,
+        maxWidthOrHeight: 800,
+        useWebWorker: true,
+      };
+      const compressedFile = await imageCompression(file, options);
+
+      setUploadProgress("Mengunggah foto...");
+      const data = new FormData();
+      data.append("file", compressedFile);
+      data.append("upload_preset", "cardpanitia");
+      data.append("cloud_name", "dp8hmxuix");
+
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/dp8hmxuix/image/upload`,
+        {
+          method: "POST",
+          body: data,
+        },
       );
-      return;
+      const json = await res.json();
+
+      setFormData({ ...formData, fotoIdCard: json.secure_url });
+      setUploadProgress("Selesai!");
+      setTimeout(() => setUploadProgress(""), 2000);
+    } catch (error) {
+      setUploadProgress("Gagal mengunggah foto.");
     }
+  };
+
+  const checkDuplicate = async (field: "email" | "whatsapp", value: string) => {
+    if (!value || !formData.eventId) return;
+    try {
+      const qCheck = query(
+        collection(db, "oprec_pelamar"),
+        where("eventId", "==", formData.eventId),
+        where(field, "==", value),
+      );
+      const snap = await getDocs(qCheck);
+      if (!snap.empty) {
+        if (field === "email") setEmailErr("Email ini sudah pernah mendaftar.");
+        if (field === "whatsapp") setWaErr("Nomor WA ini sudah terdaftar.");
+      } else {
+        if (field === "email") setEmailErr("");
+        if (field === "whatsapp") setWaErr("");
+      }
+    } catch (e) {}
+  };
+
+  const scrollToForm = () => {
+    if (formRef.current) {
+      const y =
+        formRef.current.getBoundingClientRect().top + window.scrollY - 100;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }
+  };
+
+  const nextStep1 = () => {
+    if (!formData.eventId || !formData.roleId)
+      return showNotif("error", "Pilih formasi/divisi terlebih dahulu.");
     setCurrentStep(2);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollToForm();
   };
 
   const nextStep2 = () => {
+    if (emailErr || waErr)
+      return showNotif("error", "Mohon perbaiki data yang merah.");
+
     if (
       !formData.nama.trim() ||
+      !formData.jenisKelamin ||
+      !formData.tempatLahir.trim() ||
+      !formData.tanggalLahir ||
+      !formData.domisili.trim() ||
       !formData.email.trim() ||
-      !formData.whatsapp.trim()
+      !formData.whatsapp.trim() ||
+      !formData.instagram.trim() ||
+      !formData.riwayatPenyakit.trim()
     ) {
-      alert("Nama, Email, dan WhatsApp wajib diisi.");
-      return;
+      return showNotif("error", "Lengkapi seluruh identitas wajib (*).");
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      alert("Format email tidak valid.");
-      return;
-    }
-    if (!/^(\+62|62|0)8[1-9][0-9]{6,12}$/.test(formData.whatsapp)) {
-      alert("Format WhatsApp tidak valid. Gunakan awalan 08 atau 628.");
-      return;
-    }
+
     if (["mahasiswa", "ukm", "himpunan"].includes(formData.tipe)) {
       if (
         !formData.fakultas.trim() ||
         !formData.nim.trim() ||
         !formData.angkatan.trim()
-      ) {
-        alert("Fakultas, NIM, dan Angkatan wajib diisi.");
-        return;
-      }
+      )
+        return showNotif("error", "Fakultas, NIM, dan Angkatan wajib diisi.");
     }
     if (formData.tipe === "alumni") {
-      if (
-        !formData.fakultas.trim() ||
-        !formData.angkatan.trim() ||
-        !formData.domisili.trim()
-      ) {
-        alert("Fakultas, Angkatan, dan Domisili wajib diisi untuk Alumni.");
-        return;
-      }
+      if (!formData.fakultas.trim() || !formData.angkatan.trim())
+        return showNotif("error", "Fakultas dan Angkatan wajib diisi.");
     }
     if (formData.tipe === "ukm" || formData.tipe === "himpunan") {
-      if (!formData.instansi.trim() || !formData.jabatan.trim()) {
-        alert("Nama Organisasi dan Jabatan wajib diisi.");
-        return;
-      }
+      if (!formData.instansi.trim() || !formData.jabatan.trim())
+        return showNotif("error", "Nama Organisasi dan Jabatan wajib diisi.");
     }
+
     setCurrentStep(3);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollToForm();
   };
 
   const prevStep = () => {
     setCurrentStep((prev) => prev - 1);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollToForm();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    if (!formData.ukuranJersey)
+      return showNotif("error", "Pilih ukuran jersey.");
+    if (!formData.fotoIdCard)
+      return showNotif("error", "Pas Foto wajib diunggah.");
     if (!formData.motivasi.trim() || !formData.pengalaman.trim())
-      return alert("Motivasi dan Pengalaman Terkait wajib diisi.");
-    if (!isAgreed)
-      return alert(
-        "Anda harus mencentang persetujuan dan bersedia bergabung ke Saluran WA.",
-      );
+      return showNotif("error", "Esai & Pengalaman wajib diisi.");
+
+    if (
+      !formData.alasanDivisi.trim() ||
+      !formData.bersediaPindahDivisi ||
+      !formData.kendaraan ||
+      !formData.bersediaPelatihan
+    )
+      return showNotif("error", "Harap jawab seluruh pertanyaan kuesioner.");
+
+    if (!isAgreed) return showNotif("error", "Setujui pernyataan di bawah.");
 
     setIsSubmitting(true);
-
     try {
       if (!executeRecaptcha) {
-        alert("Sistem keamanan belum siap. Silakan refresh halaman.");
+        showNotif(
+          "error",
+          "Sistem keamanan reCAPTCHA belum siap. Refresh halaman.",
+        );
         setIsSubmitting(false);
         return;
       }
 
-      const token = await executeRecaptcha("crew_registration");
+      const token = await executeRecaptcha("oprec_registration");
       const recaptchaResponse = await fetch("/api/verify-recaptcha", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -221,39 +486,60 @@ export default function CrewRegistrationPage() {
       const recaptchaResult = await recaptchaResponse.json();
 
       if (!recaptchaResult.success) {
-        alert(
-          "Deteksi aktivitas mencurigakan (Spam/Bot). Pendaftaran ditolak.",
+        showNotif(
+          "error",
+          "Aktivitas mencurigakan (Bot) terdeteksi. Pendaftaran ditolak.",
         );
         setIsSubmitting(false);
         return;
       }
 
-      // Bersihkan data yang tidak relevan dengan tipe sebelum disave
       const finalData = { ...formData };
       if (formData.tipe === "mahasiswa") {
         finalData.instansi = "-";
         finalData.jabatan = "-";
-        finalData.domisili = "-";
       }
       if (formData.tipe === "alumni") {
         finalData.nim = "-";
         finalData.jabatan = "-";
       }
-      if (formData.tipe === "ukm" || formData.tipe === "himpunan") {
-        finalData.domisili = "-";
+      if (formData.tipe === "umum") {
+        finalData.nim = "-";
+        finalData.fakultas = "-";
+        finalData.angkatan = "-";
+        finalData.instansi = "-";
+        finalData.jabatan = "-";
       }
 
-      await addDoc(collection(db, "crew_volunteers"), {
+      await addDoc(collection(db, "oprec_pelamar"), {
         ...finalData,
         status: "pending",
         waktuDaftar: new Date().toISOString(),
       });
 
-      setIsSuccess(true);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      const targetEvent = events.find((ev) => ev.id === formData.eventId);
+      const targetDivisi =
+        targetEvent?.groups
+          .flatMap((g) => g.roles)
+          .find((r) => r.id === formData.roleId)?.nama || "Divisi Pilihan";
+
+      fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "oprec_pending",
+          email: formData.email,
+          nama: formData.nama,
+          detail: {
+            event: targetEvent?.title || "Kepanitiaan IKA UII",
+            divisi: targetDivisi,
+          },
+        }),
+      }).catch((err) => console.error("Gagal kirim notif pending", err));
+
+      setSuccessModal(true);
     } catch (error) {
-      console.error(error);
-      alert("Terjadi kesalahan sistem. Silakan coba lagi.");
+      showNotif("error", "Terjadi kesalahan sistem server.");
     } finally {
       setIsSubmitting(false);
     }
@@ -261,788 +547,911 @@ export default function CrewRegistrationPage() {
 
   const selectedEvent = events.find((e) => e.id === formData.eventId);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center">
-        <div className="w-10 h-10 border-4 border-[#E8F0FE] border-t-[#1A73E8] rounded-full animate-spin mb-4"></div>
-        <p className="text-sm font-medium text-[#1A73E8]">Memuat Formulir...</p>
-      </div>
-    );
-  }
-
-  // 🔥 HALAMAN SUKSES DENGAN KALIMAT BARU 🔥
-  if (isSuccess) {
-    return (
-      <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center p-6 text-center font-sans">
-        <div className="bg-white p-10 rounded-2xl shadow-lg max-w-md w-full border border-[#DADCE0] animate-in zoom-in-95 duration-500">
-          <div className="w-16 h-16 bg-[#E6F4EA] text-[#1E8E3E] rounded-full flex items-center justify-center mb-6 mx-auto">
-            <svg
-              className="w-8 h-8"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={3}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-medium text-slate-800 mb-3 tracking-tight">
-            Pendaftaran Berhasil!
-          </h1>
-          <p className="text-slate-600 mb-8 text-sm leading-relaxed">
-            Terima kasih <strong>{formData.nama}</strong>. Data Anda telah masuk
-            ke sistem dan berstatus <strong>Menunggu Review</strong>. <br />
-            <br />
-            Pastikan Anda memantau <strong>Email</strong> dan{" "}
-            <strong>Instagram resmi</strong> kami untuk melihat pengumuman
-            status pendaftaran Anda.
-          </p>
-          <Link
-            href="/"
-            className="block w-full bg-[#1A73E8] hover:bg-[#1557B0] text-white font-medium py-3 rounded-lg transition-colors shadow-sm"
-          >
-            Kembali ke Beranda
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  // Jika belum di-mount (masih proses SSR), render skeleton kosong agar tidak terjadi Error 418
+  if (!isMounted) return null;
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] font-sans pb-24 text-[#202124]">
-      {/* HEADER GOOGLE STYLE */}
-      <div className="bg-white border-b border-[#DADCE0] pt-8 pb-20 px-6 text-center shadow-sm">
-        <div className="max-w-4xl mx-auto">
-          <Link
-            href="/"
-            className="text-[#1A73E8] hover:bg-[#E8F0FE] font-medium text-sm flex items-center justify-center gap-1.5 mb-6 transition-colors w-fit mx-auto px-4 py-1.5 rounded-full border border-transparent hover:border-[#1A73E8]/30"
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>{" "}
-            Kembali
-          </Link>
-          <h1 className="text-3xl font-medium text-slate-900 mb-3 tracking-tight">
-            Formulir Rekrutmen Kru
-          </h1>
-          <p className="text-slate-500 text-sm max-w-xl mx-auto leading-relaxed">
-            Lengkapi formulir secara bertahap untuk mendaftarkan diri Anda pada
-            event kepanitiaan yang tersedia.
-          </p>
+    <div
+      className={`${roboto.variable} font-roboto min-h-screen bg-[#F8F9FA] flex flex-col text-[#202124]`}
+    >
+      <NavbarPublic />
+
+      {popup && (
+        <div className="fixed top-28 right-6 z-[9999] min-w-[280px] bg-white border-l-4 border-[#D93025] px-5 py-4 rounded-lg shadow-2xl flex items-center gap-3 animate-in slide-in-from-right-8 fade-in duration-300">
+          <IconErrorCircle />
+          <span className="text-sm font-medium text-slate-700">
+            {popup.text}
+          </span>
         </div>
-      </div>
+      )}
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 -mt-10">
-        {/* 🔥 STEPPER PROGRESS BAR (GOOGLE WIZARD STYLE) 🔥 */}
-        <div className="flex items-center justify-center mb-10 max-w-lg mx-auto bg-white p-4 rounded-xl shadow-sm border border-[#DADCE0]">
-          <div className="flex flex-col items-center relative z-10 bg-white">
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center font-medium text-sm transition-colors ${currentStep >= 1 ? "bg-[#1A73E8] text-white" : "bg-[#F8F9FA] text-[#5F6368] border border-[#DADCE0]"}`}
-            >
-              {currentStep > 1 ? (
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={3}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              ) : (
-                "1"
-              )}
+      {successModal && (
+        <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center animate-in zoom-in-95 duration-500 border border-slate-100">
+            <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-5 border border-emerald-100">
+              <IconCheckCircle />
             </div>
-            <span
-              className={`text-[10px] mt-1.5 font-bold uppercase tracking-wider ${currentStep >= 1 ? "text-[#1A73E8]" : "text-[#5F6368]"}`}
+            <h2 className="text-2xl font-black text-[#0F2147] mb-2 tracking-tight">
+              Pendaftaran Berhasil!
+            </h2>
+            <p className="text-sm text-slate-500 mb-8 leading-relaxed font-medium">
+              Terima kasih <strong>{formData.nama}</strong>. Berkas lamaran Anda
+              telah kami terima dan sedang{" "}
+              <strong className="text-amber-600">Menunggu Review</strong>. Cek
+              email Anda untuk konfirmasi pendaftaran.
+            </p>
+            <Link
+              href="/"
+              className="block w-full bg-[#0F2147] hover:bg-[#0a152e] text-white font-bold py-3.5 rounded-xl transition-all shadow-md active:scale-95 text-sm"
             >
-              Formasi
-            </span>
+              Kembali ke Beranda
+            </Link>
           </div>
-          <div
-            className={`flex-1 h-0.5 -mt-5 mx-2 transition-colors ${currentStep >= 2 ? "bg-[#1A73E8]" : "bg-[#DADCE0]"}`}
-          ></div>
+        </div>
+      )}
 
-          <div className="flex flex-col items-center relative z-10 bg-white">
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center font-medium text-sm transition-colors ${currentStep >= 2 ? "bg-[#1A73E8] text-white" : "bg-[#F8F9FA] text-[#5F6368] border border-[#DADCE0]"}`}
-            >
-              {currentStep > 2 ? (
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={3}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              ) : (
-                "2"
-              )}
-            </div>
-            <span
-              className={`text-[10px] mt-1.5 font-bold uppercase tracking-wider ${currentStep >= 2 ? "text-[#1A73E8]" : "text-[#5F6368]"}`}
-            >
-              Identitas
-            </span>
-          </div>
-          <div
-            className={`flex-1 h-0.5 -mt-5 mx-2 transition-colors ${currentStep >= 3 ? "bg-[#1A73E8]" : "bg-[#DADCE0]"}`}
-          ></div>
-
-          <div className="flex flex-col items-center relative z-10 bg-white">
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center font-medium text-sm transition-colors ${currentStep >= 3 ? "bg-[#1A73E8] text-white" : "bg-[#F8F9FA] text-[#5F6368] border border-[#DADCE0]"}`}
-            >
-              3
-            </div>
-            <span
-              className={`text-[10px] mt-1.5 font-bold uppercase tracking-wider ${currentStep >= 3 ? "text-[#1A73E8]" : "text-[#5F6368]"}`}
-            >
-              Selesai
-            </span>
+      <main className="flex-grow pb-20">
+        <div className="bg-[#0F2147] pt-60 pb-24 px-6 text-center relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.uii.ac.id/wp-content/uploads/2017/09/UII-Central-Building.jpg')] bg-cover bg-center opacity-10 grayscale"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0F2147]"></div>
+          <div className="max-w-3xl mx-auto relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <h1 className="text-3xl md:text-5xl font-black text-[#FCD116] mb-4 tracking-tight drop-shadow-md">
+              Open Recruitment
+            </h1>
+            <p className="text-slate-300 text-sm md:text-base max-w-xl mx-auto leading-relaxed font-medium">
+              Jadilah bagian dari suksesor acara IKA UII DIY. Pilih formasi yang
+              tersedia dan tunjukkan potensi terbaik Anda.
+            </p>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 sm:p-10 shadow-lg border border-[#DADCE0]">
-          {events.length === 0 ? (
-            <div className="text-center py-16">
-              <svg
-                className="w-16 h-16 text-slate-300 mx-auto mb-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-              <h3 className="text-xl font-medium text-slate-800 mb-2">
-                Belum Ada Rekrutmen
-              </h3>
-              <p className="text-slate-500 text-sm">
-                Saat ini tidak ada lowongan kepanitiaan yang sedang aktif.
-              </p>
+        <div
+          ref={formRef}
+          className="max-w-4xl mx-auto px-4 sm:px-6 -mt-12 relative z-20"
+        >
+          {isLoading ? (
+            <div className="bg-white rounded-3xl shadow-lg border border-slate-200 p-8 animate-pulse space-y-6">
+              <div className="h-12 bg-slate-100 rounded-xl w-full"></div>
+              <div className="h-32 bg-slate-100 rounded-xl w-full"></div>
             </div>
           ) : (
-            <form onSubmit={handleSubmit}>
-              {/* ================= STEP 1: EVENT & POSISI ================= */}
-              <div
-                className={`${currentStep === 1 ? "block animate-in fade-in slide-in-from-right-4 duration-300" : "hidden"}`}
-              >
-                <div className="mb-6 border-b border-[#DADCE0] pb-4">
-                  <h2 className="text-xl font-medium text-slate-800">
-                    Pilih Formasi & Sesi
-                  </h2>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Pilih event dan satu posisi yang tersedia untuk dilamar.
-                  </p>
-                </div>
-
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Event Kepanitiaan{" "}
-                      <span className="text-[#D93025]">*</span>
-                    </label>
-                    <select
-                      name="eventId"
-                      value={formData.eventId}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          eventId: e.target.value,
-                          roleId: "",
-                        })
-                      }
-                      required
-                      className="w-full px-4 py-3 bg-white border border-[#DADCE0] rounded-lg focus:border-[#1A73E8] focus:ring-1 focus:ring-[#1A73E8]/30 outline-none text-sm text-slate-800 shadow-sm transition-all"
+            <div className="bg-white rounded-3xl shadow-[0_10px_40px_rgb(0,0,0,0.06)] border border-slate-200 overflow-hidden">
+              <div className="bg-[#F8F9FA] border-b border-slate-200 px-4 sm:px-8 py-5 flex items-center justify-between overflow-x-auto custom-scrollbar">
+                {[1, 2, 3].map((step, idx) => (
+                  <div
+                    key={step}
+                    className="flex items-center flex-1 last:flex-none"
+                  >
+                    <div
+                      className={`flex items-center gap-2 ${currentStep >= step ? "text-[#0F2147]" : "text-slate-400"}`}
                     >
-                      <option value="" disabled>
-                        -- Pilih Event --
-                      </option>
-                      {events.map((event) => (
-                        <option key={event.id} value={event.id}>
-                          {event.title}
-                        </option>
-                      ))}
-                    </select>
+                      <div
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors duration-300 ${currentStep > step ? "bg-[#1E8E3E] text-white" : currentStep === step ? "bg-[#0F2147] text-white ring-4 ring-blue-50" : "bg-slate-200 text-slate-500"}`}
+                      >
+                        {currentStep > step ? "✓" : step}
+                      </div>
+                      <span className="text-xs font-bold uppercase tracking-wider hidden sm:block whitespace-nowrap">
+                        {step === 1
+                          ? "Formasi"
+                          : step === 2
+                            ? "Identitas"
+                            : "Berkas & Esai"}
+                      </span>
+                    </div>
+                    {idx < 2 && (
+                      <div
+                        className={`flex-1 h-[2px] mx-2 sm:mx-4 rounded-full transition-all duration-500 ${currentStep > step ? "bg-[#1E8E3E]" : "bg-slate-200"}`}
+                      ></div>
+                    )}
                   </div>
+                ))}
+              </div>
 
-                  {selectedEvent && (
-                    <div className="animate-in fade-in duration-300 space-y-6">
-                      {selectedEvent.requirements && (
-                        <div className="bg-[#F8F9FA] p-4 border border-[#DADCE0] rounded-lg">
-                          <p className="text-sm font-medium text-slate-800 mb-2 flex items-center gap-2">
-                            <svg
-                              className="w-4 h-4 text-[#1A73E8]"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                              />
-                            </svg>
-                            Persyaratan Umum
+              <div className="p-6 sm:p-10 min-h-[600px] flex flex-col">
+                <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
+                  {/* ================= STEP 1 : FORMASI ================= */}
+                  <div
+                    className={`${currentStep === 1 ? "block animate-in fade-in slide-in-from-right-8 duration-500" : "hidden"} flex-1 flex flex-col`}
+                  >
+                    <div className="space-y-6 flex-1">
+                      <div className="bg-[#F8F9FA] border border-slate-200 rounded-2xl p-6 sm:p-8 mb-8">
+                        <div className="text-center mb-6">
+                          <h3 className="text-lg font-black text-[#0F2147] tracking-tight">
+                            Benefit & Fasilitas Volunteer
+                          </h3>
+                          <p className="text-xs text-slate-500 font-medium mt-1">
+                            Fasilitas eksklusif yang akan didapatkan selama
+                            menjalankan amanah kepanitiaan
                           </p>
-                          <ul className="text-sm text-slate-600 space-y-1 ml-6 list-disc">
-                            {selectedEvent.requirements
-                              .split("\n")
-                              .map((req, idx) => (
-                                <li key={idx}>{req}</li>
-                              ))}
-                          </ul>
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-4">
+                          {[
+                            { icon: <IconJersey />, label: "Volunteer Jersey" },
+                            {
+                              icon: <IconCertificate />,
+                              label: "e-Certificate",
+                            },
+                            { icon: <IconSponsor />, label: "Produk Sponsor" },
+                            {
+                              icon: <IconMoney />,
+                              label: "Uang Pengganti Transportasi",
+                            },
+                            { icon: <IconMeals />, label: "Meals & Konsumsi" },
+                          ].map((b, idx) => (
+                            <div
+                              key={idx}
+                              className="w-full sm:w-[48%] md:w-[30%] bg-white border border-slate-200/80 rounded-xl p-5 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-all duration-200"
+                            >
+                              <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3">
+                                {b.icon}
+                              </div>
+                              <span className="text-xs font-bold text-[#0F2147] leading-snug">
+                                {b.label}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-2">
+                          Pilih Program Event{" "}
+                          <span className="text-[#D93025]">*</span>
+                        </label>
+                        <select
+                          value={formData.eventId}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              eventId: e.target.value,
+                              roleId: "",
+                            })
+                          }
+                          className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#0F2147] outline-none text-sm font-bold text-[#0F2147]"
+                        >
+                          <option value="" disabled>
+                            -- Pilih Event Terbuka --
+                          </option>
+                          {events.map((ev) => (
+                            <option key={ev.id} value={ev.id}>
+                              {ev.title}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {selectedEvent && (
+                        <div className="bg-blue-50 border border-blue-100 p-5 rounded-xl mt-2 mb-6 animate-in fade-in duration-300">
+                          <h4 className="text-sm font-bold text-blue-900 mb-2">
+                            Deskripsi & Informasi Event
+                          </h4>
+                          <p className="text-xs text-blue-800 whitespace-pre-wrap leading-relaxed">
+                            {selectedEvent.requirements ||
+                              "Belum ada deskripsi umum untuk event ini."}
+                          </p>
+                          {selectedEvent.linkGrupBesar && (
+                            <div className="mt-4 pt-3 border-t border-blue-200/50">
+                              <p className="text-xs text-blue-900 font-medium mb-2">
+                                Saluran Informasi Publik:
+                              </p>
+                              <a
+                                href={selectedEvent.linkGrupBesar}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 bg-[#1A73E8] text-white text-[11px] font-bold px-4 py-2 rounded-lg hover:bg-[#1557B0] transition-colors shadow-sm"
+                              >
+                                <IconLink /> Join Saluran / Info Grup WA
+                              </a>
+                            </div>
+                          )}
                         </div>
                       )}
 
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-4">
-                          Pilih Formasi (Sesi){" "}
-                          <span className="text-[#D93025]">*</span>
-                        </label>
-                        {!selectedEvent.groups ||
-                        selectedEvent.groups.length === 0 ? (
-                          <p className="text-sm text-[#D93025] bg-[#FCE8E6] p-4 rounded border border-red-200">
-                            Belum ada formasi yang dibuka.
-                          </p>
-                        ) : (
-                          <div className="space-y-8">
-                            {selectedEvent.groups.map((group) => (
-                              <div key={group.id}>
-                                <h5 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">
-                                  {group.title}
-                                </h5>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                  {!group.roles || group.roles.length === 0 ? (
-                                    <p className="text-xs text-slate-400 italic">
-                                      Belum ada posisi tersedia.
-                                    </p>
-                                  ) : (
-                                    group.roles.map((role) => {
-                                      const filled = allAcceptedCrew.filter(
-                                        (c) => c.roleId === role.id,
-                                      ).length;
-                                      const isFull = filled >= role.kuota;
-                                      const isSelected =
-                                        formData.roleId === role.id;
+                      {selectedEvent &&
+                        selectedEvent.groups.map((group) => (
+                          <div
+                            key={group.id}
+                            className="pt-4 border-t border-slate-100 mt-6"
+                          >
+                            <h3 className="text-sm font-black text-[#0F2147] mb-4 flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-[#F2A900]"></span>{" "}
+                              {group.title}
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              {group.roles.map((role) => {
+                                const filled = allAcceptedCrew.filter(
+                                  (c) => c.roleId === role.id,
+                                ).length;
+                                const isFull = filled >= role.kuota;
+                                const sisaKuota = role.kuota - filled;
+                                const isAlmostFull =
+                                  sisaKuota <= 3 && sisaKuota > 0;
+                                const isSelected = formData.roleId === role.id;
 
-                                      return (
-                                        /* 🔥 DESAIN KARTU GAYA GOOGLE FORM 🔥 */
-                                        <label
-                                          key={role.id}
-                                          className={`relative flex flex-col bg-white border rounded-xl overflow-hidden cursor-pointer transition-all duration-200 ${isFull ? "border-[#DADCE0] opacity-60 cursor-not-allowed bg-[#F8F9FA]" : isSelected ? "border-[#1A73E8] shadow-md ring-1 ring-[#1A73E8]" : "border-[#DADCE0] hover:border-slate-400"}`}
-                                        >
-                                          <input
-                                            type="radio"
-                                            name="roleId"
-                                            value={role.id}
-                                            disabled={isFull}
-                                            checked={isSelected}
-                                            onChange={handleChange}
-                                            className="hidden"
-                                          />
-                                          <div className="p-4 flex-1">
-                                            <h4
-                                              className={`text-base font-bold mb-1 leading-tight ${isSelected ? "text-[#1A73E8]" : "text-slate-800"}`}
-                                            >
-                                              {role.nama}
-                                            </h4>
-                                            <p className="text-[#5F6368] text-xs mb-3">
-                                              {group.title}
-                                            </p>
-                                            <div className="pt-3 border-t border-slate-100">
-                                              {isFull ? (
-                                                <span className="text-[10px] font-bold text-[#D93025] uppercase tracking-widest">
-                                                  Kuota Penuh
-                                                </span>
-                                              ) : (
-                                                <span className="text-xs font-medium text-slate-600">
-                                                  Sisa Tempat:{" "}
-                                                  <span className="font-bold text-slate-800">
-                                                    {role.kuota - filled}
-                                                  </span>
-                                                </span>
-                                              )}
-                                            </div>
-                                          </div>
-                                          <div
-                                            className={`py-2.5 text-center text-xs font-bold transition-colors ${isSelected ? "bg-[#1A73E8] text-white" : "border-t border-[#DADCE0] text-[#1A73E8] bg-[#F8F9FA]"}`}
-                                          >
-                                            {isSelected
-                                              ? "Terpilih ✓"
-                                              : "Pilih"}
-                                          </div>
-                                        </label>
-                                      );
-                                    })
-                                  )}
-                                </div>
-                              </div>
-                            ))}
+                                return (
+                                  <label
+                                    key={role.id}
+                                    className={`flex items-start p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 relative overflow-hidden ${isFull ? "bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed" : isSelected ? "border-[#0F2147] shadow-md bg-blue-50/20" : "border-slate-200 hover:border-slate-400 hover:shadow-sm"}`}
+                                  >
+                                    {isAlmostFull && !isSelected && (
+                                      <div className="absolute top-0 right-0 bg-rose-500 text-white text-[9px] font-black px-2 py-1 rounded-bl-lg flex items-center gap-1 animate-pulse">
+                                        🔥 Sisa {sisaKuota} Slot
+                                      </div>
+                                    )}
+                                    <input
+                                      type="radio"
+                                      name="roleId"
+                                      value={role.id}
+                                      disabled={isFull}
+                                      checked={isSelected}
+                                      onChange={handleChange}
+                                      className="hidden"
+                                    />
+                                    <div
+                                      className={`mt-0.5 w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center shrink-0 ${isSelected ? "border-[#0F2147]" : "border-slate-300"}`}
+                                    >
+                                      {isSelected && (
+                                        <div className="w-2 h-2 bg-[#F2A900] rounded-full"></div>
+                                      )}
+                                    </div>
+                                    <div className="flex-1 w-full">
+                                      <h4
+                                        className={`text-sm font-bold leading-snug ${isSelected ? "text-[#0F2147]" : "text-slate-700"}`}
+                                      >
+                                        {role.nama}
+                                      </h4>
+                                      <p
+                                        className={`text-[10px] font-medium mt-1 ${isAlmostFull ? "text-rose-500 font-bold" : "text-slate-500"}`}
+                                      >
+                                        {isFull
+                                          ? "Kuota Penuh"
+                                          : isAlmostFull
+                                            ? `Sisa Kuota: ${sisaKuota}`
+                                            : "Kuota Tersedia"}
+                                      </p>
+                                      <div
+                                        className={`mt-2.5 text-[11px] leading-relaxed transition-all duration-300 ${isSelected ? "text-slate-600 border-t border-[#0F2147]/10 pt-2.5 opacity-100" : "text-slate-400 line-clamp-1 opacity-70"}`}
+                                      >
+                                        <strong className="text-slate-500">
+                                          SOP / Jobdesc:
+                                        </strong>{" "}
+                                        {role.deskripsi ||
+                                          "Detail tugas dan tanggung jawab harian formasi ini belum diinput oleh Admin."}
+                                      </div>
+                                    </div>
+                                  </label>
+                                );
+                              })}
+                            </div>
                           </div>
-                        )}
+                        ))}
+                    </div>
+                    <div className="mt-10 flex justify-end shrink-0">
+                      <button
+                        type="button"
+                        onClick={nextStep1}
+                        className="bg-[#0F2147] text-white px-8 py-3.5 rounded-xl text-xs font-bold hover:bg-[#0a152e] transition-all shadow-md active:scale-95 flex items-center gap-2"
+                      >
+                        Selanjutnya &rarr;
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* ================= STEP 2 : IDENTITAS ================= */}
+                  <div
+                    className={`${currentStep === 2 ? "block animate-in fade-in slide-in-from-right-8 duration-500" : "hidden"} flex-1 flex flex-col`}
+                  >
+                    <div className="space-y-6 flex-1">
+                      <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-6">
+                        <p className="text-xs text-blue-800 font-medium">
+                          <strong>Catatan:</strong> Pastikan seluruh data diri
+                          diisi dengan sebenar-benarnya sesuai dengan kartu
+                          identitas Anda.
+                        </p>
                       </div>
-                    </div>
-                  )}
 
-                  <div className="pt-6 mt-6 border-t border-[#DADCE0] flex justify-end">
-                    <button
-                      type="button"
-                      onClick={nextStep1}
-                      className="bg-[#1A73E8] hover:bg-[#1557B0] text-white font-medium px-8 py-2.5 rounded-lg transition-colors text-sm shadow-sm"
-                    >
-                      Selanjutnya
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* ================= STEP 2: IDENTITAS ================= */}
-              <div
-                className={`${currentStep === 2 ? "block animate-in fade-in slide-in-from-right-4 duration-300" : "hidden"}`}
-              >
-                <div className="mb-6 border-b border-[#DADCE0] pb-4">
-                  <h2 className="text-xl font-medium text-slate-800">
-                    Identitas & Profil Pendaftar
-                  </h2>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Lengkapi informasi dasar dan kategori pendaftaran Anda.
-                  </p>
-                </div>
-
-                <div className="space-y-6">
-                  {/* Identitas Diri */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-[#202124] mb-1.5">
-                        Nama Lengkap <span className="text-[#D93025]">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="nama"
-                        value={formData.nama}
-                        onChange={handleChange}
-                        placeholder="Sesuai KTP / KTM"
-                        className="w-full px-4 py-2.5 bg-white border border-[#DADCE0] rounded-lg outline-none focus:border-[#1A73E8] focus:ring-1 focus:ring-[#1A73E8]/30 transition-all text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-[#202124] mb-1.5">
-                        Email Aktif <span className="text-[#D93025]">*</span>
-                      </label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="email@domain.com"
-                        className="w-full px-4 py-2.5 bg-white border border-[#DADCE0] rounded-lg outline-none focus:border-[#1A73E8] focus:ring-1 focus:ring-[#1A73E8]/30 transition-all text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-[#202124] mb-1.5">
-                        No. WhatsApp <span className="text-[#D93025]">*</span>
-                      </label>
-                      <input
-                        type="tel"
-                        name="whatsapp"
-                        value={formData.whatsapp}
-                        onChange={handleChange}
-                        placeholder="08..."
-                        className="w-full px-4 py-2.5 bg-white border border-[#DADCE0] rounded-lg outline-none focus:border-[#1A73E8] focus:ring-1 focus:ring-[#1A73E8]/30 transition-all text-sm"
-                      />
-                    </div>
-                  </div>
-
-                  <hr className="border-[#DADCE0]" />
-
-                  {/* Kategori Pendaftar */}
-                  <div>
-                    <label className="block text-sm font-medium text-[#202124] mb-3">
-                      Kategori Pendaftar{" "}
-                      <span className="text-[#D93025]">*</span>
-                    </label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {[
-                        { id: "mahasiswa", label: "Mahasiswa UII" },
-                        { id: "alumni", label: "Alumni UII" },
-                        { id: "himpunan", label: "Utusan Himpunan" },
-                        { id: "ukm", label: "Utusan UKM" },
-                      ].map((t) => (
-                        <label
-                          key={t.id}
-                          className={`cursor-pointer border p-3 text-center rounded-lg transition-all ${formData.tipe === t.id ? "border-[#1A73E8] bg-[#E8F0FE] text-[#1A73E8] shadow-sm" : "border-[#DADCE0] text-[#5F6368] hover:bg-[#F8F9FA]"}`}
-                        >
-                          <input
-                            type="radio"
-                            name="tipe"
-                            value={t.id}
-                            checked={formData.tipe === t.id}
-                            onChange={(e) => handleTipeChange(e.target.value)}
-                            className="hidden"
-                          />
-                          <span className="text-xs font-bold uppercase tracking-wider">
-                            {t.label}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Field Dinamis Sesuai Kategori */}
-                  <div className="bg-[#F8F9FA] p-5 rounded-lg border border-[#DADCE0] grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in duration-300">
-                    {/* Wajib Mahasiswa, Himpunan, UKM */}
-                    {["mahasiswa", "himpunan", "ukm"].includes(
-                      formData.tipe,
-                    ) && (
-                      <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div className="md:col-span-2">
-                          <label className="block text-sm font-medium text-[#202124] mb-1.5">
-                            Fakultas / Jurusan UII{" "}
+                          <label className="block text-xs font-bold text-slate-500 mb-2">
+                            Nama Lengkap (Sesuai KTP){" "}
                             <span className="text-[#D93025]">*</span>
                           </label>
                           <input
                             type="text"
-                            name="fakultas"
-                            value={formData.fakultas}
+                            name="nama"
+                            value={formData.nama}
                             onChange={handleChange}
-                            placeholder="Cth: FTI / Informatika"
-                            className="w-full px-4 py-2.5 bg-white border border-[#DADCE0] rounded-lg focus:border-[#1A73E8] outline-none text-sm"
+                            className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#0F2147] outline-none text-sm font-medium"
+                            placeholder="Cth: Budi Santoso"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-[#202124] mb-1.5">
-                            NIM (Nomor Induk Mahasiswa){" "}
+                          <label className="block text-xs font-bold text-slate-500 mb-2">
+                            Tempat Lahir{" "}
                             <span className="text-[#D93025]">*</span>
                           </label>
                           <input
                             type="text"
-                            name="nim"
-                            value={formData.nim}
+                            name="tempatLahir"
+                            value={formData.tempatLahir}
                             onChange={handleChange}
-                            placeholder="Cth: 20523000"
-                            className="w-full px-4 py-2.5 bg-white border border-[#DADCE0] rounded-lg focus:border-[#1A73E8] outline-none text-sm"
+                            className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#0F2147] outline-none text-sm font-medium"
+                            placeholder="Cth: Yogyakarta"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-[#202124] mb-1.5">
-                            Tahun Angkatan{" "}
+                          <label className="block text-xs font-bold text-slate-500 mb-2">
+                            Tanggal Lahir{" "}
                             <span className="text-[#D93025]">*</span>
                           </label>
                           <input
-                            type="number"
-                            name="angkatan"
-                            value={formData.angkatan}
+                            type="date"
+                            name="tanggalLahir"
+                            value={formData.tanggalLahir}
                             onChange={handleChange}
-                            min="1950"
-                            max={new Date().getFullYear()}
-                            placeholder="Cth: 2020"
-                            className="w-full px-4 py-2.5 bg-white border border-[#DADCE0] rounded-lg focus:border-[#1A73E8] outline-none text-sm"
+                            className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#0F2147] outline-none text-sm font-medium uppercase"
                           />
                         </div>
-                      </>
-                    )}
-
-                    {/* Wajib Alumni */}
-                    {formData.tipe === "alumni" && (
-                      <>
-                        <div>
-                          <label className="block text-sm font-medium text-[#202124] mb-1.5">
-                            Fakultas Lulusan{" "}
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-bold text-slate-500 mb-2">
+                            Jenis Kelamin{" "}
                             <span className="text-[#D93025]">*</span>
                           </label>
-                          <input
-                            type="text"
-                            name="fakultas"
-                            value={formData.fakultas}
-                            onChange={handleChange}
-                            placeholder="Cth: Hukum"
-                            className="w-full px-4 py-2.5 bg-white border border-[#DADCE0] rounded-lg focus:border-[#1A73E8] outline-none text-sm"
-                          />
+                          <div className="flex gap-4">
+                            <label
+                              className={`flex-1 flex items-center justify-center gap-2 p-3 border rounded-xl cursor-pointer transition-all ${formData.jenisKelamin === "Laki-laki" ? "border-[#0F2147] bg-[#0F2147] text-white font-bold shadow-md" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"}`}
+                            >
+                              <input
+                                type="radio"
+                                name="jenisKelamin"
+                                value="Laki-laki"
+                                checked={formData.jenisKelamin === "Laki-laki"}
+                                onChange={handleChange}
+                                className="hidden"
+                              />{" "}
+                              Laki-laki
+                            </label>
+                            <label
+                              className={`flex-1 flex items-center justify-center gap-2 p-3 border rounded-xl cursor-pointer transition-all ${formData.jenisKelamin === "Perempuan" ? "border-[#0F2147] bg-[#0F2147] text-white font-bold shadow-md" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"}`}
+                            >
+                              <input
+                                type="radio"
+                                name="jenisKelamin"
+                                value="Perempuan"
+                                checked={formData.jenisKelamin === "Perempuan"}
+                                onChange={handleChange}
+                                className="hidden"
+                              />{" "}
+                              Perempuan
+                            </label>
+                          </div>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-[#202124] mb-1.5">
-                            Tahun Angkatan{" "}
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-bold text-slate-500 mb-2">
+                            Alamat Domisili Sekarang{" "}
                             <span className="text-[#D93025]">*</span>
                           </label>
-                          <input
-                            type="number"
-                            name="angkatan"
-                            value={formData.angkatan}
-                            onChange={handleChange}
-                            min="1950"
-                            max={new Date().getFullYear()}
-                            placeholder="Cth: 2015"
-                            className="w-full px-4 py-2.5 bg-white border border-[#DADCE0] rounded-lg focus:border-[#1A73E8] outline-none text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-[#202124] mb-1.5">
-                            Tempat Kerja Saat Ini
-                          </label>
-                          <input
-                            type="text"
-                            name="instansi"
-                            value={formData.instansi}
-                            onChange={handleChange}
-                            placeholder="Cth: PT. Inovasi Bangsa"
-                            className="w-full px-4 py-2.5 bg-white border border-[#DADCE0] rounded-lg focus:border-[#1A73E8] outline-none text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-[#202124] mb-1.5">
-                            Domisili Tempat Tinggal{" "}
-                            <span className="text-[#D93025]">*</span>
-                          </label>
-                          <input
-                            type="text"
+                          <textarea
                             name="domisili"
                             value={formData.domisili}
                             onChange={handleChange}
-                            placeholder="Cth: Sleman, Yogyakarta"
-                            className="w-full px-4 py-2.5 bg-white border border-[#DADCE0] rounded-lg focus:border-[#1A73E8] outline-none text-sm"
+                            rows={2}
+                            className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#0F2147] outline-none text-sm font-medium resize-none"
+                            placeholder="Tuliskan alamat lengkap tempat tinggal saat ini..."
+                          ></textarea>
+                        </div>
+                      </div>
+
+                      <div className="pt-6 border-t border-slate-100">
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3">
+                          Afiliasi Kepanitiaan{" "}
+                          <span className="text-[#D93025]">*</span>
+                        </label>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                          {[
+                            { id: "mahasiswa", label: "Mahasiswa" },
+                            { id: "alumni", label: "Alumni" },
+                            { id: "himpunan", label: "Himpunan" },
+                            { id: "ukm", label: "UKM" },
+                            { id: "umum", label: "Umum / Eksternal" },
+                          ].map((t) => (
+                            <label
+                              key={t.id}
+                              className={`cursor-pointer border p-2.5 text-center rounded-lg transition-all duration-200 ${formData.tipe === t.id ? "border-[#0F2147] bg-[#0F2147] text-white font-bold shadow-md" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50 font-medium"}`}
+                            >
+                              <input
+                                type="radio"
+                                name="tipe"
+                                value={t.id}
+                                checked={formData.tipe === t.id}
+                                onChange={(e) =>
+                                  handleTipeChange(e.target.value)
+                                }
+                                className="hidden"
+                              />
+                              <span className="text-[10px] uppercase tracking-wider">
+                                {t.label}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      {formData.tipe !== "umum" && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                          {["mahasiswa", "himpunan", "ukm", "alumni"].includes(
+                            formData.tipe,
+                          ) && (
+                            <>
+                              <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-2">
+                                  Fakultas / Program Studi{" "}
+                                  <span className="text-[#D93025]">*</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  name="fakultas"
+                                  value={formData.fakultas}
+                                  onChange={handleChange}
+                                  placeholder="Cth: FTI / Informatika"
+                                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-[#0F2147] outline-none text-sm font-medium"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-2">
+                                  Tahun Angkatan{" "}
+                                  <span className="text-[#D93025]">*</span>
+                                </label>
+                                <input
+                                  type="number"
+                                  name="angkatan"
+                                  value={formData.angkatan}
+                                  onChange={handleChange}
+                                  placeholder="Cth: 2021"
+                                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-[#0F2147] outline-none text-sm font-medium"
+                                />
+                              </div>
+                            </>
+                          )}
+                          {["mahasiswa", "himpunan", "ukm"].includes(
+                            formData.tipe,
+                          ) && (
+                            <div className="md:col-span-2">
+                              <label className="block text-xs font-bold text-slate-500 mb-2">
+                                Nomor Induk Mahasiswa (NIM){" "}
+                                <span className="text-[#D93025]">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                name="nim"
+                                value={formData.nim}
+                                onChange={handleChange}
+                                placeholder="Cth: 20523000"
+                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-[#0F2147] outline-none text-sm font-medium"
+                              />
+                            </div>
+                          )}
+                          {["ukm", "himpunan"].includes(formData.tipe) && (
+                            <>
+                              <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-2">
+                                  Nama Organisasi{" "}
+                                  <span className="text-[#D93025]">*</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  name="instansi"
+                                  value={formData.instansi}
+                                  onChange={handleChange}
+                                  placeholder="Cth: LEM FTI UII"
+                                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-[#0F2147] outline-none text-sm font-medium"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-2">
+                                  Jabatan{" "}
+                                  <span className="text-[#D93025]">*</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  name="jabatan"
+                                  value={formData.jabatan}
+                                  onChange={handleChange}
+                                  placeholder="Cth: Kadiv Humas"
+                                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-[#0F2147] outline-none text-sm font-medium"
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4 border-t border-slate-100">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 mb-2">
+                            Email Aktif{" "}
+                            <span className="text-[#D93025]">*</span>
+                          </label>
+                          <input
+                            type="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={(e) => {
+                              handleChange(e);
+                              setEmailErr("");
+                            }}
+                            onBlur={(e) =>
+                              checkDuplicate("email", e.target.value)
+                            }
+                            className={`w-full px-4 py-3.5 bg-slate-50 border rounded-xl outline-none text-sm font-medium ${emailErr ? "border-rose-500 focus:border-rose-500" : "border-slate-200 focus:border-[#0F2147]"}`}
+                            placeholder="email@domain.com"
+                          />
+                          {emailErr && (
+                            <p className="text-[10px] text-rose-500 mt-1">
+                              {emailErr}
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 mb-2">
+                            WhatsApp <span className="text-[#D93025]">*</span>
+                          </label>
+                          <input
+                            type="tel"
+                            name="whatsapp"
+                            value={formData.whatsapp}
+                            onChange={(e) => {
+                              handleChange(e);
+                              setWaErr("");
+                            }}
+                            onBlur={(e) =>
+                              checkDuplicate("whatsapp", e.target.value)
+                            }
+                            className={`w-full px-4 py-3.5 bg-slate-50 border rounded-xl outline-none text-sm font-medium ${waErr ? "border-rose-500 focus:border-rose-500" : "border-slate-200 focus:border-[#0F2147]"}`}
+                            placeholder="08..."
+                          />
+                          {waErr && (
+                            <p className="text-[10px] text-rose-500 mt-1">
+                              {waErr}
+                            </p>
+                          )}
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-bold text-slate-500 mb-2">
+                            Akun Instagram (Jangan diprivate){" "}
+                            <span className="text-[#D93025]">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            name="instagram"
+                            value={formData.instagram}
+                            onChange={handleChange}
+                            className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#0F2147] outline-none text-sm font-medium"
+                            placeholder="Cth: @ikauii.diy"
                           />
                         </div>
-                      </>
-                    )}
+                      </div>
 
-                    {/* Tambahan Wajib Himpunan / UKM */}
-                    {["ukm", "himpunan"].includes(formData.tipe) && (
-                      <div className="md:col-span-2 border-t border-[#DADCE0] mt-1 pt-5">
-                        <p className="text-xs font-bold text-[#1A73E8] uppercase tracking-widest mb-3">
-                          Detail Organisasi Asal
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                          <div>
-                            <label className="block text-sm font-medium text-[#202124] mb-1.5">
-                              Nama{" "}
-                              {formData.tipe === "ukm" ? "UKM" : "Himpunan"}{" "}
-                              <span className="text-[#D93025]">*</span>
+                      <div className="pt-4 border-t border-slate-100">
+                        <label className="block text-xs font-bold text-slate-500 mb-2">
+                          Riwayat Penyakit (Tulis "Tidak ada" jika sehat){" "}
+                          <span className="text-[#D93025]">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="riwayatPenyakit"
+                          value={formData.riwayatPenyakit}
+                          onChange={handleChange}
+                          className="w-full px-4 py-3.5 bg-rose-50 border border-rose-200 text-rose-900 rounded-xl focus:border-rose-500 outline-none text-sm font-medium"
+                          placeholder="Cth: Asma / Maag / Tidak ada"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-10 flex justify-between shrink-0">
+                      <button
+                        type="button"
+                        onClick={prevStep}
+                        className="text-slate-500 font-bold px-6 py-3.5 rounded-xl hover:bg-slate-50 text-xs transition-colors"
+                      >
+                        Kembali
+                      </button>
+                      <button
+                        type="button"
+                        onClick={nextStep2}
+                        className="bg-[#0F2147] hover:bg-[#0a152e] text-white px-8 py-3.5 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 flex items-center gap-2"
+                      >
+                        Selanjutnya &rarr;
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* ================= STEP 3 : BERKAS & ESAI ================= */}
+                  <div
+                    className={`${currentStep === 3 ? "block animate-in fade-in slide-in-from-right-8 duration-500" : "hidden"} flex-1 flex flex-col`}
+                  >
+                    <div className="space-y-6 flex-1">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">
+                          Pas Foto Wajah{" "}
+                          <span className="text-[#D93025]">*</span>
+                        </label>
+                        <div
+                          className={`border-2 border-dashed rounded-2xl p-6 text-center transition-colors ${formData.fotoIdCard ? "border-emerald-400 bg-emerald-50/50" : "border-slate-300 bg-slate-50 hover:bg-slate-100"}`}
+                        >
+                          {!formData.fotoIdCard ? (
+                            <>
+                              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-slate-200 text-slate-400">
+                                <svg
+                                  className="w-5 h-5"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                  />
+                                </svg>
+                              </div>
+                              <p className="text-xs font-bold text-[#0F2147] mb-1">
+                                Pilih File Foto Anda
+                              </p>
+                              <p className="text-[10px] text-slate-500 mb-4 font-medium">
+                                Foto setengah badan yang jelas (Sistem akan
+                                otomatis mengecilkan ukuran).
+                              </p>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                className="text-[10px] file:mr-3 file:py-2 file:px-5 file:rounded-full file:border-0 file:font-bold file:bg-[#0F2147] file:text-white hover:file:bg-[#0a152e] cursor-pointer"
+                              />
+                              {uploadProgress && (
+                                <p className="text-[10px] font-bold text-[#1A73E8] mt-3 animate-pulse">
+                                  {uploadProgress}
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <div className="flex flex-col items-center">
+                              <img
+                                src={formData.fotoIdCard}
+                                alt="Preview Wajah"
+                                className="h-32 w-32 object-cover rounded-full shadow-sm border-4 border-white mb-3"
+                              />
+                              <p className="text-[11px] font-bold text-emerald-600 mb-2 flex items-center gap-1.5">
+                                <IconCheckCircle /> Berhasil Diunggah
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setFormData({ ...formData, fotoIdCard: "" })
+                                }
+                                className="text-[10px] font-bold text-rose-500 hover:text-rose-700 underline"
+                              >
+                                Ganti Foto
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4 border-t border-slate-100">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 mb-3">
+                            Ukuran Baju / Jersey Kepanitiaan{" "}
+                            <span className="text-[#D93025]">*</span>
+                          </label>
+                          <select
+                            name="ukuranJersey"
+                            value={formData.ukuranJersey}
+                            onChange={handleChange}
+                            required
+                            className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#0F2147] outline-none text-sm font-bold text-[#0F2147] mb-2 cursor-pointer"
+                          >
+                            <option value="" disabled>
+                              -- Pilih Ukuran --
+                            </option>
+                            <option value="S">S</option>
+                            <option value="M">M</option>
+                            <option value="L">L</option>
+                            <option value="XL">XL</option>
+                            <option value="XXL">XXL</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 mb-3">
+                            Apakah kamu memiliki kendaraan pribadi?{" "}
+                            <span className="text-[#D93025]">*</span>
+                          </label>
+                          <select
+                            name="kendaraan"
+                            value={formData.kendaraan}
+                            onChange={handleChange}
+                            required
+                            className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#0F2147] outline-none text-sm font-medium cursor-pointer"
+                          >
+                            <option value="" disabled>
+                              -- Pilih Status Kendaraan --
+                            </option>
+                            <option value="Motor">Ya, Motor</option>
+                            <option value="Mobil">Ya, Mobil</option>
+                            <option value="Tidak ada">
+                              Tidak ada kendaraan pribadi
+                            </option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4 border-t border-slate-100">
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-bold text-slate-500 mb-2">
+                            Alasan memilih divisi / posisi tersebut?{" "}
+                            <span className="text-[#D93025]">*</span>
+                          </label>
+                          <textarea
+                            name="alasanDivisi"
+                            value={formData.alasanDivisi}
+                            onChange={handleChange}
+                            rows={3}
+                            className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#0F2147] outline-none text-sm font-medium resize-none"
+                            placeholder="Sampaikan mengapa Anda cocok di posisi ini..."
+                          ></textarea>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 mb-2">
+                            Motivasi Bergabung Kepanitiaan{" "}
+                            <span className="text-[#D93025]">*</span>
+                          </label>
+                          <textarea
+                            name="motivasi"
+                            value={formData.motivasi}
+                            onChange={handleChange}
+                            rows={4}
+                            className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#0F2147] outline-none text-sm font-medium resize-none"
+                            placeholder="Ceritakan motivasi utama Anda..."
+                          ></textarea>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 mb-2">
+                            Pengalaman Relevan{" "}
+                            <span className="text-[#D93025]">*</span>
+                          </label>
+                          <textarea
+                            name="pengalaman"
+                            value={formData.pengalaman}
+                            onChange={handleChange}
+                            rows={4}
+                            className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#0F2147] outline-none text-sm font-medium resize-none"
+                            placeholder="Pernah ikut kepanitiaan atau organisasi apa saja?"
+                          ></textarea>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4 border-t border-slate-100">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 mb-3">
+                            Apakah bersedia ditempatkan di divisi lain apabila
+                            dibutuhkan?{" "}
+                            <span className="text-[#D93025]">*</span>
+                          </label>
+                          <div className="flex gap-4">
+                            <label
+                              className={`flex-1 flex items-center justify-center gap-2 p-3 border rounded-xl cursor-pointer transition-all ${formData.bersediaPindahDivisi === "Ya" ? "border-[#1E8E3E] bg-emerald-50 text-emerald-800 font-bold" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"}`}
+                            >
+                              <input
+                                type="radio"
+                                name="bersediaPindahDivisi"
+                                value="Ya"
+                                checked={formData.bersediaPindahDivisi === "Ya"}
+                                onChange={handleChange}
+                                className="hidden"
+                              />{" "}
+                              Ya, Bersedia
                             </label>
-                            <input
-                              type="text"
-                              name="instansi"
-                              value={formData.instansi}
-                              onChange={handleChange}
-                              placeholder="Cth: LEM FTI UII"
-                              className="w-full px-4 py-2.5 bg-white border border-[#DADCE0] rounded-lg focus:border-[#1A73E8] outline-none text-sm"
-                            />
+                            <label
+                              className={`flex-1 flex items-center justify-center gap-2 p-3 border rounded-xl cursor-pointer transition-all ${formData.bersediaPindahDivisi === "Tidak" ? "border-[#D93025] bg-rose-50 text-rose-800 font-bold" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"}`}
+                            >
+                              <input
+                                type="radio"
+                                name="bersediaPindahDivisi"
+                                value="Tidak"
+                                checked={
+                                  formData.bersediaPindahDivisi === "Tidak"
+                                }
+                                onChange={handleChange}
+                                className="hidden"
+                              />{" "}
+                              Tidak
+                            </label>
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-[#202124] mb-1.5">
-                              Jabatan di Organisasi{" "}
-                              <span className="text-[#D93025]">*</span>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 mb-3">
+                            Apakah bersedia mengikuti seluruh pelatihan dan
+                            briefing sebelum event?{" "}
+                            <span className="text-[#D93025]">*</span>
+                          </label>
+                          <div className="flex gap-4">
+                            <label
+                              className={`flex-1 flex items-center justify-center gap-2 p-3 border rounded-xl cursor-pointer transition-all ${formData.bersediaPelatihan === "Ya" ? "border-[#1E8E3E] bg-emerald-50 text-emerald-800 font-bold" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"}`}
+                            >
+                              <input
+                                type="radio"
+                                name="bersediaPelatihan"
+                                value="Ya"
+                                checked={formData.bersediaPelatihan === "Ya"}
+                                onChange={handleChange}
+                                className="hidden"
+                              />{" "}
+                              Ya, Tentu Saja
                             </label>
-                            <input
-                              type="text"
-                              name="jabatan"
-                              value={formData.jabatan}
-                              onChange={handleChange}
-                              placeholder="Cth: Kepala Divisi Humas"
-                              className="w-full px-4 py-2.5 bg-white border border-[#DADCE0] rounded-lg focus:border-[#1A73E8] outline-none text-sm"
-                            />
+                            <label
+                              className={`flex-1 flex items-center justify-center gap-2 p-3 border rounded-xl cursor-pointer transition-all ${formData.bersediaPelatihan === "Tidak" ? "border-[#D93025] bg-rose-50 text-rose-800 font-bold" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"}`}
+                            >
+                              <input
+                                type="radio"
+                                name="bersediaPelatihan"
+                                value="Tidak"
+                                checked={formData.bersediaPelatihan === "Tidak"}
+                                onChange={handleChange}
+                                className="hidden"
+                              />{" "}
+                              Tidak
+                            </label>
                           </div>
                         </div>
                       </div>
-                    )}
-                  </div>
 
-                  <div className="pt-6 border-t border-[#DADCE0] flex justify-between gap-4">
-                    <button
-                      type="button"
-                      onClick={prevStep}
-                      className="text-[#5F6368] hover:bg-[#F8F9FA] font-medium px-6 py-2.5 rounded-lg transition-colors text-sm border border-transparent hover:border-[#DADCE0]"
-                    >
-                      Kembali
-                    </button>
-                    <button
-                      type="button"
-                      onClick={nextStep2}
-                      className="bg-[#1A73E8] hover:bg-[#1557B0] text-white font-medium px-8 py-2.5 rounded-lg transition-colors text-sm shadow-sm"
-                    >
-                      Selanjutnya
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* ================= STEP 3: KAPABILITAS & SELESAI ================= */}
-              <div
-                className={`${currentStep === 3 ? "block animate-in fade-in slide-in-from-right-4 duration-300" : "hidden"}`}
-              >
-                <div className="mb-6 border-b border-[#DADCE0] pb-4">
-                  <h2 className="text-xl font-medium text-slate-800">
-                    Kapabilitas & Persetujuan
-                  </h2>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Langkah terakhir, lengkapi esai dan berikan persetujuan.
-                  </p>
-                </div>
-
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-[#202124] mb-2">
-                      Motivasi Bergabung{" "}
-                      <span className="text-[#D93025]">*</span>
-                    </label>
-                    <textarea
-                      name="motivasi"
-                      value={formData.motivasi}
-                      onChange={handleChange}
-                      rows={4}
-                      placeholder="Jelaskan alasan kuat mengapa Anda ingin bergabung di kepanitiaan ini..."
-                      className="w-full px-4 py-3 bg-white border border-[#DADCE0] rounded-lg outline-none focus:border-[#1A73E8] focus:ring-1 focus:ring-[#1A73E8]/30 transition-colors resize-none text-sm"
-                    ></textarea>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#202124] mb-2">
-                      Pengalaman Kepanitiaan Terkait{" "}
-                      <span className="text-[#D93025]">*</span>
-                    </label>
-                    <textarea
-                      name="pengalaman"
-                      value={formData.pengalaman}
-                      onChange={handleChange}
-                      rows={4}
-                      placeholder="Ceritakan pengalaman kepanitiaan atau keahlian yang relevan..."
-                      className="w-full px-4 py-3 bg-white border border-[#DADCE0] rounded-lg outline-none focus:border-[#1A73E8] focus:ring-1 focus:ring-[#1A73E8]/30 transition-colors resize-none text-sm"
-                    ></textarea>
-                  </div>
-
-                  {/* KOTAK PERSETUJUAN */}
-                  <div className="bg-[#F8F9FA] border border-[#DADCE0] p-5 rounded-lg mt-6">
-                    <label className="flex items-start gap-4 cursor-pointer hover:bg-slate-100 p-2 -m-2 rounded transition-colors">
-                      <div className="flex items-center h-5 mt-1">
+                      <div className="bg-[#E8F0FE] p-5 rounded-2xl border border-[#1A73E8]/20 flex items-start gap-4 mt-8">
                         <input
                           type="checkbox"
                           checked={isAgreed}
                           onChange={(e) => setIsAgreed(e.target.checked)}
-                          className="w-5 h-5 accent-[#1A73E8] bg-white border-slate-300 rounded cursor-pointer"
+                          className="mt-1 cursor-pointer w-4 h-4 accent-[#1A73E8]"
                         />
+                        <p className="text-xs text-blue-900 leading-relaxed font-bold">
+                          Dengan mengisi form ini, saya menyatakan data yang
+                          diberikan benar dan bersedia mengikuti seluruh
+                          ketentuan manpower/volunteer{" "}
+                          {selectedEvent?.title || "IKA UII DIY RUN"}.
+                        </p>
                       </div>
-                      <div className="text-sm text-[#202124] leading-relaxed flex-1">
-                        Saya menyatakan bahwa data yang diisi adalah benar. Saya
-                        bersedia mengikuti seluruh rangkaian acara hingga
-                        selesai dengan penuh tanggung jawab, serta{" "}
-                        <strong>WAJIB</strong> bergabung ke saluran WhatsApp
-                        resmi kepanitiaan untuk mendapatkan info terbaru:
-                        <div className="mt-3">
-                          <a
-                            href="https://www.whatsapp.com/channel/0029Vb7WeSSFcow6V1mLa03P"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#DADCE0] text-[#1E8E3E] hover:bg-[#E6F4EA] font-medium rounded-full text-xs transition-colors shadow-sm"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.405-.883-.733-1.48-1.638-1.653-1.935-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" />
-                            </svg>
-                            Saluran WA IKA UII
-                          </a>
-                        </div>
-                      </div>
-                    </label>
-                  </div>
+                    </div>
 
-                  <div className="pt-6 mt-6 border-t border-[#DADCE0] flex flex-col-reverse sm:flex-row justify-between gap-4">
-                    <button
-                      type="button"
-                      onClick={prevStep}
-                      disabled={isSubmitting}
-                      className="text-[#5F6368] hover:bg-[#F8F9FA] font-medium px-6 py-2.5 rounded-lg transition-colors text-sm border border-transparent hover:border-[#DADCE0] disabled:opacity-50"
-                    >
-                      Kembali
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="bg-[#1A73E8] hover:bg-[#1557B0] text-white font-medium px-8 py-3 rounded-lg transition-colors text-sm flex items-center justify-center gap-2 shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <svg
-                            className="w-4 h-4 animate-spin text-white"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                            ></path>
-                          </svg>{" "}
-                          Memverifikasi & Mengirim...
-                        </>
-                      ) : (
-                        "Kirim Pendaftaran"
-                      )}
-                    </button>
+                    <div className="mt-10 flex justify-between shrink-0">
+                      <button
+                        type="button"
+                        onClick={prevStep}
+                        disabled={isSubmitting}
+                        className="text-slate-500 font-bold px-6 py-3.5 rounded-xl hover:bg-slate-50 text-xs transition-colors disabled:opacity-50"
+                      >
+                        Kembali
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="bg-[#0F2147] text-white px-8 py-3.5 rounded-xl text-xs font-bold hover:bg-[#0a152e] transition-all shadow-md active:scale-95 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <IconSpinner /> Memproses...
+                          </>
+                        ) : (
+                          "Kirim Pendaftaran 🚀"
+                        )}
+                      </button>
+                    </div>
                   </div>
-                  <div className="text-xs text-[#5F6368] text-center mt-4">
-                    Sistem dilindungi reCAPTCHA. Tunduk pada{" "}
-                    <a
-                      href="https://policies.google.com/privacy"
-                      className="text-[#1A73E8] hover:underline"
-                    >
-                      Privasi
-                    </a>{" "}
-                    &{" "}
-                    <a
-                      href="https://policies.google.com/terms"
-                      className="text-[#1A73E8] hover:underline"
-                    >
-                      Persyaratan
-                    </a>{" "}
-                    Google.
-                  </div>
-                </div>
+                </form>
               </div>
-            </form>
+            </div>
           )}
         </div>
-      </div>
+      </main>
+      <FooterPublic />
     </div>
   );
 }
