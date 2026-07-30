@@ -233,15 +233,31 @@ export default function SponsorManagementPage() {
       )}
 
       {/* Header Halaman */}
-      <div className="mb-8 border-b border-slate-200 pb-6">
-        <h1 className="text-[28px] font-bold text-slate-800 tracking-tight">
-          Manajemen Sponsor & Mitra
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Kelola hierarki logo sponsor dan media partner yang akan ditampilkan
-          pada halaman utama publik. Urutan di bawah ini akan sama persis dengan
-          urutan di website.
-        </p>
+      <div className="flex flex-col md:flex-row justify-between md:items-end gap-4 mb-8 border-b border-slate-200 pb-6">
+        <div>
+          <h1 className="text-[28px] font-bold text-slate-800 tracking-tight">
+            Manajemen Sponsor & Mitra
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Kelola hierarki logo sponsor dan media partner yang akan ditampilkan
+            pada halaman utama publik. Urutan di bawah ini akan sama persis dengan
+            urutan di website.
+          </p>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="bg-[#1A73E8] hover:bg-[#1557B0] text-white font-bold px-8 py-2.5 rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2 text-sm whitespace-nowrap"
+        >
+          {isSaving ? (
+            <>
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+              Menyimpan...
+            </>
+          ) : (
+            "Simpan Pengaturan"
+          )}
+        </button>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
@@ -639,26 +655,6 @@ export default function SponsorManagementPage() {
         </button>
       </form>
 
-      {/* Sticky Footer Save */}
-      <div className="fixed bottom-0 left-0 lg:left-64 right-0 bg-white border-t border-slate-200 py-3.5 px-6 md:px-8 flex justify-between items-center z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.02)]">
-        <p className="text-[11px] text-slate-500 font-medium hidden sm:block uppercase tracking-wider">
-          Pastikan Anda menyimpan perubahan sebelum berpindah halaman.
-        </p>
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="w-full sm:w-auto bg-[#1A73E8] hover:bg-[#1557B0] text-white font-bold px-8 py-2.5 rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
-        >
-          {isSaving ? (
-            <>
-              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-              Menyimpan...
-            </>
-          ) : (
-            "Simpan Pengaturan"
-          )}
-        </button>
-      </div>
     </div>
   );
 }

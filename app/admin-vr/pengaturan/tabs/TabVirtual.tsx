@@ -50,6 +50,50 @@ export default function TabVirtual({
           </label>
         </div>
 
+        <div
+          className={`flex items-center justify-between p-4 border rounded-xl transition-all ${vrSettings.isWaitingRoomActive ? "bg-white border-[#1A73E8] shadow-[0_0_0_1px_rgba(26,115,232,0.1)]" : "bg-[#F8F9FA] border-slate-200"}`}
+        >
+          <div>
+            <p
+              className={`font-bold text-sm ${vrSettings.isWaitingRoomActive ? "text-[#1A73E8]" : "text-slate-700"}`}
+            >
+              Mode Ruang Tunggu (Waiting Room)
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Aktifkan untuk menahan antrean peserta pendaftaran Virtual Run.
+            </p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer shrink-0">
+            <input
+              type="checkbox"
+              name="isWaitingRoomActive"
+              checked={vrSettings.isWaitingRoomActive || false}
+              onChange={handleSettingChange}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1A73E8]"></div>
+          </label>
+        </div>
+
+        <div className="p-4 border border-slate-200 rounded-xl bg-white space-y-3">
+          <div>
+            <label className="block font-bold text-sm text-slate-700 mb-1">
+              Link Grup WhatsApp (WA Channel)
+            </label>
+            <p className="text-xs text-slate-500 mb-3">
+              Tautan WhatsApp Group/Channel untuk peserta Virtual Run.
+            </p>
+            <input
+              type="url"
+              name="waChannelUrl"
+              value={vrSettings.waChannelUrl || ""}
+              onChange={handleSettingChange}
+              placeholder="https://chat.whatsapp.com/..."
+              className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-[#1A73E8] outline-none text-sm transition-all text-slate-800"
+            />
+          </div>
+        </div>
+
         {vrSettings.isVirtualRunEnabled && (
           <div className="space-y-5">
             <div className="grid grid-cols-2 gap-5">

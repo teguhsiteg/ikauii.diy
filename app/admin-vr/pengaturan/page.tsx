@@ -27,6 +27,8 @@ export default function PengaturanAdminPage() {
 
   const defaultSettings = {
     isVirtualRunEnabled: true,
+    isWaitingRoomActive: false,
+    waChannelUrl: "",
     eventName: "IKA UII VR 2026",
     statusPendaftaran: "Buka",
     landingTitle: "IKA UII VIRTUAL RUN 2026",
@@ -233,7 +235,7 @@ export default function PengaturanAdminPage() {
     e.preventDefault();
     setIsSavingSettings(true);
     try {
-      await setDoc(doc(db, "settings", "virtual_run"), vrSettings);
+      await setDoc(doc(db, "settings", "virtual_run"), vrSettings, { merge: true });
       setPopup({ type: "success", text: "Pengaturan berhasil disimpan." });
     } catch (error) {
       setPopup({ type: "error", text: "Gagal menyimpan." });
@@ -299,14 +301,23 @@ export default function PengaturanAdminPage() {
         </div>
       )}
 
-      <div className="mb-8">
-        <h1 className="text-[28px] font-bold text-slate-800 tracking-tight">
-          Pengaturan Sistem
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Kelola konfigurasi event, jadwal, mode offline, dan gerbang
-          pembayaran.
-        </p>
+      <div className="flex flex-col md:flex-row justify-between md:items-end gap-4 mb-8">
+        <div>
+          <h1 className="text-[28px] font-bold text-slate-800 tracking-tight">
+            Pengaturan Sistem
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Kelola konfigurasi event, jadwal, mode offline, dan gerbang
+            pembayaran.
+          </p>
+        </div>
+        <button
+          onClick={saveSettings}
+          disabled={isSavingSettings}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-2.5 rounded-lg disabled:opacity-50 shadow-sm transition-colors"
+        >
+          {isSavingSettings ? "Menyimpan..." : "Simpan Pengaturan Utama"}
+        </button>
       </div>
 
       <div className="flex overflow-x-auto gap-1 mb-8 border-b border-slate-200">
@@ -373,15 +384,7 @@ export default function PengaturanAdminPage() {
         )}
       </form>
 
-      <div className="fixed bottom-0 left-0 lg:left-64 right-0 bg-white border-t border-slate-200 py-3.5 px-6 flex justify-end z-40 shadow-sm">
-        <button
-          onClick={saveSettings}
-          disabled={isSavingSettings}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-2.5 rounded-lg disabled:opacity-50"
-        >
-          {isSavingSettings ? "Menyimpan..." : "Simpan Pengaturan Utama"}
-        </button>
-      </div>
+
     </div>
   );
 }
