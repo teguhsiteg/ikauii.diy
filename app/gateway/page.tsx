@@ -234,6 +234,33 @@ export default function GatewayPage() {
               </button>
             )}
 
+            {/* 🔥 TOMBOL 1.5: ADMIN VIRTUAL RUN (Hanya isStaff) 🔥 */}
+            {isStaff && (
+              <button
+                onClick={() => router.push("/admin-vr")}
+                className="group bg-white rounded-[1.5rem] border-2 border-slate-100 p-6 text-left hover:border-orange-500 hover:shadow-2xl hover:shadow-orange-900/5 hover:-translate-y-1.5 transition-all duration-300 flex items-start sm:items-center gap-5 sm:gap-6"
+              >
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-orange-500 group-hover:text-white transition-colors border border-orange-100 group-hover:border-transparent">
+                  <svg
+                    className="w-7 h-7 sm:w-8 sm:h-8"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <div className="flex-grow">
+                  <h3 className="text-lg sm:text-xl font-black text-slate-800 mb-1.5 group-hover:text-orange-500 transition-colors">
+                    Manajemen Virtual Run
+                  </h3>
+                  <p className="text-[13px] sm:text-sm text-slate-500 leading-relaxed">
+                    Kelola data pendaftar, approval, dan aktivitas Virtual Run.
+                  </p>
+                </div>
+              </button>
+            )}
+
             {/* 🔥 TOMBOL 2: MASTERCLASS (Muncul untuk SEMUA: Admin, Alumni, & Umum) 🔥 */}
             <button
               onClick={() => router.push("/masterclass/my-courses")}

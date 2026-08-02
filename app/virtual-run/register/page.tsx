@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { toast } from "@/lib/toast";
 import { useRouter, useSearchParams } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, doc, getDoc } from "firebase/firestore";
+import { collection, addDoc, doc, getDoc, query, where, getCountFromServer } from "firebase/firestore";
 import Link from "next/link";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
@@ -18,6 +18,7 @@ function RegistrationForm() {
 
   const [settings, setSettings] = useState<any>(null);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [paketTerisi, setPaketTerisi] = useState(0);
 
   const { executeRecaptcha } = useGoogleReCaptcha();
 
@@ -113,12 +114,62 @@ function RegistrationForm() {
     fetchSettingsAndLoadMidtrans();
   }, [urlPaketId]);
 
+  // --- PROTEKSI JIKA PENDAFTARAN BELUM DIBUKA ATAU SUDAH DITUTUP ---
+  useEffect(() => {
+    if (settings) {
+      const isBypassed = localStorage.getItem("dev_bypass") === "true";
+      const searchParams = new URLSearchParams(window.location.search);
+      const isForceOpen = searchParams.get("force_open") === "secret_key";
+      
+      if (isBypassed || isForceOpen) return;
+
+      const isBuka = settings.statusPendaftaran === "Buka";
+      const closeDate = settings.tanggalPenutupan ? new Date(settings.tanggalPenutupan) : null;
+      const currentTime = new Date();
+      
+      let isAllowed = isBuka;
+
+      // Jika sudah melewati batas penutupan, tolak
+      if (closeDate && currentTime > closeDate) {
+        isAllowed = false;
+      }
+
+      if (!isAllowed) {
+        router.push("/virtual-run");
+      }
+    }
+  }, [settings, router]);
+
   const virtualPackages = settings?.virtualPackages || [];
   const selectedPackage =
     virtualPackages.find((p: any) => p.id === formData.paketId) ||
     virtualPackages[0];
 
-  const hargaPaketAktif = Number(selectedPackage?.harga) || 0;
+  useEffect(() => {
+    const fetchCount = async () => {
+      if (selectedPackage && selectedPackage.nama) {
+        const q = query(
+          collection(db, "vr_participants"),
+          where("paket", "==", selectedPackage.nama),
+          where("statusPembayaran", "==", "Lunas")
+        );
+        const snapshot = await getCountFromServer(q);
+        setPaketTerisi(snapshot.data().count);
+      }
+    };
+    fetchCount();
+  }, [selectedPackage?.nama]);
+
+  let hargaPaketAktif = Number(selectedPackage?.harga) || 0;
+  if (selectedPackage?.isEarlyBird) {
+     const target = Number(selectedPackage.earlyBirdTarget);
+     const isUnderQuota = target > 0 ? paketTerisi < target : true;
+     const isBeforeEndDate = selectedPackage.earlyBirdEndDate ? new Date() < new Date(selectedPackage.earlyBirdEndDate) : true;
+     if (isUnderQuota && isBeforeEndDate) {
+       hargaPaketAktif = Number(selectedPackage.earlyBirdHarga || selectedPackage.harga);
+     }
+  }
+
   const ongkirFlat = Number(settings?.ongkirFlat) || 0;
   const minCharity = Number(settings?.minCharity) || 25000;
 

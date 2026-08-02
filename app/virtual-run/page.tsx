@@ -23,6 +23,7 @@ export default function VirtualRunLandingPage() {
   const [totalDonasi, setTotalDonasi] = useState(0);
   const [totalPeserta, setTotalPeserta] = useState(0);
   const [totalKm, setTotalKm] = useState(0);
+  const [packageCounts, setPackageCounts] = useState<{ [key: string]: number }>({});
 
   // --- STATE DETEKSI USER LOGIN ---
   const [loggedInParticipant, setLoggedInParticipant] = useState<any>(null);
@@ -44,11 +45,17 @@ export default function VirtualRunLandingPage() {
         );
         const snapPart = await getDocs(qPart);
         let tDonasi = 0;
+        let counts: { [key: string]: number } = {};
         setTotalPeserta(snapPart.size);
         snapPart.forEach((doc) => {
           tDonasi += doc.data().nominalDonasi || 0;
+          const pkgName = doc.data().paket;
+          if (pkgName) {
+            counts[pkgName] = (counts[pkgName] || 0) + 1;
+          }
         });
         setTotalDonasi(tDonasi);
+        setPackageCounts(counts);
 
         const qSub = query(
           collection(db, "vr_submissions"),
@@ -702,6 +709,22 @@ export default function VirtualRunLandingPage() {
               settings.virtualPackages.map((pkg: any, index: number) => {
                 const isPopuler = index === 1;
 
+                // --- EARLY BIRD LOGIC ---
+                let activePrice = Number(pkg.harga);
+                let isEarlyBirdActive = false;
+                
+                if (pkg.isEarlyBird) {
+                  const currentRegistrants = packageCounts[pkg.nama] || 0;
+                  const target = Number(pkg.earlyBirdTarget);
+                  const isUnderQuota = target > 0 ? currentRegistrants < target : true;
+                  const isBeforeEndDate = pkg.earlyBirdEndDate ? new Date() < new Date(pkg.earlyBirdEndDate) : true;
+                  
+                  if (isUnderQuota && isBeforeEndDate) {
+                    isEarlyBirdActive = true;
+                    activePrice = Number(pkg.earlyBirdHarga || pkg.harga);
+                  }
+                }
+
                 return (
                   <div
                     key={pkg.id}
@@ -715,8 +738,26 @@ export default function VirtualRunLandingPage() {
                         Terpopuler
                       </div>
                     )}
+                    
+                    {/* Badge Early Bird */}
+                    {isEarlyBirdActive && !isPopuler && (
+                      <div className="absolute top-5 left-0 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white text-[10px] font-black px-4 py-1.5 uppercase tracking-widest rounded-r-full shadow-lg z-10 flex items-center gap-1.5 border-y border-r border-white/20">
+                        <svg className="w-3 h-3 text-amber-200 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        Promo Early Bird
+                      </div>
+                    )}
+                    {isEarlyBirdActive && isPopuler && (
+                      <div className="absolute top-14 right-0 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white text-[10px] font-black px-4 py-1.5 uppercase tracking-widest rounded-l-full shadow-lg z-10 flex items-center gap-1.5 border-y border-l border-white/20">
+                        <svg className="w-3 h-3 text-amber-200 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        Promo Early Bird
+                      </div>
+                    )}
 
-                    <div className="mb-6 mt-4">
+                    <div className={`mb-6 mt-4 ${isEarlyBirdActive && !isPopuler ? 'mt-8' : ''}`}>
                       <span
                         className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md ${isPopuler ? "bg-blue-800 text-blue-200" : "bg-slate-200 text-slate-500"}`}
                       >
@@ -737,7 +778,23 @@ export default function VirtualRunLandingPage() {
                     <div
                       className={`text-3xl font-black mb-8 ${isPopuler ? "text-yellow-400" : "text-slate-900"}`}
                     >
-                      Rp {Number(pkg.harga).toLocaleString("id-ID")}
+                      {isEarlyBirdActive ? (
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm line-through decoration-rose-500/50 decoration-2 font-bold ${isPopuler ? 'text-blue-300' : 'text-slate-400'}`}>
+                              Rp {Number(pkg.harga).toLocaleString("id-ID")}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${isPopuler ? "bg-yellow-400/20 text-yellow-300" : "bg-rose-100 text-rose-600"}`}>
+                              Save
+                            </span>
+                          </div>
+                          <span className={`bg-clip-text text-transparent bg-gradient-to-r ${isPopuler ? "from-yellow-300 to-amber-500" : "from-amber-500 to-orange-600"}`}>
+                            Rp {activePrice.toLocaleString("id-ID")}
+                          </span>
+                        </div>
+                      ) : (
+                        `Rp ${activePrice.toLocaleString("id-ID")}`
+                      )}
                     </div>
 
                     <ul className="space-y-4 mb-8 flex-grow">
@@ -1206,7 +1263,7 @@ export default function VirtualRunLandingPage() {
 
                 {/* TOMBOL KEMBALI KE MAIN EVENT (Untuk Akses Twibbon) */}
                 <a
-                  href="https://ikadiy.uii.ac.id/#agenda/" // <-- GANTI DENGAN LINK AGENDA ASLINYA NANTI
+                  href="https://ikadiy.uii.ac.id/agenda/" // <-- GANTI DENGAN LINK AGENDA ASLINYA NANTI
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-blue-900/30 hover:bg-blue-900/50 border border-blue-400/30 text-white font-bold px-8 py-4 sm:py-5 rounded-full text-base sm:text-lg transition-all backdrop-blur-sm transform hover:-translate-y-1"
                 >
                   <svg

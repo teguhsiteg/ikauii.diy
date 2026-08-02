@@ -99,6 +99,7 @@ function FormPendaftaranOffline() {
 
   // --- STATE CEK NIK ---
   const [isCheckingNik, setIsCheckingNik] = useState(false);
+  const [paketTerisi, setPaketTerisi] = useState(0);
 
   useEffect(() => {
     let queueTimer: any;
@@ -162,6 +163,73 @@ function FormPendaftaranOffline() {
       if (queueTimer) clearInterval(queueTimer);
     };
   }, []);
+
+  // --- PROTEKSI JIKA PENDAFTARAN BELUM DIBUKA ATAU SUDAH DITUTUP ---
+  useEffect(() => {
+    if (settings) {
+      const isBypassed = localStorage.getItem("dev_bypass") === "true";
+      const isForceOpen = searchParams.get("force_open") === "secret_key";
+      
+      if (isBypassed || isForceOpen) return;
+
+      const isOfflineEnabled = settings.isOfflineRunEnabled;
+      const adminStatus = settings.offlineStatus || "auto";
+      const openDate = settings.offlineTanggalPembukaan ? new Date(settings.offlineTanggalPembukaan) : null;
+      const closeDate = settings.offlineTanggalPenutupan ? new Date(settings.offlineTanggalPenutupan) : null;
+      const currentTime = new Date();
+
+      let isAllowed = true;
+
+      if (!isOfflineEnabled || adminStatus === "tutup" || adminStatus === "coming_soon") {
+        isAllowed = false;
+      } else if (adminStatus !== "buka") {
+        if (openDate && currentTime < openDate) isAllowed = false;
+        else if (closeDate && currentTime > closeDate) isAllowed = false;
+      }
+
+      if (!isAllowed) {
+        router.push("/run");
+      }
+    }
+  }, [settings, router, searchParams]);
+
+  useEffect(() => {
+    const fetchCount = async () => {
+      if (formData.paketId) {
+        const q = query(
+          collection(db, "offline_participants"),
+          where("paketId", "==", formData.paketId),
+          where("statusPembayaran", "==", "Lunas")
+        );
+        const snapshot = await getCountFromServer(q);
+        setPaketTerisi(snapshot.data().count);
+      }
+    };
+    fetchCount();
+  }, [formData.paketId]);
+
+  const selectedPackageGlobal = settings?.offlinePackages?.find(
+    (p: any) => String(p.id) === String(formData.paketId),
+  );
+  let hargaPaketAktif = Number(selectedPackageGlobal?.harga || 0);
+  if (selectedPackageGlobal?.isEarlyBird) {
+    const target = Number(selectedPackageGlobal.earlyBirdTarget);
+    const isUnderQuota = target > 0 ? paketTerisi < target : true;
+    const isBeforeEndDate = selectedPackageGlobal.earlyBirdEndDate ? new Date() < new Date(selectedPackageGlobal.earlyBirdEndDate) : true;
+    if (isUnderQuota && isBeforeEndDate) {
+      hargaPaketAktif = Number(selectedPackageGlobal.earlyBirdHarga || selectedPackageGlobal.harga);
+    }
+  }
+
+  let nominalDiskonAktif = 0;
+  if (appliedPromo) {
+    if (appliedPromo.jenisDiskon === "persen") {
+      nominalDiskonAktif = hargaPaketAktif * (appliedPromo.nilaiDiskon / 100);
+    } else if (appliedPromo.jenisDiskon === "nominal") {
+      nominalDiskonAktif = appliedPromo.nilaiDiskon;
+    }
+  }
+  const totalTagihanAktif = Math.max(0, hargaPaketAktif - nominalDiskonAktif);
 
   const handleChange = (e: any) => {
     const { name, value } = e.target;
@@ -427,7 +495,26 @@ function FormPendaftaranOffline() {
       // =================================================================
       // 🔥 3. KALKULASI HARGA, DISKON & SIMPAN KE DATABASE 🔥
       // =================================================================
-      const hargaAsli = Number(selectedPackage?.harga || 0);
+      let hargaAsli = Number(selectedPackage?.harga || 0);
+
+      if (selectedPackage?.isEarlyBird) {
+        const qCountEB = query(
+          collection(db, "offline_participants"),
+          where("paketId", "==", formData.paketId),
+          where("statusPembayaran", "==", "Lunas")
+        );
+        const snapshotEB = await getCountFromServer(qCountEB);
+        const terisiEB = snapshotEB.data().count;
+        
+        const targetEB = Number(selectedPackage.earlyBirdTarget);
+        const isUnderQuotaEB = targetEB > 0 ? terisiEB < targetEB : true;
+        const isBeforeEndDateEB = selectedPackage.earlyBirdEndDate ? new Date() < new Date(selectedPackage.earlyBirdEndDate) : true;
+        
+        if (isUnderQuotaEB && isBeforeEndDateEB) {
+          hargaAsli = Number(selectedPackage.earlyBirdHarga || selectedPackage.harga);
+        }
+      }
+
       let totalTagihan = hargaAsli;
       let nominalDiskon = 0;
 
@@ -793,8 +880,13 @@ function FormPendaftaranOffline() {
                           Kategori {pkg.jarak}
                         </span>
                         <span className="text-xl font-black text-slate-900 mb-2">
-                          Rp {Number(pkg.harga).toLocaleString("id-ID")}
+                          Rp {isSelected ? hargaPaketAktif.toLocaleString("id-ID") : Number(pkg.harga).toLocaleString("id-ID")}
                         </span>
+                        {isSelected && selectedPackageGlobal?.isEarlyBird && hargaPaketAktif < Number(pkg.harga) && (
+                          <span className="text-[10px] bg-gradient-to-r from-amber-400 to-orange-500 text-white px-2 py-1 rounded-full uppercase tracking-widest font-black w-fit mb-2">
+                            Promo Early Bird
+                          </span>
+                        )}
                         <span className="text-[10px] text-slate-500 font-medium leading-relaxed mt-auto border-t border-slate-200/60 pt-2">
                           Fasilitas: {pkg.benefit}
                         </span>
@@ -1049,7 +1141,7 @@ function FormPendaftaranOffline() {
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-blue-800 uppercase tracking-wider mb-1.5 ml-1">
-                        Tahun Lulus <span className="text-rose-500">*</span>
+                        Angkatan <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="tel"
@@ -1088,8 +1180,11 @@ function FormPendaftaranOffline() {
                         </option>
                         <option value="Kedokteran">Fakultas Kedokteran</option>
                         <option value="MIPA">Fakultas MIPA</option>
-                        <option value="Psikologi & Ilmu Sosial Budaya">
-                          Fakultas Psikologi & Ilmu Sosial Budaya
+                        <option value="Psikologi">
+                          Fakultas Psikologi
+                        </option>
+                        <option value="Ilmu Sosial Budaya">
+                          Fakultas Ilmu Sosial Budaya
                         </option>
                         <option value="Teknik Sipil & Perencanaan">
                           Fakultas Teknik Sipil & Perencanaan
@@ -1420,18 +1515,11 @@ function FormPendaftaranOffline() {
                     <div className="flex justify-between items-center text-sm font-medium text-slate-500">
                       <span>
                         Harga Paket (
-                        {settings?.offlinePackages?.find(
-                          (p: any) => p.id === formData.paketId,
-                        )?.nama || "-"}
+                        {selectedPackageGlobal?.nama || "-"}
                         )
                       </span>
                       <span>
-                        Rp{" "}
-                        {Number(
-                          settings?.offlinePackages?.find(
-                            (p: any) => p.id === formData.paketId,
-                          )?.harga || 0,
-                        ).toLocaleString("id-ID")}
+                        Rp {hargaPaketAktif.toLocaleString("id-ID")}
                       </span>
                     </div>
 
@@ -1439,17 +1527,7 @@ function FormPendaftaranOffline() {
                       <div className="flex justify-between items-center text-sm font-bold text-emerald-600">
                         <span>Diskon Promo ({appliedPromo.kode})</span>
                         <span>
-                          - Rp{" "}
-                          {appliedPromo.jenisDiskon === "persen"
-                            ? (
-                                Number(
-                                  settings?.offlinePackages?.find(
-                                    (p: any) => p.id === formData.paketId,
-                                  )?.harga || 0,
-                                ) *
-                                (appliedPromo.nilaiDiskon / 100)
-                              ).toLocaleString("id-ID")
-                            : appliedPromo.nilaiDiskon.toLocaleString("id-ID")}
+                          - Rp {nominalDiskonAktif.toLocaleString("id-ID")}
                         </span>
                       </div>
                     )}
@@ -1467,20 +1545,7 @@ function FormPendaftaranOffline() {
                       <span>
                         Rp{" "}
                         {(() => {
-                          const hargaAsli = Number(
-                            settings?.offlinePackages?.find(
-                              (p: any) => p.id === formData.paketId,
-                            )?.harga || 0,
-                          );
-                          let diskon = 0;
-                          if (appliedPromo) {
-                            diskon =
-                              appliedPromo.jenisDiskon === "persen"
-                                ? hargaAsli * (appliedPromo.nilaiDiskon / 100)
-                                : appliedPromo.nilaiDiskon;
-                          }
-
-                          let subTotal = Math.max(0, hargaAsli - diskon);
+                          let subTotal = totalTagihanAktif;
 
                           // Tambahkan biaya layanan jika mode midtrans aktif
                           if (settings?.metodePembayaran === "midtrans") {

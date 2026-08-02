@@ -101,6 +101,7 @@ function OfflineRunLandingPageContent() {
               const q = query(
                 collection(db, "offline_participants"),
                 where("paketId", "==", pkg.id),
+                where("statusPembayaran", "==", "Lunas")
               );
               const snapshot = await getCountFromServer(q);
               counts[pkg.id] = snapshot.data().count;
@@ -329,116 +330,52 @@ function OfflineRunLandingPageContent() {
 
         <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 relative z-20 text-center flex flex-col items-center w-full">
           <ScrollReveal>
-            <div className="flex flex-col items-center justify-center w-full mt-4">
-              <h2 className="text-2xl md:text-4xl font-black text-white mb-3 tracking-wide">
-                Registrasi{" "}
-                <span className="text-[#FCD116]">
-                  {settings?.offlinePackages?.[0]?.nama || "Offline Run"}
+            <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 backdrop-blur-sm text-white px-5 py-2 rounded-full mb-8 shadow-xl mt-4">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#FCD116] animate-pulse"></span>
+                <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em]">
+                  Official Website
                 </span>
-              </h2>
-              <p className="text-sm md:text-base font-bold text-slate-300 mb-10 bg-white/10 px-6 py-2 rounded-full backdrop-blur-sm border border-white/10">
-                {openDate
-                  ? openDate.toLocaleDateString("id-ID", {
-                      weekday: "long",
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })
-                  : ""}{" "}
-                • Pukul{" "}
-                {openDate
-                  ? openDate.toLocaleTimeString("id-ID", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : ""}{" "}
-                WIB
-              </p>
-              
-              <div className="flex justify-center gap-4 mt-8">
-                <Link
-                  href="/"
-                    className="w-12 h-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-[#FCD116] hover:text-[#0B2239] transition-all shadow-lg hover:-translate-y-1"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                      />
-                    </svg>
-                  </Link>
-                  <a
-                    href="https://instagram.com/ikauii.diy"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-12 h-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-[#FCD116] hover:text-[#0B2239] transition-all shadow-lg hover:-translate-y-1"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M12 2.163c3.204 0 3.584.012 4.85.067 3.282.153 4.769 1.64 4.922 4.922.055 1.266.067 1.646.067 4.849 0 3.204-.012 3.584-.067 4.85-.153 3.282-1.64 4.769-4.922 4.922-1.266.055-1.646.067-4.85.067-3.204 0-3.584-.012-4.85-.067-3.282-.153-4.769-1.64-4.922-4.922-.055-1.266-.067-1.646-.067-4.849 0-3.204.012-3.584.067-4.85.153-3.282 1.64-4.769 4.922-4.922 1.266-.055 1.646-.067 4.85-.067zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 1.61-6.98 5.928-.058 1.28-.072 1.688-.072 4.947s.014 3.667.072 4.947c.2 4.358 2.618 6.78 5.928 6.98 1.28.058 1.688.072 4.947.072 3.259 0 3.667-.014 4.947-.072 4.358-.2 6.78-1.61 6.98-5.928.058-1.28.072-1.688.072-4.947s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-5.928-6.98-1.28-.058-1.688-.072-4.947-.072zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.791-4-4s1.791-4 4-4 4 1.791 4 4-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                    </svg>
-                  </a>
-                </div>
               </div>
-            </ScrollReveal>
+          </ScrollReveal>
 
-            <ScrollReveal>
-              <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 backdrop-blur-sm text-white px-5 py-2 rounded-full mb-8 shadow-xl">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#FCD116] animate-pulse"></span>
-                  <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em]">
-                    Official Offline Run Event
-                  </span>
-                </div>
-              </ScrollReveal>
+          <ScrollReveal delay={100}>
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight mb-6 max-w-4xl leading-[1.1] drop-shadow-sm">
+              UII{" "}
+              <span className="text-[#FCD116] drop-shadow-md">Sehat</span>
+            </h1>
+          </ScrollReveal>
 
-              <ScrollReveal delay={100}>
-                <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight mb-6 max-w-4xl leading-[1.1] drop-shadow-sm">
-                  UII{" "}
-                  <span className="text-[#FCD116] drop-shadow-md">Sehat</span>
-                </h1>
-              </ScrollReveal>
+          <ScrollReveal delay={200}>
+            <p className="text-base md:text-xl text-slate-300 mb-8 max-w-2xl font-medium leading-relaxed mx-auto">
+              Langkah kecil hari ini membawa energi besar untuk hidup yang
+              lebih sehat, aktif, dan penuh semangat kebersamaan. Pilih
+              kategori dan jadilah bagian dari perayaan sehat{" "}
+              {settings?.offlineLocation || "Yogyakarta"} bersama keluarga
+              besar IKA UII Daerah Istimewa Yogyakarta!
+            </p>
+          </ScrollReveal>
 
-              <ScrollReveal delay={200}>
-                <p className="text-base md:text-xl text-slate-300 mb-10 max-w-2xl font-medium leading-relaxed mx-auto">
-                  Langkah kecil hari ini membawa energi besar untuk hidup yang
-                  lebih sehat, aktif, dan penuh semangat kebersamaan. Pilih
-                  kategori dan jadilah bagian dari perayaan sehat{" "}
-                  {settings?.offlineLocation || "Yogyakarta"} bersama keluarga
-                  besar IKA UII Daerah Istimewa Yogyakarta!
-                </p>
-              </ScrollReveal>
-
-              <ScrollReveal delay={300}>
-                <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-12 w-full">
-                  <div className="bg-white/10 border border-white/10 backdrop-blur-md text-white rounded-2xl px-6 py-4 flex items-center justify-center gap-4 w-full md:w-auto shadow-xl">
-                    <svg
-                      className="w-8 h-8 text-[#FCD116] shrink-0"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.242-4.243a8 8 0 1111.314 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
+          <ScrollReveal delay={300}>
+            <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-12 w-full mt-8">
+              <div className="bg-white/10 border border-white/10 backdrop-blur-md text-white rounded-2xl px-6 py-4 flex items-center justify-center gap-4 w-full md:w-auto shadow-xl">
+                <svg
+                  className="w-8 h-8 text-[#FCD116] shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.242-4.243a8 8 0 1111.314 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
                     </svg>
                     <div className="text-left">
                       <p className="text-[9px] md:text-[10px] uppercase tracking-widest text-[#FCD116] font-bold mb-0.5">
@@ -690,6 +627,21 @@ function OfflineRunLandingPageContent() {
                 ? 0
                 : Math.min(100, (terisi / batasKuota) * 100);
 
+              // --- EARLY BIRD LOGIC ---
+              let activePrice = Number(pkg.harga);
+              let isEarlyBirdActive = false;
+              
+              if (pkg.isEarlyBird) {
+                const target = Number(pkg.earlyBirdTarget);
+                const isUnderQuota = target > 0 ? terisi < target : true;
+                const isBeforeEndDate = pkg.earlyBirdEndDate ? new Date() < new Date(pkg.earlyBirdEndDate) : true;
+                
+                if (isUnderQuota && isBeforeEndDate) {
+                  isEarlyBirdActive = true;
+                  activePrice = Number(pkg.earlyBirdHarga || pkg.harga);
+                }
+              }
+
               return (
                 <ScrollReveal key={pkg.id} delay={index * 150}>
                   <div
@@ -700,6 +652,16 @@ function OfflineRunLandingPageContent() {
                     )}
                     {isHighlight && (
                       <div className="h-2 w-full bg-[#FCD116] absolute top-0 left-0"></div>
+                    )}
+                    
+                    {/* Badge Early Bird */}
+                    {isEarlyBirdActive && (
+                      <div className="absolute top-5 right-0 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white text-[10px] font-black px-4 py-1.5 uppercase tracking-widest rounded-l-full shadow-lg z-10 flex items-center gap-1.5 border-y border-l border-white/20">
+                        <svg className="w-3 h-3 text-amber-200 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        Promo Early Bird
+                      </div>
                     )}
 
                     <div className="mb-6 mt-4">
@@ -716,76 +678,63 @@ function OfflineRunLandingPageContent() {
                       {pkg.nama}
                     </h3>
 
-                    <div className="mb-6">
-                      <div className="flex justify-between text-[11px] font-bold mb-2">
-                        <span
-                          className={
-                            isHighlight ? "text-slate-300" : "text-slate-500"
-                          }
-                        >
-                          Sisa Kuota:
-                        </span>
-                        <span
-                          className={
-                            isSoldOut
-                              ? "text-rose-500"
-                              : isHighlight
-                                ? "text-[#FCD116]"
-                                : "text-[#0B2239]"
-                          }
-                        >
-                          {isSoldOut ? (
-                            "Habis"
-                          ) : isUnlimited ? (
-                            <span className="text-lg leading-none font-sans">
-                              &infin;
-                            </span>
-                          ) : (
-                            `${sisaKuota} / ${batasKuota}`
-                          )}
+                    {/* Sisa Kuota Space removed completely to avoid awkward blank gaps */}
+                    {isSoldOut && (
+                      <div className="mb-4">
+                        <span className="inline-block px-3 py-1 bg-rose-100 text-rose-600 rounded-md text-[11px] font-bold uppercase tracking-widest border border-rose-200">
+                          Kuota Habis
                         </span>
                       </div>
-                      {!isUnlimited && (
-                        <div
-                          className={`w-full h-2.5 rounded-full overflow-hidden ${isHighlight ? "bg-white/10" : "bg-slate-100"}`}
-                        >
-                          <div
-                            className={`h-full rounded-full transition-all duration-1000 ${isSoldOut ? "bg-rose-500" : isHighlight ? "bg-[#FCD116]" : "bg-[#0B2239]"}`}
-                            style={{ width: `${persentase}%` }}
-                          ></div>
-                        </div>
-                      )}
-                    </div>
+                    )}
 
                     <div
                       className={`text-3xl md:text-4xl font-black mb-8 tracking-tight ${isHighlight ? "text-[#FCD116]" : "text-slate-900"}`}
                     >
-                      Rp {Number(pkg.harga).toLocaleString("id-ID")}
+                      {isEarlyBirdActive ? (
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm line-through decoration-rose-500/50 decoration-2 font-bold text-slate-400">
+                              Rp {Number(pkg.harga).toLocaleString("id-ID")}
+                            </span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-rose-100 text-rose-600 uppercase tracking-wider">
+                              Save
+                            </span>
+                          </div>
+                          <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-500 to-orange-600">
+                            Rp {activePrice.toLocaleString("id-ID")}
+                          </span>
+                        </div>
+                      ) : (
+                        `Rp ${activePrice.toLocaleString("id-ID")}`
+                      )}
                     </div>
 
-                    <ul className="space-y-3 mb-6">
+                    <ul className="space-y-3.5 mb-6">
                       {pkg.benefit &&
                         pkg.benefit
                           .split(",")
                           .map((item: string, i: number) => (
                             <li
                               key={i}
-                              className={`flex items-start gap-3 text-xs md:text-sm font-medium ${isHighlight ? "text-slate-200" : "text-slate-600"}`}
+                              className={`flex items-start gap-3 text-xs md:text-sm font-semibold transition-colors duration-200 ${isHighlight ? "text-slate-200 hover:text-white" : "text-slate-600 hover:text-slate-900"}`}
                             >
-                              <svg
-                                className={`w-4 h-4 mt-0.5 shrink-0 ${isHighlight ? "text-[#FCD116]" : "text-[#0B2239]"}`}
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
+                              <div className={`mt-0.5 rounded-full p-0.5 shrink-0 ${isHighlight ? "bg-white/10" : "bg-blue-50"}`}>
+                                <svg
+                                  className={`w-3.5 h-3.5 ${isHighlight ? "text-[#FCD116]" : "text-[#152B5B]"}`}
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  strokeWidth={3}
+                                >
+                                  <path
                                   strokeLinecap="round"
                                   strokeLinejoin="round"
                                   strokeWidth={3}
                                   d="M5 13l4 4L19 7"
                                 />
                               </svg>
-                              {item.trim()}
+                              </div>
+                              <span className="mt-0.5">{item.trim()}</span>
                             </li>
                           ))}
                     </ul>
