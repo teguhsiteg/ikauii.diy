@@ -331,6 +331,62 @@ export default function TabVirtual({
                     required
                   />
                 </div>
+
+                {/* EARLY BIRD SECTION */}
+                <div className="mt-4 p-3 border border-amber-200 bg-amber-50 rounded-md">
+                  <label className="flex items-center gap-2 cursor-pointer mb-3">
+                    <input
+                      type="checkbox"
+                      checked={pkg.isEarlyBird || false}
+                      onChange={(e) =>
+                        handlePackageChange("virtual", pkg.id, "isEarlyBird", e.target.checked)
+                      }
+                      className="w-4 h-4 accent-amber-500"
+                    />
+                    <span className="text-xs font-bold text-amber-700 uppercase tracking-wide">
+                      Aktifkan Early Bird
+                    </span>
+                  </label>
+                  {pkg.isEarlyBird && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">
+                          Harga Early Bird (Rp)
+                        </label>
+                        <input
+                          type="number"
+                          value={pkg.earlyBirdHarga || ""}
+                          onChange={(e) => handlePackageChange("virtual", pkg.id, "earlyBirdHarga", Number(e.target.value))}
+                          placeholder="100000"
+                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm outline-none focus:border-amber-500 font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">
+                          Target Kuota Lunas
+                        </label>
+                        <input
+                          type="number"
+                          value={pkg.earlyBirdTarget || ""}
+                          onChange={(e) => handlePackageChange("virtual", pkg.id, "earlyBirdTarget", Number(e.target.value))}
+                          placeholder="100"
+                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm outline-none focus:border-amber-500 font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">
+                          Batas Penutupan
+                        </label>
+                        <input
+                          type="datetime-local"
+                          value={pkg.earlyBirdEndDate || ""}
+                          onChange={(e) => handlePackageChange("virtual", pkg.id, "earlyBirdEndDate", e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
             <button
