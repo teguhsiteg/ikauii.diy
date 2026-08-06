@@ -1,6 +1,18 @@
 import { NextResponse } from "next/server";
+import { rateLimit } from "@/lib/rate-limit";
+
+const waRateLimiter = rateLimit({ windowMs: 60 * 1000, maxRequests: 5 });
 
 export async function POST(request: Request) {
+  // Rate limiting
+  const rl = waRateLimiter(request);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { success: false, error: "Terlalu banyak permintaan. Coba lagi nanti." },
+      { status: 429 },
+    );
+  }
+
   try {
     // Validasi: hanya boleh dipanggil dari server internal
     const internalSecret = request.headers.get("x-internal-secret");
@@ -124,7 +136,7 @@ export async function POST(request: Request) {
     const response = await fetch("https://api.fonnte.com/send", {
       method: "POST",
       headers: {
-        Authorization: process.env.FONNTE_TOKEN || "", // Dibaca dari env variable
+        Authorization: process.env.FONNTE_TOKEN!,
         "Content-Type": "application/json",
         Accept: "application/json",
       },

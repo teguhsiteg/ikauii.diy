@@ -89,6 +89,9 @@ function FormPendaftaranOffline() {
     hubunganDarurat: "",
     waDarurat: "",
     paketId: defaultPaketId,
+    // 🔥 CHARITY OFFLINE
+    isDonasi: false,
+    nominalDonasi: "",
   });
 
   // --- STATE PROMO & DISKON ---
@@ -180,7 +183,8 @@ function FormPendaftaranOffline() {
 
       let isAllowed = true;
 
-      if (!isOfflineEnabled || adminStatus === "tutup" || adminStatus === "coming_soon") {
+      if (!isOfflineEnabled || adminStatus === "tutup" || adminStatus === "coming_soon" || adminStatus === "preview") {
+        // "preview" = halaman /run tampil tapi pendaftaran tetap dikunci
         isAllowed = false;
       } else if (adminStatus !== "buka") {
         if (openDate && currentTime < openDate) isAllowed = false;
@@ -221,6 +225,12 @@ function FormPendaftaranOffline() {
     }
   }
 
+  const minCharity = Number(settings?.minCharity) || 25000;
+  const donasi =
+    settings?.isCharityActive && formData.isDonasi
+      ? Number(formData.nominalDonasi) || 0
+      : 0;
+
   let nominalDiskonAktif = 0;
   if (appliedPromo) {
     if (appliedPromo.jenisDiskon === "persen") {
@@ -229,16 +239,18 @@ function FormPendaftaranOffline() {
       nominalDiskonAktif = appliedPromo.nilaiDiskon;
     }
   }
-  const totalTagihanAktif = Math.max(0, hargaPaketAktif - nominalDiskonAktif);
+  const totalTagihanAktif = Math.max(0, hargaPaketAktif - nominalDiskonAktif) + donasi;
 
   const handleChange = (e: any) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     if (name === "paketId") return;
 
     if (["noWA", "waDarurat", "nim", "tahunLulus", "nik"].includes(name)) {
       setFormData({ ...formData, [name]: value.replace(/\D/g, "") });
     } else if (name === "namaBib") {
       setFormData({ ...formData, [name]: value.toUpperCase().slice(0, 12) });
+    } else if (type === "checkbox") {
+      setFormData({ ...formData, [name]: checked });
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -415,6 +427,16 @@ function FormPendaftaranOffline() {
       });
     }
 
+    // 🔥 VALIDASI CHARITY OFFLINE
+    if (settings?.isCharityActive && formData.isDonasi && donasi < minCharity) {
+      return setModal({
+        isOpen: true,
+        type: "warning",
+        title: "Nominal Donasi Kurang",
+        message: `Minimal donasi adalah Rp ${minCharity.toLocaleString("id-ID")}.`,
+      });
+    }
+
     const selectedPackage = settings.offlinePackages?.find(
       (pkg: any) => pkg.id === formData.paketId,
     );
@@ -527,6 +549,13 @@ function FormPendaftaranOffline() {
         totalTagihan = Math.max(0, hargaAsli - nominalDiskon);
       }
 
+      // 🔥 TAMBAHKAN DONASI KE TOTAL JIKA AKTIF
+      const nominalDonasiOffline =
+        settings?.isCharityActive && formData.isDonasi
+          ? Number(formData.nominalDonasi) || 0
+          : 0;
+      totalTagihan += nominalDonasiOffline;
+
       const isAkademikUII = formData.kategoriPeserta === "Alumni";
       const isPelajar = formData.kategoriPeserta === "SMA/Pelajar";
 
@@ -543,6 +572,7 @@ function FormPendaftaranOffline() {
         kodePromoDipakai: appliedPromo ? appliedPromo.kode : null,
         idPromoDipakai: appliedPromo ? appliedPromo.id : null,
         totalDiskon: nominalDiskon,
+        nominalDonasi: nominalDonasiOffline,
         totalTagihan: totalTagihan,
         statusPembayaran: "Pending",
         waktuDaftar: new Date().toISOString(),
@@ -1455,6 +1485,66 @@ function FormPendaftaranOffline() {
               </div>
 
               {/* ========================================================== */}
+              {/* 💖 BLOK CHARITY — DONASI OFFLINE (JIKA AKTIF)              */}
+              {/* ========================================================== */}
+              {settings?.isCharityActive && (
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50/30 rounded-3xl p-6 sm:p-8 border border-emerald-100 shadow-sm">
+                  <div className="flex items-start gap-4 mb-5">
+                    <div className="w-12 h-12 bg-white text-emerald-500 rounded-2xl flex items-center justify-center text-2xl shrink-0 shadow-sm border border-emerald-100">
+                      💖
+                    </div>
+                    <div>
+                      <h4 className="text-base font-black text-emerald-900">
+                        {settings.charityTitle || "Run & Charity"}
+                      </h4>
+                      <p className="text-xs text-emerald-700 mt-1 leading-relaxed font-medium">
+                        {settings.charityDesc ||
+                          "Berlari sambil berbagi. Tambahkan donasi Anda untuk disalurkan 100% ke yang membutuhkan."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 bg-white p-4 rounded-xl border border-emerald-200 mb-3 hover:shadow-md transition-shadow">
+                    <input
+                      type="checkbox"
+                      id="isDonasi"
+                      name="isDonasi"
+                      checked={formData.isDonasi}
+                      onChange={handleChange}
+                      className="w-5 h-5 text-emerald-600 rounded border-emerald-300 focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <label
+                      htmlFor="isDonasi"
+                      className="text-sm font-bold text-emerald-900 cursor-pointer select-none flex-grow"
+                    >
+                      Ya, saya ingin melipatgandakan kebaikan!
+                    </label>
+                  </div>
+
+                  {formData.isDonasi && (
+                    <div className="animate-in fade-in slide-in-from-top-2 mt-4 relative">
+                      <label className="block text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1.5">
+                        Nominal Donasi Tambahan (Min. Rp{" "}
+                        {minCharity.toLocaleString("id-ID")})
+                      </label>
+                      <span className="absolute left-4 top-[29px] text-emerald-900 font-bold text-sm">
+                        Rp
+                      </span>
+                      <input
+                        type="number"
+                        name="nominalDonasi"
+                        value={formData.nominalDonasi}
+                        onChange={handleChange}
+                        placeholder={minCharity.toString()}
+                        min={minCharity}
+                        className="w-full pl-12 pr-4 py-3 bg-white border border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-emerald-900 font-black text-base transition-all font-mono shadow-inner"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ========================================================== */}
               {/* 🔥 BLOK 7: KODE PROMO & RINCIAN PEMBAYARAN 🔥              */}
               {/* ========================================================== */}
               <div>
@@ -1529,6 +1619,14 @@ function FormPendaftaranOffline() {
                         <span>
                           - Rp {nominalDiskonAktif.toLocaleString("id-ID")}
                         </span>
+                      </div>
+                    )}
+
+                    {/* 💖 DONASI OFFLINE */}
+                    {settings?.isCharityActive && formData.isDonasi && donasi > 0 && (
+                      <div className="flex justify-between items-center text-sm font-bold text-emerald-600">
+                        <span>💖 Donasi Kebaikan</span>
+                        <span>+ Rp {donasi.toLocaleString("id-ID")}</span>
                       </div>
                     )}
 

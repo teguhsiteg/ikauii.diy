@@ -603,14 +603,37 @@ export default function RaceManagementPage() {
     setIsProcessing(true);
 
     try {
-      const snap = await getDocs(collection(db, "offline_participants"));
-      const currentOffline = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      // 🔥 PERBAIKAN: Gunakan Query Spesifik agar tidak menarik seluruh data (Hemat Ribuan Read)
+      let peserta: any = null;
 
-      const peserta = currentOffline.find(
-        (p: any) =>
-          p.nomorBIB === cleanBib ||
-          (p.namaBib && p.namaBib.toUpperCase() === cleanBib),
+      // 1. Coba cari berdasarkan nomorBIB (String)
+      let qBib = query(
+        collection(db, "offline_participants"),
+        where("nomorBIB", "==", cleanBib)
       );
+      let snapBib = await getDocs(qBib);
+
+      // 2. Coba cari berdasarkan nomorBIB (Number) jika gagal
+      if (snapBib.empty && !isNaN(Number(cleanBib))) {
+        qBib = query(
+          collection(db, "offline_participants"),
+          where("nomorBIB", "==", Number(cleanBib))
+        );
+        snapBib = await getDocs(qBib);
+      }
+
+      // 3. Coba cari berdasarkan namaBib jika masih gagal
+      if (snapBib.empty) {
+        qBib = query(
+          collection(db, "offline_participants"),
+          where("namaBib", "==", cleanBib)
+        );
+        snapBib = await getDocs(qBib);
+      }
+
+      if (!snapBib.empty) {
+        peserta = { id: snapBib.docs[0].id, ...snapBib.docs[0].data() };
+      }
 
       if (!peserta) {
         showMsg(
@@ -648,8 +671,9 @@ export default function RaceManagementPage() {
       const calculatedDurationMinutes = calculatedDurationMs / 60000;
       const overCOT = calculatedDurationMinutes > cotLimitMinutes;
 
-      const sameCategoryFinishers = currentOffline.filter(
-        (p: any) => p.jarak === peserta.jarak && p.waktuFinish,
+      // Hitung rank berdasarkan data realtime finishers (Zero Read Cost)
+      const sameCategoryFinishers = finishers.filter(
+        (p: any) => p.jarak === peserta.jarak,
       );
       const rankKategori = sameCategoryFinishers.length + 1;
 

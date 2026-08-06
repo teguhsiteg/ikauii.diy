@@ -1,8 +1,20 @@
 import { NextResponse } from "next/server";
 import { authAdmin } from "@/lib/firebase-admin";
 import nodemailer from "nodemailer";
+import { rateLimit } from "@/lib/rate-limit";
+
+const resetRateLimiter = rateLimit({ windowMs: 60 * 1000, maxRequests: 3 });
 
 export async function POST(request: Request) {
+  // Rate limiting — cegah email enumeration
+  const rl = resetRateLimiter(request);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Terlalu banyak permintaan. Coba lagi nanti." },
+      { status: 429 },
+    );
+  }
+
   try {
     const { email } = await request.json();
 
@@ -145,7 +157,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { error: error.message || "Gagal memproses permintaan." },
+      { error: "Gagal memproses permintaan." },
       { status: 500 },
     );
   }

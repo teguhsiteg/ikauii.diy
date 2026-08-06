@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authAdmin } from "@/lib/firebase-admin";
+import * as admin from "firebase-admin";
 
 export async function POST(req: Request) {
   try {
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
     let decodedToken;
     try {
-      decodedToken = await authAdmin.verifyIdToken(idToken);
+      decodedToken = await admin.auth().verifyIdToken(idToken);
     } catch {
       return NextResponse.json(
         { error: "Unauthorized: Token tidak valid" },
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const db = (await import("firebase-admin")).default.firestore();
+    const db = admin.firestore();
     const counterRef = db.collection("pengaturan").doc("counter_nia");
     const counterSnap = await counterRef.get();
     let currentNumber = counterSnap.exists
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
 
         // 🔥 1. CEK APAKAH SUDAH PUNYA AKUN AUTH 🔥
         try {
-          await authAdmin.getUserByEmail(user.email);
+          await admin.auth().getUserByEmail(user.email);
 
           // JIKA BERHASIL (ARTINYA AKUN SUDAH ADA), KITA SKIP / ABAIKAN!
           console.log(`SKIP: ${user.email} (Sudah ada di Auth)`);
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
         // 🔐 Generate password random yang aman (bukan hardcoded "Ikauii123!")
         const randomPassword = generateSecurePassword();
 
-        const userAuth = await authAdmin.createUser({
+        const userAuth = await admin.auth().createUser({
           email: user.email,
           password: randomPassword,
           displayName: user.namaLengkap || "Anggota IKA",
@@ -140,7 +140,7 @@ export async function POST(req: Request) {
         results.push({
           email: user.email,
           status: "Failed",
-          error: err.message,
+          error: "Gagal memproses data",
         });
       }
     }
@@ -155,7 +155,7 @@ export async function POST(req: Request) {
     );
   } catch (error: any) {
     console.error("Fatal Error Import API:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Terjadi kesalahan internal server" }, { status: 500 });
   }
 }
 

@@ -156,8 +156,9 @@ function OfflineRunLandingPageContent() {
   let showTutup = false;
   let showCountdown = false;
   let showNormal = false;
+  let isPreviewMode = false; // 🔥 MODE BARU: halaman tampil, tombol daftar dikunci
 
-  // --- MULAI COPY DARI SINI ---
+  // --- LOGIKA STATUS ---
   if (isBypassed || isForceOpen) {
     showNormal = true;
   } else if (!isOfflineEnabled) {
@@ -166,6 +167,10 @@ function OfflineRunLandingPageContent() {
     showTutup = true;
   } else if (adminStatus === "coming_soon") {
     showComingSoon = true;
+  } else if (adminStatus === "preview") {
+    // Halaman tampil penuh, tapi tombol daftar dikunci
+    showNormal = true;
+    isPreviewMode = true;
   } else if (adminStatus === "buka") {
     showNormal = true;
   } else {
@@ -178,7 +183,7 @@ function OfflineRunLandingPageContent() {
       showNormal = true;
     }
   }
-  // --- SAMPAI SINI ---
+  // --- AKHIR LOGIKA STATUS ---
 
   if (showComingSoon || showCountdown) {
     return (
@@ -280,12 +285,13 @@ function OfflineRunLandingPageContent() {
         </div>
 
         <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 max-w-4xl leading-tight relative z-10">
-          PENDAFTARAN RUNNING <br />
-                  </h1>
+  SIAP BERLARI? <br />
+  UII SEHAT MENUNGGUMU
+</h1>
 
-        <p className="text-slate-300 text-sm md:text-base font-medium mb-10 max-w-2xl relative z-10 leading-relaxed">
-          Sampai jumpa di garis start event IKA UII DIY.
-        </p>
+<p className="text-slate-300 text-sm md:text-base font-medium mb-10 max-w-2xl relative z-10 leading-relaxed">
+  Bergabunglah bersama ribuan peserta dalam UII Sehat Fun Run & Charity. Setiap langkah membawa manfaat bagi diri sendiri dan sesama.
+</p>
 
         <div className="flex flex-wrap justify-center gap-4 relative z-10">
           <a
@@ -357,6 +363,64 @@ function OfflineRunLandingPageContent() {
 
           <ScrollReveal delay={300}>
             <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-12 w-full mt-8">
+
+          {/* 🔥 LIVE BROADCAST PANEL 🔥 */}
+          {(settings?.zoomLink || settings?.liveStreamLink || settings?.showLeaderboard) && (
+              <div className="mt-2 mb-8 w-full bg-slate-900/60 backdrop-blur-md border border-rose-500/50 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden group">
+                {/* Efek Glow & Pulse di belakang */}
+                <div className="absolute -top-10 -right-10 w-40 h-40 bg-rose-500/20 rounded-full blur-3xl group-hover:bg-rose-500/30 transition-colors"></div>
+                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-500/30 transition-colors"></div>
+                
+                <h2 className="text-white font-black uppercase tracking-widest text-sm md:text-base flex items-center justify-center gap-3 mb-6 relative z-10">
+                  <span className="w-3 h-3 bg-rose-500 rounded-full animate-ping absolute left-1/2 -ml-[110px] md:-ml-[120px]"></span>
+                  <span className="w-3 h-3 bg-rose-500 rounded-full relative mr-1"></span>
+                  Live Event Sedang Berlangsung
+                </h2>
+
+                <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 md:gap-4 relative z-10">
+                  {settings.liveStreamLink && (
+                    <a
+                      href={settings.liveStreamLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-lg hover:-translate-y-1"
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+                      </svg>
+                      Nonton Live YouTube
+                    </a>
+                  )}
+
+                  {settings.zoomLink && (
+                    <a
+                      href={settings.zoomLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#2D8CFF] hover:bg-[#1E74D8] text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-lg hover:-translate-y-1"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      Join Zoom Doorprize
+                    </a>
+                  )}
+
+                  {settings.showLeaderboard && (
+                    <Link
+                      href="/leaderboard-offline"
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-lg hover:-translate-y-1"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                      Live Klasemen
+                    </Link>
+                  )}
+                </div>
+              </div>
+          )}
+
               <div className="bg-white/10 border border-white/10 backdrop-blur-md text-white rounded-2xl px-6 py-4 flex items-center justify-center gap-4 w-full md:w-auto shadow-xl">
                 <svg
                   className="w-8 h-8 text-[#FCD116] shrink-0"
@@ -504,11 +568,10 @@ function OfflineRunLandingPageContent() {
                   )}
                 </div>
                 <h3 className="text-lg md:text-xl font-black text-slate-800 mb-2 text-center md:text-left">
-                  Runner Dry-Fit Jersey
+                  Runner Jersey
                 </h3>
                 <p className="text-slate-500 text-xs md:text-sm text-center md:text-left">
-                  Jersey berbahan premium, ringan, dan cepat kering. Nyaman
-                  dipakai di bawah sinar matahari.
+                  Dapatkan jersey eksklusif untuk menambah semangatmu berlari.
                 </p>
               </div>
             </ScrollReveal>
@@ -584,7 +647,7 @@ function OfflineRunLandingPageContent() {
                   Finisher Medal
                 </h3>
                 <p className="text-slate-500 text-xs md:text-sm text-center md:text-left">
-                  Medali logam 3D die-cast eksklusif. Diberikan khusus bagi
+                  Diberikan khusus bagi
                   pelari yang berhasil melewati garis finish!
                 </p>
               </div>
@@ -790,6 +853,20 @@ function OfflineRunLandingPageContent() {
                       >
                         Habis Terjual
                       </button>
+                    ) : isPreviewMode ? (
+                      // 🔥 MODE PREVIEW: tombol daftar dikunci, tampil info
+                      <div className="w-full text-center">
+                        <button
+                          disabled
+                          className="w-full font-bold py-3.5 md:py-4 rounded-xl text-sm bg-amber-50 text-amber-600 cursor-not-allowed border-2 border-amber-300 border-dashed uppercase tracking-widest flex items-center justify-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Pendaftaran Segera Dibuka
+                        </button>
+                        <p className="text-[10px] text-slate-400 mt-1.5 font-medium">Pantau terus untuk info pembukaan pendaftaran</p>
+                      </div>
                     ) : (
                       <Link
                         href={`/run/daftar?paket=${pkg.id}${isWaitingRoom ? "&queue=true" : ""}`}

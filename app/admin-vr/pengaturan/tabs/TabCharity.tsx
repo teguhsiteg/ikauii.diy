@@ -88,36 +88,17 @@ export default function TabCharity({ vrSettings, handleSettingChange }: any) {
 
         {vrSettings.isOfflineRunEnabled && (
           <div className="pt-6 border-t border-slate-200 mt-4 space-y-5 relative">
-            <h4 className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-2 border-b border-slate-100 pb-2">
-              Aset & Sertifikat Offline Run
-            </h4>
+            <div>
+              <h4 className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-1 border-b border-slate-100 pb-2">
+                Aset Digital Offline Run
+              </h4>
+              <p className="text-[11px] text-slate-500 mt-2 mb-4 leading-relaxed">
+                URL untuk <strong>gambar BIB</strong> dan <strong>template E-Sertifikat</strong> offline.
+                Untuk gambar jersey & medali, atur di Tab <strong>Offline → Gambar Race Pack</strong>.
+              </p>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
-                  URL Jersey Offline
-                </label>
-                <input
-                  type="url"
-                  name="urlJerseyOffline"
-                  value={vrSettings.urlJerseyOffline || ""}
-                  onChange={handleSettingChange}
-                  className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-500 outline-none text-sm font-mono"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
-                  URL Medali Offline
-                </label>
-                <input
-                  type="url"
-                  name="urlMedaliOffline"
-                  value={vrSettings.urlMedaliOffline || ""}
-                  onChange={handleSettingChange}
-                  className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-500 outline-none text-sm font-mono"
-                />
-              </div>
-
-              {/* 🔥 TAMBAHAN INPUT BIB 🔥 */}
+              {/* BIB Offline */}
               <div>
                 <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
                   URL Gambar BIB Offline
@@ -132,6 +113,7 @@ export default function TabCharity({ vrSettings, handleSettingChange }: any) {
                 />
               </div>
 
+              {/* Sertifikat Offline */}
               <div>
                 <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
                   URL E-Sertifikat Offline

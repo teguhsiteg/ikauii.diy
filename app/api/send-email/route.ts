@@ -1,7 +1,19 @@
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
+import { rateLimit } from "@/lib/rate-limit";
+
+const emailRateLimiter = rateLimit({ windowMs: 60 * 1000, maxRequests: 10 });
 
 export async function POST(request: Request) {
+  // Rate limiting
+  const rl = emailRateLimiter(request);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Terlalu banyak permintaan. Coba lagi nanti." },
+      { status: 429 },
+    );
+  }
+
   try {
     // Validasi: hanya boleh dipanggil dari server internal
     const internalSecret = request.headers.get("x-internal-secret");
@@ -193,33 +205,6 @@ export async function POST(request: Request) {
           </div>
           `,
           "STATUS: MENUNGGU REVIEW",
-        );
-        break;
-
-      case "crew_accepted":
-        subject = `Selamat Bergabung! - ${detail?.event || "Kepanitiaan"}`;
-        htmlContent = generateHtml(
-          `
-          <h2 style="color: #1E8E3E; margin-top: 0; font-size: 20px; font-weight: 500;">Selamat, Anda Diterima! 🎉</h2>
-          ${salamPembuka}
-          <p>Halo <strong>${nama}</strong>,</p>
-          <p>Setelah melalui proses seleksi, kami dengan senang hati mengabarkan bahwa Anda <strong>DITERIMA</strong> untuk bergabung sebagai panitia di acara <strong>${detail?.event || "IKA UII"}</strong> pada posisi <strong>${detail?.divisi || "Kepanitiaan"}</strong>.</p>
-          
-          <div style="background-color: #F8F9FA; border: 1px solid #DADCE0; padding: 20px; margin: 25px 0; border-radius: 8px;">
-            <p style="margin: 0 0 10px 0; font-size: 11px; color: #5F6368; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Langkah Selanjutnya</p>
-            <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #202124; line-height: 1.5;">
-              <li>Wajib bergabung ke dalam Grup Koordinasi (WhatsApp) melalui tombol di bawah.</li>
-              <li>Menunggu arahan lebih lanjut dari Koordinator Divisi Anda di dalam grup.</li>
-              <li>Berkomitmen untuk mengikuti seluruh rangkaian rapat dan pelatihan kepanitiaan.</li>
-            </ul>
-          </div>
-
-          <div style="margin: 35px 0 0 0; text-align: center;">
-            ${detail?.linkGrupBesar ? generateButton("Grup WA (Utama)", detail.linkGrupBesar) : ""}
-            ${detail?.linkGrupDivisi ? `<div style="margin-top: 15px;">${generateButton("Grup WA (Divisi)", detail.linkGrupDivisi)}</div>` : ""}
-          </div>
-          `,
-          "STATUS: DITERIMA (ACCEPTED)",
         );
         break;
 
@@ -1078,6 +1063,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Success" }, { status: 200 });
   } catch (error: any) {
     console.error("Critical Mail Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Gagal mengirim email. Silakan coba lagi." }, { status: 500 });
   }
 }

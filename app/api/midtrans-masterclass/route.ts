@@ -5,7 +5,35 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { enrollmentId, grossAmount, customerName, customerEmail } = body;
+    const { enrollmentId, customerName, customerEmail } = body;
+
+    if (!enrollmentId) {
+      return NextResponse.json(
+        { error: "ID enrollment wajib diisi" },
+        { status: 400 },
+      );
+    }
+
+    // 🔒 AMBIL HARGA ASLI DARI DATABASE (Anti-Manipulasi)
+    const enrollmentRef = doc(db, "masterclass_enrollments", enrollmentId);
+    const enrollmentSnap = await getDoc(enrollmentRef);
+
+    if (!enrollmentSnap.exists()) {
+      return NextResponse.json(
+        { error: "Data enrollment tidak ditemukan" },
+        { status: 404 },
+      );
+    }
+
+    const enrollmentData = enrollmentSnap.data();
+    const actualAmount = enrollmentData.totalTagihan || enrollmentData.harga;
+
+    if (!actualAmount || actualAmount <= 0) {
+      return NextResponse.json(
+        { error: "Nominal tagihan tidak valid" },
+        { status: 400 },
+      );
+    }
 
     // 1. Ambil Settingan Midtrans dari laci Kasir Masterclass
     const settingsRef = doc(db, "settings", "masterclass");
@@ -40,7 +68,7 @@ export async function POST(request: Request) {
     const payload = {
       transaction_details: {
         order_id: orderId,
-        gross_amount: Math.round(grossAmount),
+        gross_amount: Math.round(Number(actualAmount)),
       },
       customer_details: {
         first_name: customerName,
@@ -81,6 +109,6 @@ export async function POST(request: Request) {
     }
   } catch (error: any) {
     console.error("API Route Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Gagal memproses transaksi Midtrans" }, { status: 500 });
   }
 }

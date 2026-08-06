@@ -411,6 +411,75 @@ export default function TabVirtual({
             </div>
           </div>
         )}
+
+        {/* 🔥 RACE PACK VIRTUAL — GAMBAR JERSEY & MEDALI 🔥 */}
+        {vrSettings.isVirtualRunEnabled && (
+          <div className="pt-6 border-t border-slate-200 mt-6 space-y-5">
+            <div>
+              <h4 className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-1 flex items-center gap-2">
+                <span>👕</span> Gambar Race Pack Virtual
+              </h4>
+              <p className="text-[11px] text-slate-500 mb-4 leading-relaxed">
+                URL gambar jersey dan medali yang ditampilkan di halaman{" "}
+                <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px] font-mono">/virtual-run</code>{" "}
+                bagian <strong>Race Pack Collection</strong>. Gunakan link gambar publik (Google Drive, Imgur, dll).
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Jersey Virtual */}
+              <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                <label className="block text-[11px] font-bold text-blue-700 mb-1 uppercase tracking-wide">
+                  👕 URL Foto Jersey Virtual
+                </label>
+                <p className="text-[10px] text-blue-500 mb-2">
+                  Ditampilkan di card "Premium Dry-Fit Jersey" halaman /virtual-run
+                </p>
+                <input
+                  type="url"
+                  name="urlJersey"
+                  value={vrSettings.urlJersey || ""}
+                  onChange={handleSettingChange}
+                  placeholder="https://..."
+                  className="w-full px-4 py-2.5 bg-white border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-mono text-slate-700"
+                />
+                {vrSettings.urlJersey && (
+                  <img
+                    src={vrSettings.urlJersey}
+                    alt="Preview Jersey"
+                    className="mt-3 w-full h-32 object-cover rounded-lg border border-blue-200"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                  />
+                )}
+              </div>
+
+              {/* Medali Virtual */}
+              <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
+                <label className="block text-[11px] font-bold text-yellow-700 mb-1 uppercase tracking-wide">
+                  🏅 URL Foto Medali Virtual
+                </label>
+                <p className="text-[10px] text-yellow-600 mb-2">
+                  Ditampilkan di card "Finisher Medal" halaman /virtual-run
+                </p>
+                <input
+                  type="url"
+                  name="urlMedali"
+                  value={vrSettings.urlMedali || ""}
+                  onChange={handleSettingChange}
+                  placeholder="https://..."
+                  className="w-full px-4 py-2.5 bg-white border border-yellow-200 rounded-lg focus:border-yellow-500 outline-none text-sm font-mono text-slate-700"
+                />
+                {vrSettings.urlMedali && (
+                  <img
+                    src={vrSettings.urlMedali}
+                    alt="Preview Medali"
+                    className="mt-3 w-full h-32 object-cover rounded-lg border border-yellow-200"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

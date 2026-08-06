@@ -1,9 +1,11 @@
 import crypto from "crypto";
 
 // Pastikan secret key selalu 32 bytes untuk AES-256
-const ENCRYPTION_KEY = process.env.INTERNAL_API_SECRET 
-  ? crypto.createHash('sha256').update(process.env.INTERNAL_API_SECRET).digest('base64').substring(0, 32)
-  : "ikadiy-internal-fallback-32-byte";
+const ENCRYPTION_KEY_BASE = process.env.INTERNAL_API_SECRET;
+if (!ENCRYPTION_KEY_BASE) {
+  throw new Error("INTERNAL_API_SECRET environment variable is not set. Encryption cannot be initialized.");
+}
+const ENCRYPTION_KEY = crypto.createHash('sha256').update(ENCRYPTION_KEY_BASE).digest('base64').substring(0, 32);
 const IV_LENGTH = 16; // Untuk AES, IV selalu 16 bytes
 
 export function encryptText(text: string): string {

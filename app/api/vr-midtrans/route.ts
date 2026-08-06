@@ -10,12 +10,42 @@ export async function POST(request: Request) {
     // Jika tidak dikirim dari frontend, default-nya adalah "virtual"
     const {
       orderId,
-      grossAmount,
       customerName,
       customerEmail,
       customerPhone,
       eventType = "virtual",
     } = body;
+
+    if (!orderId) {
+      return NextResponse.json(
+        { error: "Order ID wajib diisi" },
+        { status: 400 },
+      );
+    }
+
+    // 🔒 AMBIL HARGA ASLI DARI DATABASE (Anti-Manipulasi)
+    const firebaseDocId = orderId.split("-")[0];
+    const collectionName =
+      eventType === "offline" ? "offline_participants" : "vr_participants";
+    const participantRef = doc(db, collectionName, firebaseDocId);
+    const participantSnap = await getDoc(participantRef);
+
+    if (!participantSnap.exists()) {
+      return NextResponse.json(
+        { error: "Data peserta tidak ditemukan" },
+        { status: 404 },
+      );
+    }
+
+    const participantData = participantSnap.data();
+    const actualAmount = participantData.totalTagihan;
+
+    if (!actualAmount || actualAmount <= 0) {
+      return NextResponse.json(
+        { error: "Nominal tagihan tidak valid" },
+        { status: 400 },
+      );
+    }
 
     // 1. Ambil Server Key & Pengaturan dari Firebase
     const settingsRef = doc(db, "settings", "virtual_run");
@@ -48,7 +78,7 @@ export async function POST(request: Request) {
     const payload = {
       transaction_details: {
         order_id: orderId,
-        gross_amount: Math.round(grossAmount),
+        gross_amount: Math.round(Number(actualAmount)),
       },
       customer_details: {
         first_name: customerName,
@@ -97,6 +127,6 @@ export async function POST(request: Request) {
     }
   } catch (error: any) {
     console.error("API Route Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Gagal memproses transaksi Midtrans" }, { status: 500 });
   }
 }
