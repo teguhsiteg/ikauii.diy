@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
+import { LogOut } from "lucide-react";
 
 export default function Header({ userEmail }: { userEmail: string }) {
   const handleLogout = async () => {
@@ -30,7 +31,7 @@ export default function Header({ userEmail }: { userEmail: string }) {
           onClick={handleLogout}
           className="text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-600 hover:text-white border border-rose-100 px-5 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-2"
         >
-          Keluar <span className="font-normal">&rarr;</span>
+          Keluar <LogOut className="w-4 h-4" />
         </button>
       </div>
     </header>

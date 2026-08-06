@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
 
-// PENTING: Pastikan path import ini sesuai dengan lokasi file Sidebar & Header Anda
+import { Shield } from "lucide-react";
 import Sidebar from "@/components/admin-vr/Sidebar";
 import Header from "@/components/admin-vr/Header";
 
@@ -57,8 +57,8 @@ export default function AdminVRLayout({
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans">
         <div className="w-full max-w-sm bg-white rounded-3xl shadow-xl border border-slate-200 p-8 text-center animate-in fade-in zoom-in-95">
-          <div className="w-16 h-16 bg-blue-600 text-white rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6 shadow-lg shadow-blue-600/30">
-            🛡️
+          <div className="w-16 h-16 bg-blue-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-600/30">
+            <Shield className="w-8 h-8" />
           </div>
           <h1 className="text-2xl font-black text-slate-900 mb-1">
             Admin Security

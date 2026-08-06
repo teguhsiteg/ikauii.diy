@@ -32,6 +32,45 @@ function FormPendaftaranOffline() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // --- STATE ALAMAT BERTINGKAT ---
+  const [wilayahData, setWilayahData] = useState<{provinces: any[], regencies: any[], districts: any[]} | null>(null);
+
+  const [provinces, setProvinces] = useState<any[]>([]);
+  const [regencies, setRegencies] = useState<any[]>([]);
+  const [districts, setDistricts] = useState<any[]>([]);
+
+  const [selectedProvId, setSelectedProvId] = useState("");
+  const [selectedRegId, setSelectedRegId] = useState("");
+  const [selectedDistId, setSelectedDistId] = useState("");
+
+  useEffect(() => {
+    fetch("/data-wilayah.json")
+      .then((res) => res.json())
+      .then((data) => {
+        setWilayahData(data);
+        setProvinces(data.provinces || []);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (selectedProvId && wilayahData) {
+      setRegencies(wilayahData.regencies.filter((r: any) => r.province_id === selectedProvId));
+    } else {
+      setRegencies([]);
+      setSelectedRegId("");
+    }
+  }, [selectedProvId, wilayahData]);
+
+  useEffect(() => {
+    if (selectedRegId && wilayahData) {
+      setDistricts(wilayahData.districts.filter((d: any) => d.regency_id === selectedRegId));
+    } else {
+      setDistricts([]);
+      setSelectedDistId("");
+    }
+  }, [selectedRegId, wilayahData]);
+
   // --- STATE KATEGORI TERSEDIA (DARI ADMIN) ---
   const [availableCategories, setAvailableCategories] = useState<string[]>([
     "Umum",
@@ -70,6 +109,7 @@ function FormPendaftaranOffline() {
     kewarganegaraan: "Indonesia",
     provinsi: "",
     kotaKabupaten: "",
+    kecamatan: "",
     alamatLengkap: "",
     email: "",
     noWA: "",
@@ -1083,36 +1123,66 @@ function FormPendaftaranOffline() {
                         className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#152B5B] outline-none text-sm transition-all text-slate-800 font-bold"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
-                        Provinsi <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="provinsi"
-                        value={formData.provinsi}
-                        onChange={handleChange}
-                        required
-                        placeholder="Cth: DI Yogyakarta"
-                        className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#152B5B] outline-none text-sm transition-all text-slate-800 font-bold"
-                      />
-                    </div>
                   </div>
-                  <div className="grid sm:grid-cols-2 gap-5">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
-                        Kota / Kabupaten{" "}
-                        <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="kotaKabupaten"
-                        value={formData.kotaKabupaten}
-                        onChange={handleChange}
-                        required
-                        placeholder="Cth: Sleman"
-                        className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#152B5B] outline-none text-sm transition-all text-slate-800 font-bold"
-                      />
+                  
+                  <div className="space-y-4 mt-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Provinsi <span className="text-rose-500">*</span></label>
+                        <select
+                          required
+                          value={selectedProvId}
+                          onChange={(e) => {
+                            setSelectedProvId(e.target.value);
+                            const provName = e.target.options[e.target.selectedIndex].text;
+                            setFormData({ ...formData, provinsi: provName, kotaKabupaten: "", kecamatan: "" });
+                          }}
+                          className="w-full px-4 py-3.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#152B5B] outline-none text-sm transition-all text-slate-800"
+                        >
+                          <option value="">Pilih Provinsi</option>
+                          {provinces.map((p) => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Kota/Kabupaten <span className="text-rose-500">*</span></label>
+                        <select
+                          required
+                          disabled={!selectedProvId}
+                          value={selectedRegId}
+                          onChange={(e) => {
+                            setSelectedRegId(e.target.value);
+                            const regName = e.target.options[e.target.selectedIndex].text;
+                            setFormData({ ...formData, kotaKabupaten: regName, kecamatan: "" });
+                          }}
+                          className="w-full px-4 py-3.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#152B5B] outline-none text-sm transition-all text-slate-800 disabled:bg-slate-100"
+                        >
+                          <option value="">Pilih Kota/Kab</option>
+                          {regencies.map((r) => (
+                            <option key={r.id} value={r.id}>{r.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Kecamatan <span className="text-rose-500">*</span></label>
+                        <select
+                          required
+                          disabled={!selectedRegId}
+                          value={selectedDistId}
+                          onChange={(e) => {
+                            setSelectedDistId(e.target.value);
+                            const distName = e.target.options[e.target.selectedIndex].text;
+                            setFormData({ ...formData, kecamatan: distName });
+                          }}
+                          className="w-full px-4 py-3.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#152B5B] outline-none text-sm transition-all text-slate-800 disabled:bg-slate-100"
+                        >
+                          <option value="">Pilih Kecamatan</option>
+                          {districts.map((d) => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
@@ -1124,7 +1194,7 @@ function FormPendaftaranOffline() {
                         onChange={handleChange}
                         required
                         rows={2}
-                        placeholder="Nama jalan, RT/RW, Kecamatan"
+                        placeholder="Nama jalan, RT/RW, Kode Pos"
                         className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#152B5B] outline-none text-sm transition-all text-slate-800 font-medium custom-scrollbar"
                       ></textarea>
                     </div>

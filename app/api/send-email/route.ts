@@ -718,6 +718,27 @@ export async function POST(request: Request) {
         );
         break;
 
+      case "otp_login":
+        subject = `Kode OTP Login Dashboard - ${eventName}`;
+        htmlContent = generateHtml(
+          `
+          <h2 style="color: #1A73E8; margin-top: 0; font-size: 20px; font-weight: 500;">Kode OTP Anda</h2>
+          ${salamPembuka}
+          <p>Halo <strong>${nama}</strong>,</p>
+          <p>Anda menerima email ini karena ada permintaan login ke Dashboard Pelari <strong>${eventName}</strong> menggunakan email Anda.</p>
+          
+          <div style="background-color: #F8F9FA; padding: 20px; border: 1px solid #DADCE0; border-radius: 8px; margin: 25px 0; text-align: center;">
+            <p style="margin: 0 0 10px 0; font-size: 13px; color: #5F6368; text-transform: uppercase; font-weight: 700; letter-spacing: 1px;">KODE OTP ANDA</p>
+            <p style="margin: 0; font-size: 36px; font-weight: 900; color: #1A73E8; letter-spacing: 5px; font-family: monospace;">${detail?.otpCode}</p>
+            <p style="margin: 15px 0 0 0; font-size: 12px; color: #D93025; font-weight: 500;">Kode ini hanya berlaku selama 5 menit.</p>
+          </div>
+
+          <p><strong>PENTING:</strong> Jangan berikan kode ini kepada siapapun, termasuk pihak yang mengaku sebagai panitia. Jika Anda tidak merasa melakukan permintaan login, abaikan email ini.</p>
+        `,
+          "KEAMANAN AKUN",
+        );
+        break;
+
       case "payment_success":
         subject = `Pembayaran Lunas & e-BIB Terbit: ${eventName}`;
         htmlContent = generateHtml(

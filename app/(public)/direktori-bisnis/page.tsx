@@ -1035,8 +1035,7 @@ export default function DirektoriBisnisPage() {
         {/* 🔥 CAROUSEL BANNER IKLAN DENGAN DOTS SLIDER 🔥 */}
         {/* 🔥 CAROUSEL BANNER IKLAN DENGAN DOTS SLIDER 🔥 */}
         {iklanList.length > 0 && (
-          // Hapus px-4 dll jika ingin benar-benar full-width memanjang dari ujung ke ujung layar
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10 relative">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12 relative group">
             <div
               ref={carouselRef}
               onMouseEnter={() => setIsHovered(true)}
@@ -1044,7 +1043,7 @@ export default function DirektoriBisnisPage() {
               onTouchStart={() => setIsHovered(true)}
               onTouchEnd={() => setIsHovered(false)}
               onScroll={handleCarouselScroll}
-              className="flex overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-smooth"
+              className="flex overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-smooth rounded-xl sm:rounded-2xl shadow-lg border border-slate-200/60 bg-white"
             >
               {iklanList.map((iklan) => (
                 <a
@@ -1052,30 +1051,56 @@ export default function DirektoriBisnisPage() {
                   href={iklan.linkTujuan || "#"}
                   target="_blank"
                   rel="noreferrer"
-                  // Ubah class di bawah ini:
-                  className="shrink-0 w-full aspect-[3/1] max-h-[400px] overflow-hidden block snap-center group relative shadow-md sm:rounded-xl"
+                  className="shrink-0 w-full aspect-[16/9] sm:aspect-[21/9] lg:aspect-[3/1] overflow-hidden block snap-center relative cursor-pointer"
                 >
+                  {/* Subtle Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none" />
+                  
                   <img
                     src={iklan.fotoUrl}
                     alt="Banner Promo"
-                    // Ubah object-cover menjadi object-contain jika tidak ingin gambarnya terpotong sama sekali,
-                    // atau tetap object-cover jika gambar sudah pasti 1200x400
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700 ease-out"
+                    loading="lazy"
                   />
                 </a>
               ))}
             </div>
-            {/* Indikator Slider (Dots) */}
+
+            {/* Navigation Arrows (Prev / Next) - Visible on Hover & Desktop */}
             {iklanList.length > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-4">
+              <>
+                <button
+                  onClick={() => scrollToAd(currentAdIndex - 1 >= 0 ? currentAdIndex - 1 : iklanList.length - 1)}
+                  className="absolute left-6 lg:left-12 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white text-slate-800 p-2 sm:p-3 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm transform hover:scale-110 hidden sm:flex items-center justify-center border border-slate-200/50"
+                  aria-label="Previous slide"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => scrollToAd(currentAdIndex + 1 < iklanList.length ? currentAdIndex + 1 : 0)}
+                  className="absolute right-6 lg:right-12 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white text-slate-800 p-2 sm:p-3 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm transform hover:scale-110 hidden sm:flex items-center justify-center border border-slate-200/50"
+                  aria-label="Next slide"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </>
+            )}
+
+            {/* Indikator Slider (Dots) - Overlaid on Banner Bottom */}
+            {iklanList.length > 1 && (
+              <div className="absolute bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-20 flex justify-center items-center gap-2 bg-black/20 backdrop-blur-md px-3 py-2 rounded-full">
                 {iklanList.map((_, idx) => (
                   <button
                     key={idx}
                     onClick={() => scrollToAd(idx)}
                     className={`h-2 rounded-full transition-all duration-300 ${
                       currentAdIndex === idx
-                        ? "w-6 bg-[#1A73E8]"
-                        : "w-2 bg-slate-300 hover:bg-slate-400"
+                        ? "w-6 bg-white shadow-sm"
+                        : "w-2 bg-white/50 hover:bg-white/90"
                     }`}
                     aria-label={`Go to slide ${idx + 1}`}
                   />

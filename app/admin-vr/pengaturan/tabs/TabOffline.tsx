@@ -153,11 +153,11 @@ export default function TabOffline({
                   onChange={handleSettingChange}
                   className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-md focus:border-[#1A73E8] outline-none text-sm font-bold text-[#0B2239]"
                 >
-                  <option value="auto">🤖  Otomatis — Ikuti tanggal buka/tutup</option>
-                  <option value="preview">👁️  Preview — Halaman tampil, tombol daftar dikunci</option>
-                  <option value="buka">✅  Buka Paksa — Pendaftaran dibuka penuh (abaikan tanggal)</option>
-                  <option value="coming_soon">⏳  Coming Soon — Tampil layar "Segera Dibuka"</option>
-                  <option value="tutup">🔒  Tutup Total — Halaman ditutup sepenuhnya</option>
+                  <option value="auto">Otomatis — Ikuti tanggal buka/tutup</option>
+                  <option value="preview">Preview — Halaman tampil, tombol daftar dikunci</option>
+                  <option value="buka">Buka Paksa — Pendaftaran dibuka penuh (abaikan tanggal)</option>
+                  <option value="coming_soon">Coming Soon — Tampil layar "Segera Dibuka"</option>
+                  <option value="tutup">Tutup Total — Halaman ditutup sepenuhnya</option>
                 </select>
               </div>
 

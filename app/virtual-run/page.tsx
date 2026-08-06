@@ -11,6 +11,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 import Link from "next/link";
+import { MapPin, Calendar, Clock, Shirt, Medal, Activity, Building2, Mountain, Home, Package, Trophy, Mail, PartyPopper, Check, Menu, X, ArrowRight, User, Info, Map } from "lucide-react";
 
 export default function VirtualRunLandingPage() {
   const [settings, setSettings] = useState<any>(null);
@@ -249,26 +250,14 @@ export default function VirtualRunLandingPage() {
             >
               {loggedInParticipant ? (
                 <>
-                  <span className="w-4 h-4 bg-white/20 rounded-full flex items-center justify-center text-[8px]">
-                    👤
+                  <span className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
+                    <User className="w-3 h-3 text-white" />
                   </span>
                   <span>Dashboard</span>
                 </>
               ) : (
                 <>
-                  <svg
-                    className="w-4 h-4 text-blue-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
-                    />
-                  </svg>
+                  <User className="w-4 h-4 text-blue-600" />
                   <span>Login</span>
                 </>
               )}
@@ -278,28 +267,11 @@ export default function VirtualRunLandingPage() {
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="md:hidden p-1.5 text-slate-600 hover:text-blue-600 focus:outline-none shrink-0"
             >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
                 {isMobileMenuOpen ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+                  <X className="w-6 h-6" />
                 ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
+                  <Menu className="w-6 h-6" />
                 )}
-              </svg>
             </button>
           </div>
         </div>
@@ -446,7 +418,7 @@ export default function VirtualRunLandingPage() {
                 href="#offline-teaser"
                 className="w-full sm:w-auto bg-white/10 hover:bg-white/20 border border-white/30 backdrop-blur-sm text-white font-black px-10 py-4 rounded-full text-sm transition-all flex items-center justify-center gap-2 transform hover:-translate-y-1"
               >
-                Info Lari Offline
+                <MapPin className="w-4 h-4" /> Info Lari Offline
               </a>
             )}
           </div>
@@ -461,13 +433,11 @@ export default function VirtualRunLandingPage() {
         >
           <div className="bg-gradient-to-br from-emerald-600 to-teal-800 rounded-[2rem] p-8 sm:p-12 shadow-2xl relative overflow-hidden border border-emerald-500/50 flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-            <div className="absolute -right-20 -bottom-20 text-9xl opacity-10 rotate-12">
-              🏃‍♂️
+            <div className="absolute -right-10 -bottom-10 opacity-20 rotate-12">
+              <Activity className="w-64 h-64 text-emerald-900" />
             </div>
             <div className="relative z-10 text-center md:text-left flex-grow">
-              <span className="bg-emerald-900/50 text-emerald-200 border border-emerald-400/30 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest mb-4 inline-block">
-                ✨ Spesial Untuk Domisili Jogja & Sekitarnya
-              </span>
+              
               <h2 className="text-3xl sm:text-4xl font-black text-white mb-3 tracking-tight">
                 Ingin Lari & Kumpul Bareng?
               </h2>
@@ -481,7 +451,9 @@ export default function VirtualRunLandingPage() {
               </p>
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-6">
                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-2 flex items-center gap-3">
-                  <span className="text-2xl">📅</span>
+                  <div className="w-10 h-10 bg-emerald-900/40 rounded-xl flex items-center justify-center text-emerald-400 border border-emerald-500/30">
+                    <Calendar className="w-5 h-5" />
+                  </div>
                   <div className="text-left">
                     <p className="text-[9px] uppercase tracking-widest text-emerald-200 font-bold">
                       Tanggal Acara
@@ -497,7 +469,9 @@ export default function VirtualRunLandingPage() {
                   </div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-2 flex items-center gap-3">
-                  <span className="text-2xl">⏰</span>
+                  <div className="w-10 h-10 bg-emerald-900/40 rounded-xl flex items-center justify-center text-emerald-400 border border-emerald-500/30">
+                    <Clock className="w-5 h-5" />
+                  </div>
                   <div className="text-left">
                     <p className="text-[9px] uppercase tracking-widest text-emerald-200 font-bold">
                       Jam Kumpul
@@ -601,7 +575,7 @@ export default function VirtualRunLandingPage() {
                 />
               ) : (
                 <div className="text-slate-300 flex flex-col items-center">
-                  <span className="text-6xl mb-2 grayscale opacity-50">👕</span>
+                  <Shirt className="w-16 h-16 text-slate-300 mb-2" />
                   <span className="font-bold text-sm">Preview Jersey</span>
                 </div>
               )}
@@ -625,7 +599,7 @@ export default function VirtualRunLandingPage() {
                 />
               ) : (
                 <div className="text-slate-300 flex flex-col items-center">
-                  <div className="text-6xl mb-2 grayscale opacity-50">🏅</div>
+                  <Medal className="w-16 h-16 text-slate-300 mb-2" />
                   <span className="font-bold text-sm">Preview Medali</span>
                 </div>
               )}
@@ -662,15 +636,15 @@ export default function VirtualRunLandingPage() {
         {loggedInParticipant ? (
           <div className="max-w-3xl mx-auto mb-16 bg-gradient-to-br from-[#3b5998] to-[#2a437a] rounded-[2.5rem] p-8 sm:p-12 shadow-2xl relative overflow-hidden border border-blue-800 text-center">
             <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-            <div className="absolute -top-10 -right-10 text-9xl opacity-10 rotate-12">
-              🎉
+            <div className="absolute -top-10 -right-10 opacity-20 rotate-12">
+              <PartyPopper className="w-64 h-64 text-blue-900" />
             </div>
             <div className="relative z-10">
               <div className="w-20 h-20 bg-emerald-400 text-white rounded-full flex items-center justify-center text-4xl mx-auto mb-6 shadow-lg border-4 border-emerald-200">
                 ✓
               </div>
               <h3 className="text-3xl sm:text-4xl font-black text-white mb-2 tracking-tight">
-                Kamu Sudah Terdaftar! 🎉
+                Kamu Sudah Terdaftar!
               </h3>
               <p className="text-blue-100 text-base mb-8">
                 Terima kasih telah bergabung. Fokus pada latihanmu dan capai
@@ -885,14 +859,18 @@ export default function VirtualRunLandingPage() {
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white/10 border border-white/20 p-4 rounded-2xl backdrop-blur-sm">
-                  <div className="text-3xl mb-2">🏙️</div>
+                  <div className="w-10 h-10 bg-blue-500/20 text-blue-300 rounded-xl flex items-center justify-center mb-3">
+                    <Building2 className="w-6 h-6" />
+                  </div>
                   <h4 className="font-bold text-white text-sm">Taman Kota</h4>
                   <p className="text-[10px] text-slate-400 mt-1">
                     Lari santai sambil nikmati udara pagi.
                   </p>
                 </div>
                 <div className="bg-white/10 border border-white/20 p-4 rounded-2xl backdrop-blur-sm">
-                  <div className="text-3xl mb-2">🏔️</div>
+                  <div className="w-10 h-10 bg-emerald-500/20 text-emerald-300 rounded-xl flex items-center justify-center mb-3">
+                    <Mountain className="w-6 h-6" />
+                  </div>
                   <h4 className="font-bold text-white text-sm">
                     Trail Pegunungan
                   </h4>
@@ -901,14 +879,18 @@ export default function VirtualRunLandingPage() {
                   </p>
                 </div>
                 <div className="bg-white/10 border border-white/20 p-4 rounded-2xl backdrop-blur-sm">
-                  <div className="text-3xl mb-2">🏃‍♂️</div>
+                  <div className="w-10 h-10 bg-orange-500/20 text-orange-300 rounded-xl flex items-center justify-center mb-3">
+                    <Activity className="w-6 h-6" />
+                  </div>
                   <h4 className="font-bold text-white text-sm">Treadmill</h4>
                   <p className="text-[10px] text-slate-400 mt-1">
                     Hujan di luar? Lari di gym tetap dihitung!
                   </p>
                 </div>
                 <div className="bg-white/10 border border-white/20 p-4 rounded-2xl backdrop-blur-sm">
-                  <div className="text-3xl mb-2">🏘️</div>
+                  <div className="w-10 h-10 bg-purple-500/20 text-purple-300 rounded-xl flex items-center justify-center mb-3">
+                    <Home className="w-6 h-6" />
+                  </div>
                   <h4 className="font-bold text-white text-sm">
                     Kompleks Rumah
                   </h4>
@@ -939,19 +921,21 @@ export default function VirtualRunLandingPage() {
                   className="absolute top-1/4 left-1/4 animate-bounce"
                   style={{ animationDelay: "0.1s" }}
                 >
-                  <div className="text-4xl filter drop-shadow-lg">📍</div>
+                  <MapPin className="w-10 h-10 text-rose-500 drop-shadow-lg" />
                 </div>
                 <div
                   className="absolute bottom-1/3 right-1/4 animate-bounce"
                   style={{ animationDelay: "0.5s" }}
                 >
-                  <div className="text-4xl filter drop-shadow-lg">📍</div>
+                  <MapPin className="w-10 h-10 text-rose-500 drop-shadow-lg" />
                 </div>
                 <div
                   className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-bounce"
                   style={{ animationDelay: "0.9s" }}
                 >
-                  <div className="text-6xl filter drop-shadow-lg">🏃‍♀️</div>
+                  <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl">
+                     <Activity className="w-10 h-10 text-blue-600" />
+                  </div>
                 </div>
                 <h3 className="absolute bottom-8 font-black text-2xl tracking-widest text-white/50 uppercase">
                   ANYWHERE
@@ -997,14 +981,25 @@ export default function VirtualRunLandingPage() {
                   Pendaftaran dibuka. Amankan slot Anda, lengkapi data diri, dan
                   pilih paket Race Pack.
                 </p>
-                <div className="inline-flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 shadow-sm">
-                  📅 Ditutup:{" "}
-                  {settings?.tanggalPenutupan
-                    ? new Date(settings.tanggalPenutupan).toLocaleDateString(
-                        "id-ID",
-                        { day: "numeric", month: "long", year: "numeric" },
-                      )
-                    : "Menunggu Info"}
+                <div className="inline-flex flex-col gap-1">
+                  <div className="inline-flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 shadow-sm">
+                    <Calendar className="w-4 h-4 text-slate-500" /> Dibuka:{" "}
+                    {settings?.tanggalPembukaan
+                      ? new Date(settings.tanggalPembukaan).toLocaleDateString(
+                          "id-ID",
+                          { day: "numeric", month: "long", year: "numeric" },
+                        )
+                      : "Menunggu Info"}
+                  </div>
+                  <div className="inline-flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 shadow-sm">
+                    <Calendar className="w-4 h-4 text-slate-500" /> Ditutup:{" "}
+                    {settings?.tanggalPenutupan
+                      ? new Date(settings.tanggalPenutupan).toLocaleDateString(
+                          "id-ID",
+                          { day: "numeric", month: "long", year: "numeric" },
+                        )
+                      : "Menunggu Info"}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1030,7 +1025,7 @@ export default function VirtualRunLandingPage() {
                       agar bisa Anda kenakan saat periode lari dimulai!
                     </p>
                     <div className="inline-flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-xl border border-yellow-200 text-xs font-bold text-yellow-800 shadow-sm">
-                      📦 {settings?.periodePengiriman || "Menunggu Info"}
+                      <Package className="w-4 h-4 text-yellow-600" /> {settings?.periodePengiriman || "Menunggu Info"}
                     </div>
                   </div>
                 </div>
@@ -1053,7 +1048,7 @@ export default function VirtualRunLandingPage() {
                       bukti.
                     </p>
                     <div className="inline-flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-200 text-xs font-bold text-emerald-700 shadow-sm">
-                      🏃‍♂️ {settings?.periodeLari || "Segera Hadir"}
+                      <Activity className="w-4 h-4 text-emerald-600" /> {settings?.periodeLari || "Segera Hadir"}
                     </div>
                   </div>
                 </div>
@@ -1078,7 +1073,7 @@ export default function VirtualRunLandingPage() {
                       kategori dan unggah bukti lari di Dashboard.
                     </p>
                     <div className="inline-flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-xl border border-yellow-200 text-xs font-bold text-yellow-800 shadow-sm">
-                      🏃‍♂️ {settings?.periodeLari || "Segera Hadir"}
+                      <Activity className="w-4 h-4 text-yellow-600" /> {settings?.periodeLari || "Segera Hadir"}
                     </div>
                   </div>
                 </div>
@@ -1100,7 +1095,7 @@ export default function VirtualRunLandingPage() {
                       dikirimkan sesuai dengan pesanan paket Anda.
                     </p>
                     <div className="inline-flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-200 text-xs font-bold text-emerald-700 shadow-sm">
-                      📦 {settings?.periodePengiriman || "Menunggu Info"}
+                      <Package className="w-4 h-4 text-emerald-600" /> {settings?.periodePengiriman || "Menunggu Info"}
                     </div>
                   </div>
                 </div>
@@ -1126,7 +1121,7 @@ export default function VirtualRunLandingPage() {
                   </p>
                   <div className="flex flex-wrap items-center gap-3">
                     <div className="inline-flex items-center gap-2 bg-purple-100 px-4 py-2 rounded-xl border border-purple-200 text-xs font-bold text-purple-800 shadow-sm">
-                      📍 {settings?.jadwalPuncakAcara || "Menunggu Info"}
+                      <MapPin className="w-4 h-4 text-purple-600" /> {settings?.jadwalPuncakAcara || "Menunggu Info"}
                     </div>
                     {settings?.urlLiveStreaming ? (
                       <a
@@ -1208,7 +1203,7 @@ export default function VirtualRunLandingPage() {
             </div>
             <div className="relative z-10">
               <div className="w-24 h-24 mx-auto bg-emerald-500 rounded-full border-8 border-white flex items-center justify-center text-3xl font-black mb-6 shadow-xl shadow-emerald-900/20 text-white">
-                🏆
+                <Trophy className="w-10 h-10 text-white" />
               </div>
               <h3 className="font-black text-slate-800 text-lg mb-2">
                 Jadi Finisher!
@@ -1342,10 +1337,10 @@ export default function VirtualRunLandingPage() {
             </h4>
             <ul className="space-y-2 text-sm">
               <li className="flex items-center gap-2">
-                <span>📧</span> ika.diy@uii.ac.id
+                <Mail className="w-4 h-4" /> ika.diy@uii.ac.id
               </li>
               <li className="flex items-center gap-2">
-                <span>📍</span> Daerah Istimewa Yogyakarta, Indonesia
+                <MapPin className="w-4 h-4" /> Daerah Istimewa Yogyakarta, Indonesia
               </li>
             </ul>
           </div>

@@ -16,6 +16,7 @@ import {
 } from "firebase/firestore";
 import Link from "next/link";
 import { QRCodeCanvas } from "qrcode.react";
+import { Activity, Mail, KeyRound, ArrowRight, ShieldCheck, User, MapPin, Calendar, CreditCard, UploadCloud, ChevronDown, Trophy, Medal, CheckCircle2, Clock, History, Edit3, Camera, FileText, Info, LogOut, Check, X, Eye, Search, Image, Share2, Copy, Shield } from "lucide-react";
 
 export default function ParticipantDashboard() {
   // --- STATE LOGIN ---
@@ -55,6 +56,11 @@ export default function ParticipantDashboard() {
   const [profilFile, setProfilFile] = useState<File | null>(null);
   const [headerFile, setHeaderFile] = useState<File | null>(null);
   const [isUpdatingProfil, setIsUpdatingProfil] = useState(false);
+
+  // --- STATE LOGIN & OTP ---
+  const [loginStep, setLoginStep] = useState<"email" | "otp">("email");
+  const [otpInput, setOtpInput] = useState("");
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 
   // --- STATE UI NAVIGATION, MODALS, & PAYMENTS ---
   const [popup, setPopup] = useState<{
@@ -126,8 +132,59 @@ export default function ParticipantDashboard() {
 
   // --- 1. LOGIKA LOGIN UTAMA ---
   const performLogin = async (emailToCheck: string, isAutoLogin = false) => {
+    if (isAutoLogin) {
+      await fetchParticipantData(emailToCheck);
+      setIsCheckingSession(false);
+      return;
+    }
+    
     setIsLoggingIn(true);
+    try {
+      const res = await fetch("/api/vr-auth/request-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailToCheck }),
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setPopup({ type: "error", title: "Email Tidak Ditemukan", text: data.error || "Pastikan email yang Anda masukkan terdaftar." });
+        localStorage.removeItem("vr_user_email");
+      } else {
+        setLoginStep("otp");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      setPopup({ type: "error", title: "Koneksi Bermasalah", text: "Gagal terhubung ke server." });
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
 
+  const verifyOtpAndLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsVerifyingOtp(true);
+    try {
+      const res = await fetch("/api/vr-auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailLogin, code: otpInput }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setPopup({ type: "error", title: "Kode Salah", text: data.error || "Kode OTP tidak valid." });
+      } else {
+        await fetchParticipantData(emailLogin);
+      }
+    } catch (error) {
+      setPopup({ type: "error", title: "Error", text: "Gagal memverifikasi OTP." });
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  const fetchParticipantData = async (emailToCheck: string) => {
     try {
       const q = query(
         collection(db, "vr_participants"),
@@ -135,16 +192,7 @@ export default function ParticipantDashboard() {
       );
       const snap = await getDocs(q);
 
-      if (snap.empty) {
-        if (!isAutoLogin) {
-          setPopup({
-            type: "error",
-            title: "Email Tidak Ditemukan",
-            text: "Pastikan alamat email sama persis dengan yang didaftarkan. Jika belum, silakan registrasi.",
-          });
-        }
-        localStorage.removeItem("vr_user_email");
-      } else {
+      if (!snap.empty) {
         const records = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
         records.sort(
@@ -167,19 +215,12 @@ export default function ParticipantDashboard() {
         });
 
         setActiveView("dashboard");
+      } else {
+        localStorage.removeItem("vr_user_email");
+        setLoginStep("email");
       }
     } catch (error) {
-      console.error("Login error:", error);
-      if (!isAutoLogin) {
-        setPopup({
-          type: "error",
-          title: "Koneksi Bermasalah",
-          text: "Gagal terhubung ke server.",
-        });
-      }
-    } finally {
-      setIsLoggingIn(false);
-      setIsCheckingSession(false);
+      console.error("Fetch data error:", error);
     }
   };
 
@@ -193,6 +234,8 @@ export default function ParticipantDashboard() {
     setParticipantList([]);
     setParticipant(null);
     setEmailLogin("");
+    setOtpInput("");
+    setLoginStep("email");
     setSubmissions([]);
     setIsDropdownOpen(false);
   };
@@ -572,6 +615,10 @@ export default function ParticipantDashboard() {
   const progressPercent = Math.min((totalApprovedKm / targetKm) * 100, 100);
   const isFinisher = totalApprovedKm >= targetKm;
   const isLunas = participant?.statusPembayaran === "Lunas";
+  const currentTime = new Date();
+  const isSubmissionStarted = vrSettings?.periodeLariStart ? currentTime >= new Date(vrSettings.periodeLariStart) : true;
+  const isSubmissionEnded = vrSettings?.periodeLariEnd ? currentTime > new Date(vrSettings.periodeLariEnd) : false;
+  const isSubmissionOpen = isSubmissionStarted && !isSubmissionEnded;
   const totalAktivitas = approvedSubmissions.length;
 
   const hitungTotalDurasi = () => {
@@ -1278,7 +1325,7 @@ export default function ParticipantDashboard() {
 
   return (
     <div
-      className={`min-h-screen font-sans pb-20 ${participant ? "bg-[#F4F7FB]" : "bg-slate-50 flex flex-col items-center justify-center p-6 selection:bg-blue-100 selection:text-blue-900"}`}
+      className={`min-h-screen font-sans ${participant ? "pb-20 bg-[#F4F7FB]" : "relative flex items-center justify-center p-4 sm:p-6 overflow-hidden bg-slate-900 selection:bg-blue-500/30 selection:text-white"}`}
     >
       {/* 🚀 KOMPONEN QR CODE TERSEMBUNYI UNTUK DISEDOT OLEH CANVAS */}
       {participant && (
@@ -1342,108 +1389,178 @@ export default function ParticipantDashboard() {
 
       {/* LOGIN VIEW */}
       {!participant && (
-        <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-100 p-8 text-center animate-in fade-in slide-in-from-bottom-4">
-          <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-6">
-            👟
+        <>
+          {/* ANIMATED BACKGROUND */}
+          <div className="absolute inset-0 z-0">
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 opacity-100" />
+            <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] bg-blue-600/20 blur-[120px] rounded-full mix-blend-screen animate-pulse" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-indigo-500/20 blur-[120px] rounded-full mix-blend-screen animate-pulse" style={{ animationDelay: "2s" }} />
           </div>
 
-          <h1 className="text-2xl font-black text-slate-900 mb-2">
-            Dashboard Pelari
-          </h1>
-
-          <p className="text-slate-500 text-sm mb-8 leading-relaxed">
-            Masukkan alamat email yang Anda gunakan saat mendaftar Virtual Run
-            untuk masuk.
-          </p>
-
-          <form onSubmit={handleLoginSubmit} className="space-y-5">
-            <div className="text-left">
-              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
-                Alamat Email Pendaftaran
-              </label>
-
-              <input
-                type="email"
-                required
-                value={emailLogin}
-                onChange={(e) => setEmailLogin(e.target.value)}
-                placeholder="budi@gmail.com"
-                className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 font-medium transition-all"
-              />
+          <div className="relative z-10 w-full max-w-md bg-white/10 backdrop-blur-xl border border-white/20 rounded-[2rem] shadow-2xl p-8 sm:p-10 animate-in fade-in zoom-in-95 duration-700">
+            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-lg shadow-blue-500/30 rotate-3 hover:rotate-0 transition-transform duration-300">
+              <Activity className="w-10 h-10 text-white" />
             </div>
 
-            <button
-              type="submit"
-              disabled={isLoggingIn}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-md transition-all disabled:opacity-50"
-            >
-              {isLoggingIn ? "Memeriksa Data..." : "Masuk Dashboard"}
-            </button>
-          </form>
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-black text-white mb-2 tracking-tight">
+                Dashboard Pelari
+              </h1>
+              <p className="text-blue-100/70 text-sm leading-relaxed font-medium">
+                Sistem Informasi Terpadu<br/>IKA UII DIY Virtual Run
+              </p>
+            </div>
 
-          <div className="mt-8 flex flex-col gap-3 text-xs text-slate-500 font-medium border-t border-slate-100 pt-6">
-            <p>
-              Belum mendaftar event ini?{" "}
-              <Link
-                href="/virtual-run/register"
-                className="text-blue-600 font-bold hover:underline"
-              >
-                Daftar Sekarang
-              </Link>
-            </p>
+            {loginStep === "email" ? (
+              <form onSubmit={handleLoginSubmit} className="space-y-6">
+                <div className="text-left space-y-2">
+                  <label className="block text-xs font-bold text-blue-200 uppercase tracking-wider ml-1">
+                    Email Pendaftaran
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-blue-300/60">
+                      <Mail className="h-5 w-5" />
+                    </div>
+                    <input
+                      type="email"
+                      required
+                      value={emailLogin}
+                      onChange={(e) => setEmailLogin(e.target.value)}
+                      placeholder="budi@email.com"
+                      className="w-full pl-11 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-400 focus:bg-white/10 outline-none text-white placeholder-white/30 font-medium transition-all backdrop-blur-sm"
+                    />
+                  </div>
+                </div>
 
-            <button
-              onClick={handleLupaEmail}
-              className="text-slate-400 hover:text-slate-700 transition-colors underline"
-            >
-              Lupa email pendaftaran?
-            </button>
+                <button
+                  type="submit"
+                  disabled={isLoggingIn}
+                  className="w-full group bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isLoggingIn ? (
+                    "Memeriksa Data..."
+                  ) : (
+                    <>
+                      Lanjutkan <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </>
+                  )}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={verifyOtpAndLogin} className="space-y-6">
+                <div className="text-left space-y-2">
+                  <label className="block text-xs font-bold text-blue-200 uppercase tracking-wider ml-1">
+                    Kode Keamanan (OTP)
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-blue-300/60">
+                      <KeyRound className="h-5 w-5" />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={otpInput}
+                      onChange={(e) => setOtpInput(e.target.value.replace(/[^0-9]/g, ""))}
+                      placeholder="123456"
+                      className="w-full pl-11 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-400 focus:bg-white/10 outline-none text-white font-black tracking-[0.3em] text-center text-xl transition-all backdrop-blur-sm"
+                    />
+                  </div>
+                  <div className="flex items-start gap-2 mt-3 bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                    <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-blue-200/80 leading-relaxed">
+                      Kode 6 digit telah dikirim ke <strong>{emailLogin}</strong>. Berlaku selama 5 menit.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setLoginStep("email")}
+                    className="w-1/3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold py-4 rounded-xl transition-all backdrop-blur-sm"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isVerifyingOtp}
+                    className="w-2/3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50"
+                  >
+                    {isVerifyingOtp ? "Verifikasi..." : "Masuk"}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            <div className="mt-8 pt-6 border-t border-white/10">
+              <p className="text-blue-100/60 text-xs font-medium text-center">
+                Belum terdaftar?{" "}
+                <Link
+                  href="/virtual-run/register"
+                  className="text-blue-400 font-bold hover:text-blue-300 hover:underline transition-colors"
+                >
+                  Daftar Sekarang
+                </Link>
+              </p>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* DASHBOARD VIEW (MULTI-PAGE) */}
       {participant && (
         <>
-          <div className="bg-[#3b5998] pt-6 pb-28 px-4 sm:px-6 text-white relative">
-            <div className="max-w-6xl mx-auto">
+          {/* HEADER SECTION (PREMIUM GRADIENT) */}
+          <div className="bg-gradient-to-br from-blue-700 via-indigo-800 to-slate-900 pt-8 pb-32 px-4 sm:px-6 text-white relative overflow-hidden">
+            {/* Header Background Effects */}
+            <div className="absolute inset-0 z-0 pointer-events-none opacity-40">
+              <div className="absolute -top-[50%] -left-[10%] w-[50%] h-[150%] bg-blue-400/20 blur-[100px] rounded-full mix-blend-screen" />
+              <div className="absolute top-[20%] -right-[10%] w-[40%] h-[100%] bg-indigo-400/20 blur-[100px] rounded-full mix-blend-screen" />
+            </div>
+
+            <div className="max-w-6xl mx-auto relative z-10">
               {/* TOP NAVIGATION & DROPDOWN */}
-              <div className="flex justify-between items-center mb-8 relative z-50">
+              <div className="flex justify-between items-center mb-10 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-lg relative z-50">
                 {activeView === "dashboard" ? (
-                  <div className="font-black text-xl tracking-tight hidden sm:block">
+                  <div className="font-black text-xl tracking-tight flex items-center gap-2">
+                    <Activity className="w-6 h-6 text-blue-300" />
                     IKA UII DIY <span className="text-yellow-400">RUN</span>
                   </div>
                 ) : (
                   <button
                     onClick={() => setActiveView("dashboard")}
-                    className="text-blue-200 hover:text-white text-sm font-semibold flex items-center gap-2 transition-colors"
+                    className="text-blue-100 hover:text-white text-sm font-bold flex items-center gap-2 transition-all hover:-translate-x-1"
                   >
-                    &larr; Kembali ke Dashboard
+                    <ArrowRight className="w-4 h-4 rotate-180" /> Kembali ke Dashboard
                   </button>
                 )}
 
-                <div className="flex items-center gap-3 ml-auto">
+                <div className="flex items-center gap-4 ml-auto">
                   {activeView === "dashboard" && participantList.length > 1 && (
-                    <select
-                      value={participant.id}
-                      onChange={handleSwitchEvent}
-                      className="bg-[#2a437a] border border-blue-800/50 text-white text-xs font-bold py-2 px-3 rounded-xl outline-none cursor-pointer hover:bg-[#1f325c] transition-colors hidden sm:block"
-                    >
-                      {participantList.map((p, i) => (
-                        <option key={p.id} value={p.id}>
-                          Event {i + 1} - {p.jarak}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative hidden sm:block">
+                      <select
+                        value={participant.id}
+                        onChange={handleSwitchEvent}
+                        className="appearance-none bg-white/10 border border-white/20 text-white text-xs font-bold py-2.5 pl-4 pr-10 rounded-xl outline-none cursor-pointer hover:bg-white/20 transition-colors backdrop-blur-sm shadow-inner"
+                      >
+                        {participantList.map((p, i) => (
+                          <option key={p.id} value={p.id} className="text-slate-800">
+                            Event {i + 1} - {p.jarak}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/70" />
+                    </div>
                   )}
 
                   {/* USER MENU DROPDOWN */}
                   <div className="relative">
                     <button
                       onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      className="flex items-center gap-2.5 bg-[#2a437a] px-2.5 py-1.5 rounded-full border border-blue-800/50 hover:bg-[#1f325c] transition-colors"
+                      className="flex items-center gap-3 bg-white/10 pl-2 pr-3 py-1.5 rounded-full border border-white/20 hover:bg-white/20 transition-all shadow-sm backdrop-blur-sm"
                     >
-                      <div className="w-7 h-7 bg-blue-400 rounded-full flex items-center justify-center font-bold text-xs text-white overflow-hidden">
+                      <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center font-bold text-sm text-white overflow-hidden border border-white/30 shadow-inner">
                         {participant.fotoProfilUrl ? (
                           <img
                             src={participant.fotoProfilUrl}
@@ -1454,22 +1571,10 @@ export default function ParticipantDashboard() {
                           participant.nama.charAt(0).toUpperCase()
                         )}
                       </div>
-                      <span className="text-xs font-bold pr-1">
+                      <span className="text-xs font-bold hidden sm:block">
                         {participant.nama.split(" ")[0]}
                       </span>
-                      <svg
-                        className={`w-3.5 h-3.5 text-blue-200 transition-transform pr-1 ${isDropdownOpen ? "rotate-180" : ""}`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
+                      <ChevronDown className={`w-4 h-4 text-white/70 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
                     </button>
 
                     {isDropdownOpen && (
@@ -1478,33 +1583,21 @@ export default function ParticipantDashboard() {
                           className="fixed inset-0 z-40"
                           onClick={() => setIsDropdownOpen(false)}
                         ></div>
-                        <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden py-2 animate-in fade-in slide-in-from-top-2">
+                        <div className="absolute right-0 top-full mt-3 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden py-2 animate-in fade-in slide-in-from-top-2">
+                          
+                          <div className="px-5 py-3 border-b border-slate-100/80 mb-2">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Signed in as</p>
+                            <p className="text-sm font-black text-slate-800 truncate">{participant.email}</p>
+                          </div>
+
                           <button
                             onClick={() => {
                               setActiveView("dashboard");
                               setIsDropdownOpen(false);
                             }}
-                            className={`w-full text-left px-5 py-3 text-sm font-semibold flex items-center gap-3 transition-colors ${activeView === "dashboard" ? "text-blue-600 bg-blue-50" : "text-slate-600 hover:bg-slate-50 hover:text-blue-600"}`}
+                            className={`w-full text-left px-5 py-3 text-sm font-bold flex items-center gap-3 transition-colors ${activeView === "dashboard" ? "text-blue-600 bg-blue-50/50" : "text-slate-600 hover:bg-slate-50 hover:text-blue-600"}`}
                           >
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                              />
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                              />
-                            </svg>
+                            <Activity className="w-4 h-4" />
                             Dashboard
                           </button>
 
@@ -1513,21 +1606,9 @@ export default function ParticipantDashboard() {
                               setActiveView("riwayat");
                               setIsDropdownOpen(false);
                             }}
-                            className={`w-full text-left px-5 py-3 text-sm font-semibold flex items-center gap-3 transition-colors ${activeView === "riwayat" ? "text-blue-600 bg-blue-50" : "text-slate-600 hover:bg-slate-50 hover:text-blue-600"}`}
+                            className={`w-full text-left px-5 py-3 text-sm font-bold flex items-center gap-3 transition-colors ${activeView === "riwayat" ? "text-blue-600 bg-blue-50/50" : "text-slate-600 hover:bg-slate-50 hover:text-blue-600"}`}
                           >
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                              />
-                            </svg>
+                            <History className="w-4 h-4" />
                             Riwayat Pendaftaran
                           </button>
 
@@ -1536,43 +1617,19 @@ export default function ParticipantDashboard() {
                               setActiveView("profil");
                               setIsDropdownOpen(false);
                             }}
-                            className={`w-full text-left px-5 py-3 text-sm font-semibold flex items-center gap-3 transition-colors ${activeView === "profil" ? "text-blue-600 bg-blue-50" : "text-slate-600 hover:bg-slate-50 hover:text-blue-600"}`}
+                            className={`w-full text-left px-5 py-3 text-sm font-bold flex items-center gap-3 transition-colors ${activeView === "profil" ? "text-blue-600 bg-blue-50/50" : "text-slate-600 hover:bg-slate-50 hover:text-blue-600"}`}
                           >
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                              />
-                            </svg>
-                            Profil
+                            <User className="w-4 h-4" />
+                            Profil Pelari
                           </button>
 
-                          <div className="border-t border-slate-100 my-1.5"></div>
+                          <div className="border-t border-slate-100 my-2"></div>
 
                           <button
                             onClick={handleLogout}
-                            className="w-full text-left px-5 py-3 text-sm font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-3 transition-colors"
+                            className="w-full text-left px-5 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-3 transition-colors"
                           >
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                              />
-                            </svg>
+                            <LogOut className="w-4 h-4" />
                             Keluar
                           </button>
                         </div>
@@ -1587,38 +1644,42 @@ export default function ParticipantDashboard() {
                 <div className="animate-in fade-in duration-500">
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                     <div>
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        <span className="bg-[#2a437a] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        <span className="bg-white/10 backdrop-blur-sm border border-white/20 text-white text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm">
                           {participant.jarak}
                         </span>
                         <span
-                          className={`text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest flex items-center gap-1.5 border ${isLunas ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" : "bg-rose-500/20 text-rose-300 border-rose-500/30"}`}
+                          className={`text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest flex items-center gap-1.5 border shadow-sm backdrop-blur-sm ${isLunas ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" : "bg-rose-500/20 text-rose-300 border-rose-500/30"}`}
                         >
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${isLunas ? "bg-emerald-400" : "bg-rose-400 animate-pulse"}`}
+                            className={`w-1.5 h-1.5 rounded-full ${isLunas ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" : "bg-rose-400 animate-pulse shadow-[0_0_8px_rgba(251,113,133,0.8)]"}`}
                           ></span>
                           {isLunas ? "Pembayaran Lunas" : "Menunggu Pembayaran"}
                         </span>
                       </div>
 
-                      <h1 className="text-3xl md:text-5xl font-black mb-2 tracking-tight">
+                      <h1 className="text-3xl md:text-5xl font-black mb-3 tracking-tight drop-shadow-md">
                         Virtual Run IKA UII
                       </h1>
-                      <p className="text-blue-200 text-sm font-medium flex items-center gap-2">
-                        Paket: {participant.paket.toUpperCase()}
+                      <div className="flex flex-wrap items-center gap-3">
+                        <p className="text-blue-200 text-sm font-bold flex items-center gap-1.5 bg-black/20 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-md">
+                          <CheckCircle2 className="w-4 h-4 text-blue-400" />
+                          Paket: <span className="text-white">{participant.paket.toUpperCase()}</span>
+                        </p>
                         {/* 🔥 MENAMPILKAN NOMOR E-BIB JIKA SUDAH PUNYA 🔥 */}
                         {participant.nomorBibLengkap && (
-                          <span className="bg-blue-800 text-white px-2 py-0.5 rounded-md font-bold border border-blue-400/30 text-xs shadow-sm">
-                            BIB: {participant.nomorBibLengkap}
-                          </span>
+                          <p className="text-yellow-100 text-sm font-bold flex items-center gap-1.5 bg-yellow-500/20 px-3 py-1.5 rounded-lg border border-yellow-400/30 backdrop-blur-md shadow-[0_0_15px_rgba(234,179,8,0.15)]">
+                            <Trophy className="w-4 h-4 text-yellow-400" />
+                            BIB: <span className="text-white">{participant.nomorBibLengkap}</span>
+                          </p>
                         )}
-                      </p>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-4 shrink-0 bg-[#2a437a]/30 p-4 rounded-3xl border border-white/10 backdrop-blur-sm">
-                      <div className="relative w-24 h-24 flex items-center justify-center">
+                    <div className="flex items-center gap-5 shrink-0 bg-white/5 p-5 rounded-[2rem] border border-white/10 backdrop-blur-xl shadow-2xl">
+                      <div className="relative w-24 h-24 flex items-center justify-center drop-shadow-xl">
                         <svg
-                          className="w-full h-full transform -rotate-90"
+                          className="w-full h-full transform -rotate-90 drop-shadow-md"
                           viewBox="0 0 80 80"
                         >
                           <circle
@@ -1626,7 +1687,7 @@ export default function ParticipantDashboard() {
                             cy="40"
                             r={36}
                             fill="transparent"
-                            stroke="rgba(255,255,255,0.1)"
+                            stroke="rgba(255,255,255,0.05)"
                             strokeWidth="6"
                           />
                           <circle
@@ -1647,55 +1708,62 @@ export default function ParticipantDashboard() {
                         </svg>
 
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                          <span className="text-xl font-black leading-none">
+                          <span className="text-xl font-black leading-none tracking-tighter">
                             {Math.round(progressPercent)}%
                           </span>
                         </div>
                       </div>
 
-                      <div className="text-xs font-bold text-blue-200">
-                        <p className="mb-1">
+                      <div className="text-xs font-bold text-blue-200/80 space-y-1.5">
+                        <p className="bg-black/20 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm">
                           Target:{" "}
-                          <span className="text-white">{targetKm} KM</span>
+                          <span className="text-white ml-1">{targetKm} KM</span>
                         </p>
-                        <p>
+                        <p className="bg-black/20 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm">
                           Status:{" "}
                           {isFinisher ? (
-                            <span className="text-emerald-400">
-                              Tercapai 🎉
-                            </span>
+                            <span className="text-emerald-400 ml-1">Tercapai 🎉</span>
                           ) : (
-                            <span className="text-blue-400">Berjalan</span>
+                            <span className="text-blue-400 ml-1">Berjalan</span>
                           )}
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3 md:gap-6 mt-10">
-                    <div className="bg-[#2a437a]/50 border border-white/10 backdrop-blur-sm p-4 sm:p-5 rounded-2xl text-center">
-                      <p className="text-[9px] sm:text-xs font-bold text-blue-200 uppercase tracking-widest mb-1.5">
+                  <div className="grid grid-cols-3 gap-3 md:gap-6 mt-12">
+                    <div className="bg-white/5 border border-white/10 backdrop-blur-md p-5 rounded-3xl text-center shadow-lg hover:bg-white/10 transition-colors group">
+                      <div className="w-8 h-8 bg-blue-500/20 text-blue-300 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                        <MapPin className="w-4 h-4" />
+                      </div>
+                      <p className="text-[9px] sm:text-[10px] font-bold text-blue-200/70 uppercase tracking-widest mb-1">
                         KM Ditempuh
                       </p>
-                      <p className="text-xl sm:text-3xl font-black text-white">
+                      <p className="text-2xl sm:text-4xl font-black text-white tracking-tight drop-shadow-sm">
                         {totalApprovedKm.toFixed(2)}
                       </p>
                     </div>
 
-                    <div className="bg-[#2a437a]/50 border border-white/10 backdrop-blur-sm p-4 sm:p-5 rounded-2xl text-center">
-                      <p className="text-[9px] sm:text-xs font-bold text-blue-200 uppercase tracking-widest mb-1.5">
+                    <div className="bg-white/5 border border-white/10 backdrop-blur-md p-5 rounded-3xl text-center shadow-lg hover:bg-white/10 transition-colors group">
+                      <div className="w-8 h-8 bg-indigo-500/20 text-indigo-300 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                        <Clock className="w-4 h-4" />
+                      </div>
+                      <p className="text-[9px] sm:text-[10px] font-bold text-blue-200/70 uppercase tracking-widest mb-1">
                         Durasi Total
                       </p>
-                      <p className="text-xl sm:text-3xl font-black text-white">
+                      <p className="text-2xl sm:text-4xl font-black text-white tracking-tight drop-shadow-sm">
                         {hitungTotalDurasi()}
                       </p>
                     </div>
 
-                    <div className="bg-[#2a437a]/50 border border-white/10 backdrop-blur-sm p-4 sm:p-5 rounded-2xl text-center">
-                      <p className="text-[9px] sm:text-xs font-bold text-blue-200 uppercase tracking-widest mb-1.5">
+                    <div className="bg-white/5 border border-white/10 backdrop-blur-md p-5 rounded-3xl text-center shadow-lg hover:bg-white/10 transition-colors group">
+                      <div className="w-8 h-8 bg-emerald-500/20 text-emerald-300 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                        <Activity className="w-4 h-4" />
+                      </div>
+                      <p className="text-[9px] sm:text-[10px] font-bold text-blue-200/70 uppercase tracking-widest mb-1">
                         Aktivitas
                       </p>
-                      <p className="text-xl sm:text-3xl font-black text-white">
+                      <p className="text-2xl sm:text-4xl font-black text-white tracking-tight drop-shadow-sm">
                         {totalAktivitas}
                       </p>
                     </div>
@@ -1706,28 +1774,32 @@ export default function ParticipantDashboard() {
               {/* HEADER: RIWAYAT VIEW */}
               {activeView === "riwayat" && (
                 <div className="text-center pt-8 pb-4 animate-in fade-in duration-500">
-                  <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white text-[11px] font-bold px-4 py-1.5 rounded-full mb-4 uppercase tracking-widest">
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                      />
-                    </svg>
+                  <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 text-white text-[11px] font-bold px-5 py-2 rounded-full mb-6 uppercase tracking-widest shadow-sm">
+                    <History className="w-4 h-4 text-blue-300" />
                     Riwayat Pendaftaran
                   </div>
-                  <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
+                  <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-4 drop-shadow-md">
                     Riwayat Event
                   </h1>
-                  <p className="text-blue-200 text-sm font-medium max-w-lg mx-auto">
+                  <p className="text-blue-100 text-sm font-medium max-w-lg mx-auto leading-relaxed">
                     Lihat semua event yang telah Anda daftarkan beserta status
-                    pembayarannya.
+                    pembayarannya secara transparan.
+                  </p>
+                </div>
+              )}
+
+              {/* HEADER: PROFIL VIEW */}
+              {activeView === "profil" && (
+                <div className="text-center pt-8 pb-4 animate-in fade-in duration-500">
+                  <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 text-white text-[11px] font-bold px-5 py-2 rounded-full mb-6 uppercase tracking-widest shadow-sm">
+                    <User className="w-4 h-4 text-blue-300" />
+                    Profil Pelari
+                  </div>
+                  <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-4 drop-shadow-md">
+                    Pengaturan Profil
+                  </h1>
+                  <p className="text-blue-100 text-sm font-medium max-w-lg mx-auto leading-relaxed">
+                    Kelola informasi pribadi, motto lari, dan foto profil yang akan tampil di halaman berbagi publik Anda.
                   </p>
                 </div>
               )}
@@ -1745,12 +1817,12 @@ export default function ParticipantDashboard() {
                   {!isLunas && (
                     <div className="bg-rose-50 border border-rose-200 rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col items-center sm:items-start gap-4">
                       <div className="flex items-center gap-4 w-full">
-                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-2xl shrink-0 shadow-sm border border-rose-100">
+                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm border border-rose-100">
                           {vrSettings?.metodePembayaran === "manual"
-                            ? "🏦"
+                            ? <CreditCard className="w-6 h-6 text-rose-500" />
                             : vrSettings?.metodePembayaran === "qris"
-                              ? "📱"
-                              : "⚠️"}
+                              ? <svg className="w-6 h-6 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+                              : <Info className="w-6 h-6 text-rose-500" />}
                         </div>
                         <div className="flex-grow text-left">
                           <h3 className="font-black text-lg text-rose-900 leading-tight">
@@ -1775,8 +1847,8 @@ export default function ParticipantDashboard() {
                       (vrSettings?.metodePembayaran === "manual" ||
                         vrSettings?.metodePembayaran === "qris") ? (
                         <div className="w-full bg-amber-50 border border-amber-200 rounded-2xl p-4 mt-2 text-center animate-in fade-in">
-                          <p className="text-sm font-bold text-amber-800">
-                            ⏳ Bukti Transfer Sedang Diverifikasi
+                          <p className="text-sm font-bold text-amber-800 flex items-center justify-center gap-2">
+                            <Clock className="w-4 h-4" /> Bukti Transfer Sedang Diverifikasi
                           </p>
                           <p className="text-xs text-amber-700 mt-1">
                             Admin sedang mengecek mutasi rekening/pembayaran
@@ -1963,13 +2035,13 @@ export default function ParticipantDashboard() {
                   )}
 
                   {isFinisher && isLunas && (
-                    <div className="bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-3xl p-6 sm:p-8 text-white shadow-lg flex flex-col sm:flex-row justify-between items-center gap-4 relative overflow-hidden">
-                      <div className="absolute -right-10 -top-10 text-9xl opacity-20 rotate-12">
-                        🏅
+                    <div className="bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-emerald-500/20 flex flex-col sm:flex-row justify-between items-center gap-4 relative overflow-hidden">
+                      <div className="absolute -right-4 -top-4 opacity-20 transform rotate-12 scale-150">
+                        <Medal className="w-40 h-40" />
                       </div>
                       <div className="flex items-center gap-5 relative z-10">
-                        <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl shrink-0 backdrop-blur-md border border-white/30 shadow-inner">
-                          🏆
+                        <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center shrink-0 backdrop-blur-md border border-white/30 shadow-inner">
+                          <Trophy className="w-8 h-8 text-yellow-300" />
                         </div>
                         <div>
                           <h3 className="font-black text-2xl mb-1 tracking-tight">
@@ -2064,52 +2136,52 @@ export default function ParticipantDashboard() {
 
                   {/* DOKUMEN DIGITAL & PENGIRIMAN */}
                   {isLunas && (
-                    <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200">
+                    <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
                       <h3 className="font-black text-slate-800 text-lg mb-6 flex items-center gap-2">
-                        <span className="bg-purple-100 text-purple-600 p-1.5 rounded-lg">
-                          🗂️
-                        </span>{" "}
+                        <div className="bg-purple-100 text-purple-600 p-2 rounded-xl">
+                          <FileText className="w-5 h-5" />
+                        </div>
                         Dokumen & Pengiriman
                       </h3>
 
                       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                         {/* KUITANSI */}
-                        <div className="border border-slate-200 rounded-2xl p-5 flex flex-col justify-between bg-slate-50 relative overflow-hidden group hover:border-emerald-300 transition-colors">
-                          <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[9px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-widest shadow-sm">
+                        <div className="border border-slate-100 rounded-2xl p-5 flex flex-col justify-between bg-slate-50 relative overflow-hidden group hover:border-emerald-300 hover:shadow-md transition-all">
+                          <div className="absolute top-0 right-0 bg-gradient-to-l from-emerald-500 to-emerald-400 text-white text-[9px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-widest shadow-sm">
                             Valid
                           </div>
                           <div className="flex items-center gap-4 mb-5 mt-2">
-                            <div className="w-12 h-12 bg-white text-emerald-600 border border-slate-200 rounded-2xl flex items-center justify-center text-xl shadow-sm">
-                              🧾
+                            <div className="w-12 h-12 bg-white text-emerald-500 border border-slate-100 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                              <CheckCircle2 className="w-6 h-6" />
                             </div>
                             <div className="overflow-hidden">
                               <p className="font-black text-slate-800 text-base truncate">
                                 Kuitansi
                               </p>
-                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate mt-0.5">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate mt-0.5">
                                 Bukti Bayar Sah
                               </p>
                             </div>
                           </div>
                           <button
                             onClick={() => handleDownloadDocument("kuitansi")}
-                            className="w-full bg-white border border-emerald-200 hover:bg-emerald-50 text-emerald-700 font-bold py-2.5 rounded-xl text-xs transition-colors shadow-sm"
+                            className="w-full bg-white border border-emerald-200 hover:bg-emerald-50 text-emerald-600 font-bold py-2.5 rounded-xl text-xs transition-colors shadow-sm"
                           >
                             Unduh Kuitansi HD
                           </button>
                         </div>
 
                         {/* E-BIB */}
-                        <div className="border border-slate-200 rounded-2xl p-5 flex flex-col justify-between bg-slate-50 hover:border-blue-300 transition-colors">
+                        <div className="border border-slate-100 rounded-2xl p-5 flex flex-col justify-between bg-slate-50 hover:border-blue-300 hover:shadow-md transition-all group">
                           <div className="flex items-center gap-4 mb-5 mt-2">
-                            <div className="w-12 h-12 bg-white text-blue-600 border border-slate-200 rounded-2xl flex items-center justify-center text-xl shadow-sm">
-                              🏃‍♂️
+                            <div className="w-12 h-12 bg-white text-blue-500 border border-slate-100 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                              <Activity className="w-6 h-6" />
                             </div>
                             <div className="overflow-hidden">
                               <p className="font-black text-slate-800 text-base truncate">
                                 e-BIB
                               </p>
-                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate mt-0.5">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate mt-0.5">
                                 Nomor Dada
                               </p>
                             </div>
@@ -2123,16 +2195,16 @@ export default function ParticipantDashboard() {
                         </div>
 
                         {/* SERTIFIKAT */}
-                        <div className="border border-slate-200 rounded-2xl p-5 flex flex-col justify-between bg-slate-50 hover:border-amber-300 transition-colors">
+                        <div className="border border-slate-100 rounded-2xl p-5 flex flex-col justify-between bg-slate-50 hover:border-amber-300 hover:shadow-md transition-all group">
                           <div className="flex items-center gap-4 mb-5 mt-2">
-                            <div className="w-12 h-12 bg-white text-amber-500 border border-slate-200 rounded-2xl flex items-center justify-center text-xl shadow-sm">
-                              🏅
+                            <div className="w-12 h-12 bg-white text-amber-500 border border-slate-100 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                              <Medal className="w-6 h-6" />
                             </div>
                             <div className="overflow-hidden">
                               <p className="font-black text-slate-800 text-base truncate">
                                 e-Cert
                               </p>
-                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate mt-0.5">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate mt-0.5">
                                 Finisher Only
                               </p>
                             </div>
@@ -2140,19 +2212,18 @@ export default function ParticipantDashboard() {
                           <button
                             disabled={!isFinisher}
                             onClick={() => handleDownloadDocument("sertifikat")}
-                            className={`w-full font-bold py-2.5 rounded-xl text-xs transition-colors shadow-sm ${isFinisher ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-slate-200 text-slate-400 cursor-not-allowed"}`}
+                            className={`w-full font-bold py-2.5 rounded-xl text-xs transition-colors shadow-sm ${isFinisher ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300/50"}`}
                           >
                             {isFinisher ? "Unduh Sertifikat" : "Terkunci"}
                           </button>
                         </div>
 
                         {/* RESI PENGIRIMAN */}
-                        {(participant.paket === "standard" ||
-                          participant.paket === "full") && (
-                          <div className="border border-slate-200 rounded-2xl p-5 flex flex-col justify-between bg-slate-50 sm:col-span-2 lg:col-span-3 hover:border-purple-300 transition-colors">
+                        {participant.paket !== "basic" && (
+                          <div className="border border-slate-100 rounded-2xl p-5 flex flex-col justify-between bg-slate-50 sm:col-span-2 lg:col-span-3 hover:border-purple-300 transition-all">
                             <div className="flex items-center gap-4 mb-4">
-                              <div className="w-12 h-12 bg-white text-purple-600 border border-slate-200 rounded-2xl flex items-center justify-center text-xl shadow-sm">
-                                📦
+                              <div className="w-12 h-12 bg-white text-purple-500 border border-slate-100 rounded-2xl flex items-center justify-center shadow-sm">
+                                <UploadCloud className="w-6 h-6" />
                               </div>
                               <div className="overflow-hidden">
                                 <p className="font-black text-slate-800 text-base truncate">
@@ -2163,7 +2234,7 @@ export default function ParticipantDashboard() {
                                 </p>
                               </div>
                             </div>
-                            <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between gap-4">
+                            <div className="bg-white border border-slate-100 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                               <div>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
                                   Nomor Resi / Ekspedisi
@@ -2185,7 +2256,7 @@ export default function ParticipantDashboard() {
                                       text: "Nomor resi disalin ke clipboard.",
                                     });
                                   }}
-                                  className="bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold py-2 px-4 rounded-lg text-xs transition-colors border border-purple-200 shrink-0"
+                                  className="bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold py-2.5 px-6 rounded-xl text-xs transition-colors border border-purple-200 shrink-0"
                                 >
                                   Salin Resi
                                 </button>
@@ -2198,23 +2269,23 @@ export default function ParticipantDashboard() {
                   )}
 
                   {/* AKTIVITAS LARI */}
-                  <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200">
+                  <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
                     <h3 className="font-black text-slate-800 text-lg mb-6 flex items-center gap-2">
-                      <span className="bg-blue-100 text-blue-600 p-1.5 rounded-lg">
-                        👟
-                      </span>{" "}
+                      <div className="bg-blue-100 text-blue-600 p-2 rounded-xl">
+                        <Activity className="w-5 h-5" />
+                      </div>
                       Aktivitas Lari
-                      <span className="bg-slate-100 text-slate-500 text-xs px-2.5 py-0.5 rounded-full ml-2 border border-slate-200">
+                      <span className="bg-slate-50 text-slate-500 text-xs px-2.5 py-0.5 rounded-full ml-2 border border-slate-200 shadow-sm font-bold">
                         {submissions.length}
                       </span>
                     </h3>
 
                     {submissions.length === 0 ? (
-                      <div className="text-center py-12 text-slate-400 font-medium border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50">
-                        <div className="text-4xl mb-3 opacity-50 grayscale">
-                          🏃‍♀️
+                      <div className="text-center py-16 text-slate-400 font-medium border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
+                        <div className="w-16 h-16 bg-white border border-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                          <Activity className="w-8 h-8 text-slate-300" />
                         </div>
-                        <p className="text-sm">
+                        <p className="text-sm text-slate-500">
                           Belum ada bukti lari yang diunggah.
                         </p>
                       </div>
@@ -2223,19 +2294,20 @@ export default function ParticipantDashboard() {
                         {submissions.map((sub, index) => (
                           <div
                             key={index}
-                            className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 sm:p-5 border border-slate-200 rounded-2xl hover:bg-slate-50 transition-colors shadow-sm"
+                            className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 sm:p-5 border border-slate-100 rounded-2xl hover:bg-slate-50 hover:border-slate-200 transition-all shadow-sm"
                           >
                             <div className="flex items-center gap-4 flex-grow">
                               <img
                                 src={sub.imgUrl}
                                 alt="Bukti"
-                                className="w-16 h-16 object-cover rounded-xl border border-slate-200 shrink-0 bg-slate-100 shadow-inner"
+                                className="w-16 h-16 object-cover rounded-xl border border-slate-200 shrink-0 bg-slate-100 shadow-sm"
                               />
                               <div className="flex-grow min-w-0">
                                 <h4 className="font-black text-slate-800 text-base mb-1 truncate">
                                   Lari {sub.jarakKm} KM
                                 </h4>
-                                <p className="text-xs font-medium text-slate-500 flex items-center gap-1.5 truncate">
+                                <p className="text-xs font-semibold text-slate-500 flex items-center gap-1.5 truncate">
+                                  <Calendar className="w-3.5 h-3.5" />
                                   {new Date(sub.tanggalLari).toLocaleDateString(
                                     "id-ID",
                                     {
@@ -2244,24 +2316,24 @@ export default function ParticipantDashboard() {
                                       year: "numeric",
                                     },
                                   )}{" "}
-                                  • Durasi: {sub.durasi}
+                                  • <Clock className="w-3.5 h-3.5 ml-1" /> {sub.durasi}
                                 </p>
                               </div>
                             </div>
                             <div className="shrink-0 sm:text-right border-t sm:border-t-0 border-slate-100 pt-3 sm:pt-0 mt-3 sm:mt-0">
                               {sub.status === "Approved" && (
-                                <span className="inline-block text-emerald-600 bg-emerald-50 text-[10px] font-black px-3 py-1.5 rounded-lg border border-emerald-200 uppercase tracking-widest shadow-sm">
-                                  ✅ Disetujui
+                                <span className="inline-flex items-center gap-1.5 text-emerald-600 bg-emerald-50 text-[10px] font-black px-3 py-1.5 rounded-lg border border-emerald-200 uppercase tracking-widest shadow-sm">
+                                  <Check className="w-3 h-3" /> Disetujui
                                 </span>
                               )}
                               {sub.status === "Pending" && (
-                                <span className="inline-block text-amber-600 bg-amber-50 text-[10px] font-black px-3 py-1.5 rounded-lg border border-amber-200 uppercase tracking-widest shadow-sm">
-                                  ⏳ Diperiksa
+                                <span className="inline-flex items-center gap-1.5 text-amber-600 bg-amber-50 text-[10px] font-black px-3 py-1.5 rounded-lg border border-amber-200 uppercase tracking-widest shadow-sm">
+                                  <Clock className="w-3 h-3" /> Diperiksa
                                 </span>
                               )}
                               {sub.status === "Rejected" && (
-                                <span className="inline-block text-rose-600 bg-rose-50 text-[10px] font-black px-3 py-1.5 rounded-lg border border-rose-200 uppercase tracking-widest shadow-sm">
-                                  ❌ Ditolak
+                                <span className="inline-flex items-center gap-1.5 text-rose-600 bg-rose-50 text-[10px] font-black px-3 py-1.5 rounded-lg border border-rose-200 uppercase tracking-widest shadow-sm">
+                                  <X className="w-3 h-3" /> Ditolak
                                 </span>
                               )}
                             </div>
@@ -2274,13 +2346,13 @@ export default function ParticipantDashboard() {
 
                 {/* KANAN: WIDGET UPLOAD BUKTI LARI */}
                 <div className="lg:col-span-4 lg:sticky lg:top-6">
-                  <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden relative">
-                    <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-orange-400 via-yellow-400 to-amber-500"></div>
+                  <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 overflow-hidden relative group">
+                    <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
                     <div className="p-6 sm:p-8">
                       <h3 className="font-black text-slate-800 text-lg mb-2 flex items-center gap-2">
-                        <span className="bg-orange-100 text-orange-600 p-1.5 rounded-lg">
-                          🔥
-                        </span>{" "}
+                        <div className="bg-blue-100 text-blue-600 p-1.5 rounded-lg">
+                          <UploadCloud className="w-5 h-5" />
+                        </div>
                         Upload Bukti Lari
                       </h3>
                       <p className="text-xs font-medium text-slate-500 mb-6">
@@ -2289,33 +2361,45 @@ export default function ParticipantDashboard() {
                       </p>
 
                       {!isLunas ? (
-                        <div className="text-center py-10 bg-slate-50 border border-slate-200 rounded-2xl">
-                          <div className="text-4xl mb-3 grayscale opacity-50">
-                            🔒
+                        <div className="text-center py-10 bg-slate-50 border border-slate-100 rounded-2xl">
+                          <div className="w-14 h-14 bg-white border border-slate-200 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-slate-400">
+                            <ShieldCheck className="w-6 h-6" />
                           </div>
                           <p className="text-sm font-bold text-slate-600 px-4">
                             Fitur terkunci. Silakan selesaikan pembayaran
                             terlebih dahulu.
                           </p>
                         </div>
-                      ) : isFinisher ? (
-                        <div className="text-center py-10 bg-emerald-50 border border-emerald-100 rounded-2xl shadow-inner">
-                          <div className="text-5xl mb-3">🏁</div>
-                          <p className="text-base font-black text-emerald-800">
-                            Target Tercapai!
-                          </p>
-                          <p className="text-xs font-medium text-emerald-600 mt-2 px-4">
-                            Kamu sudah menyelesaikan tantangan. Tidak perlu
-                            unggah bukti lagi.
+                      ) : !isSubmissionOpen ? (
+                        <div className="text-center py-10 bg-slate-50 border border-slate-100 rounded-2xl">
+                          <div className="w-14 h-14 bg-white border border-slate-200 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-slate-400">
+                            <Clock className="w-6 h-6" />
+                          </div>
+                          <p className="text-sm font-bold text-slate-600 px-4">
+                            {!isSubmissionStarted ? "Periode submit bukti lari belum dimulai. Pemanasan dulu ya!" : "Waktu submit bukti lari telah berakhir."}
                           </p>
                         </div>
                       ) : (
-                        <form
-                          onSubmit={handleUploadSubmit}
-                          className="space-y-5"
-                        >
-                          <div
-                            className={`border-2 border-dashed rounded-2xl p-2 text-center transition-all relative overflow-hidden group cursor-pointer ${previewUrl ? "border-blue-400 bg-blue-50/50" : "border-slate-300 bg-slate-50 hover:bg-blue-50 hover:border-blue-300"}`}
+                        <>
+                          {isFinisher && (
+                            <div className="mb-6 p-4 bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200 rounded-2xl shadow-sm flex items-start gap-4 animate-in fade-in slide-in-from-top-2">
+                              <div className="w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center shrink-0 shadow-inner mt-0.5">
+                                <Trophy className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-black text-emerald-800">Target Tercapai! 🎉</p>
+                                <p className="text-xs font-medium text-emerald-600 mt-1 leading-relaxed">
+                                  Syarat Finisher terpenuhi, tapi petualangan belum usai! Terus berlari dan tambah jarak untuk membuka <b>Badge Level Gamifikasi</b> yang lebih tinggi.
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                          <form
+                            onSubmit={handleUploadSubmit}
+                            className="space-y-5"
+                          >
+                            <div
+                            className={`border-2 border-dashed rounded-2xl p-2 text-center transition-all relative overflow-hidden group/upload cursor-pointer ${previewUrl ? "border-blue-400 bg-blue-50/50" : "border-slate-200 bg-slate-50 hover:bg-blue-50/50 hover:border-blue-300"}`}
                           >
                             {previewUrl ? (
                               <div className="relative">
@@ -2324,28 +2408,16 @@ export default function ParticipantDashboard() {
                                   alt="Preview"
                                   className="w-full h-48 object-cover rounded-xl shadow-sm"
                                 />
-                                <div className="absolute inset-0 bg-blue-900/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-xl backdrop-blur-sm">
-                                  <span className="text-white text-xs font-black uppercase tracking-widest bg-white/20 px-4 py-2 rounded-xl border border-white/30">
+                                <div className="absolute inset-0 bg-blue-900/60 flex items-center justify-center opacity-0 group-hover/upload:opacity-100 transition-opacity rounded-xl backdrop-blur-sm">
+                                  <span className="text-white text-xs font-black uppercase tracking-widest bg-white/20 px-4 py-2 rounded-xl border border-white/30 backdrop-blur-md">
                                     Ganti Gambar
                                   </span>
                                 </div>
                               </div>
                             ) : (
                               <div className="py-10 px-4">
-                                <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-blue-500 shadow-sm border border-slate-200 mx-auto mb-4">
-                                  <svg
-                                    className="w-6 h-6"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2.5}
-                                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                                    />
-                                  </svg>
+                                <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-blue-500 shadow-sm border border-slate-100 mx-auto mb-4 group-hover/upload:scale-110 transition-transform">
+                                  <Camera className="w-6 h-6" />
                                 </div>
                                 <span className="text-sm font-black text-slate-700 block mb-1">
                                   Pilih gambar screenshot
@@ -2424,7 +2496,7 @@ export default function ParticipantDashboard() {
                           <button
                             type="submit"
                             disabled={isUploading}
-                            className="w-full bg-[#3b5998] hover:bg-[#2a437a] text-white font-black py-4 rounded-xl shadow-lg shadow-blue-900/20 transition-all mt-6 flex items-center justify-center gap-2 disabled:opacity-50"
+                            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black py-4 rounded-xl shadow-lg shadow-blue-500/25 transition-all mt-6 flex items-center justify-center gap-2 disabled:opacity-50"
                           >
                             {isUploading ? (
                               <span className="flex items-center gap-2">
@@ -2432,10 +2504,13 @@ export default function ParticipantDashboard() {
                                 Mengunggah...
                               </span>
                             ) : (
-                              "Kirim Bukti Lari"
+                              <>
+                                Kirim Bukti Lari <ArrowRight className="w-4 h-4 ml-1" />
+                              </>
                             )}
                           </button>
-                        </form>
+                          </form>
+                        </>
                       )}
                     </div>
                   </div>
@@ -2450,20 +2525,8 @@ export default function ParticipantDashboard() {
                   {/* EDIT PROFIL CARD */}
                   <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8">
                     <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-5">
-                      <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                          />
-                        </svg>
+                      <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shadow-sm">
+                        <User className="w-5 h-5" />
                       </div>
                       <div>
                         <h2 className="text-xl font-black text-slate-800">
@@ -2582,8 +2645,8 @@ export default function ParticipantDashboard() {
                                 className="w-full h-24 mx-auto rounded-xl object-cover mb-4 shadow-sm border-2 border-white"
                               />
                             ) : (
-                              <div className="w-full h-24 bg-slate-100 rounded-xl mb-4 border border-slate-200 flex items-center justify-center shadow-inner">
-                                <span className="text-3xl opacity-20">🏞️</span>
+                              <div className="w-full h-24 bg-slate-100 rounded-xl mb-4 border border-slate-200 flex items-center justify-center shadow-inner group-hover:bg-slate-200/50 transition-colors">
+                                <Image className="w-8 h-8 text-slate-400" />
                               </div>
                             )}
                           </div>
@@ -2640,20 +2703,8 @@ export default function ParticipantDashboard() {
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
                     <div className="relative z-10">
                       <div className="flex items-center gap-3 mb-6 border-b border-white/10 pb-5">
-                        <div className="w-10 h-10 bg-white/20 text-white rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/30">
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-                            />
-                          </svg>
+                        <div className="w-10 h-10 bg-white/20 text-white rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/30 shadow-sm">
+                          <Share2 className="w-5 h-5" />
                         </div>
                         <div>
                           <h3 className="font-black text-white text-base">
@@ -2683,19 +2734,7 @@ export default function ParticipantDashboard() {
                           }}
                           className="bg-white text-blue-900 font-black py-3 rounded-xl text-xs transition-transform hover:-translate-y-1 flex items-center justify-center gap-2 shadow-lg"
                         >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2.5}
-                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                            />
-                          </svg>
+                          <Copy className="w-4 h-4" />
                           Salin
                         </button>
                         <button
@@ -2723,19 +2762,7 @@ export default function ParticipantDashboard() {
                   {/* PENGATURAN AKUN (TERKUNCI) */}
                   <div className="bg-slate-50 rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm text-center">
                     <div className="w-12 h-12 bg-white text-slate-400 rounded-2xl flex items-center justify-center shadow-sm border border-slate-200 mx-auto mb-4">
-                      <svg
-                        className="w-6 h-6"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                        />
-                      </svg>
+                      <Shield className="w-6 h-6" />
                     </div>
                     <h3 className="font-black text-slate-700 text-lg mb-1">
                       Pengaturan Akun UII
@@ -2757,19 +2784,7 @@ export default function ParticipantDashboard() {
               <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4">
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
                   <div className="relative w-full sm:w-96">
-                    <svg
-                      className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2.5}
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
-                    </svg>
+                    <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
                       placeholder="Cari riwayat pendaftaran..."
@@ -2789,8 +2804,8 @@ export default function ParticipantDashboard() {
                       >
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5 border-b border-slate-100 pb-5">
                           <div className="flex items-center gap-4 sm:gap-5">
-                            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-50 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl shrink-0 border border-blue-100 shadow-inner">
-                              🏃‍♂️
+                            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center shrink-0 border border-blue-100 shadow-inner group-hover:bg-blue-100 transition-colors">
+                              <Activity className="w-8 h-8 sm:w-10 sm:h-10" />
                             </div>
                             <div>
                               <h3 className="font-black text-base sm:text-lg text-slate-900 mb-1">
@@ -2800,19 +2815,7 @@ export default function ParticipantDashboard() {
                                 {ev.jarak} • Paket {ev.paket.toUpperCase()}
                               </p>
                               <p className="text-[10px] font-bold text-slate-400 mt-1 flex items-center gap-1.5 uppercase tracking-widest">
-                                <svg
-                                  className="w-3.5 h-3.5"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2.5}
-                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z"
-                                  />
-                                </svg>
+                                <Calendar className="w-3.5 h-3.5" />
                                 {new Date(ev.waktuDaftar).toLocaleDateString(
                                   "id-ID",
                                   {
@@ -2834,20 +2837,7 @@ export default function ParticipantDashboard() {
                             </span>
                             {isThisFinisher && (
                               <p className="text-[10px] font-bold text-emerald-600 flex items-center gap-1 sm:justify-end mt-2 uppercase tracking-widest">
-                                <svg
-                                  className="w-3.5 h-3.5"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={3}
-                                    d="M5 13l4 4L19 7"
-                                  />
-                                </svg>{" "}
-                                Finisher
+                                <CheckCircle2 className="w-3.5 h-3.5" /> Finisher
                               </p>
                             )}
                           </div>
@@ -2863,8 +2853,7 @@ export default function ParticipantDashboard() {
                                 Rp {ev.totalTagihan?.toLocaleString("id-ID")}
                               </p>
                             </div>
-                            {(ev.paket === "standard" ||
-                              ev.paket === "full") && (
+                            {ev.paket !== "basic" && (
                               <div className="border-t sm:border-t-0 sm:border-l border-slate-200 pt-3 sm:pt-0 sm:pl-8">
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">
                                   Resi Pengiriman
@@ -2885,8 +2874,7 @@ export default function ParticipantDashboard() {
                             onClick={() => pindahKeDashboardEvent(ev.id)}
                             className="w-full sm:w-auto text-blue-600 hover:text-white font-bold text-sm flex items-center justify-center gap-2 px-5 py-3 border border-blue-200 hover:border-blue-600 hover:bg-blue-600 rounded-xl transition-all shadow-sm"
                           >
-                            Masuk Dashboard{" "}
-                            <span className="font-normal">&rarr;</span>
+                            Masuk Dashboard <ArrowRight className="w-4 h-4 ml-1" />
                           </button>
                         </div>
                       </div>

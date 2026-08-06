@@ -235,19 +235,27 @@ function OfflineRunLandingPageContent() {
           </div>
         )}
 
-        <div className="flex flex-wrap justify-center gap-4 relative z-10 animate-in fade-in duration-1000 delay-500">
-          <a
-            href="https://instagram.com/ikauii.diy"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239] px-6 py-3 rounded-full flex items-center gap-2.5 transition-all font-black text-sm shadow-lg"
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2.163c3.204 0 3.584.012 4.85.067 3.282.153 4.769 1.64 4.922 4.922.055 1.266.067 1.646.067 4.849 0 3.204-.012 3.584-.067 4.85-.153 3.282-1.64 4.769-4.922 4.922-1.266.055-1.646.067-4.85.067-3.204 0-3.584-.012-4.85-.067-3.282-.153-4.769-1.64-4.922-4.922-.055-1.266-.067-1.646-.067-4.849 0-3.204.012-3.584.067-4.85.153-3.282 1.64-4.769 4.922-4.922 1.266-.055 1.646-.067 4.85-.067zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 1.61-6.98 5.928-.058 1.28-.072 1.688-.072 4.947s.014 3.667.072 4.947c.2 4.358 2.618 6.78 5.928 6.98 1.28.058 1.688.072 4.947.072 3.259 0 3.667-.014 4.947-.072 4.358-.2 6.78-1.61 6.98-5.928.058-1.28.072-1.688.072-4.947s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-5.928-6.98-1.28-.058-1.688-.072-4.947-.072zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.791-4-4s1.791-4 4-4 4 1.791 4 4-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-            </svg>
-            @ikauii.diy
-          </a>
-        </div>
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <a
+              href="https://instagram.com/ikauii.diy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239] px-6 py-3 rounded-full flex items-center justify-center gap-2.5 transition-all font-black text-sm shadow-lg w-full sm:w-auto"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.067 3.282.153 4.769 1.64 4.922 4.922.055 1.266.067 1.646.067 4.849 0 3.204-.012 3.584-.067 4.85-.153 3.282-1.64 4.769-4.922 4.922-1.266.055-1.646.067-4.85.067-3.204 0-3.584-.012-4.85-.067-3.282-.153-4.769-1.64-4.922-4.922-.055-1.266-.067-1.646-.067-4.849 0-3.204.012-3.584.067-4.85.153-3.282 1.64-4.769 4.922-4.922 1.266-.055 1.646-.067 4.85-.067zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 1.61-6.98 5.928-.058 1.28-.072 1.688-.072 4.947s.014 3.667.072 4.947c.2 4.358 2.618 6.78 5.928 6.98 1.28.058 1.688.072 4.947.072 3.259 0 3.667-.014 4.947-.072 4.358-.2 6.78-1.61 6.98-5.928.058-1.28.072-1.688.072-4.947s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-5.928-6.98-1.28-.058-1.688-.072-4.947-.072zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.791-4-4s1.791-4 4-4 4 1.791 4 4-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+              </svg>
+              @ikauii.diy
+            </a>
+            {settings?.statusPendaftaran === "Buka" && (
+              <Link
+                href="/virtual-run"
+                className="bg-white hover:bg-slate-50 text-blue-900 px-6 py-3 rounded-full flex items-center justify-center gap-2.5 transition-all font-black text-sm shadow-lg border border-slate-200 w-full sm:w-auto"
+              >
+                <span>🌍</span> Ikuti Virtual Run
+              </Link>
+            )}
+          </div>
       </div>
     );
   }
@@ -285,26 +293,35 @@ function OfflineRunLandingPageContent() {
         </div>
 
         <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 max-w-4xl leading-tight relative z-10">
-  SIAP BERLARI? <br />
-  UII SEHAT MENUNGGUMU
-</h1>
+          SIAP BERLARI? <br />
+          UII SEHAT MENUNGGUMU
+        </h1>
 
-<p className="text-slate-300 text-sm md:text-base font-medium mb-10 max-w-2xl relative z-10 leading-relaxed">
-  Bergabunglah bersama ribuan peserta dalam UII Sehat Fun Run & Charity. Setiap langkah membawa manfaat bagi diri sendiri dan sesama.
-</p>
+        <p className="text-slate-300 text-sm md:text-base font-medium mb-10 max-w-2xl relative z-10 leading-relaxed">
+          Bergabunglah bersama ribuan peserta dalam UII Sehat Fun Run & Charity. Setiap langkah membawa manfaat bagi diri sendiri dan sesama.
+        </p>
 
-        <div className="flex flex-wrap justify-center gap-4 relative z-10">
+        <div className="flex flex-col sm:flex-row items-center gap-4 relative z-10">
           <a
             href="https://instagram.com/ikauii.diy"
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239] px-6 py-3 rounded-full flex items-center gap-2.5 transition-all font-black text-sm shadow-lg"
+            className="bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239] px-6 py-3 rounded-full flex items-center justify-center gap-2.5 transition-all font-black text-sm shadow-lg w-full sm:w-auto"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2.163c3.204 0 3.584.012 4.85.067 3.282.153 4.769 1.64 4.922 4.922.055 1.266.067 1.646.067 4.849 0 3.204-.012 3.584-.067 4.85-.153 3.282-1.64 4.769-4.922 4.922-1.266.055-1.646.067-4.85.067-3.204 0-3.584-.012-4.85-.067-3.282-.153-4.769-1.64-4.922-4.922-.055-1.266-.067-1.646-.067-4.849 0-3.204.012-3.584.067-4.85.153-3.282 1.64-4.769 4.922-4.922 1.266-.055 1.646-.067 4.85-.067zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 1.61-6.98 5.928-.058 1.28-.072 1.688-.072 4.947s.014 3.667.072 4.947c.2 4.358 2.618 6.78 5.928 6.98 1.28.058 1.688.072 4.947.072 3.259 0 3.667-.014 4.947-.072 4.358-.2 6.78-1.61 6.98-5.928.058-1.28.072-1.688.072-4.947s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-5.928-6.98-1.28-.058-1.688-.072-4.947-.072zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.791-4-4s1.791-4 4-4 4 1.791 4 4-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
             </svg>
             @ikauii.diy
           </a>
+          
+          {settings?.statusPendaftaran === "Buka" && (
+            <Link
+              href="/virtual-run"
+              className="bg-white hover:bg-slate-50 text-blue-900 px-6 py-3 rounded-full flex items-center justify-center gap-2.5 transition-all font-black text-sm shadow-lg border border-slate-200 w-full sm:w-auto"
+            >
+              Daftar Virtual Run!
+            </Link>
+          )}
         </div>
       </div>
     );

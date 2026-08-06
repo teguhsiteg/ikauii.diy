@@ -15,6 +15,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import Link from "next/link";
+import { Users, Wallet, Heart, ArrowRight } from "lucide-react";
 
 // Helper format mata uang
 const formatIDR = (amount: number) => {
@@ -247,8 +248,10 @@ function StatCard({ label, value, icon, color, accent }: any) {
         <div
           className={`w-10 h-10 rounded-xl flex items-center justify-center ${colors[color]}`}
         >
-          {/* Icon Mapping placeholder */}
-          <span className="font-bold">#</span>
+          {icon === "users" && <Users className="w-5 h-5" />}
+          {icon === "wallet" && <Wallet className="w-5 h-5" />}
+          {icon === "heart" && <Heart className="w-5 h-5" />}
+          {!["users", "wallet", "heart"].includes(icon) && <span className="font-bold">#</span>}
         </div>
         <span
           className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${colors[color]}`}
@@ -302,7 +305,7 @@ function DetailPanel({ title, stats, type, primaryColor }: any) {
         </div>
         <div className="pt-4 border-t border-dashed border-slate-200 flex justify-between items-center">
           <span className="text-sm font-medium text-rose-500 flex items-center gap-1">
-            💖 Charity
+            <Heart className="w-4 h-4 fill-current" /> Charity
           </span>
           <span className="font-bold text-rose-600">
             {formatIDR(stats.charity)}
@@ -327,7 +330,7 @@ function NavLink({ href, title, desc, variant }: any) {
       <div
         className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${variant === "blue" ? "bg-white/20" : "bg-slate-100 group-hover:bg-blue-50"}`}
       >
-        <span className="text-xl">→</span>
+        <ArrowRight className="w-5 h-5" />
       </div>
       <div>
         <h3 className="font-bold text-base leading-none">{title}</h3>

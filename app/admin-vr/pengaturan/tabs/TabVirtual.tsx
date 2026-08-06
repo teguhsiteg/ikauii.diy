@@ -174,6 +174,18 @@ export default function TabVirtual({
             <div className="grid grid-cols-2 gap-5">
               <div>
                 <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
+                  Mulai Pendaftaran
+                </label>
+                <input
+                  type="datetime-local"
+                  name="tanggalPembukaan"
+                  value={vrSettings.tanggalPembukaan || ""}
+                  onChange={handleSettingChange}
+                  className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-[#1A73E8] outline-none text-sm transition-all text-slate-800"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
                   Batas Pendaftaran
                 </label>
                 <input
@@ -184,6 +196,34 @@ export default function TabVirtual({
                   className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-[#1A73E8] outline-none text-sm transition-all text-slate-800"
                 />
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-5">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
+                  Mulai Periode Submit Lari
+                </label>
+                <input
+                  type="datetime-local"
+                  name="periodeLariStart"
+                  value={vrSettings.periodeLariStart || ""}
+                  onChange={handleSettingChange}
+                  className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-[#1A73E8] outline-none text-sm transition-all text-slate-800"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
+                  Batas Akhir Submit Lari
+                </label>
+                <input
+                  type="datetime-local"
+                  name="periodeLariEnd"
+                  value={vrSettings.periodeLariEnd || ""}
+                  onChange={handleSettingChange}
+                  className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-[#1A73E8] outline-none text-sm transition-all text-slate-800"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-5">
               <div>
                 <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
                   Periode Lari (Teks)
@@ -197,8 +237,6 @@ export default function TabVirtual({
                   className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-[#1A73E8] outline-none text-sm transition-all text-slate-800"
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-5">
               <div>
                 <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
                   Jadwal Kirim Racepack
@@ -212,6 +250,8 @@ export default function TabVirtual({
                   className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-[#1A73E8] outline-none text-sm transition-all text-slate-800"
                 />
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-5">
               <div>
                 <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
                   Jadwal Puncak Acara

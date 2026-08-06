@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import * as XLSX from "xlsx";
+import { CircleDollarSign, CheckCircle2, XCircle, RotateCcw, Edit3, AlertTriangle } from "lucide-react";
 
 export default function DataPesertaPage() {
   const [participants, setParticipants] = useState<any[]>([]);
@@ -48,7 +49,7 @@ export default function DataPesertaPage() {
     imgUrl: string;
   }>({ isOpen: false, imgUrl: "" });
 
-  // 🔥 STATE BARU UNTUK POPUP UBAH STATUS PEMBAYARAN 🔥
+  // 🔥 STATE UNTUK POPUP UBAH STATUS PEMBAYARAN 🔥
   const [paymentModal, setPaymentModal] = useState<{
     isOpen: boolean;
     participantId: string;
@@ -59,6 +60,19 @@ export default function DataPesertaPage() {
     participantId: "",
     participantName: "",
     currentStatus: "Pending",
+  });
+
+  // 🔥 STATE UNTUK MODAL EDIT JARAK 🔥
+  const [jarakModal, setJarakModal] = useState<{
+    isOpen: boolean;
+    participantId: string;
+    participantName: string;
+    currentJarak: string;
+  }>({
+    isOpen: false,
+    participantId: "",
+    participantName: "",
+    currentJarak: "",
   });
 
   const [popup, setPopup] = useState<{
@@ -221,6 +235,32 @@ export default function DataPesertaPage() {
     }
   };
 
+  // --- AKSI: EDIT JARAK PESERTA ---
+  const handleEditJarak = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!jarakModal.currentJarak) return;
+    setLoadingAction("editJarak");
+    try {
+      await updateDoc(doc(db, "vr_participants", jarakModal.participantId), {
+        jarak: jarakModal.currentJarak,
+      });
+      await addDoc(collection(db, "vr_logs"), {
+        type: "edit_jarak",
+        action: `mengubah kategori jarak menjadi [${jarakModal.currentJarak}] untuk`,
+        targetName: jarakModal.participantName,
+        adminEmail: adminUser?.email || "Admin",
+        timestamp: Date.now(),
+      });
+      setJarakModal({ isOpen: false, participantId: "", participantName: "", currentJarak: "" });
+      setPopup({ type: "success", text: `Jarak ${jarakModal.participantName} berhasil diubah ke ${jarakModal.currentJarak}.` });
+    } catch (error) {
+      console.error(error);
+      setPopup({ type: "error", text: "Gagal mengubah kategori jarak." });
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
   // --- BULK DELETE ---
   const toggleSelectParticipant = (id: string) => {
     if (selectedParticipants.includes(id))
@@ -355,7 +395,7 @@ export default function DataPesertaPage() {
             <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
             <div className="text-center mb-6 mt-2">
               <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border-4 border-blue-100 shadow-inner">
-                💰
+                <CircleDollarSign className="w-8 h-8" />
               </div>
               <h3 className="text-xl font-black text-slate-800 tracking-tight">
                 Konfirmasi Pembayaran
@@ -373,14 +413,14 @@ export default function DataPesertaPage() {
                 onClick={() => executeStatusChange("Lunas")}
                 className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl shadow-md transition-transform active:scale-95 text-sm flex items-center justify-center gap-2"
               >
-                ✅ Validasi Lunas (Generate BIB)
+                <CheckCircle2 className="w-4 h-4" /> Validasi Lunas (Generate BIB)
               </button>
 
               <button
                 onClick={() => executeStatusChange("Batal")}
                 className="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2"
               >
-                ❌ Tolak / Batalkan
+                <XCircle className="w-4 h-4" /> Tolak / Batalkan
               </button>
 
               {paymentModal.currentStatus !== "Pending" && (
@@ -388,7 +428,7 @@ export default function DataPesertaPage() {
                   onClick={() => executeStatusChange("Pending")}
                   className="w-full bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2"
                 >
-                  ⏳ Kembalikan ke Pending
+                  <RotateCcw className="w-4 h-4" /> Kembalikan ke Pending
                 </button>
               )}
             </div>
@@ -401,6 +441,51 @@ export default function DataPesertaPage() {
             >
               Batalkan
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 🔥 MODAL EDIT JARAK 🔥 */}
+      {jarakModal.isOpen && (
+        <div className="fixed inset-0 z-[115] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-slate-600" /> Edit Kategori Jarak
+              </h3>
+              <button
+                onClick={() => setJarakModal({ isOpen: false, participantId: "", participantName: "", currentJarak: "" })}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 mb-4">
+              Ubah kategori jarak untuk: <strong className="text-slate-800">{jarakModal.participantName}</strong>
+            </p>
+            <p className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4 flex items-start gap-1.5">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>Perhatian: Mengubah jarak akan mempengaruhi nomor BIB yang sudah digenerate.</span>
+            </p>
+            <form onSubmit={handleEditJarak}>
+              <input
+                type="text"
+                value={jarakModal.currentJarak}
+                onChange={(e) => setJarakModal({ ...jarakModal, currentJarak: e.target.value })}
+                placeholder="Contoh: 10KM, 5KM, 21KM"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg mb-4 outline-none focus:border-[#1A73E8] focus:ring-1 focus:ring-[#1A73E8] text-sm bg-slate-50 font-bold uppercase"
+                required
+              />
+              <button
+                type="submit"
+                disabled={loadingAction === "editJarak"}
+                className="w-full bg-[#1A73E8] hover:bg-[#1557B0] text-white font-bold py-2.5 rounded-lg transition-colors text-sm disabled:opacity-50"
+              >
+                {loadingAction === "editJarak" ? "Menyimpan..." : "Simpan Perubahan"}
+              </button>
+            </form>
           </div>
         </div>
       )}
@@ -707,8 +792,21 @@ export default function DataPesertaPage() {
                     <td className="px-4 py-3 border-r border-slate-100 align-top">
                       <div className="flex flex-wrap items-center gap-1 mb-2">
                         <span className="bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded">
-                          {p.jarak} • {p.paket?.toUpperCase()}
+                          {p.jarak || "-"} • {p.paket?.toUpperCase() || "-"}
                         </span>
+                        {/* 🔥 TOMBOL EDIT JARAK 🔥 */}
+                        <button
+                          onClick={() => setJarakModal({
+                            isOpen: true,
+                            participantId: p.id,
+                            participantName: p.nama,
+                            currentJarak: p.jarak || "",
+                          })}
+                          className="text-[9px] font-bold text-slate-400 hover:text-[#1A73E8] bg-slate-100 hover:bg-[#E8F0FE] border border-slate-200 hover:border-[#1A73E8] px-1.5 py-0.5 rounded transition-colors"
+                          title="Edit Kategori Jarak"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                        </button>
                         {/* 🔥 MENAMPILKAN NOMOR E-BIB JIKA SUDAH LUNAS 🔥 */}
                         {p.nomorBibLengkap && (
                           <span
@@ -795,24 +893,27 @@ export default function DataPesertaPage() {
 
                     <td className="px-4 py-3 align-top">
                       {p.paket === "basic" ? (
-                        <span className="text-[10px] text-slate-400 font-bold bg-slate-50 px-2 py-1 rounded border border-slate-100 flex items-center justify-center h-full">
+                        <span className="text-[10px] text-slate-400 font-bold bg-slate-50 px-2 py-1 rounded border border-slate-100 flex items-center justify-center">
                           Digital Only
                         </span>
                       ) : (
                         <div className="flex flex-col gap-2">
-                          <div
-                            className="text-[10px] text-slate-600 leading-tight max-w-[200px] line-clamp-2"
-                            title={p.alamat}
-                          >
-                            <span className="font-bold text-slate-800 block mb-0.5">
-                              Alamat:
-                            </span>
-                            {p.alamat || "-"}
-                          </div>
-                          <div className="flex items-center gap-2 mt-1">
+                          {/* Alamat */}
+                          {p.alamat && (
+                            <div
+                              className="text-[10px] text-slate-600 leading-tight max-w-[200px] line-clamp-2"
+                              title={p.alamat}
+                            >
+                              <span className="font-bold text-slate-800 block mb-0.5">Alamat:</span>
+                              {p.alamat}
+                            </div>
+                          )}
+                          {/* Resi + Tombol Edit */}
+                          <div className="flex items-center gap-2">
                             <div className="flex-grow">
                               {p.resiPengiriman ? (
-                                <div className="bg-slate-50 px-2 py-1 rounded border border-slate-200">
+                                <div className="bg-green-50 px-2 py-1.5 rounded border border-green-200">
+                                  <p className="text-[9px] text-green-600 font-bold uppercase mb-0.5">✓ Resi:</p>
                                   <p
                                     className="text-[10px] font-mono font-bold text-slate-800 uppercase truncate"
                                     title={p.resiPengiriman}
@@ -821,8 +922,8 @@ export default function DataPesertaPage() {
                                   </p>
                                 </div>
                               ) : (
-                                <span className="text-[9px] text-[#D93025] font-bold uppercase bg-[#FCE8E6] px-2 py-1 rounded border border-[#D93025]/20">
-                                  Resi Kosong
+                                <span className="text-[9px] text-[#D93025] font-bold uppercase bg-[#FCE8E6] px-2 py-1.5 rounded border border-[#D93025]/20 flex items-center gap-1">
+                                  <AlertTriangle className="w-3 h-3" /> Belum Ada Resi
                                 </span>
                               )}
                             </div>
@@ -836,17 +937,17 @@ export default function DataPesertaPage() {
                                 })
                               }
                               className="text-slate-400 hover:text-[#1A73E8] p-1.5 rounded bg-slate-50 hover:bg-[#E8F0FE] border border-slate-200 hover:border-[#1A73E8] transition-colors shrink-0"
-                              title="Input/Edit Resi"
+                              title={p.resiPengiriman ? "Edit Resi" : "Input Resi"}
                             >
-                              <svg
-                                className="w-3.5 h-3.5"
-                                fill="currentColor"
-                                viewBox="0 0 24 24"
-                              >
+                              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
                               </svg>
                             </button>
                           </div>
+                          {/* Jika tidak ada paket & tidak ada alamat, tampilkan placeholder */}
+                          {!p.alamat && !p.resiPengiriman && (
+                            <span className="text-[9px] text-slate-400 italic">Data pengiriman belum lengkap</span>
+                          )}
                         </div>
                       )}
                     </td>
