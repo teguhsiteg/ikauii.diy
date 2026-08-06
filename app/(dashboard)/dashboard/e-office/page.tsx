@@ -250,8 +250,10 @@ export default function ManajemenNomorSuratPage() {
   };
 
   const handleSave = async () => {
+    if (!genForm.nomorUrut || !genForm.perihal || !genForm.pembuat) {
       toast.warning("Nomor, Perihal, dan Nama Pembuat wajib diisi!");
       return;
+    }
     setIsSaving(true);
     try {
       const payload = {
