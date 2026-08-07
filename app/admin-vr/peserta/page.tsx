@@ -14,6 +14,8 @@ import {
 import { onAuthStateChanged } from "firebase/auth";
 import * as XLSX from "xlsx";
 import { CircleDollarSign, CheckCircle2, XCircle, RotateCcw, Edit3, AlertTriangle } from "lucide-react";
+import { sendEmailAction } from "@/app/actions/email";
+
 
 export default function DataPesertaPage() {
   const [participants, setParticipants] = useState<any[]>([]);
@@ -175,16 +177,12 @@ export default function DataPesertaPage() {
 
       // Kirim Email Notifikasi Lunas
       if (newStatus === "Lunas" && targetPeserta && targetPeserta.email) {
-        fetch("/api/send-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        sendEmailAction({
             type: "payment_success",
             email: targetPeserta.email,
             nama: targetPeserta.nama,
             detail: {},
-          }),
-        }).catch((e) => console.log("Gagal kirim notif email lunas", e));
+          }).catch((e) => console.log("Gagal kirim notif email lunas", e));
       }
 
       await addDoc(collection(db, "vr_logs"), {

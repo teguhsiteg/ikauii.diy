@@ -14,6 +14,8 @@ import {
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import * as XLSX from "xlsx";
+import { sendEmailAction } from "@/app/actions/email";
+
 
 export default function AdminOfflineRunPage() {
   const [participants, setParticipants] = useState<any[]>([]);
@@ -259,10 +261,7 @@ export default function AdminOfflineRunPage() {
 
     for (const p of targetParticipants) {
       try {
-        const res = await fetch("/api/send-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        const res = await sendEmailAction({
             type: "reminder_racepack_individu",
             email: p.email,
             nama: p.namaLengkap,
@@ -274,10 +273,9 @@ export default function AdminOfflineRunPage() {
               namaBib: p.namaBib || "-",
               bib: p.nomorBIB || p.bib || "-",
             },
-          }),
-        });
+          });
 
-        if (res.ok) successCount++;
+        if (res.success) successCount++;
         else failCount++;
       } catch (error) {
         failCount++;
@@ -384,10 +382,7 @@ export default function AdminOfflineRunPage() {
         });
       }
 
-      const res = await fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const res = await sendEmailAction({
           type: "payment_success_offline",
           email: p.email,
           nama: p.namaLengkap,
@@ -399,10 +394,9 @@ export default function AdminOfflineRunPage() {
             namaBib: p.namaBib || "-",
             bib: finalBib || "-",
           },
-        }),
-      });
+        });
 
-      if (!res.ok)
+      if (!res.success)
         throw new Error("Gagal mengirim email E-Ticket dari server.");
 
       await addDoc(collection(db, "vr_logs"), {

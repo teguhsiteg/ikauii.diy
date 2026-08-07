@@ -8,6 +8,8 @@ import { collection, addDoc, doc, getDoc, query, where, getCountFromServer } fro
 import Link from "next/link";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import { MapPin } from "lucide-react";
+import { sendEmailAction } from "@/app/actions/email";
+
 
 // =========================================================================
 // KOMPONEN FORM UTAMA (Dipisah agar bisa dibungkus Suspense oleh Next.js)
@@ -344,16 +346,12 @@ function RegistrationForm() {
       );
 
       // Email Trigger Berjalan di Background
-      fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      sendEmailAction({
           type: "registration",
           email: formData.email,
           nama: formData.nama,
           detail: { id: userSlug, totalTagihan: grandTotal },
-        }),
-      }).catch((err) => console.error("Background Email Error:", err));
+        }).catch((err) => console.error("Background Email Error:", err));
 
       if (settings?.metodePembayaran === "midtrans") {
         const response = await fetch("/api/vr-midtrans", {

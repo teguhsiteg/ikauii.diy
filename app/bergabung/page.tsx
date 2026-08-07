@@ -15,6 +15,8 @@ import Link from "next/link";
 import NavbarPublic from "@/components/layout/NavbarPublic";
 import FooterPublic from "@/components/layout/FooterPublic";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import { sendEmailAction } from "@/app/actions/email";
+
 
 export default function BergabungPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -241,15 +243,11 @@ export default function BergabungPage() {
       });
 
       // 5. TRIGGER EMAIL PENDAFTARAN
-      fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      sendEmailAction({
           type: "member_pending",
           email: formData.email,
           nama: formData.namaLengkap,
-        }),
-      }).catch((err) => console.error("Background Email Error:", err));
+        }).catch((err) => console.error("Background Email Error:", err));
 
       setIsSuccess(true);
       window.scrollTo({ top: 0, behavior: "smooth" });

@@ -20,6 +20,8 @@ import NavbarPublic from "@/components/layout/NavbarPublic";
 import FooterPublic from "@/components/layout/FooterPublic";
 
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import { sendEmailAction } from "@/app/actions/email";
+
 
 function FormPendaftaranOffline() {
   const router = useRouter();
@@ -625,10 +627,7 @@ function FormPendaftaranOffline() {
       );
 
       // Eksekusi pengiriman email di background (tanpa await agar tidak memperlambat transisi user)
-      fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      sendEmailAction({
           type: "offline_registration",
           email: formData.email,
           nama: formData.namaLengkap,
@@ -639,8 +638,7 @@ function FormPendaftaranOffline() {
             rekening: settings?.manualRekening || "-",
             atasNama: settings?.manualNama || "DPW IKA UII DIY",
           },
-        }),
-      }).catch((err) => console.error("Background Email Error:", err));
+        }).catch((err) => console.error("Background Email Error:", err));
 
       router.push(`/run/checkout/${docRef.id}`);
     } catch (error) {

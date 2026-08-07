@@ -17,6 +17,8 @@ import {
 import Link from "next/link";
 import { QRCodeCanvas } from "qrcode.react";
 import { Activity, Mail, KeyRound, ArrowRight, ShieldCheck, User, MapPin, Calendar, CreditCard, UploadCloud, ChevronDown, Trophy, Medal, CheckCircle2, Clock, History, Edit3, Camera, FileText, Info, LogOut, Check, X, Eye, Search, Image, Share2, Copy, Shield } from "lucide-react";
+import { sendEmailAction } from "@/app/actions/email";
+
 
 export default function ParticipantDashboard() {
   // --- STATE LOGIN ---
@@ -340,16 +342,12 @@ export default function ParticipantDashboard() {
       });
 
       // Trigger Email ke Admin
-      fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      sendEmailAction({
           type: "admin_notif_run",
           email: "236102601@uii.ac.id", // Ganti dengan email asli admin
           nama: participant.nama,
           detail: { jarakKm: uploadData.km },
-        }),
-      }).catch((e) => console.log(e));
+        }).catch((e) => console.log(e));
 
       setPopup({
         type: "success",
@@ -419,16 +417,12 @@ export default function ParticipantDashboard() {
             });
 
             // Trigger Email ke Admin
-            fetch("/api/send-email", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
+            sendEmailAction({
                 type: "admin_notif_payment",
                 email: "236102601@uii.ac.id", // Email Admin
                 nama: participant.nama,
                 detail: {},
-              }),
-            }).catch((e) => console.log(e));
+              }).catch((e) => console.log(e));
 
             setPopup({
               type: "success",
