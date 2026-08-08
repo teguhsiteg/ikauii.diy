@@ -25,6 +25,19 @@ service cloud.firestore {
       allow read, create: if true;
       allow update, delete: if request.auth != null;
     }
+    match /vr_participants/{docId} {
+      allow read, create: if true;
+      allow update, delete: if request.auth != null;
+    }
+    match /vr_submissions/{docId} {
+      allow read, create: if true;
+      allow update, delete: if request.auth != null;
+    }
+    match /offline_participants/{docId} {
+      allow read, create: if true;
+      allow update, delete: if request.auth != null;
+    }
+
 
     // --- PUBLIC READ ONLY ---
     match /berita/{docId} {

@@ -1,0 +1,23 @@
+[debug] [2026-08-08T12:47:46.697Z] ----------------------------------------------------------------------
+[debug] [2026-08-08T12:47:46.701Z] Command:       D:\Program Files\nodejs\node.exe C:\Users\Hii Masteg\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2026-08-08T12:47:46.702Z] CLI Version:   15.26.0
+[debug] [2026-08-08T12:47:46.703Z] Platform:      win32
+[debug] [2026-08-08T12:47:46.703Z] Node Version:  v22.17.1
+[debug] [2026-08-08T12:47:46.704Z] Detected Agent: unknown
+[debug] [2026-08-08T12:47:46.704Z] Time:          Sat Aug 08 2026 19:47:46 GMT+0700 (Western Indonesia Time)
+[debug] [2026-08-08T12:47:46.704Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-08-08T12:47:49.590Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-08T12:47:49.591Z] > authorizing via signed-in user (teguhsiteg95@gmail.com)
+[debug] [2026-08-08T12:47:49.591Z] [iam] checking project suratdigitalv2 for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-08-08T12:47:49.612Z] Checked if tokens are valid: true, expires at: 1786196514539
+[debug] [2026-08-08T12:47:49.613Z] Checked if tokens are valid: true, expires at: 1786196514539
+[debug] [2026-08-08T12:47:49.616Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions [none]
+[debug] [2026-08-08T12:47:49.617Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions  x-goog-user-project=suratdigitalv2
+[debug] [2026-08-08T12:47:49.617Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-08-08T12:47:50.186Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions 200
+[debug] [2026-08-08T12:47:50.186Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-08-08T12:47:50.188Z] Checked if tokens are valid: true, expires at: 1786196514539
+[debug] [2026-08-08T12:47:50.188Z] Checked if tokens are valid: true, expires at: 1786196514539
+[debug] [2026-08-08T12:47:50.188Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/suratdigitalv2 [none]
+[debug] [2026-08-08T12:47:50.612Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/suratdigitalv2 200

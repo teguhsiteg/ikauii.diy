@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     if (snapshot.empty) {
       return NextResponse.json(
         { error: "Email tidak terdaftar" },
-        { status: 404 }
+        { status: 400 }
       );
     }
 

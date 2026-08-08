@@ -19,6 +19,7 @@ export default function VirtualRunLandingPage() {
   const [timeLeft, setTimeLeft] = useState<{ [key: string]: number } | null>(
     null,
   );
+  const [isWaitingToOpen, setIsWaitingToOpen] = useState(false);
 
   // --- STATE STATISTIK GLOBAL ---
   const [totalDonasi, setTotalDonasi] = useState(0);
@@ -136,22 +137,37 @@ export default function VirtualRunLandingPage() {
     parseIndoDate(settings?.periodeLari);
   // --- LOGIKA COUNTDOWN TIMER ---
   useEffect(() => {
-    if (!settings || !settings.tanggalPenutupan) return;
-    const targetDate = new Date(settings.tanggalPenutupan);
+    if (!settings) return;
+    
+    const openDate = settings.tanggalPembukaan ? new Date(settings.tanggalPembukaan) : null;
+    const closeDate = settings.tanggalPenutupan ? new Date(settings.tanggalPenutupan) : null;
 
     const calculateTimeLeft = () => {
-      const difference = +targetDate - +new Date();
-      let newTimeLeft = null;
+      const currentTime = new Date();
+      let targetDate = null;
+      let waiting = false;
 
+      if (openDate && currentTime < openDate) {
+        targetDate = openDate;
+        waiting = true;
+      } else if (closeDate && currentTime < closeDate) {
+        targetDate = closeDate;
+      }
+
+      setIsWaitingToOpen(waiting);
+
+      if (!targetDate) return null;
+
+      const difference = +targetDate - +currentTime;
       if (difference > 0) {
-        newTimeLeft = {
+        return {
           Hari: Math.floor(difference / (1000 * 60 * 60 * 24)),
           Jam: Math.floor((difference / (1000 * 60 * 60)) % 24),
           Menit: Math.floor((difference / 1000 / 60) % 60),
           Detik: Math.floor((difference / 1000) % 60),
         };
       }
-      return newTimeLeft;
+      return null;
     };
 
     setTimeLeft(calculateTimeLeft());
@@ -185,7 +201,17 @@ export default function VirtualRunLandingPage() {
     );
   }
 
-  const isBuka = settings.statusPendaftaran === "Buka";
+  let isBuka = settings.statusPendaftaran === "Buka";
+  const openDate = settings.tanggalPembukaan ? new Date(settings.tanggalPembukaan) : null;
+  const closeDate = settings.tanggalPenutupan ? new Date(settings.tanggalPenutupan) : null;
+  const currentTime = new Date();
+
+  if (openDate && currentTime < openDate) {
+    isBuka = false;
+  }
+  if (closeDate && currentTime > closeDate) {
+    isBuka = false;
+  }
 
   return (
     <div className="min-h-screen bg-[#F4F7FB] font-sans selection:bg-yellow-300 selection:text-blue-900">
@@ -344,9 +370,11 @@ export default function VirtualRunLandingPage() {
               className={`w-2 h-2 rounded-full animate-pulse ${isBuka && timeLeft ? "bg-emerald-400" : "bg-rose-400"}`}
             ></span>
             <span className="text-xs font-bold text-white uppercase tracking-widest">
-              {isBuka && timeLeft
-                ? "Pendaftaran Dibuka"
-                : "Pendaftaran Ditutup"}
+              {settings.statusPendaftaran === "Buka" && isWaitingToOpen && timeLeft
+                ? "Segera Dibuka"
+                : isBuka && timeLeft
+                  ? "Pendaftaran Dibuka"
+                  : "Pendaftaran Ditutup"}
             </span>
           </div>
 
@@ -358,10 +386,10 @@ export default function VirtualRunLandingPage() {
             {settings.landingDesc}
           </p>
 
-          {isBuka && timeLeft && (
+          {(isBuka || isWaitingToOpen) && timeLeft && (
             <div className="mb-10 w-full max-w-md">
               <p className="text-xs font-bold text-yellow-400 uppercase tracking-widest mb-3 text-center lg:text-left">
-                Pendaftaran Ditutup Dalam:
+                {isWaitingToOpen ? "Pendaftaran Dibuka Dalam:" : "Pendaftaran Ditutup Dalam:"}
               </p>
               <div className="flex gap-3 justify-center lg:justify-start">
                 {Object.keys(timeLeft).map((interval, index) => (
@@ -397,12 +425,12 @@ export default function VirtualRunLandingPage() {
               >
                 Lihat Progress Kamu &rarr;
               </Link>
-            ) : isBuka && timeLeft ? (
+            ) : (isBuka || isWaitingToOpen) && timeLeft ? (
               <Link
-                href="/virtual-run/register"
-                className="w-full sm:w-auto bg-yellow-400 hover:bg-yellow-500 text-blue-950 font-black px-10 py-4 rounded-full text-sm transition-all shadow-lg shadow-yellow-400/30 flex items-center justify-center gap-2 transform hover:-translate-y-1"
+                href={isBuka ? "/virtual-run/register" : "#"}
+                className={`w-full sm:w-auto font-black px-10 py-4 rounded-full text-sm transition-all shadow-lg flex items-center justify-center gap-2 transform hover:-translate-y-1 ${isBuka ? "bg-yellow-400 hover:bg-yellow-500 text-blue-950 shadow-yellow-400/30" : "bg-slate-400 text-white cursor-not-allowed opacity-80"}`}
               >
-                Daftar Virtual Run &rarr;
+                {isBuka ? "Daftar Virtual Run \u2192" : "Pendaftaran Belum Dibuka"}
               </Link>
             ) : (
               <button

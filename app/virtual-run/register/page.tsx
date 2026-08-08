@@ -169,10 +169,16 @@ function RegistrationForm() {
       if (isBypassed || isForceOpen) return;
 
       const isBuka = settings.statusPendaftaran === "Buka";
+      const openDate = settings.tanggalPembukaan ? new Date(settings.tanggalPembukaan) : null;
       const closeDate = settings.tanggalPenutupan ? new Date(settings.tanggalPenutupan) : null;
       const currentTime = new Date();
       
       let isAllowed = isBuka;
+
+      // Jika belum masuk waktu pembukaan, tolak
+      if (openDate && currentTime < openDate) {
+        isAllowed = false;
+      }
 
       // Jika sudah melewati batas penutupan, tolak
       if (closeDate && currentTime > closeDate) {
