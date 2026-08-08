@@ -356,7 +356,15 @@ function RegistrationForm() {
           type: "registration",
           email: formData.email,
           nama: formData.nama,
-          detail: { id: userSlug, totalTagihan: grandTotal },
+          detail: { 
+            id: userSlug, 
+            totalTagihan: grandTotal,
+            ...(settings?.metodePembayaran === "manual" && {
+              bank: settings.bank,
+              rekening: settings.nomorRekening,
+              atasNama: settings.atasNamaRekening
+            })
+          },
         }).catch((err) => console.error("Background Email Error:", err));
 
       if (settings?.metodePembayaran === "midtrans") {

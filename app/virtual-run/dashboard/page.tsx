@@ -147,7 +147,16 @@ export default function ParticipantDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: emailToCheck }),
       });
-      const data = await res.json();
+      
+      let data: any = {};
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        console.error("Non-JSON response from server (request-otp):", text);
+        throw new Error(`Server error (${res.status})`);
+      }
       
       if (!res.ok) {
         setPopup({ type: "error", title: "Email Tidak Ditemukan", text: data.error || "Pastikan email yang Anda masukkan terdaftar." });
@@ -172,7 +181,16 @@ export default function ParticipantDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: emailLogin, code: otpInput }),
       });
-      const data = await res.json();
+      
+      let data: any = {};
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        console.error("Non-JSON response from server (verify-otp):", text);
+        throw new Error(`Server error (${res.status})`);
+      }
 
       if (!res.ok) {
         setPopup({ type: "error", title: "Kode Salah", text: data.error || "Kode OTP tidak valid." });

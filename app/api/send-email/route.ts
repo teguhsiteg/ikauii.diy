@@ -700,7 +700,19 @@ export async function POST(request: Request) {
           
           <div style="background-color: #F8F9FA; padding: 20px; border: 1px solid #DADCE0; border-radius: 8px; margin: 25px 0;">
             <p style="margin: 0; font-size: 12px; color: #5F6368; font-weight: 700; text-transform: uppercase;">Total Tagihan Pembayaran</p>
-            <p style="margin: 8px 0 0 0; font-size: 28px; color: #1A73E8; font-weight: 400;">Rp ${displayTagihan}</p>
+            <p style="margin: 8px 0 ${detail?.bank ? '15px' : '0'} 0; font-size: 28px; color: #1A73E8; font-weight: 400;">Rp ${displayTagihan}</p>
+            ${
+              detail?.bank
+                ? `
+            <div style="border-top: 1px dashed #DADCE0; padding-top: 15px;">
+              <p style="margin: 0 0 5px 0; font-size: 12px; color: #5F6368;">Transfer ke rekening resmi kami:</p>
+              <p style="margin: 0; font-size: 16px; color: #202124; font-weight: bold;">${detail.bank}</p>
+              <p style="margin: 2px 0; font-size: 20px; color: #1A73E8; font-weight: bold; font-family: monospace;">${detail.rekening}</p>
+              <p style="margin: 0; font-size: 12px; color: #5F6368;">a.n. <strong>${detail.atasNama}</strong></p>
+            </div>
+            `
+                : ""
+            }
           </div>
 
           <p>Selesaikan pembayaran agar Nomor e-BIB Anda dapat diterbitkan dan Dashboard Pelari aktif:</p>

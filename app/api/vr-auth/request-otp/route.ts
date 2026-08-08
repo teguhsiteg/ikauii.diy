@@ -39,29 +39,19 @@ export async function POST(request: Request) {
     });
 
     // 4. Kirim email OTP
-    const host = request.headers.get("host") || "localhost:3000";
-    const protocol = request.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
-    const baseUrl = `${protocol}://${host}`;
-    // Jangan nge-block eksekusi terlalu lama, biarkan asinkron jika mau, tapi lebih aman ditunggu
-    const emailRes = await fetch(`${baseUrl}/api/send-email`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
+    const { sendEmailAction } = await import("@/app/actions/email");
+    const emailRes = await sendEmailAction({
+      type: "otp_login",
+      email: normalizedEmail,
+      nama: participantData.nama || "Peserta",
+      detail: {
+        eventName: "Virtual Run IKA UII DIY",
+        otpCode: otpCode,
       },
-      body: JSON.stringify({
-        type: "otp_login",
-        email: normalizedEmail,
-        nama: participantData.nama || "Peserta",
-        detail: {
-          eventName: "Virtual Run IKA UII DIY",
-          otpCode: otpCode,
-        },
-      }),
     });
 
-    if (!emailRes.ok) {
-      console.error("Gagal mengirim email OTP", await emailRes.text());
+    if (!emailRes || !emailRes.success) {
+      console.error("Gagal mengirim email OTP", emailRes);
       return NextResponse.json(
         { error: "Gagal mengirim email OTP" },
         { status: 500 }

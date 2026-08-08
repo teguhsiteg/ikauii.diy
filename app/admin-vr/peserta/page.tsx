@@ -51,6 +51,11 @@ export default function DataPesertaPage() {
     imgUrl: string;
   }>({ isOpen: false, imgUrl: "" });
 
+  const [detailModal, setDetailModal] = useState<{
+    isOpen: boolean;
+    data: any | null;
+  }>({ isOpen: false, data: null });
+
   // 🔥 STATE UNTUK POPUP UBAH STATUS PEMBAYARAN 🔥
   const [paymentModal, setPaymentModal] = useState<{
     isOpen: boolean;
@@ -589,6 +594,114 @@ export default function DataPesertaPage() {
         </div>
       )}
 
+      {/* MODAL DETAIL PESERTA */}
+      {detailModal.isOpen && detailModal.data && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in"
+          onClick={() => setDetailModal({ isOpen: false, data: null })}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 max-w-2xl w-full shadow-2xl flex flex-col max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-4">
+              <h3 className="font-black text-slate-800 text-lg">
+                Detail Registrasi Peserta
+              </h3>
+              <button
+                onClick={() => setDetailModal({ isOpen: false, data: null })}
+                className="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 p-1.5 rounded-full transition-colors"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="overflow-y-auto custom-scrollbar pr-2 flex-grow">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Info Utama */}
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 border-b border-slate-200 pb-2">Informasi Pribadi</h4>
+                  <div>
+                    <p className="text-[10px] text-slate-500 font-medium">Nama Lengkap</p>
+                    <p className="text-sm font-bold text-slate-800">{detailModal.data.nama || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 font-medium">Nama di BIB</p>
+                    <p className="text-sm font-bold text-slate-800">{detailModal.data.namaBib || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 font-medium">Email</p>
+                    <p className="text-sm font-medium text-slate-800">{detailModal.data.email || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 font-medium">WhatsApp</p>
+                    <p className="text-sm font-medium text-slate-800">{detailModal.data.whatsapp || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 font-medium">Tipe Peserta</p>
+                    <p className="text-sm font-bold text-[#1A73E8]">
+                      {detailModal.data.tipePeserta === "umum" ? "UMUM" : "ALUMNI"}
+                      {detailModal.data.tipePeserta === "alumni" && ` (${detailModal.data.fakultas} - ${detailModal.data.angkatan})`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Info Lari & Pengiriman */}
+                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-3">
+                  <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2 border-b border-blue-200 pb-2">Paket & Pengiriman</h4>
+                  <div>
+                    <p className="text-[10px] text-blue-500 font-medium">Paket</p>
+                    <p className="text-sm font-bold text-blue-900">{detailModal.data.paket?.toUpperCase() || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-blue-500 font-medium">Jarak</p>
+                    <p className="text-sm font-bold text-blue-900">{detailModal.data.jarak || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-blue-500 font-medium">Ukuran Jersey</p>
+                    <p className="text-sm font-bold text-blue-900">{detailModal.data.ukuranJersey || "Tanpa Jersey"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-blue-500 font-medium">Alamat Pengiriman</p>
+                    <p className="text-xs font-medium text-blue-900">
+                      {detailModal.data.alamat ? (
+                        <>
+                          {detailModal.data.alamat}<br/>
+                          <span className="text-blue-700 mt-1 block">
+                            Kec. {detailModal.data.kecamatan}, {detailModal.data.kotaKabupaten}, {detailModal.data.provinsi}
+                          </span>
+                        </>
+                      ) : "Tanpa Pengiriman (Digital)"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tagihan & Pembayaran */}
+              <div className="mt-4 bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h4 className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-1">Total Tagihan</h4>
+                  <p className="text-2xl font-black text-emerald-700">Rp {Number(detailModal.data.totalTagihan || 0).toLocaleString('id-ID')}</p>
+                  {detailModal.data.isDonasi && (
+                    <p className="text-[10px] font-bold text-emerald-600 mt-1">+ Donasi: Rp {Number(detailModal.data.nominalDonasi || 0).toLocaleString('id-ID')}</p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <h4 className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-1">Status Pembayaran</h4>
+                  <span className={`inline-block px-3 py-1 rounded-lg text-xs font-bold border ${
+                    detailModal.data.statusPembayaran === "Lunas" ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
+                    detailModal.data.statusPembayaran === "Pending" ? "bg-amber-100 text-amber-700 border-amber-200" :
+                    "bg-rose-100 text-rose-700 border-rose-200"
+                  }`}>
+                    {detailModal.data.statusPembayaran || "Pending"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* HEADER HALAMAN */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 shrink-0">
         <div>
@@ -762,6 +875,12 @@ export default function DataPesertaPage() {
                           </span>
                         )}
                       </div>
+                      <button
+                        onClick={() => setDetailModal({ isOpen: true, data: p })}
+                        className="mt-2 text-[10px] font-bold text-[#1A73E8] hover:text-[#1557B0] flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded transition-colors w-fit border border-blue-100"
+                      >
+                        Lihat Detail &rarr;
+                      </button>
                     </td>
 
                     <td className="px-4 py-3 border-r border-slate-100 align-top">
