@@ -1337,7 +1337,7 @@ export default function ParticipantDashboard() {
 
   return (
     <div
-      className={`min-h-screen font-sans ${participant ? "pb-20 bg-[#F4F7FB]" : "relative flex items-center justify-center p-4 sm:p-6 overflow-hidden bg-slate-900 selection:bg-blue-500/30 selection:text-white"}`}
+      className={`min-h-screen font-sans ${participant ? "pb-20 bg-[#F4F7FB]" : "w-full flex flex-col lg:flex-row bg-white"}`}
     >
       {/* 🚀 KOMPONEN QR CODE TERSEMBUNYI UNTUK DISEDOT OLEH CANVAS */}
       {participant && (
@@ -1399,122 +1399,177 @@ export default function ParticipantDashboard() {
         </div>
       )}
 
-      {/* LOGIN VIEW */}
+      {/* LOGIN VIEW (SPLIT SCREEN) */}
       {!participant && (
         <>
-          {/* ANIMATED BACKGROUND */}
-          <div className="absolute inset-0 z-0">
-            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 opacity-100" />
-            <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] bg-blue-600/20 blur-[120px] rounded-full mix-blend-screen animate-pulse" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-indigo-500/20 blur-[120px] rounded-full mix-blend-screen animate-pulse" style={{ animationDelay: "2s" }} />
-          </div>
-
-          <div className="relative z-10 w-full max-w-md bg-white/10 backdrop-blur-xl border border-white/20 rounded-[2rem] shadow-2xl p-8 sm:p-10 animate-in fade-in zoom-in-95 duration-700">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-lg shadow-blue-500/30 rotate-3 hover:rotate-0 transition-transform duration-300">
-              <Activity className="w-10 h-10 text-white" />
-            </div>
-
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-black text-white mb-2 tracking-tight">
-                Dashboard Pelari
+          {/* --- SISI KIRI: BRANDING (FULL HEIGHT, MENTOK UJUNG) --- */}
+          <div className="hidden lg:flex w-full lg:w-5/12 bg-gradient-to-br from-[#0B1528] to-[#1A73E8] p-12 lg:p-20 flex-col justify-between relative overflow-hidden shrink-0 min-h-screen">
+            {/* Ornamen Latar Belakang */}
+            <div className="absolute top-0 right-0 w-80 h-80 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-400 opacity-20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4 pointer-events-none"></div>
+    
+            <div className="relative z-10 flex flex-col justify-center h-full">
+              <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-[1.2rem] p-3 mb-10 shadow-xl border border-white/20 transform -rotate-3">
+                <img
+                  src="/logo-dpp-ika.png"
+                  alt="Logo IKA UII"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+    
+              <h1 className="text-4xl lg:text-5xl font-black text-white tracking-tight mb-4 leading-tight">
+                Virtual Run <br />
+                <span className="text-yellow-400">IKA UII DIY</span>
               </h1>
-              <p className="text-blue-100/70 text-sm leading-relaxed font-medium">
-                Sistem Informasi Terpadu<br/>IKA UII DIY Virtual Run
+    
+              <div className="w-12 h-1.5 bg-yellow-500 rounded-full mb-8"></div>
+    
+              <p className="text-blue-100/90 font-medium text-base leading-relaxed max-w-sm">
+                Sistem Informasi Manajemen Terpadu untuk kolaborasi dan sinergi
+                alumni di wilayah Daerah Istimewa Yogyakarta.
               </p>
             </div>
-
-            {loginStep === "email" ? (
-              <form onSubmit={handleLoginSubmit} className="space-y-6">
-                <div className="text-left space-y-2">
-                  <label className="block text-xs font-bold text-blue-200 uppercase tracking-wider ml-1">
-                    Email Pendaftaran
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-blue-300/60">
-                      <Mail className="h-5 w-5" />
-                    </div>
-                    <input
-                      type="email"
-                      required
-                      value={emailLogin}
-                      onChange={(e) => setEmailLogin(e.target.value)}
-                      placeholder="budi@email.com"
-                      className="w-full pl-11 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-400 focus:bg-white/10 outline-none text-white placeholder-white/30 font-medium transition-all backdrop-blur-sm"
-                    />
-                  </div>
+    
+            <div className="relative z-10">
+              <p className="text-blue-300/50 text-[10px] font-mono tracking-widest uppercase">
+                &copy; {new Date().getFullYear()} SIM DPW IKA UII DIY • Integrity •
+                Syiar • Professional
+              </p>
+            </div>
+          </div>
+    
+          {/* --- SISI KANAN: FORM LOGIN & OTP (FULL HEIGHT, MENTOK UJUNG) --- */}
+          <div className="w-full lg:w-7/12 min-h-screen p-8 sm:p-16 lg:p-24 flex flex-col justify-center bg-white relative z-20 overflow-y-auto">
+            <div className="max-w-[420px] w-full mx-auto">
+              {/* Header untuk Mobile (Karena kolom biru disembunyikan di HP) */}
+              <div className="lg:hidden flex flex-col items-center text-center mb-10 animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className="w-16 h-16 bg-blue-50 rounded-2xl shadow-sm border border-blue-100 flex items-center justify-center mb-4 p-2 transform -rotate-3">
+                  <img
+                    src="/logo-dpp-ika.png"
+                    alt="Logo IKA UII"
+                    className="w-full h-full object-contain"
+                  />
                 </div>
-
-                <button
-                  type="submit"
-                  disabled={isLoggingIn}
-                  className="w-full group bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {isLoggingIn ? (
-                    "Memeriksa Data..."
-                  ) : (
-                    <>
-                      Lanjutkan <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </>
-                  )}
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={verifyOtpAndLogin} className="space-y-6">
-                <div className="text-left space-y-2">
-                  <label className="block text-xs font-bold text-blue-200 uppercase tracking-wider ml-1">
-                    Kode Keamanan (OTP)
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-blue-300/60">
-                      <KeyRound className="h-5 w-5" />
+                <h1 className="text-3xl font-black text-blue-950 tracking-tight leading-none mb-1.5">
+                  Virtual Run
+                </h1>
+                <p className="text-xs font-bold text-yellow-600 tracking-[0.2em] uppercase">
+                  IKA UII DIY
+                </p>
+              </div>
+    
+              <div className="mb-10 lg:mb-12 text-center lg:text-left transition-all duration-300">
+                <h2 className="text-3xl lg:text-4xl font-black text-slate-800 tracking-tight mb-2.5">
+                  {loginStep === "email" ? "Masuk Dashboard" : "Verifikasi OTP"}
+                </h2>
+                <p className="text-slate-500 text-sm lg:text-base font-medium">
+                  {loginStep === "email" 
+                    ? "Silakan login menggunakan email pendaftaran lari Anda." 
+                    : "Masukkan kode OTP yang telah dikirimkan ke email Anda."}
+                </p>
+              </div>
+    
+              {loginStep === "email" ? (
+                <form onSubmit={handleLoginSubmit} className="space-y-5 lg:space-y-6">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">
+                      Alamat Email
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                        <Mail className="h-5 w-5" />
+                      </div>
+                      <input
+                        type="email"
+                        required
+                        value={emailLogin}
+                        onChange={(e) => setEmailLogin(e.target.value)}
+                        placeholder="email@contoh.com"
+                        className="w-full pl-11 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#1A73E8] focus:bg-white focus:ring-4 focus:ring-[#1A73E8]/10 outline-none transition-all text-sm font-medium text-slate-800 shadow-sm"
+                      />
                     </div>
-                    <input
-                      type="text"
-                      required
-                      maxLength={6}
-                      value={otpInput}
-                      onChange={(e) => setOtpInput(e.target.value.replace(/[^0-9]/g, ""))}
-                      placeholder="123456"
-                      className="w-full pl-11 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-400 focus:bg-white/10 outline-none text-white font-black tracking-[0.3em] text-center text-xl transition-all backdrop-blur-sm"
-                    />
                   </div>
-                  <div className="flex items-start gap-2 mt-3 bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
-                    <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-blue-200/80 leading-relaxed">
-                      Kode 6 digit telah dikirim ke <strong>{emailLogin}</strong>. Berlaku selama 5 menit.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
+    
                   <button
-                    type="button"
-                    onClick={() => setLoginStep("email")}
-                    className="w-1/3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold py-4 rounded-xl transition-all backdrop-blur-sm"
+                    type="submit"
+                    disabled={isLoggingIn}
+                    className="w-full bg-[#1A73E8] hover:bg-blue-700 text-white font-black py-4 lg:py-4.5 rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-600/40 hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0 flex items-center justify-center gap-3 text-sm uppercase tracking-widest mt-6"
                   >
-                    Batal
+                    {isLoggingIn ? (
+                      <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                      </svg>
+                    ) : (
+                      <>
+                        Kirim OTP <ArrowRight className="w-5 h-5" />
+                      </>
+                    )}
                   </button>
+                </form>
+              ) : (
+                <form onSubmit={verifyOtpAndLogin} className="space-y-5 lg:space-y-6">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">
+                      Kode Keamanan (OTP)
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                        <KeyRound className="h-5 w-5" />
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        maxLength={6}
+                        value={otpInput}
+                        onChange={(e) => setOtpInput(e.target.value.replace(/[^0-9]/g, ""))}
+                        placeholder="123456"
+                        className="w-full pl-11 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#1A73E8] focus:bg-white focus:ring-4 focus:ring-[#1A73E8]/10 outline-none text-slate-800 font-black tracking-[0.3em] text-center text-xl transition-all shadow-sm"
+                      />
+                    </div>
+                  </div>
+    
                   <button
                     type="submit"
                     disabled={isVerifyingOtp}
-                    className="w-2/3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50"
+                    className="w-full bg-[#1A73E8] hover:bg-blue-700 text-white font-black py-4 lg:py-4.5 rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-600/40 hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0 flex items-center justify-center gap-3 text-sm uppercase tracking-widest mt-6"
                   >
-                    {isVerifyingOtp ? "Verifikasi..." : "Masuk"}
+                    {isVerifyingOtp ? (
+                      <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                      </svg>
+                    ) : (
+                      <>
+                        Masuk ke Dashboard <ShieldCheck className="w-5 h-5" />
+                      </>
+                    )}
                   </button>
-                </div>
-              </form>
-            )}
-
-            <div className="mt-8 pt-6 border-t border-white/10">
-              <p className="text-blue-100/60 text-xs font-medium text-center">
-                Belum terdaftar?{" "}
+                  
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginStep("email");
+                      setOtpInput("");
+                    }}
+                    className="w-full text-center text-xs font-bold text-slate-500 hover:text-[#1A73E8] transition-colors mt-3 py-2"
+                  >
+                    Kembali dan Ganti Email
+                  </button>
+                </form>
+              )}
+    
+              <div className="mt-10 lg:mt-12 text-center lg:text-left flex justify-center lg:justify-start">
                 <Link
-                  href="/virtual-run/register"
-                  className="text-blue-400 font-bold hover:text-blue-300 hover:underline transition-colors"
+                  href="/virtual-run"
+                  className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-[#1A73E8] transition-colors py-2.5 px-4 rounded-xl hover:bg-blue-50"
                 >
-                  Daftar Sekarang
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Kembali ke Beranda Virtual Run
                 </Link>
-              </p>
+              </div>
             </div>
           </div>
         </>
