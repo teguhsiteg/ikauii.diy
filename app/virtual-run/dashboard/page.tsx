@@ -377,10 +377,11 @@ export default function ParticipantDashboard() {
       setPreviewUrl(null);
       setUploadData({ km: "", durasi: "", tanggalLari: "" });
     } catch (error) {
+      console.error("DEBUG UPLOAD LARI:", error);
       setPopup({
         type: "error",
         title: "Gagal Mengunggah",
-        text: "Pastikan format foto benar dan internet stabil.",
+        text: "Pastikan format foto benar dan internet stabil. " + (error instanceof Error ? error.message : ""),
       });
     } finally {
       setIsUploading(false);
@@ -538,10 +539,11 @@ export default function ParticipantDashboard() {
       setSelectedPaymentFile(null);
       setPreviewPaymentUrl(null);
     } catch (error) {
+      console.error("DEBUG UPLOAD PEMBAYARAN:", error);
       setPopup({
         type: "error",
         title: "Gagal Mengunggah",
-        text: "Pastikan format foto benar dan internet stabil.",
+        text: "Pastikan format foto benar dan internet stabil. " + (error instanceof Error ? error.message : ""),
       });
     } finally {
       setIsUploadingPayment(false);
@@ -702,10 +704,10 @@ export default function ParticipantDashboard() {
 
     return {
       level: "Pemanasan",
-      icon: "👟",
-      bgClass: "bg-gradient-to-br from-slate-600 to-slate-800",
-      textClass: "text-slate-300",
-      borderClass: "border-slate-500/30",
+      icon: "🎯",
+      bgClass: "bg-gradient-to-br from-[#1A73E8] to-blue-900",
+      textClass: "text-blue-100",
+      borderClass: "border-blue-500/30",
       nextTarget: 10,
     };
   };
@@ -1579,11 +1581,11 @@ export default function ParticipantDashboard() {
       {participant && (
         <>
           {/* HEADER SECTION (PREMIUM GRADIENT) */}
-          <div className="bg-gradient-to-br from-blue-700 via-indigo-800 to-slate-900 pt-8 pb-32 px-4 sm:px-6 text-white relative overflow-hidden">
+          <div className="bg-gradient-to-br from-[#0B1528] to-[#1A73E8] pt-8 pb-32 px-4 sm:px-6 text-white relative overflow-hidden">
             {/* Header Background Effects */}
             <div className="absolute inset-0 z-0 pointer-events-none opacity-40">
-              <div className="absolute -top-[50%] -left-[10%] w-[50%] h-[150%] bg-blue-400/20 blur-[100px] rounded-full mix-blend-screen" />
-              <div className="absolute top-[20%] -right-[10%] w-[40%] h-[100%] bg-indigo-400/20 blur-[100px] rounded-full mix-blend-screen" />
+              <div className="absolute -top-[50%] -left-[10%] w-[50%] h-[150%] bg-white opacity-5 rounded-full blur-[100px] mix-blend-screen" />
+              <div className="absolute top-[20%] -right-[10%] w-[40%] h-[100%] bg-blue-400/20 rounded-full blur-[100px] mix-blend-screen" />
             </div>
 
             <div className="max-w-6xl mx-auto relative z-10">
@@ -1798,39 +1800,39 @@ export default function ParticipantDashboard() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3 md:gap-6 mt-12">
-                    <div className="bg-white/5 border border-white/10 backdrop-blur-md p-5 rounded-3xl text-center shadow-lg hover:bg-white/10 transition-colors group">
-                      <div className="w-8 h-8 bg-blue-500/20 text-blue-300 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
-                        <MapPin className="w-4 h-4" />
+                  <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6 mt-8 sm:mt-12">
+                    <div className="bg-[#11213D] border border-blue-500/20 p-3 sm:p-5 rounded-2xl sm:rounded-3xl text-center shadow-xl hover:bg-[#15284B] transition-colors group">
+                      <div className="w-6 h-6 sm:w-10 sm:h-10 bg-blue-500/20 text-blue-300 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 group-hover:scale-110 transition-transform">
+                        <MapPin className="w-3 h-3 sm:w-5 sm:h-5" />
                       </div>
-                      <p className="text-[9px] sm:text-[10px] font-bold text-blue-200/70 uppercase tracking-widest mb-1">
+                      <p className="text-[8px] sm:text-xs font-bold text-blue-200/70 uppercase tracking-widest mb-1 sm:mb-2 line-clamp-1">
                         KM Ditempuh
                       </p>
-                      <p className="text-2xl sm:text-4xl font-black text-white tracking-tight drop-shadow-sm">
+                      <p className="text-base sm:text-4xl font-black text-white tracking-tight drop-shadow-sm truncate">
                         {totalApprovedKm.toFixed(2)}
                       </p>
                     </div>
 
-                    <div className="bg-white/5 border border-white/10 backdrop-blur-md p-5 rounded-3xl text-center shadow-lg hover:bg-white/10 transition-colors group">
-                      <div className="w-8 h-8 bg-indigo-500/20 text-indigo-300 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
-                        <Clock className="w-4 h-4" />
+                    <div className="bg-[#11213D] border border-indigo-500/20 p-3 sm:p-5 rounded-2xl sm:rounded-3xl text-center shadow-xl hover:bg-[#15284B] transition-colors group">
+                      <div className="w-6 h-6 sm:w-10 sm:h-10 bg-indigo-500/20 text-indigo-300 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 group-hover:scale-110 transition-transform">
+                        <Clock className="w-3 h-3 sm:w-5 sm:h-5" />
                       </div>
-                      <p className="text-[9px] sm:text-[10px] font-bold text-blue-200/70 uppercase tracking-widest mb-1">
+                      <p className="text-[8px] sm:text-xs font-bold text-blue-200/70 uppercase tracking-widest mb-1 sm:mb-2 line-clamp-1">
                         Durasi Total
                       </p>
-                      <p className="text-2xl sm:text-4xl font-black text-white tracking-tight drop-shadow-sm">
+                      <p className="text-base sm:text-4xl font-black text-white tracking-tight drop-shadow-sm truncate">
                         {hitungTotalDurasi()}
                       </p>
                     </div>
 
-                    <div className="bg-white/5 border border-white/10 backdrop-blur-md p-5 rounded-3xl text-center shadow-lg hover:bg-white/10 transition-colors group">
-                      <div className="w-8 h-8 bg-emerald-500/20 text-emerald-300 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
-                        <Activity className="w-4 h-4" />
+                    <div className="bg-[#11213D] border border-emerald-500/20 p-3 sm:p-5 rounded-2xl sm:rounded-3xl text-center shadow-xl hover:bg-[#15284B] transition-colors group">
+                      <div className="w-6 h-6 sm:w-10 sm:h-10 bg-emerald-500/20 text-emerald-300 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 group-hover:scale-110 transition-transform">
+                        <Activity className="w-3 h-3 sm:w-5 sm:h-5" />
                       </div>
-                      <p className="text-[9px] sm:text-[10px] font-bold text-blue-200/70 uppercase tracking-widest mb-1">
+                      <p className="text-[8px] sm:text-xs font-bold text-blue-200/70 uppercase tracking-widest mb-1 sm:mb-2 line-clamp-1">
                         Aktivitas
                       </p>
-                      <p className="text-2xl sm:text-4xl font-black text-white tracking-tight drop-shadow-sm">
+                      <p className="text-base sm:text-4xl font-black text-white tracking-tight drop-shadow-sm truncate">
                         {totalAktivitas}
                       </p>
                     </div>

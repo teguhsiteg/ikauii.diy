@@ -359,11 +359,11 @@ function RegistrationForm() {
           detail: { 
             id: userSlug, 
             totalTagihan: grandTotal,
-            ...(settings?.metodePembayaran === "manual" && {
-              bank: settings.bank,
-              rekening: settings.nomorRekening,
-              atasNama: settings.atasNamaRekening
-            })
+            metodePembayaran: settings?.metodePembayaran,
+            bank: settings?.bank,
+            rekening: settings?.nomorRekening,
+            atasNama: settings?.atasNamaRekening,
+            urlQris: settings?.urlQris
           },
         }).catch((err) => console.error("Background Email Error:", err));
 

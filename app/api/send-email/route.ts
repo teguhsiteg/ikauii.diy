@@ -702,13 +702,20 @@ export async function POST(request: Request) {
             <p style="margin: 0; font-size: 12px; color: #5F6368; font-weight: 700; text-transform: uppercase;">Total Tagihan Pembayaran</p>
             <p style="margin: 8px 0 ${detail?.bank ? '15px' : '0'} 0; font-size: 28px; color: #1A73E8; font-weight: 400;">Rp ${displayTagihan}</p>
             ${
-              detail?.bank
+              detail?.metodePembayaran === "manual" && detail?.bank
                 ? `
             <div style="border-top: 1px dashed #DADCE0; padding-top: 15px;">
               <p style="margin: 0 0 5px 0; font-size: 12px; color: #5F6368;">Transfer ke rekening resmi kami:</p>
               <p style="margin: 0; font-size: 16px; color: #202124; font-weight: bold;">${detail.bank}</p>
               <p style="margin: 2px 0; font-size: 20px; color: #1A73E8; font-weight: bold; font-family: monospace;">${detail.rekening}</p>
               <p style="margin: 0; font-size: 12px; color: #5F6368;">a.n. <strong>${detail.atasNama}</strong></p>
+            </div>
+            `
+                : detail?.metodePembayaran === "qris" && detail?.urlQris
+                ? `
+            <div style="border-top: 1px dashed #DADCE0; padding-top: 15px; text-align: center;">
+              <p style="margin: 0 0 10px 0; font-size: 12px; color: #5F6368;">Scan QRIS di bawah ini untuk membayar:</p>
+              <img src="${detail.urlQris}" alt="QRIS" width="150" style="display: inline-block; border: 1px solid #DADCE0; border-radius: 8px; padding: 5px;" />
             </div>
             `
                 : ""
@@ -719,7 +726,8 @@ export async function POST(request: Request) {
           <ol style="margin-top: 0; margin-bottom: 20px; padding-left: 20px; color: #202124; line-height: 1.6;">
             <li>Klik tombol di bawah ini untuk masuk ke Dashboard Pelari.</li>
             <li>Gunakan alamat email pendaftaran Anda untuk login.</li>
-            <li>Lakukan pembayaran atau unggah bukti transfer di dalam Dashboard.</li>
+            <li>Lakukan pembayaran atau unggah bukti bayar di dalam Dashboard.</li>
+            <li><strong>Setelah bukti diunggah, admin akan memverifikasi pembayaran Anda maksimal 1x24 jam.</strong></li>
           </ol>
 
           <div style="margin: 35px 0 0 0;">

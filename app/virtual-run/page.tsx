@@ -352,7 +352,7 @@ export default function VirtualRunLandingPage() {
         className="relative pt-32 pb-24 lg:pt-40 lg:pb-32 overflow-hidden"
       >
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-900/80 to-transparent z-10"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0B1528]/95 via-[#1A73E8]/80 to-transparent z-10"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-[#F4F7FB] via-transparent to-transparent z-10 opacity-100"></div>
           <img
             src={
