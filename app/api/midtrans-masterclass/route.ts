@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { dbAdmin } from "@/lib/firebase-admin";
 
 export async function POST(request: Request) {
   try {
@@ -15,10 +14,10 @@ export async function POST(request: Request) {
     }
 
     // 🔒 AMBIL HARGA ASLI DARI DATABASE (Anti-Manipulasi)
-    const enrollmentRef = doc(db, "masterclass_enrollments", enrollmentId);
-    const enrollmentSnap = await getDoc(enrollmentRef);
+    const enrollmentRef = dbAdmin.collection("masterclass_enrollments").doc(enrollmentId);
+    const enrollmentSnap = await enrollmentRef.get();
 
-    if (!enrollmentSnap.exists()) {
+    if (!enrollmentSnap.exists) {
       return NextResponse.json(
         { error: "Data enrollment tidak ditemukan" },
         { status: 404 },
@@ -36,10 +35,10 @@ export async function POST(request: Request) {
     }
 
     // 1. Ambil Settingan Midtrans dari laci Kasir Masterclass
-    const settingsRef = doc(db, "settings", "masterclass");
-    const settingsSnap = await getDoc(settingsRef);
+    const settingsRef = dbAdmin.collection("settings").doc("masterclass");
+    const settingsSnap = await settingsRef.get();
 
-    if (!settingsSnap.exists()) {
+    if (!settingsSnap.exists) {
       return NextResponse.json(
         { error: "Pengaturan Midtrans Masterclass tidak ditemukan" },
         { status: 500 },
@@ -92,10 +91,9 @@ export async function POST(request: Request) {
 
     const data = await response.json();
 
-    // 6. KEMBALIKAN TOKEN KE FRONT-END
     if (response.ok) {
       // (Opsional) Simpan token ke Firebase agar terekam
-      await updateDoc(doc(db, "masterclass_enrollments", enrollmentId), {
+      await dbAdmin.collection("masterclass_enrollments").doc(enrollmentId).update({
         snapToken: data.token,
       });
 

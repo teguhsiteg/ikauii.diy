@@ -13,7 +13,7 @@ import {
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import * as XLSX from "xlsx";
-import { CircleDollarSign, CheckCircle2, XCircle, RotateCcw, Edit3, AlertTriangle } from "lucide-react";
+import { CircleDollarSign, CheckCircle2, XCircle, RotateCcw, Edit3, AlertTriangle, Bell } from "lucide-react";
 import { sendEmailAction } from "@/app/actions/email";
 
 
@@ -259,6 +259,40 @@ export default function DataPesertaPage() {
     } catch (error) {
       console.error(error);
       setPopup({ type: "error", text: "Gagal mengubah kategori jarak." });
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  // --- AKSI: KIRIM REMINDER PEMBAYARAN ---
+  const handleSendReminder = async (p: any) => {
+    if (!confirm(`Kirim email reminder pembayaran ke ${p.nama}?`)) return;
+    setLoadingAction(`reminder-${p.id}`);
+    try {
+      const payload = {
+        type: "vr_payment_reminder",
+        email: p.email,
+        nama: p.nama,
+        detail: {
+          event: "Virtual Run DPW IKA UII DIY",
+          paket: p.paket,
+          totalTagihan: p.totalTagihan,
+          alamat: p.alamat || "Tidak ada pengiriman (Ambil Sendiri)",
+          bank: p.bank || "BSI (Bank Syariah Indonesia)",
+          rekening: p.rekening || "7209146522",
+          atasNama: p.atasNama || "DPW IKA UII DIY",
+          id: p.id
+        },
+      };
+      const res = await sendEmailAction(payload);
+      if (res?.success) {
+        setPopup({ type: "success", text: `Reminder berhasil dikirim ke email ${p.nama}.` });
+      } else {
+        setPopup({ type: "error", text: "Gagal mengirim reminder email." });
+      }
+    } catch (error) {
+      console.error(error);
+      setPopup({ type: "error", text: "Terjadi kesalahan sistem saat mengirim email." });
     } finally {
       setLoadingAction(null);
     }
@@ -1004,6 +1038,17 @@ export default function DataPesertaPage() {
                             />
                           </svg>{" "}
                           Cek Struk
+                        </button>
+                      )}
+
+                      {p.statusPembayaran !== "Lunas" && (
+                        <button
+                          onClick={() => handleSendReminder(p)}
+                          disabled={loadingAction === `reminder-${p.id}`}
+                          className="mt-2 text-[9px] font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 px-2 py-1.5 rounded w-full transition-colors border border-slate-200 flex items-center justify-center gap-1.5 disabled:opacity-50"
+                        >
+                          <Bell className="w-3 h-3" />
+                          {loadingAction === `reminder-${p.id}` ? "Mengirim..." : "Kirim Reminder"}
                         </button>
                       )}
                     </td>

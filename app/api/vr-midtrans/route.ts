@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { dbAdmin } from "@/lib/firebase-admin";
 
 export async function POST(request: Request) {
   try {
@@ -27,10 +26,10 @@ export async function POST(request: Request) {
     const firebaseDocId = orderId.split("-")[0];
     const collectionName =
       eventType === "offline" ? "offline_participants" : "vr_participants";
-    const participantRef = doc(db, collectionName, firebaseDocId);
-    const participantSnap = await getDoc(participantRef);
+    const participantRef = dbAdmin.collection(collectionName).doc(firebaseDocId);
+    const participantSnap = await participantRef.get();
 
-    if (!participantSnap.exists()) {
+    if (!participantSnap.exists) {
       return NextResponse.json(
         { error: "Data peserta tidak ditemukan" },
         { status: 404 },
@@ -48,10 +47,10 @@ export async function POST(request: Request) {
     }
 
     // 1. Ambil Server Key & Pengaturan dari Firebase
-    const settingsRef = doc(db, "settings", "virtual_run");
-    const settingsSnap = await getDoc(settingsRef);
+    const settingsRef = dbAdmin.collection("settings").doc("virtual_run");
+    const settingsSnap = await settingsRef.get();
 
-    if (!settingsSnap.exists()) {
+    if (!settingsSnap.exists) {
       return NextResponse.json(
         { error: "Pengaturan sistem tidak ditemukan" },
         { status: 500 },
@@ -113,7 +112,7 @@ export async function POST(request: Request) {
         eventType === "offline" ? "offline_participants" : "vr_participants";
 
       // Simpan token ke data peserta di tabel yang benar
-      await updateDoc(doc(db, collectionName, firebaseDocId), {
+      await dbAdmin.collection(collectionName).doc(firebaseDocId).update({
         snapToken: data.token,
       });
 

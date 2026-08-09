@@ -689,6 +689,49 @@ export async function POST(request: Request) {
         );
         break;
 
+      case "vr_payment_reminder":
+        subject = `Pengingat Pembayaran Virtual Run - ${eventName}`;
+        htmlContent = generateHtml(
+          `
+          <h2 style="color: #202124; margin-top: 0; font-size: 20px; font-weight: 500;">Pengingat Pembayaran</h2>
+          ${salamPembuka}
+          <p>Halo <strong>${nama}</strong>,</p>
+          <p>Terima kasih telah mendaftar di <strong>${eventName}</strong>. Kami menginformasikan bahwa pendaftaran Anda masih dalam status <strong>Menunggu Pembayaran</strong>.</p>
+          
+          <div style="background-color: #F8F9FA; padding: 20px; border: 1px solid #DADCE0; border-radius: 8px; margin: 25px 0;">
+            <p style="margin: 0; font-size: 12px; color: #5F6368; font-weight: 700; text-transform: uppercase;">Paket Pilihan</p>
+            <p style="margin: 4px 0 15px 0; font-size: 16px; color: #202124; font-weight: bold; text-transform: capitalize;">${detail?.paket || "-"}</p>
+
+            ${
+              detail?.paket === "premium" && detail?.alamat
+                ? `
+            <p style="margin: 0; font-size: 12px; color: #5F6368; font-weight: 700; text-transform: uppercase;">Alamat Pengiriman Racepack</p>
+            <p style="margin: 4px 0 15px 0; font-size: 14px; color: #202124; line-height: 1.5;">${detail.alamat}</p>
+            `
+                : ""
+            }
+
+            <p style="margin: 0; font-size: 12px; color: #5F6368; font-weight: 700; text-transform: uppercase;">Total Tagihan</p>
+            <p style="margin: 8px 0 15px 0; font-size: 28px; color: #1A73E8; font-weight: 400;">Rp ${displayTagihan}</p>
+            
+            <div style="border-top: 1px dashed #DADCE0; padding-top: 15px;">
+              <p style="margin: 0 0 5px 0; font-size: 12px; color: #5F6368;">Transfer ke rekening resmi kami:</p>
+              <p style="margin: 0; font-size: 16px; color: #202124; font-weight: bold;">${detail?.bank || "Bank BSI (Bank Syariah Indonesia)"}</p>
+              <p style="margin: 2px 0; font-size: 20px; color: #1A73E8; font-weight: bold; font-family: monospace;">${detail?.rekening || "7209146522"}</p>
+              <p style="margin: 0; font-size: 12px; color: #5F6368;">a.n. <strong>${detail?.atasNama || "DPW IKA UII DIY"}</strong></p>
+            </div>
+          </div>
+
+          <p>Jika Anda sudah melakukan pembayaran, silakan abaikan email ini atau langsung unggah bukti transfer Anda melalui tombol di bawah ini.</p>
+
+          <div style="margin: 35px 0 0 0;">
+            ${generateButton("Unggah Bukti Pembayaran", `${baseUrl}/virtual-run/dashboard`)}
+          </div>
+        `,
+          "REMINDER PEMBAYARAN",
+        );
+        break;
+
       case "registration":
         subject = `Instruksi Pembayaran: ${eventName}`;
         htmlContent = generateHtml(
