@@ -622,6 +622,16 @@ export default function ManajemenNomorSuratPage() {
                           >
                             Cetak
                           </Link>
+                          {n.jenis === "Surat Undangan" && (
+                            <Link
+                              href={`/dashboard/e-office/print-presensi/${n.id}`}
+                              target="_blank"
+                              className="text-[#1E8E3E] hover:text-[#145C27] bg-[#E6F4EA] hover:bg-[#CEEAD6] px-3 py-1.5 rounded text-xs font-medium transition-colors"
+                              title="Cetak Daftar Hadir"
+                            >
+                              Presensi
+                            </Link>
+                          )}
                           <button
                             onClick={() => handleEdit(n)}
                             className="text-[#5F6368] hover:text-[#E37400] p-1.5 rounded hover:bg-[#FEF7E0] transition-colors"

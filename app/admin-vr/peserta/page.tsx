@@ -7,6 +7,7 @@ import {
   query,
   onSnapshot,
   doc,
+  getDoc,
   updateDoc,
   writeBatch,
   addDoc,
@@ -269,6 +270,11 @@ export default function DataPesertaPage() {
     if (!confirm(`Kirim email reminder pembayaran ke ${p.nama}?`)) return;
     setLoadingAction(`reminder-${p.id}`);
     try {
+      // Ambil pengaturan bank terkini dari database
+      const settingsRef = doc(db, "vr_settings", "global");
+      const settingsSnap = await getDoc(settingsRef);
+      const settingsData = settingsSnap.exists() ? settingsSnap.data() : {};
+
       const payload = {
         type: "vr_payment_reminder",
         email: p.email,
@@ -278,9 +284,9 @@ export default function DataPesertaPage() {
           paket: p.paket,
           totalTagihan: p.totalTagihan,
           alamat: p.alamat || "Tidak ada pengiriman (Ambil Sendiri)",
-          bank: p.bank || "BSI (Bank Syariah Indonesia)",
-          rekening: p.rekening || "7209146522",
-          atasNama: p.atasNama || "DPW IKA UII DIY",
+          bank: p.bank || settingsData.manualBank || "BNI",
+          rekening: p.rekening || settingsData.manualRekening || "8880801816",
+          atasNama: p.atasNama || settingsData.manualNama || "DPW IKA UII DIY",
           id: p.id
         },
       };

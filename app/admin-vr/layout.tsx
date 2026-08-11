@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { usePathname } from "next/navigation";
 
 import { Shield } from "lucide-react";
 import Sidebar from "@/components/admin-vr/Sidebar";
@@ -22,6 +23,9 @@ export default function AdminVRLayout({
 
   // 🔥 STATE KHUSUS UNTUK HAMBURGER MENU (MOBILE) 🔥
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const pathname = usePathname();
+  const isDisplayControl = pathname === "/admin-vr/race-display";
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -201,50 +205,56 @@ export default function AdminVRLayout({
   return (
     <div className="flex h-screen bg-[#F4F7FB] font-sans selection:bg-blue-100 selection:text-blue-900 overflow-hidden relative">
       {/* Memanggil Komponen Sidebar DENGAN Props Mobile */}
-      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      {!isDisplayControl && (
+        <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      )}
 
       {/* Area Kanan */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden w-full">
         {/* 🔥 HEADER HAMBURGER KHUSUS MOBILE (Muncul jika layar kecil) 🔥 */}
-        <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between z-30 shrink-0">
-          <div className="flex items-center gap-3">
-            <img
-              src="/logo-dpp-ika.png"
-              alt="Logo"
-              className="w-8 h-8 object-contain"
-            />
-            <span className="font-black text-slate-800 text-sm">
-              Admin Panel
-            </span>
-          </div>
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            className="p-2 text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors rounded-lg"
-          >
-            {/* Ikon Hamburger */}
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
+        {!isDisplayControl && (
+          <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between z-30 shrink-0">
+            <div className="flex items-center gap-3">
+              <img
+                src="/logo-dpp-ika.png"
+                alt="Logo"
+                className="w-8 h-8 object-contain"
               />
-            </svg>
-          </button>
-        </div>
+              <span className="font-black text-slate-800 text-sm">
+                Admin Panel
+              </span>
+            </div>
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors rounded-lg"
+            >
+              {/* Ikon Hamburger */}
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* Memanggil Komponen Header Asli Anda (Bisa disembunyikan di mobile jika perlu, atau dibiarkan) */}
-        <div className="hidden lg:block">
-          <Header userEmail={user.email || "Admin"} />
-        </div>
+        {!isDisplayControl && (
+          <div className="hidden lg:block">
+            <Header userEmail={user.email || "Admin"} />
+          </div>
+        )}
 
         {/* Isi Perut (page.tsx akan masuk ke {children} ini) */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar relative">
+        <main className={`flex-1 overflow-y-auto custom-scrollbar relative ${isDisplayControl ? '' : 'p-4 md:p-6'}`}>
           {children}
         </main>
       </div>

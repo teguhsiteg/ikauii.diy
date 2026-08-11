@@ -17,7 +17,7 @@ import {
 } from "firebase/firestore";
 import Link from "next/link";
 import { QRCodeCanvas } from "qrcode.react";
-import { Activity, Mail, KeyRound, ArrowRight, ShieldCheck, User, MapPin, Calendar, CreditCard, UploadCloud, ChevronDown, Trophy, Medal, CheckCircle2, Clock, History, Edit3, Camera, FileText, Info, LogOut, Check, X, Eye, Search, Image, Share2, Copy, Shield } from "lucide-react";
+import { Activity, Mail, KeyRound, ArrowRight, ShieldCheck, User, MapPin, Calendar, CreditCard, UploadCloud, ChevronDown, Trophy, Medal, CheckCircle2, Clock, History, Edit3, Camera, FileText, Info, LogOut, Check, X, Eye, Search, Image as ImageIcon, Share2, Copy, Shield } from "lucide-react";
 import { sendEmailAction } from "@/app/actions/email";
 
 
@@ -842,15 +842,72 @@ export default function ParticipantDashboard() {
     return currentY;
   };
 
-  const triggerDownload = (canvas: HTMLCanvasElement, filename: string) => {
-    const dataUrl = canvas.toDataURL("image/png");
-    const a = document.createElement("a");
-    a.href = dataUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setPopup(null);
+  const triggerDownload = async (
+    canvas: HTMLCanvasElement,
+    filename: string,
+  ) => {
+    const isMobile =
+      typeof window !== "undefined" &&
+      (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+        window.innerWidth < 768);
+
+    const anchorDownload = (href: string) => {
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = filename;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+
+    try {
+      // 📱 MOBILE: pakai Web Share API dulu biar muncul opsi "Simpan Gambar"
+      if (
+        isMobile &&
+        typeof navigator.share === "function" &&
+        typeof canvas.toBlob === "function"
+      ) {
+        const blob: Blob | null = await new Promise((resolve) =>
+          canvas.toBlob(resolve, "image/png"),
+        );
+
+        if (blob) {
+          const file = new File([blob], filename, { type: "image/png" });
+
+          if (navigator.canShare?.({ files: [file] })) {
+            try {
+              await navigator.share({ files: [file], title: filename });
+              setPopup(null);
+              return;
+            } catch (err: any) {
+              // User batal / tidak mendukung file share → fallback ke bawah
+              if (err?.name !== "AbortError") {
+                console.error("Web Share gagal:", err);
+              }
+            }
+          }
+
+          // Blob URL: iOS 13+ hormati atribut download (data: URL tidak)
+          const url = URL.createObjectURL(blob);
+          anchorDownload(url);
+          setTimeout(() => URL.revokeObjectURL(url), 15000);
+          setPopup(null);
+          return;
+        }
+      }
+
+      // 💻 DESKTOP / FALLBACK UMUM
+      anchorDownload(canvas.toDataURL("image/png"));
+      setPopup(null);
+    } catch (error) {
+      console.error("Download gagal:", error);
+      setPopup({
+        type: "error",
+        title: "Gagal Mengunduh",
+        text: "Terjadi kendala saat membuat file. Coba buka via PC atau gunakan browser lain.",
+      });
+    }
   };
 
   // --- 6. LOGIKA DOWNLOAD DOKUMEN DIGITAL (HIGH-RES CANVAS) ---
@@ -858,6 +915,13 @@ export default function ParticipantDashboard() {
     type: "bib" | "sertifikat" | "kuitansi",
   ) => {
     if (!participant) return;
+
+    // 📱 Deteksi HP: iOS Safari batasi canvas (maks 4096px & memori kecil),
+    // jadi scale diperkecil biar tidak error & tidak lemot.
+    const isMobile =
+      typeof window !== "undefined" &&
+      (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+        window.innerWidth < 768);
 
     setPopup({
       type: "loading",
@@ -874,13 +938,46 @@ export default function ParticipantDashboard() {
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
 
+      // Fallback roundRect untuk browser lama (Safari < 16, Chrome < 99, Firefox < 112)
+      if (!ctx.roundRect) {
+        (ctx as any).roundRect = function (
+          x: number,
+          y: number,
+          w: number,
+          h: number,
+          r: number,
+        ) {
+          const radius = Math.min(r, w / 2, h / 2);
+          this.beginPath();
+          this.moveTo(x + radius, y);
+          this.lineTo(x + w - radius, y);
+          this.quadraticCurveTo(x + w, y, x + w, y + radius);
+          this.lineTo(x + w, y + h - radius);
+          this.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+          this.lineTo(x + radius, y + h);
+          this.quadraticCurveTo(x, y + h, x, y + h - radius);
+          this.lineTo(x, y + radius);
+          this.quadraticCurveTo(x, y, x + radius, y);
+          this.closePath();
+        };
+      }
+
+      // Helper error agar popup tidak stuck "Memproses..." selamanya
+      const failDownload = (msg: string) => {
+        setPopup({
+          type: "error",
+          title: "Gagal Mengunduh",
+          text: msg,
+        });
+      };
+
       // ============================================
       // LOGIKA GENERATE KUITANSI HD
       // ============================================
       if (type === "kuitansi") {
         const baseWidth = 1260;
         const baseHeight = 480;
-        const scaleFactor = 2;
+        const scaleFactor = isMobile ? 1.5 : 2;
 
         canvas.width = baseWidth * scaleFactor;
         canvas.height = baseHeight * scaleFactor;
@@ -888,6 +985,10 @@ export default function ParticipantDashboard() {
 
         const logoImg = new Image();
         logoImg.src = "/logo-dpp-ika.png";
+        logoImg.onerror = () =>
+          failDownload(
+            "Logo gagal dimuat. Muat ulang halaman lalu coba lagi.",
+          );
 
         logoImg.onload = () => {
           ctx.fillStyle = "#ffffff";
@@ -1108,12 +1209,16 @@ export default function ParticipantDashboard() {
       ) {
         const logoImg = new Image();
         logoImg.src = "/logo-dpp-ika.png";
+        logoImg.onerror = () =>
+          failDownload(
+            "Logo gagal dimuat. Muat ulang halaman lalu coba lagi.",
+          );
 
         logoImg.onload = () => {
           if (type === "bib") {
             const baseWidth = 800;
             const baseHeight = 1130;
-            const scaleFactor = 3;
+            const scaleFactor = isMobile ? 2 : 3;
 
             canvas.width = baseWidth * scaleFactor;
             canvas.height = baseHeight * scaleFactor;
@@ -1174,7 +1279,7 @@ export default function ParticipantDashboard() {
           } else {
             const baseWidth = 1600;
             const baseHeight = 1130;
-            const scaleFactor = 3;
+            const scaleFactor = isMobile ? 1.5 : 3;
 
             canvas.width = baseWidth * scaleFactor;
             canvas.height = baseHeight * scaleFactor;
@@ -1270,45 +1375,67 @@ export default function ParticipantDashboard() {
             ) as HTMLCanvasElement;
 
             if (qrElement) {
-              const qrImg = new Image();
-              qrImg.src = qrElement.toDataURL("image/png");
-              qrImg.onload = () => {
-                const qrSize = 140;
-                ctx.drawImage(
-                  qrImg,
-                  baseWidth / 2 - qrSize / 2,
-                  860,
-                  qrSize,
-                  qrSize,
-                );
+              let qrDataUrl = "";
+              try {
+                qrDataUrl = qrElement.toDataURL("image/png");
+              } catch (e) {
+                console.error("Gagal render QR:", e);
+              }
 
-                ctx.font = "bold 16px Arial";
-                ctx.fillStyle = "#10b981";
-                ctx.fillText(
-                  "© SISTEM IKA UII DIY Digital Validation",
-                  baseWidth / 2,
-                  1030,
-                );
-
-                ctx.font = "14px Arial";
-                ctx.fillStyle = "#64748b";
-                const validDate = new Date().toLocaleDateString("id-ID", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                });
-                const validId = `VR-${participant.id.toUpperCase().substring(0, 8)}`;
-                ctx.fillText(
-                  `Validation ID: ${validId}   •   Valid Date: ${validDate}`,
-                  baseWidth / 2,
-                  1060,
-                );
-
+              if (!qrDataUrl) {
                 triggerDownload(
                   canvas,
                   `VR-IKA-UII-CERT-${participant.nama.replace(/\s+/g, "-")}.png`,
                 );
-              };
+              } else {
+                const qrImg = new Image();
+                qrImg.src = qrDataUrl;
+                qrImg.onload = () => {
+                  try {
+                    const qrSize = 140;
+                    ctx.drawImage(
+                      qrImg,
+                      baseWidth / 2 - qrSize / 2,
+                      860,
+                      qrSize,
+                      qrSize,
+                    );
+
+                    ctx.font = "bold 16px Arial";
+                    ctx.fillStyle = "#10b981";
+                    ctx.fillText(
+                      "© SISTEM IKA UII DIY Digital Validation",
+                      baseWidth / 2,
+                      1030,
+                    );
+
+                    ctx.font = "14px Arial";
+                    ctx.fillStyle = "#64748b";
+                    const validDate = new Date().toLocaleDateString("id-ID", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    });
+                    const validId = `VR-${participant.id.toUpperCase().substring(0, 8)}`;
+                    ctx.fillText(
+                      `Validation ID: ${validId}   •   Valid Date: ${validDate}`,
+                      baseWidth / 2,
+                      1060,
+                    );
+
+                    triggerDownload(
+                      canvas,
+                      `VR-IKA-UII-CERT-${participant.nama.replace(/\s+/g, "-")}.png`,
+                    );
+                  } catch (e) {
+                    console.error("Gagal gambar QR ke sertifikat:", e);
+                    triggerDownload(
+                      canvas,
+                      `VR-IKA-UII-CERT-${participant.nama.replace(/\s+/g, "-")}.png`,
+                    );
+                  }
+                };
+              }
             } else {
               triggerDownload(
                 canvas,
@@ -1327,9 +1454,17 @@ export default function ParticipantDashboard() {
       img.src = templateUrl;
 
       img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
+        try {
+          // Clamp ukuran canvas di HP agar tidak overload (iOS limit 4096px)
+          const maxDim = isMobile ? 2400 : 16384;
+          const scale = Math.min(
+            1,
+            maxDim / Math.max(img.width, img.height),
+          );
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          if (scale < 1) ctx.scale(scale, scale);
+          ctx.drawImage(img, 0, 0);
 
         ctx.textAlign = "center";
         ctx.fillStyle = "#1e3a8a";
@@ -1371,6 +1506,12 @@ export default function ParticipantDashboard() {
           canvas,
           `VR-IKA-UII-${type.toUpperCase()}-${participant.nama.replace(/\s+/g, "-")}.png`,
         );
+        } catch (e) {
+          console.error("Gagal render template custom:", e);
+          failDownload(
+            "Terjadi kendala saat menggambar template. Coba lagi atau hubungi panitia.",
+          );
+        }
       };
 
       img.onerror = () => {
@@ -1838,8 +1979,8 @@ export default function ParticipantDashboard() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-5 shrink-0 bg-white/5 p-5 rounded-[2rem] border border-white/10 backdrop-blur-xl shadow-2xl">
-                      <div className="relative w-24 h-24 flex items-center justify-center drop-shadow-xl">
+                    <div className="flex items-center gap-4 sm:gap-5 shrink-0 bg-white/5 p-4 sm:p-5 rounded-[1.5rem] sm:rounded-[2rem] border border-white/10 backdrop-blur-xl shadow-2xl w-full md:w-auto">
+                      <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center drop-shadow-xl shrink-0">
                         <svg
                           className="w-full h-full transform -rotate-90 drop-shadow-md"
                           viewBox="0 0 80 80"
@@ -1870,7 +2011,7 @@ export default function ParticipantDashboard() {
                         </svg>
 
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                          <span className="text-xl font-black leading-none tracking-tighter">
+                          <span className="text-lg sm:text-xl font-black leading-none tracking-tighter">
                             {Math.round(progressPercent)}%
                           </span>
                         </div>
@@ -2232,28 +2373,28 @@ export default function ParticipantDashboard() {
 
                     return (
                       <div
-                        className={`p-6 sm:p-8 rounded-3xl shadow-xl border ${badge.borderClass} ${badge.bgClass} text-white relative overflow-hidden mb-6`}
+                        className={`p-5 sm:p-8 rounded-3xl shadow-xl border ${badge.borderClass} ${badge.bgClass} text-white relative overflow-hidden mb-6`}
                       >
                         {/* Efek Kilauan (Shine) di Background */}
                         <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl pointer-events-none"></div>
 
-                        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
+                        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 gap-3 sm:mb-4 sm:gap-4">
                           <div>
                             <p className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">
                               Status Pelari
                             </p>
-                            <h2 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-2">
-                              <span className="text-3xl filter drop-shadow-md">
+                            <h2 className="text-lg sm:text-3xl font-black tracking-tight flex items-center gap-2">
+                              <span className="text-2xl sm:text-3xl filter drop-shadow-md">
                                 {badge.icon}
                               </span>
                               {badge.level}
                             </h2>
                           </div>
-                          <div className="text-left sm:text-right bg-white/10 px-4 py-2 rounded-2xl backdrop-blur-sm border border-white/10 w-full sm:w-auto">
+                          <div className="text-left sm:text-right bg-white/10 px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl backdrop-blur-sm border border-white/10 w-full sm:w-auto">
                             <p className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-0.5">
                               Total Jarak Terverifikasi
                             </p>
-                            <p className="text-2xl font-black">
+                            <p className="text-xl sm:text-2xl font-black">
                               {totalApprovedKm.toFixed(2)}{" "}
                               <span className="text-sm font-medium opacity-80">
                                 KM
@@ -2264,7 +2405,7 @@ export default function ParticipantDashboard() {
 
                         {/* Progress Bar ke Level Berikutnya */}
                         {badge.nextTarget && (
-                          <div className="mt-6 relative z-10">
+                          <div className="mt-4 sm:mt-6 relative z-10">
                             <div className="flex justify-between text-xs font-bold mb-2">
                               <span className={badge.textClass}>
                                 Lari{" "}
@@ -2277,9 +2418,9 @@ export default function ParticipantDashboard() {
                                 Target: {badge.nextTarget} KM
                               </span>
                             </div>
-                            <div className="w-full bg-black/20 rounded-full h-2.5 overflow-hidden backdrop-blur-sm shadow-inner">
+                            <div className="w-full bg-black/20 rounded-full h-2 sm:h-2.5 overflow-hidden backdrop-blur-sm shadow-inner">
                               <div
-                                className="bg-white h-2.5 rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(255,255,255,0.5)]"
+                                className="bg-white h-2 sm:h-2.5 rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(255,255,255,0.5)]"
                                 style={{ width: `${percentToNext}%` }}
                               ></div>
                             </div>
@@ -2287,7 +2428,7 @@ export default function ParticipantDashboard() {
                         )}
 
                         {!badge.nextTarget && (
-                          <div className="mt-6 bg-white/20 px-4 py-3 rounded-xl backdrop-blur-sm text-sm font-bold text-center border border-white/20 shadow-inner relative z-10">
+                          <div className="mt-4 sm:mt-6 bg-white/20 px-4 py-3 rounded-xl backdrop-blur-sm text-sm font-bold text-center border border-white/20 shadow-inner relative z-10">
                             🎉 Luar Biasa! Anda telah mencapai level tertinggi
                             (Ultra Legend)!
                           </div>
@@ -2808,7 +2949,7 @@ export default function ParticipantDashboard() {
                               />
                             ) : (
                               <div className="w-full h-24 bg-slate-100 rounded-xl mb-4 border border-slate-200 flex items-center justify-center shadow-inner group-hover:bg-slate-200/50 transition-colors">
-                                <Image className="w-8 h-8 text-slate-400" />
+                                <ImageIcon className="w-8 h-8 text-slate-400" />
                               </div>
                             )}
                           </div>

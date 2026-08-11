@@ -10,6 +10,7 @@ export default function DoorprizeScreenPage() {
     prize: "",
     winnerName: "",
   });
+  const [settings, setSettings] = useState<any>({});
   const [poolData, setPoolData] = useState<{ name: string; bib: string }[]>([
     { name: "Mengambil Data...", bib: "0000" },
   ]);
@@ -21,6 +22,22 @@ export default function DoorprizeScreenPage() {
   // Audio Context (Harus diaktifkan manual oleh user)
   const [audioEnabled, setAudioEnabled] = useState(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
+
+  const getRotatedStyle = (rotated: boolean) => {
+    return rotated
+      ? {
+          transform: "rotate(90deg)",
+          transformOrigin: "center center",
+          width: "100vh",
+          height: "100vw",
+          position: "absolute" as const,
+          top: "50%",
+          left: "50%",
+          marginTop: "-50vw",
+          marginLeft: "-50vh",
+        }
+      : {};
+  };
 
   // --- INIT AUDIO ---
   const enableAudio = () => {
@@ -119,6 +136,7 @@ export default function DoorprizeScreenPage() {
     const unsub = onSnapshot(doc(db, "settings", "virtual_run"), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
+        setSettings(data);
         if (data.doorprizeSignal) {
           if (
             data.doorprizeSignal.action === "winner" &&
@@ -138,16 +156,22 @@ export default function DoorprizeScreenPage() {
     let interval: NodeJS.Timeout;
     if (signal.action === "spin") {
       interval = setInterval(() => {
-        const randomIndex = Math.floor(Math.random() * poolData.length);
-        setShuffleItem(poolData[randomIndex]);
+        if (poolData.length > 1) {
+          const randomIndex = Math.floor(Math.random() * poolData.length);
+          setShuffleItem(poolData[randomIndex]);
+        } else {
+          // Fallback visual jika database peserta kosong (misal pakai Peserta Manual semua)
+          const randomBib = Math.floor(1000 + Math.random() * 9000).toString();
+          const randomNames = ["BUDI", "SITI", "AGUS", "TEGUH", "NUR", "EKO", "SRI", "JOKO", "RINI", "ADI"];
+          const randomName = randomNames[Math.floor(Math.random() * randomNames.length)];
+          setShuffleItem({ bib: randomBib, name: randomName });
+        }
         if (audioEnabled) playTick();
       }, 50);
     } else if (signal.action === "winner") {
-      // Temukan BIB dari pemenang
-      const winnerData = poolData.find((p) => p.name === signal.winnerName);
       setShuffleItem({
-        name: signal.winnerName,
-        bib: winnerData?.bib || "0000",
+        name: signal.winnerName || "Unknown",
+        bib: signal.winnerBib || "0000",
       });
     } else {
       setShuffleItem({ name: "SIAP DIUNDI", bib: "---" });
@@ -177,11 +201,13 @@ export default function DoorprizeScreenPage() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden font-sans select-none">
-      {/* --- BACKGROUND CERAH (EFEK IKA UII) --- */}
-      <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-200 blur-[150px] rounded-full"></div>
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-yellow-200 blur-[150px] rounded-full"></div>
+    <div 
+      className="min-h-screen w-full bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden font-sans select-none"
+      style={getRotatedStyle(settings.isPortrait)}
+    >
+      {/* --- CLEAN BACKGROUND --- */}
+      <div className="absolute inset-0 z-0 bg-slate-50 pointer-events-none">
+        {/* Subtle geometric pattern if desired, otherwise plain slate-50 is very clean */}
       </div>
 
       {/* --- MODE 1: IDLE --- */}
@@ -189,13 +215,13 @@ export default function DoorprizeScreenPage() {
         <div className="relative z-10 flex flex-col items-center animate-in fade-in duration-1000">
           <div className="w-40 h-40 md:w-56 md:h-56 bg-white rounded-full flex items-center justify-center p-8 border border-slate-200 shadow-xl mb-10">
             <img
-              src="/logo-dpp-ika.png"
+              src={settings.eventLogo || "/logo-dpp-ika.png"}
               alt="Logo"
               className="w-full h-full object-contain"
             />
           </div>
-          <h2 className="text-xl md:text-3xl font-black text-slate-400 tracking-[0.5em] uppercase mb-6">
-            Studio Doorprize
+          <h2 className="text-xl md:text-3xl font-black text-slate-400 tracking-[0.5em] uppercase mb-6 text-center">
+            {settings.eventName || "Studio Doorprize"}
           </h2>
           <div className="text-4xl md:text-6xl font-black text-blue-950 drop-shadow-sm text-center leading-tight">
             <span className="block text-xl text-yellow-500 mb-2 tracking-widest font-bold uppercase">
@@ -208,69 +234,44 @@ export default function DoorprizeScreenPage() {
 
       {/* --- MODE 2: SPIN --- */}
       {signal.action === "spin" && (
-        <div className="relative z-10 flex flex-col items-center w-full max-w-7xl px-4 animate-in zoom-in duration-300">
-          {/* Cincin Berputar (Emas & Biru) */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] md:w-[750px] md:h-[750px] border-[20px] border-dashed border-yellow-400 rounded-full animate-[spin_1.5s_linear_infinite] opacity-40 shadow-[0_0_50px_rgba(250,204,21,0.5)] pointer-events-none"></div>
-
-          <h3 className="text-2xl md:text-4xl font-black text-blue-900 tracking-[0.2em] uppercase mb-10 animate-pulse relative z-20 bg-white/80 px-8 py-2 rounded-full border border-blue-100 shadow-sm">
-            Mengundi: <span className="text-yellow-600">{signal.prize}</span>
+        <div className="relative z-10 flex flex-col items-center w-full max-w-7xl px-4">
+          <h3 className="text-xl md:text-2xl font-bold text-slate-500 tracking-[0.2em] uppercase mb-8">
+            MENGUNDI: <span className="text-[#1A73E8] font-black">{signal.prize}</span>
           </h3>
 
-          {/* Tampilan Pengacakan BIB dan Nama */}
-          <div className="w-full bg-white/90 backdrop-blur-xl border-4 border-blue-900 rounded-[3rem] py-16 px-8 flex flex-col items-center justify-center relative z-20 shadow-2xl">
-            <h1 className="text-[6rem] md:text-[10rem] font-black text-blue-950 text-center uppercase tracking-tighter leading-none mb-2 blur-[1px]">
+          {/* Tampilan Pengacakan BIB dan Nama (CLEAN) */}
+          <div className="w-full bg-white border border-slate-200 rounded-[2rem] py-16 px-8 flex flex-col items-center justify-center relative z-20 shadow-sm">
+            <h1 className={`${settings.isPortrait ? 'text-[12vh]' : 'text-[6rem] md:text-[10rem]'} font-black text-[#152B5B] text-center uppercase tracking-tighter leading-none mb-2`}>
               {shuffleItem.bib}
             </h1>
-            <p className="text-2xl md:text-4xl font-bold text-slate-400 uppercase tracking-widest blur-[0.5px]">
+            <p className={`${settings.isPortrait ? 'text-[4vh]' : 'text-2xl md:text-4xl'} font-bold text-slate-400 uppercase tracking-widest text-center`}>
               {shuffleItem.name}
             </p>
           </div>
         </div>
-      )}
-
-      {/* --- MODE 3: WINNER --- */}
+      )}      {/* --- MODE 3: WINNER --- */}
       {signal.action === "winner" && (
-        <div className="relative z-10 flex flex-col items-center w-full px-4 animate-in zoom-in-90 duration-700">
-          {/* Efek Sinar Belakang */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] h-[90vw] max-w-[1200px] max-h-[1200px] bg-[radial-gradient(circle,rgba(250,204,21,0.2)_0%,rgba(255,255,255,0)_70%)] animate-pulse pointer-events-none"></div>
-
-          {/* Badge Selamat */}
-          <div className="inline-block bg-yellow-400 text-blue-950 font-black px-10 py-3 rounded-full text-2xl md:text-4xl tracking-widest uppercase mb-10 shadow-lg transform -rotate-2 border-2 border-white">
-            SELAMAT KEPADA
+        <div className="relative z-10 flex flex-col items-center w-full max-w-7xl px-4 animate-in fade-in zoom-in-95 duration-500">
+          
+          <div className="bg-[#152B5B] text-white font-bold px-8 py-2 rounded-full text-lg md:text-xl tracking-[0.2em] uppercase mb-10 shadow-sm border border-slate-200">
+            SELAMAT KEPADA PEMENANG
           </div>
 
-          {/* Teks BIB Raksasa */}
-          <h1 className="text-[7rem] md:text-[12rem] font-black text-blue-950 text-center uppercase tracking-tighter leading-none drop-shadow-xl relative z-20">
+          <h1 className={`${settings.isPortrait ? 'text-[16vh]' : 'text-[7rem] md:text-[12rem]'} font-black text-[#1A73E8] text-center uppercase tracking-tighter leading-none relative z-20`}>
             {shuffleItem.bib}
           </h1>
 
-          {/* Nama Pemenang */}
-          <p className="text-3xl md:text-5xl font-bold text-slate-700 uppercase tracking-widest mt-6 mb-12 relative z-20 text-center">
+          <p className={`${settings.isPortrait ? 'text-[5vh]' : 'text-3xl md:text-5xl'} font-black text-slate-800 uppercase tracking-wider mt-4 mb-12 relative z-20 text-center`}>
             {shuffleItem.name}
           </p>
 
-          {/* Kartu Hadiah */}
-          <div className="flex flex-col items-center bg-white border-2 border-blue-900 rounded-[2rem] p-8 md:p-12 shadow-2xl relative z-20 transform translate-y-4">
-            <p className="text-sm md:text-xl font-bold text-slate-400 uppercase tracking-[0.2em] mb-3">
-              Memenangkan Hadiah
+          <div className="flex flex-col items-center bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm relative z-20 min-w-[300px]">
+            <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
+              Hadiah Utama
             </p>
-            <p className="text-4xl md:text-6xl font-black text-blue-900 text-center drop-shadow-sm flex items-center gap-4">
-              <span className="text-5xl md:text-7xl">🎁</span> {signal.prize}
+            <p className="text-2xl md:text-4xl font-black text-[#152B5B] text-center">
+              {signal.prize}
             </p>
-          </div>
-
-          {/* Confetti Simulation */}
-          <div className="absolute inset-0 pointer-events-none z-30 flex justify-around items-start opacity-50">
-            {[...Array(6)].map((_, i) => (
-              <div
-                key={i}
-                className={`w-4 h-16 bg-yellow-400 rounded-full animate-bounce`}
-                style={{
-                  animationDelay: `${i * 0.2}s`,
-                  animationDuration: "1s",
-                }}
-              ></div>
-            ))}
           </div>
         </div>
       )}

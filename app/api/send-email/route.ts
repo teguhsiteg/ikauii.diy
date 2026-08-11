@@ -716,8 +716,8 @@ export async function POST(request: Request) {
             
             <div style="border-top: 1px dashed #DADCE0; padding-top: 15px;">
               <p style="margin: 0 0 5px 0; font-size: 12px; color: #5F6368;">Transfer ke rekening resmi kami:</p>
-              <p style="margin: 0; font-size: 16px; color: #202124; font-weight: bold;">${detail?.bank || "Bank BSI (Bank Syariah Indonesia)"}</p>
-              <p style="margin: 2px 0; font-size: 20px; color: #1A73E8; font-weight: bold; font-family: monospace;">${detail?.rekening || "7209146522"}</p>
+              <p style="margin: 0; font-size: 16px; color: #202124; font-weight: bold;">${detail?.bank || "BNI"}>
+              <p style="margin: 2px 0; font-size: 20px; color: #1A73E8; font-weight: bold; font-family: monospace;">${detail?.rekening || "8880801816"}</p>
               <p style="margin: 0; font-size: 12px; color: #5F6368;">a.n. <strong>${detail?.atasNama || "DPW IKA UII DIY"}</strong></p>
             </div>
           </div>

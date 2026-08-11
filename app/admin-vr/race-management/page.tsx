@@ -17,6 +17,21 @@ import {
 import * as XLSX from "xlsx";
 
 // --- SVG Icons ---
+const IconIdentity = () => (
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+    />
+  </svg>
+);
 const IconTimer = () => (
   <svg
     className="w-5 h-5"
@@ -236,6 +251,13 @@ export default function RaceManagementPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const bibInputRef = useRef<HTMLInputElement>(null);
 
+  // State Identitas Event
+  const [identityForm, setIdentityForm] = useState({
+    eventName: "IKA UII DIY RUN 2026",
+    eventSubtext: "Official Timing System",
+    eventLogo: "/logo-dpp-ika.png",
+  });
+
   // 🔥 CUSTOM CONFIRMATION MODAL STATE 🔥
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
@@ -287,6 +309,17 @@ export default function RaceManagementPage() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setSettings(data);
+        if (data.distances) {
+          setDistances(data.distances);
+        }
+        
+        // Sync local identity form if not actively typing
+        setIdentityForm((prev) => ({
+          ...prev,
+          eventName: data.eventName || "IKA UII DIY RUN 2026",
+          eventSubtext: data.eventSubtext || "Official Timing System",
+          eventLogo: data.eventLogo || "/logo-dpp-ika.png",
+        }));
 
         let availDistances: string[] = [];
         if (data.offlinePackages && data.offlinePackages.length > 0) {
@@ -542,19 +575,21 @@ export default function RaceManagementPage() {
     showMsg("success", `${manualInput.nama} masuk ke Kolam Undian!`);
   };
 
-  const handleStartRace = (dist: string) => {
+  const handleStartRace = (dist: string, withCountdown: boolean = false) => {
     const safeDistKey = dist.replace(/\./g, "_");
     setConfirmDialog({
       isOpen: true,
-      title: `Mulai Race ${dist}?`,
-      message: `Timer (Stopwatch) untuk kategori jarak ${dist} akan mulai dihitung secara Live. Lanjutkan?`,
+      title: `Start Race ${dist}?`,
+      message: withCountdown 
+        ? `Kategori ${dist} akan dimulai dalam 10 DETIK (Countdown di layar publik). Lanjutkan?` 
+        : `Timer untuk kategori jarak ${dist} akan mulai secara instan. Lanjutkan?`,
       type: "info",
-      confirmText: "Start Sekarang",
+      confirmText: "Ya, Start!",
       onConfirm: async () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
         try {
           await updateDoc(doc(db, "settings", "virtual_run"), {
-            [`gunTime${safeDistKey}`]: Date.now(),
+            [`gunTime${safeDistKey}`]: withCountdown ? Date.now() + 10000 : Date.now(),
           });
           showMsg("success", `RACE ${dist} DIMULAI!`);
         } catch (error) {
@@ -594,6 +629,22 @@ export default function RaceManagementPage() {
       });
       showMsg("success", `COT ${dist} disimpan.`);
     } catch (error) {}
+  };
+
+  const handleSaveIdentity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    try {
+      await updateDoc(doc(db, "settings", "virtual_run"), {
+        eventName: identityForm.eventName,
+        eventSubtext: identityForm.eventSubtext,
+        eventLogo: identityForm.eventLogo,
+      });
+      showMsg("success", "Identitas Event Berhasil Disimpan!");
+    } catch (error) {
+      showMsg("error", "Gagal menyimpan identitas event.");
+    }
+    setIsProcessing(false);
   };
 
   const handleSubmitFinish = async (e: React.FormEvent) => {
@@ -774,7 +825,7 @@ export default function RaceManagementPage() {
     return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const handleRemoteDoorprize = async (action: "idle" | "spin") => {
+  const handleRemoteDoorprize = async (action: "idle" | "spin" | "stop") => {
     if (action === "idle") {
       await updateDoc(doc(db, "settings", "virtual_run"), {
         doorprizeSignal: {
@@ -800,18 +851,17 @@ export default function RaceManagementPage() {
         showMsg("error", "Kuota hadiah habis!");
         return;
       }
-
-      setIsSpinning(true);
-      await updateDoc(doc(db, "settings", "virtual_run"), {
-        doorprizeSignal: {
-          action: "spin",
-          prize: selectedPrize.namaHadiah,
-          winnerName: "",
-          winnerBib: "",
-        },
-      });
-
-      setTimeout(async () => {
+      if (action === "spin") {
+        setIsSpinning(true);
+        await updateDoc(doc(db, "settings", "virtual_run"), {
+          doorprizeSignal: {
+            action: "spin",
+            prize: selectedPrize.namaHadiah,
+            winnerName: "",
+            winnerBib: "",
+          },
+        });
+      } else if (action === "stop") {
         const winnerIndex = Math.floor(Math.random() * candidates.length);
         const selectedWinner = candidates[winnerIndex];
 
@@ -862,7 +912,7 @@ export default function RaceManagementPage() {
         if ((selectedPrize.terundi || 0) + 1 >= selectedPrize.jumlah)
           setSelectedPrizeId("");
         setIsSpinning(false);
-      }, spinDuration * 1000);
+      }
     } catch (error) {
       showMsg("error", "Gagal memproses undian.");
       setIsSpinning(false);
@@ -983,6 +1033,7 @@ export default function RaceManagementPage() {
           { id: "timing", icon: <IconTimer />, label: "Finish Line & COT" },
           { id: "doorprize", icon: <IconGift />, label: "Studio Doorprize" },
           { id: "broadcast", icon: <IconBroadcast />, label: "Broadcasting" },
+          { id: "identity", icon: <IconIdentity />, label: "Identitas Event" },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -996,6 +1047,72 @@ export default function RaceManagementPage() {
 
       {/* TABS CONTENT */}
       <main className="flex-grow p-8 overflow-hidden flex flex-col">
+        {/* ============================================================== */}
+        {/* TAB 4: IDENTITAS EVENT */}
+        {/* ============================================================== */}
+        {activeTab === "identity" && (
+          <div className="max-w-4xl mx-auto w-full">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+              <h2 className="text-xl font-black text-[#152B5B] uppercase tracking-widest border-b border-slate-100 pb-4 mb-6 flex items-center gap-2">
+                <IconIdentity /> Identitas Tampilan Publik
+              </h2>
+              <form onSubmit={handleSaveIdentity} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">
+                    Nama Event (Judul Utama)
+                  </label>
+                  <input
+                    type="text"
+                    value={identityForm.eventName}
+                    onChange={(e) => setIdentityForm({...identityForm, eventName: e.target.value})}
+                    placeholder="Contoh: IKA UII DIY RUN 2026"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:border-[#1A73E8] transition-colors"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Tampil paling besar di bagian atas Race Clock.</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">
+                    Subteks (Deskripsi Kecil)
+                  </label>
+                  <input
+                    type="text"
+                    value={identityForm.eventSubtext}
+                    onChange={(e) => setIdentityForm({...identityForm, eventSubtext: e.target.value})}
+                    placeholder="Contoh: Official Timing System"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:border-[#1A73E8] transition-colors"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Tulisan kecil di bawah judul utama.</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">
+                    URL Logo Event (Image URL / Path)
+                  </label>
+                  <input
+                    type="text"
+                    value={identityForm.eventLogo}
+                    onChange={(e) => setIdentityForm({...identityForm, eventLogo: e.target.value})}
+                    placeholder="Contoh: https://link-ke-foto.com/logo.png"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:border-[#1A73E8] transition-colors"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Bisa berupa link URL langsung dari Cloudinary/Hosting Anda, atau biarkan <code>/logo-dpp-ika.png</code> untuk logo bawaan.</p>
+                </div>
+
+                <div className="pt-4">
+                  <button
+                    type="submit"
+                    disabled={isProcessing}
+                    className="bg-[#1A73E8] hover:bg-[#1557b0] text-white font-black px-8 py-4 rounded-xl uppercase tracking-widest shadow-md transition-colors disabled:opacity-50"
+                  >
+                    {isProcessing ? "Menyimpan..." : "Simpan Identitas Event"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* ============================================================== */}
         {/* TAB 1: TIMING & FINISH LINE */}
         {/* ============================================================== */}
@@ -1053,12 +1170,20 @@ export default function RaceManagementPage() {
                             Reset
                           </button>
                         ) : (
-                          <button
-                            onClick={() => handleStartRace(dist)}
-                            className={`px-6 py-3 ${theme.btnBg} ${theme.btnHover} text-white text-sm font-black uppercase tracking-wider rounded-xl shadow-md transition-all`}
-                          >
-                            Start
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleStartRace(dist, true)}
+                              className={`px-3 py-3 ${theme.btnBg} ${theme.btnHover} text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-md transition-all`}
+                            >
+                              START 10S
+                            </button>
+                            <button
+                              onClick={() => handleStartRace(dist, false)}
+                              className={`px-3 py-3 bg-slate-800 hover:bg-slate-900 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-md transition-all`}
+                            >
+                              START NOW
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1364,13 +1489,21 @@ export default function RaceManagementPage() {
                       </option>
                     </select>
                   </div>
-                  <button
-                    onClick={() => handleRemoteDoorprize("spin")}
-                    disabled={isSpinning}
-                    className="w-full bg-[#0B2239] hover:bg-blue-950 text-white font-black py-3.5 rounded-xl uppercase text-xs tracking-widest shadow-md"
-                  >
-                    {isSpinning ? "Mengocok..." : "Undi Hadiah"}
-                  </button>
+                  {!isSpinning ? (
+                    <button
+                      onClick={() => handleRemoteDoorprize("spin")}
+                      className="w-full bg-[#0B2239] hover:bg-blue-950 text-white font-black py-3.5 rounded-xl uppercase text-xs tracking-widest shadow-md transition-colors"
+                    >
+                      Mulai Undi
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleRemoteDoorprize("stop")}
+                      className="w-full bg-rose-600 hover:bg-rose-700 text-white font-black py-3.5 rounded-xl uppercase text-xs tracking-widest shadow-md transition-colors animate-pulse"
+                    >
+                      STOP! (Dapatkan Pemenang)
+                    </button>
+                  )}
                   <button
                     onClick={() => handleRemoteDoorprize("idle")}
                     className="w-full bg-slate-100 border border-slate-200 text-slate-500 text-[9px] font-bold py-2.5 rounded-xl uppercase"
