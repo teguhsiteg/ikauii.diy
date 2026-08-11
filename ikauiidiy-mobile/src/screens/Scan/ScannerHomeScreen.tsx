@@ -133,7 +133,7 @@ export default function ScannerHomeScreen() {
                 </Text>
               </View>
               <View
-                style={tw`bg-white/20 p-2.5 rounded-2xl border border-white/30 backdrop-blur-sm`}
+                style={tw`bg-white/20 p-2.5 rounded-2xl border border-white/30`}
               >
                 <Ionicons
                   name="qr-code"
@@ -171,7 +171,7 @@ export default function ScannerHomeScreen() {
 
             {/* Footer Instruksi */}
             <View
-              style={tw`bg-black/40 p-8 pb-32 items-center backdrop-blur-md`}
+              style={tw`bg-black/40 p-8 pb-32 items-center`}
             >
               <View
                 style={tw`bg-black/50 px-6 py-3 rounded-full border border-white/10`}

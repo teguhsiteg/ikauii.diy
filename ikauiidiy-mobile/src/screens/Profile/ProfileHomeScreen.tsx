@@ -226,6 +226,81 @@ export default function ProfileHomeScreen({ navigation }: any) {
             </TouchableOpacity>
           </View>
         </ScrollView>
+
+        {/* MODAL QR E-KTA */}
+        <Modal
+          visible={isQrModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setQrModalVisible(false)}
+        >
+          <View
+            style={tw`flex-1 bg-black/60 items-center justify-center p-8`}
+          >
+            <View
+              style={tw`bg-white rounded-[28px] p-8 w-full max-w-sm items-center`}
+            >
+              <View
+                style={tw`w-14 h-14 bg-blue-50 rounded-2xl items-center justify-center mb-4`}
+              >
+                <Ionicons
+                  name="card"
+                  size={28}
+                  color={IKA_COLORS.primary.navy}
+                />
+              </View>
+              <Text style={tw`text-xl font-black text-slate-800 mb-1`}>
+                E-KTA Digital
+              </Text>
+              <Text
+                style={tw`text-xs text-slate-400 font-medium mb-6 text-center`}
+              >
+                Pindai untuk memverifikasi identitas alumni
+              </Text>
+
+              <View
+                style={tw`bg-white p-3 rounded-2xl border border-slate-100 shadow-sm mb-4`}
+              >
+                <Image
+                  source={{
+                    uri: `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(
+                      `IKAUII-DIY|${currentUser.uid}|${athleteName}|${currentUser.email}`,
+                    )}`,
+                  }}
+                  style={tw`w-56 h-56`}
+                  resizeMode="contain"
+                />
+              </View>
+
+              <Text style={tw`text-sm font-black text-slate-800`}>
+                {athleteName}
+              </Text>
+              <Text style={tw`text-xs text-slate-500 mb-1`}>
+                {currentUser.email}
+              </Text>
+              <View
+                style={tw`bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 mb-6`}
+              >
+                <Text
+                  style={tw`text-[10px] font-black text-emerald-600 uppercase tracking-widest`}
+                >
+                  ✓ Terverifikasi
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => setQrModalVisible(false)}
+                style={tw`w-full bg-[${IKA_COLORS.primary.navy}] py-3.5 rounded-2xl items-center`}
+              >
+                <Text
+                  style={tw`text-white font-black text-sm uppercase tracking-widest`}
+                >
+                  Tutup
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );

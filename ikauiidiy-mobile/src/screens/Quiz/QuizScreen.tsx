@@ -176,7 +176,29 @@ export default function QuizScreen({ navigation }: any) {
                 key={item.id || index}
                 style={tw`bg-white rounded-3xl p-4 mb-4 flex-row items-center border border-gray-100 shadow-sm`}
                 onPress={() =>
-                  Alert.alert("Konfirmasi", `Mulai kuis ${item.judul}?`)
+                  Alert.alert(
+                    "Konfirmasi",
+                    `Mulai kuis ${item.judul}?`,
+                    [
+                      { text: "Batal", style: "cancel" },
+                      {
+                        text: "Mulai",
+                        onPress: async () => {
+                          const quizData = {
+                            id: item.id,
+                            judul: item.judul,
+                            currentStep: 1,
+                            totalStep: item.jmlSoal || 10,
+                          };
+                          setActiveQuiz(quizData);
+                          await AsyncStorage.setItem(
+                            "@active_quiz_data",
+                            JSON.stringify(quizData),
+                          );
+                        },
+                      },
+                    ],
+                  )
                 }
               >
                 <View
