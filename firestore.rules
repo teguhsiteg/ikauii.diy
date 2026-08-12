@@ -197,15 +197,15 @@ service cloud.firestore {
     }
 
     // ============================================================
-    // ADMIN EMAILS — hanya admin & server
+    // ADMIN EMAILS — read oleh logged-in user (dipakai isAdmin() cek),
+    // write hanya via server/admin (tidak bisa inject sendiri)
     // ============================================================
     match /admin_emails/{email} {
-      allow read: if isAdmin();
+      allow read: if isLoggedIn();
       allow write: if isAdmin();
     }
 
     // ============================================================
-    // USERS — privasi: tulis hanya doc sendiri, admin bebas
     // USERS — privasi: akses via UID, email, atau admin.
     // NOTE: beberapa dokumen di-key oleh EMAIL (legacy), bukan UID.
     match /users/{uid} {
