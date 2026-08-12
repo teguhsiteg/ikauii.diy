@@ -220,16 +220,19 @@ export default function TabAnggota() {
       setApproveModal({ isOpen: false, dataId: "", form: {} as any });
       await fetchData();
     } catch (error: any) {
-      const detail = {
-        message: error?.message || "tidak diketahui",
-        code: error?.code || "tanpa kode",
-        name: error?.name || "",
-        dataId: approveModal?.dataId || "(kosong)",
-        uid: "lihat console",
-      };
-      console.error("[TabAnggota] Gagal mengesahkan anggota:", { error, detail });
+      // Firebase errors kadang punya properti non-enumerable (code, message)
+      // yang tidak muncul saat di-serialize → tampilkan semua cara
+      const rawKeys = error ? Object.getOwnPropertyNames(error) : [];
+      const errCode = error?.code || "(none)";
+      const errMsg = error?.message || "(none)";
+      const errStack = error?.stack?.split("\n")?.[0] || "(none)";
+      console.error(
+        `[TabAnggota] GAGAL APPROVE | code=${errCode} msg="${errMsg}" | keys=[${rawKeys.join(",")}] | stack=${errStack}`,
+      );
+      // Juga log full error object
+      console.dir(error);
       showToast(
-        `Gagal mengesahkan: ${detail.code} — ${detail.message}`,
+        `Gagal mengesahkan: ${errCode} — ${errMsg}`,
         "error",
       );
     } finally {
