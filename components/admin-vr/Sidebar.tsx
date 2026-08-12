@@ -98,6 +98,10 @@ export default function Sidebar({
         { name: "Monitor BIB Check", path: "/bib-display", isExternal: true },
         { name: "Monitor Race Clock", path: "/race-clock", isExternal: true },
         {
+          name: "Kontrol Layar Publik (VJD)",
+          path: "/admin-vr/race-display",
+        },
+        {
           name: "Layar Live Doorprize",
           path: "/doorprize-screen",
           isExternal: true,
