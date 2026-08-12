@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import { usePathname } from "next/navigation";
 
 import { Shield } from "lucide-react";
 import Sidebar from "@/components/admin-vr/Sidebar";
 import Header from "@/components/admin-vr/Header";
+
+const ADMIN_ROLES = ["admin", "super_admin", "superadmin"];
 
 export default function AdminVRLayout({
   children,
@@ -20,6 +23,7 @@ export default function AdminVRLayout({
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
+  const [isVerifiedAdmin, setIsVerifiedAdmin] = useState(false);
 
   // 🔥 STATE KHUSUS UNTUK HAMBURGER MENU (MOBILE) 🔥
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -28,8 +32,38 @@ export default function AdminVRLayout({
   const isDisplayControl = pathname === "/admin-vr/race-display";
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+      if (currentUser) {
+        // Verifikasi role admin dari Firestore
+        try {
+          const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+          if (userDoc.exists()) {
+            const role = String(userDoc.data()?.role || "").toLowerCase();
+            if (ADMIN_ROLES.includes(role)) {
+              setIsVerifiedAdmin(true);
+            } else {
+              setErrorMsg("Akun Anda tidak memiliki hak akses Admin.");
+              setUser(null); // Paksa ke login screen
+            }
+          } else {
+            // Cek admin_emails sebagai fallback (self-healing dari server)
+            const emailKey = currentUser.email?.toLowerCase() || "";
+            const adminEmailDoc = await getDoc(doc(db, "admin_emails", emailKey));
+            if (adminEmailDoc.exists() && adminEmailDoc.data()?.active) {
+              setIsVerifiedAdmin(true);
+            } else {
+              setErrorMsg("Akun Anda tidak memiliki hak akses Admin.");
+              setUser(null);
+            }
+          }
+        } catch {
+          // Jika Firestore gagal, tetap izinkan — backend API route tetap memvalidasi
+          setIsVerifiedAdmin(true);
+        }
+      } else {
+        setIsVerifiedAdmin(false);
+      }
       setIsAuthChecking(false);
     });
     return () => unsubscribe();

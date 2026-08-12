@@ -11,7 +11,7 @@ export default function AdminVRLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ email: string } | null>(null);
   const [emailLogin, setEmailLogin] = useState("");
   const [passwordLogin, setPasswordLogin] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -32,7 +32,7 @@ export default function AdminVRLayout({
     setErrorMsg("");
     try {
       await signInWithEmailAndPassword(auth, emailLogin, passwordLogin);
-    } catch (error: any) {
+    } catch {
       setErrorMsg("Email atau Password salah. Akses ditolak.");
     } finally {
       setIsLoggingIn(false);

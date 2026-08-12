@@ -1,6 +1,13 @@
 import { MetadataRoute } from 'next'
 
-import { dbAdmin } from '@/lib/firebase-admin'
+async function getDbAdmin() {
+  try {
+    const { dbAdmin } = await import('@/lib/firebase-admin')
+    return dbAdmin
+  } catch {
+    return null
+  }
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://ikadiy.uii.ac.id'
@@ -26,6 +33,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: 'weekly' as const,
     priority: route === '' ? 1 : 0.8,
   }))
+
+  const dbAdmin = await getDbAdmin()
+  if (!dbAdmin) {
+    // Firebase tidak tersedia (CI/build), kembalikan minimal static routes
+    console.warn('Sitemap: Firebase Admin tidak tersedia, hanya static routes.')
+    return sitemapData
+  }
 
   try {
     // 2. Fetch Berita

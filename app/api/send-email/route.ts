@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
     const currentYear = new Date().getFullYear();
     const officialEmail = "ika.diy@uii.ac.id";
-    const NOMOR_WA_ADMIN = "6285179594146";
+    const NOMOR_WA_ADMIN = process.env.WA_ADMIN_PHONE || "6285179594146";
     const logoUrl = "https://ikadiy.uii.ac.id/logo-dpp-ika.png";
 
     // 1. SINKRONISASI NAMA EVENT SECARA GLOBAL (KONSISTEN UNTUK SEMUA EMAIL)

@@ -8,14 +8,14 @@ import "leaflet/dist/leaflet.css";
 const decodePolyline = (str: string, precision = 5) => {
   let index = 0,
     lat = 0,
-    lng = 0,
-    coordinates: [number, number][] = [];
+    lng = 0;
+  const coordinates: [number, number][] = [];
   let shift = 0,
     result = 0,
     byte = null,
     latitude_change,
-    longitude_change,
-    factor = Math.pow(10, precision);
+    longitude_change;
+  const factor = Math.pow(10, precision);
   while (index < str.length) {
     byte = null;
     shift = 0;
@@ -50,12 +50,19 @@ const WaypointIcons: Record<string, string> = {
   checkpoint: "📍",
 };
 
+type Waypoint = {
+  lat: number;
+  lng: number;
+  type?: string;
+  name?: string;
+};
+
 export default function EventMap({
   polyline,
   waypoints = [],
 }: {
   polyline: string;
-  waypoints?: any[];
+  waypoints?: Waypoint[];
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMapInstance = useRef<L.Map | null>(null);

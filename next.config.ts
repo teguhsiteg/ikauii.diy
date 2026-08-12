@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // ⚠️ PERINGATAN: Build errors disembunyikan karena 1026+ lint/TS error.
+  // HARUS dihapus setelah semua TS error diperbaiki bertahap.
+  // Jangan deploy dengan ini selamanya — broken code bisa lolos ke production.
   typescript: {
     ignoreBuildErrors: true,
   },

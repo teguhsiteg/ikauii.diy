@@ -12,7 +12,11 @@ import { rateLimit } from "@/lib/rate-limit";
 // ============================================================
 
 const ALLOWED_COLLECTIONS = ["links", "socials", "sponsors", "products"];
+// Rate limit per IP: maks 30 request per 60 detik
 const trackLimiter = rateLimit({ windowMs: 60 * 1000, maxRequests: 30 });
+
+// Tambahan: throttle per linkId per IP untuk cegah spam klik beruntun
+const clickThrottle = new Map<string, number>();
 
 export async function POST(request: Request) {
   const rl = trackLimiter(request);
@@ -33,6 +37,19 @@ export async function POST(request: Request) {
     const col = ALLOWED_COLLECTIONS.includes(collectionName)
       ? collectionName
       : "links";
+
+    // Throttle: 1 klik per linkId per IP dalam 5 detik
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      "unknown";
+    const throttleKey = `${ip}:${col}:${linkId}`;
+    const lastClick = clickThrottle.get(throttleKey);
+    const now = Date.now();
+    if (lastClick && now - lastClick < 5000) {
+      return NextResponse.json({ success: false, error: "Terlalu cepat" }, { status: 429 });
+    }
+    clickThrottle.set(throttleKey, now);
 
     const ref = dbAdmin.collection("settings").doc("bio_engine");
 

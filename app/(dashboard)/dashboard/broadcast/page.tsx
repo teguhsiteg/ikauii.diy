@@ -118,7 +118,7 @@ export default function BroadcastPage() {
       } else {
         throw new Error("API Error");
       }
-    } catch (error) {
+    } catch {
       setPesertaList((prev) =>
         prev.map((p) =>
           p.id === peserta.id ? { ...p, statusKirim: "Gagal" } : p,

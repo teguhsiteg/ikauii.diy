@@ -10,8 +10,6 @@ export default function FeedbackWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isHidden, setIsHidden] = useState(false); // 🔥 State untuk sembunyikan tombol utama
 
-  if (pathname !== "/") return null;
-
   // Form State
   const [rating, setRating] = useState(0);
   const [hoveredStar, setHoveredStar] = useState(0);
@@ -21,6 +19,9 @@ export default function FeedbackWidget() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  // Early return HARUS setelah semua hooks (Rules of Hooks)
+  if (pathname !== "/") return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

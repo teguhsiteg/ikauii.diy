@@ -190,32 +190,46 @@ export default function TabAnggota() {
     e.preventDefault();
     setIsProcessing(true);
     try {
-      await updateDoc(doc(db, "pengurus", approveModal.dataId), {
+      // 🔥 Simpan payload yang akan ditulis (untuk debugging)
+      const payload = {
         ...approveModal.form,
-        noUrut: approveModal.form.noUrut
+        noUrut: approveModal.form.noUrut !== ""
           ? Number(approveModal.form.noUrut)
           : 99,
         isPengurus: true,
         status_pengurus: "Aktif",
         role: "pengurus",
         updatedAt: new Date().toISOString(),
-      });
+      };
+
+      await updateDoc(doc(db, "pengurus", approveModal.dataId), payload);
 
       // TRIGGER WA GATEWAY
-      await triggerWaApi(
-        "member_verified",
-        approveModal.form.wa,
-        approveModal.form.nama,
-        { nia: "Dalam Proses Update Admin" },
-      );
+      try {
+        await triggerWaApi(
+          "member_verified",
+          approveModal.form.wa,
+          approveModal.form.nama,
+          { nia: "Dalam Proses Update Admin" },
+        );
+      } catch (waError: any) {
+        console.warn("[TabAnggota] WA notification gagal (non-fatal):", waError);
+      }
 
       showToast(`${approveModal.form.nama} resmi disahkan!`, "success");
       setApproveModal({ isOpen: false, dataId: "", form: {} as any });
       await fetchData();
     } catch (error: any) {
-      console.error("[TabAnggota] Gagal mengesahkan anggota:", error);
+      const detail = {
+        message: error?.message || "tidak diketahui",
+        code: error?.code || "tanpa kode",
+        name: error?.name || "",
+        dataId: approveModal?.dataId || "(kosong)",
+        uid: "lihat console",
+      };
+      console.error("[TabAnggota] Gagal mengesahkan anggota:", { error, detail });
       showToast(
-        `Gagal mengesahkan anggota: ${error?.message || error?.code || "terjadi kesalahan"}`,
+        `Gagal mengesahkan: ${detail.code} — ${detail.message}`,
         "error",
       );
     } finally {
