@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { auth } from "@/lib/firebase";
-import { onIdTokenChanged, signOut } from "firebase/auth";
+import { onIdTokenChanged, signOut, type User } from "firebase/auth";
 import { useRouter, usePathname } from "next/navigation";
 
 // 🔥 Helper: hanya set Secure di HTTPS (production). Di HTTP/localhost,
@@ -25,7 +25,7 @@ function buildCookieString(value: string, maxAge: number): string {
  * kalau gagal (network error, token expired, dll) pakai cached token.
  * onIdTokenChanged menjamin cookie selalu up-to-date setiap token di-refresh.
  */
-async function syncSessionCookie(user: any) {
+async function syncSessionCookie(user: User) {
   try {
     // Coba refresh → dapat token terbaru
     const token = await user.getIdToken(true);
