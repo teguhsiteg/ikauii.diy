@@ -8,9 +8,7 @@ import {
   onSnapshot,
   doc,
   getDoc,
-  updateDoc,
   writeBatch,
-  addDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import * as XLSX from "xlsx";
@@ -24,7 +22,6 @@ export default function DataPesertaPage() {
     [],
   );
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
-  const [adminUser, setAdminUser] = useState<any>(null);
 
   // --- 🔥 STATE PAGINATION, SORTING & LIMIT 🔥 ---
   const [sortConfig, setSortConfig] = useState<{
@@ -88,11 +85,9 @@ export default function DataPesertaPage() {
     text: string;
   } | null>(null);
 
-  // 1. Ambil Data Admin
+  // 1. Ambil Data Admin (untuk verifikasi sesi, token diambil saat aksi)
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setAdminUser(user);
-    });
+    const unsubscribe = onAuthStateChanged(auth, () => {});
     return () => unsubscribe();
   }, []);
 
@@ -138,7 +133,28 @@ export default function DataPesertaPage() {
     setSortConfig({ key, direction });
   };
 
-  // --- 🔥 AKSI: UBAH STATUS BAYAR & AUTO GENERATE BIB 🔥 ---
+  // --- 🔒 HELPER: SEMUA AKSI TULIS ADMIN VIA ROUTE SERVER (dbAdmin) ---
+  // Client tidak lagi menulis langsung ke Firestore supaya Security Rules
+  // bisa mengunci field sensitif (statusPembayaran, resi, jarak, BIB).
+  const callAdminAction = async (action: string, payload: any) => {
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) throw new Error("Sesi admin tidak valid, silakan login ulang.");
+
+    const res = await fetch("/api/vr-admin", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ action, ...payload }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Gagal memproses aksi.");
+    return data;
+  };
+
+  // --- 🔥 AKSI: UBAH STATUS BAYAR & AUTO GENERATE BIB (via server) 🔥 ---
   const executeStatusChange = async (newStatus: string) => {
     const { participantId: id, participantName } = paymentModal;
     setPaymentModal({ ...paymentModal, isOpen: false }); // Tutup modal duluan
@@ -146,40 +162,9 @@ export default function DataPesertaPage() {
 
     try {
       const targetPeserta = participants.find((p) => p.id === id);
-      let dataToUpdate: any = { statusPembayaran: newStatus };
 
-      // 🔥 LOGIKA CERDAS: GENERATE NOMOR BIB SAAT LUNAS 🔥
-      if (
-        newStatus === "Lunas" &&
-        targetPeserta &&
-        !targetPeserta.nomorBibLengkap
-      ) {
-        const kodeJarak = targetPeserta.jarak.replace(/\D/g, ""); // "5K" -> "5"
-
-        // Cari semua peserta di jarak yang sama yang SUDAH punya nomor BIB
-        const pesertaSatuJarak = participants.filter(
-          (p) => p.jarak === targetPeserta.jarak && p.nomorBibLengkap,
-        );
-
-        // Cari nomor urut paling tinggi saat ini
-        let maxUrut = 0;
-        pesertaSatuJarak.forEach((p) => {
-          // Buang kode depan (jarak), ambil sisa urutannya
-          const urutString = p.nomorBibLengkap.slice(kodeJarak.length);
-          const urut = parseInt(urutString, 10);
-          if (!isNaN(urut) && urut > maxUrut) {
-            maxUrut = urut;
-          }
-        });
-
-        const urutanBaru = maxUrut + 1;
-        // Gabungkan kode jarak + 3 digit nomor urut. Misal: 5 + 001 = 5001
-        const nomorBibBaru = `${kodeJarak}${String(urutanBaru).padStart(3, "0")}`;
-
-        dataToUpdate.nomorBibLengkap = nomorBibBaru;
-      }
-
-      await updateDoc(doc(db, "vr_participants", id), dataToUpdate);
+      // Server yang generate nomor BIB + catat log (lihat /api/vr-admin)
+      await callAdminAction("update-status", { id, status: newStatus });
 
       // Kirim Email Notifikasi Lunas
       if (newStatus === "Lunas" && targetPeserta && targetPeserta.email) {
@@ -191,39 +176,26 @@ export default function DataPesertaPage() {
           }).catch((e) => console.log("Gagal kirim notif email lunas", e));
       }
 
-      await addDoc(collection(db, "vr_logs"), {
-        type: "bayar",
-        action: `mengubah status pembayaran menjadi [${newStatus.toUpperCase()}] untuk`,
-        targetName: participantName,
-        adminEmail: adminUser?.email || "Admin",
-        timestamp: Date.now(),
-      });
-
       setPopup({
         type: "success",
         text: `Status ${participantName} berhasil diubah jadi ${newStatus}.`,
       });
-    } catch (error) {
-      setPopup({ type: "error", text: "Gagal merubah status pembayaran." });
+    } catch (error: any) {
+      console.error("Gagal ubah status:", error);
+      setPopup({ type: "error", text: error?.message || "Gagal merubah status pembayaran." });
     } finally {
       setLoadingAction(null);
     }
   };
 
-  // --- AKSI: SIMPAN RESI PENGIRIMAN ---
+  // --- AKSI: SIMPAN RESI PENGIRIMAN (via server) ---
   const handleSimpanResi = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoadingAction("resi");
     try {
-      await updateDoc(doc(db, "vr_participants", resiModal.participantId), {
-        resiPengiriman: resiModal.currentResi,
-      });
-      await addDoc(collection(db, "vr_logs"), {
-        type: "resi",
-        action: `menginput resi pengiriman untuk`,
-        targetName: resiModal.participantName,
-        adminEmail: adminUser?.email || "Admin",
-        timestamp: Date.now(),
+      await callAdminAction("update-resi", {
+        id: resiModal.participantId,
+        resi: resiModal.currentResi,
       });
       setResiModal({
         isOpen: false,
@@ -232,34 +204,27 @@ export default function DataPesertaPage() {
         participantName: "",
       });
       setPopup({ type: "success", text: "Nomor resi berhasil disimpan." });
-    } catch (error) {
-      setPopup({ type: "error", text: "Gagal menyimpan nomor resi." });
+    } catch (error: any) {
+      setPopup({ type: "error", text: error?.message || "Gagal menyimpan nomor resi." });
     } finally {
       setLoadingAction(null);
     }
   };
 
-  // --- AKSI: EDIT JARAK PESERTA ---
+  // --- AKSI: EDIT JARAK PESERTA (via server) ---
   const handleEditJarak = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!jarakModal.currentJarak) return;
     setLoadingAction("editJarak");
     try {
-      await updateDoc(doc(db, "vr_participants", jarakModal.participantId), {
+      await callAdminAction("update-jarak", {
+        id: jarakModal.participantId,
         jarak: jarakModal.currentJarak,
-      });
-      await addDoc(collection(db, "vr_logs"), {
-        type: "edit_jarak",
-        action: `mengubah kategori jarak menjadi [${jarakModal.currentJarak}] untuk`,
-        targetName: jarakModal.participantName,
-        adminEmail: adminUser?.email || "Admin",
-        timestamp: Date.now(),
       });
       setJarakModal({ isOpen: false, participantId: "", participantName: "", currentJarak: "" });
       setPopup({ type: "success", text: `Jarak ${jarakModal.participantName} berhasil diubah ke ${jarakModal.currentJarak}.` });
-    } catch (error) {
-      console.error(error);
-      setPopup({ type: "error", text: "Gagal mengubah kategori jarak." });
+    } catch (error: any) {
+      setPopup({ type: "error", text: error?.message || "Gagal mengubah jarak peserta." });
     } finally {
       setLoadingAction(null);
     }

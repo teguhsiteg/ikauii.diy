@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 
 // --- IKON VERIFIED BADGE (Diperbaiki agar selaras sejajar dengan teks) ---
 const VerifiedBadge = () => (
@@ -138,21 +138,15 @@ export default function PublicBioPage() {
     }
   }, [data]);
 
-  // Click Tracker Logic Asinkron
+  // Click Tracker Logic Asinkron (via server route — client tidak
+  // bisa menulis settings/bio_engine karena rules mengunci settings)
   const trackClick = async (link: any, collectionName: string = "links") => {
     try {
-      const ref = doc(db, "settings", "bio_engine");
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
-        const currentData = snap.data();
-        const updatedArray = (currentData[collectionName] || []).map(
-          (l: any) => {
-            if (l.id === link.id) return { ...l, clicks: (l.clicks || 0) + 1 };
-            return l;
-          },
-        );
-        await updateDoc(ref, { [collectionName]: updatedArray });
-      }
+      await fetch("/api/bio-track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ collectionName, linkId: link.id }),
+      });
     } catch (e) {
       console.error(e);
     }

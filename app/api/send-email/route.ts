@@ -1115,6 +1115,39 @@ export async function POST(request: Request) {
         );
         break;
 
+      case "admin_notif_run":
+        subject = `[ADMIN] Bukti Lari Baru - ${nama}`;
+        htmlContent = generateHtml(
+          `
+          <h2 style="color: #1A73E8; margin-top: 0; font-size: 20px; font-weight: 500;">Notifikasi Aktivitas Peserta</h2>
+          ${salamPembuka}
+          <p>Yth. Admin <strong>${eventName}</strong>,</p>
+          <p>Peserta <strong>${nama}</strong> (${email}) baru saja mengunggah bukti lari sejauh <strong>${detail?.jarakKm || "-"} km</strong> dan sedang menunggu verifikasi.</p>
+          <p>Silakan masuk ke panel verifikasi untuk menyetujui atau menolak bukti tersebut.</p>
+          <div style="margin: 35px 0 0 0;">
+            ${generateButton("Buka Panel Verifikasi", `${baseUrl}/admin-vr/verifikasi`, true)}
+          </div>
+          `,
+          "NOTIFIKASI ADMIN — BUKTI LARI",
+        );
+        break;
+
+      case "admin_notif_payment":
+        subject = `[ADMIN] Pembayaran Baru - ${nama}`;
+        htmlContent = generateHtml(
+          `
+          <h2 style="color: #1E8E3E; margin-top: 0; font-size: 20px; font-weight: 500;">Notifikasi Pembayaran Masuk</h2>
+          ${salamPembuka}
+          <p>Yth. Admin <strong>${eventName}</strong>,</p>
+          <p>Peserta <strong>${nama}</strong> (${email}) telah melakukan pembayaran. Silakan cek dan verifikasi statusnya di panel peserta.</p>
+          <div style="margin: 35px 0 0 0;">
+            ${generateButton("Buka Panel Peserta", `${baseUrl}/admin-vr/peserta`, true)}
+          </div>
+          `,
+          "NOTIFIKASI ADMIN — PEMBAYARAN",
+        );
+        break;
+
       default:
         return NextResponse.json(
           { error: "Invalid email type" },

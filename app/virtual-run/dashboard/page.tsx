@@ -473,9 +473,15 @@ export default function ParticipantDashboard() {
       window.snap.pay(tokenToUse, {
         onSuccess: async function () {
           try {
-            await updateDoc(doc(db, "vr_participants", participant.id), {
-              statusPembayaran: "Lunas",
+            // 🔒 Verifikasi SERVER-SIDE ke Midtrans (bukan self-update client).
+            // Route ini hanya mengeset Lunas jika Midtrans benar-benar
+            // melaporkan settlement/capture — cegah manipulasi status bayar.
+            const verifyRes = await fetch("/api/vr-verify-order", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ orderId: midtransOrderId }),
             });
+            const verifyData = await verifyRes.json();
 
             // Trigger Email ke Admin
             sendEmailAction({
@@ -485,16 +491,24 @@ export default function ParticipantDashboard() {
                 detail: {},
               }).catch((e) => console.log(e));
 
-            setPopup({
-              type: "success",
-              title: "Pembayaran Berhasil!",
-              text: "Luar biasa! Sistem telah memverifikasi pembayaran Anda secara otomatis. Selamat berlari!",
-            });
+            if (verifyRes.ok && verifyData?.success) {
+              setPopup({
+                type: "success",
+                title: "Pembayaran Berhasil!",
+                text: "Luar biasa! Sistem telah memverifikasi pembayaran Anda secara otomatis. Selamat berlari!",
+              });
+            } else {
+              setPopup({
+                type: "info",
+                title: "Pembayaran Diterima",
+                text: "Pembayaran sedang diverifikasi sistem. Status akan otomatis ter-update beberapa saat lagi.",
+              });
+            }
           } catch (err) {
             setPopup({
-              type: "success",
+              type: "info",
               title: "Pembayaran Berhasil",
-              text: "Pembayaran diterima. Jika dashboard belum update, silakan refresh.",
+              text: "Pembayaran diterima. Status sedang diverifikasi, silakan refresh beberapa saat lagi.",
             });
           }
         },

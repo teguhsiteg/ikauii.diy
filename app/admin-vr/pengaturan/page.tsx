@@ -5,14 +5,10 @@ import { db, auth } from "@/lib/firebase";
 import {
   doc,
   getDoc,
-  setDoc,
   collection,
-  addDoc,
   getDocs,
-  deleteDoc,
-  updateDoc,
 } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, getIdToken } from "firebase/auth";
 
 // IMPORT SEMUA TAB KOMPONEN
 import TabVirtual from "./tabs/TabVirtual";
@@ -20,6 +16,33 @@ import TabOffline from "./tabs/TabOffline";
 import TabRoutes from "./tabs/TabRoutes"; // 🔥 IMPORT TAB BARU
 import TabCharity from "./tabs/TabCharity";
 import TabPembayaran from "./tabs/TabPembayaran";
+
+// ============================================================
+// HELPER: SEMUA OPERASI TULIS ADMIN LEWAT SERVER ROUTE
+// (Firestore rules client dikunci ketat — isAdmin wajib role
+// "admin" di users/{uid}. Server route memakai firebase-admin
+// dan mendukung admin/super_admin/superadmin.)
+// ============================================================
+async function callVrAdminApi(action: string, payload: Record<string, unknown>) {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Belum login.");
+
+  const token = await getIdToken(user);
+  const res = await fetch("/api/vr-admin/settings", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ action, ...payload }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) {
+    throw new Error(data.error || `HTTP ${res.status}`);
+  }
+  return data;
+}
 
 export default function PengaturanAdminPage() {
   const [adminUser, setAdminUser] = useState<any>(null);
@@ -238,10 +261,14 @@ export default function PengaturanAdminPage() {
     e.preventDefault();
     setIsSavingSettings(true);
     try {
-      await setDoc(doc(db, "settings", "virtual_run"), vrSettings, { merge: true });
+      await callVrAdminApi("save-settings", { settings: vrSettings });
       setPopup({ type: "success", text: "Pengaturan berhasil disimpan." });
-    } catch (error) {
-      setPopup({ type: "error", text: "Gagal menyimpan." });
+    } catch (error: any) {
+      console.error("[pengaturan] save error:", error);
+      setPopup({
+        type: "error",
+        text: `Gagal menyimpan: ${error?.message || "terjadi kesalahan"}`,
+      });
     } finally {
       setIsSavingSettings(false);
       setTimeout(() => setPopup(null), 3000);
@@ -261,32 +288,61 @@ export default function PengaturanAdminPage() {
       const promoData = {
         ...newPromo,
         kode: newPromo.kode.toUpperCase().trim().replace(/\s/g, ""),
-        kuotaTerpakai: 0,
-        createdAt: new Date().toISOString(),
       };
-      const docRef = await addDoc(collection(db, "promo_codes"), promoData);
-      setPromoCodes([...promoCodes, { id: docRef.id, ...promoData }]);
+      const { id } = await callVrAdminApi("add-promo", { promo: promoData });
+      setPromoCodes([
+        ...promoCodes,
+        {
+          id,
+          ...promoData,
+          kuotaTerpakai: 0,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
       setNewPromo({ ...newPromo, kode: "", nilaiDiskon: 0 });
       setPopup({
         type: "success",
         text: `Promo ${promoData.kode} ditambahkan.`,
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error("[pengaturan] add promo error:", error);
+      setPopup({
+        type: "error",
+        text: `Gagal menambah promo: ${error?.message || "terjadi kesalahan"}`,
+      });
     } finally {
       setIsSavingPromo(false);
       setTimeout(() => setPopup(null), 3000);
     }
   };
   const handleTogglePromoStatus = async (id: string, status: boolean) => {
-    await updateDoc(doc(db, "promo_codes", id), { isActive: !status });
-    setPromoCodes(
-      promoCodes.map((p) => (p.id === id ? { ...p, isActive: !status } : p)),
-    );
+    try {
+      await callVrAdminApi("toggle-promo", { id, isActive: !status });
+      setPromoCodes(
+        promoCodes.map((p) => (p.id === id ? { ...p, isActive: !status } : p)),
+      );
+    } catch (error: any) {
+      console.error("[pengaturan] toggle promo error:", error);
+      setPopup({
+        type: "error",
+        text: `Gagal ubah status promo: ${error?.message || "terjadi kesalahan"}`,
+      });
+      setTimeout(() => setPopup(null), 3000);
+    }
   };
   const handleDeletePromo = async (id: string, kode: string) => {
     if (!confirm(`Hapus promo ${kode}?`)) return;
-    await deleteDoc(doc(db, "promo_codes", id));
-    setPromoCodes(promoCodes.filter((p) => p.id !== id));
+    try {
+      await callVrAdminApi("delete-promo", { id });
+      setPromoCodes(promoCodes.filter((p) => p.id !== id));
+    } catch (error: any) {
+      console.error("[pengaturan] delete promo error:", error);
+      setPopup({
+        type: "error",
+        text: `Gagal hapus promo: ${error?.message || "terjadi kesalahan"}`,
+      });
+      setTimeout(() => setPopup(null), 3000);
+    }
   };
 
   if (isLoading)
