@@ -195,7 +195,10 @@ export default function DashboardLayout({
   const handleLogout = async () => {
     await signOut(auth);
     document.cookie =
-      "__session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      "firebase_session=; path=/; max-age=0; SameSite=Lax" +
+      (typeof window !== "undefined" && window.location.protocol === "https:"
+        ? "; Secure"
+        : "");
     router.push("/login");
   };
 

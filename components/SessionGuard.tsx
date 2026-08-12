@@ -5,6 +5,21 @@ import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { useRouter, usePathname } from "next/navigation";
 
+// 🔥 Helper: hanya set Secure di HTTPS (production). Di HTTP/localhost,
+// browser menolak cookie Secure → middleware redirect loop.
+function buildCookieString(value: string, maxAge: number): string {
+  const secureFlag =
+    typeof window !== "undefined" && window.location.protocol === "https:"
+      ? "; Secure"
+      : "";
+  const sameSite = "; SameSite=Lax";
+  return (
+    `firebase_session=${value}; path=/; max-age=${maxAge}` +
+    sameSite +
+    secureFlag
+  );
+}
+
 export default function SessionGuard({
   children,
 }: {
@@ -21,8 +36,7 @@ export default function SessionGuard({
     try {
       await signOut(auth);
       // Hapus Cookie agar Middleware tahu user sudah keluar
-      document.cookie =
-        "firebase_session=; path=/; max-age=0; SameSite=Strict; Secure";
+      document.cookie = buildCookieString("", 0);
       router.push("/login");
     } catch (error) {
       console.error("Gagal auto-logout:", error);
@@ -41,7 +55,7 @@ export default function SessionGuard({
       if (user) {
         // SET COOKIE: Tukar token Firebase agar terbaca oleh Middleware Next.js
         const token = await user.getIdToken();
-        document.cookie = `firebase_session=${token}; path=/; max-age=86400; SameSite=Strict; Secure`;
+        document.cookie = buildCookieString(token, 86400);
 
         // PASANG SENSOR AKTIVITAS: Jika user menggerakkan mouse/scroll, timer reset ulang
         window.addEventListener("mousemove", resetTimer);
@@ -51,8 +65,7 @@ export default function SessionGuard({
         resetTimer();
       } else {
         // BERSIHKAN SEMUA JIKA LOGOUT
-        document.cookie =
-          "firebase_session=; path=/; max-age=0; SameSite=Strict; Secure";
+        document.cookie = buildCookieString("", 0);
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         window.removeEventListener("mousemove", resetTimer);
         window.removeEventListener("keydown", resetTimer);
