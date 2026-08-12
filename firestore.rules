@@ -10,8 +10,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Admin = user terdaftar di collection users — dicari via UID ATAU email.
-    // (admin_emails TIDAK dipakai lagi — semua lewat users saja)
+    // Admin = user terdaftar — dicek via:
+    // 1. users/{uid} — by Firebase Auth UID
+    // 2. users/{email} — by email (legacy, jarang ada)
+    // 3. admin_emails/{email} — fallback via email dengan active=true
     function isAdmin() {
       return isLoggedIn() && (
         // Check by UID
@@ -19,10 +21,15 @@ service cloud.firestore {
           get(/databases/$(database)/documents/users/$(request.auth.uid)).exists &&
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["admin", "super_admin", "superadmin", "koordinator"]
         ) || (
-          // Check by EMAIL (legacy — dokumen users di-key oleh email)
+          // Check by EMAIL
           request.auth.token.email != null &&
           get(/databases/$(database)/documents/users/$(request.auth.token.email)).exists &&
           get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role in ["admin", "super_admin", "superadmin", "koordinator"]
+        ) || (
+          // Fallback: admin_emails/{email} dengan active=true
+          request.auth.token.email != null &&
+          get(/databases/$(database)/documents/admin_emails/$(request.auth.token.email)).exists &&
+          get(/databases/$(database)/documents/admin_emails/$(request.auth.token.email)).data.active == true
         )
       );
     }
