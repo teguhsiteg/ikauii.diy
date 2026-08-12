@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { auth } from "@/lib/firebase";
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { syncSessionCookie } from "@/lib/session-cookie";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -14,6 +15,37 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isResetMode, setIsResetMode] = useState(false);
   const router = useRouter();
+
+  // 🔥 AUTO-REDIRECT: kalau user SUDAH login (misal ditendang middleware ke
+  // sini karena cookie session sempat hilang), sinkronkan cookie session ke
+  // server dulu, lalu teruskan ke callbackUrl (atau /gateway). Ini yang
+  // mematahkan redirect loop login ↔ dashboard/admin-vr.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const callbackUrl = params.get("callbackUrl");
+    const target =
+      callbackUrl && callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")
+        ? callbackUrl
+        : "/gateway";
+
+    let cancelled = false;
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user || cancelled) return;
+
+      // Pastikan cookie firebase_session sudah terset di server SEBELUM redirect,
+      // supaya middleware tidak langsung menendang balik ke /login.
+      await syncSessionCookie(user);
+
+      if (cancelled) return;
+      router.replace(target);
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [router]);
 
   // --- FUNGSI LOGIN ---
   const handleLogin = async (e: React.FormEvent) => {

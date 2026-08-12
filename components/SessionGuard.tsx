@@ -2,55 +2,9 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { auth } from "@/lib/firebase";
-import { onIdTokenChanged, signOut, type User } from "firebase/auth";
-import { useRouter, usePathname } from "next/navigation";
-
-// 🔥 Helper: hanya set Secure di HTTPS (production). Di HTTP/localhost,
-// browser menolak cookie Secure → middleware redirect loop.
-function buildCookieString(value: string, maxAge: number): string {
-  const secureFlag =
-    typeof window !== "undefined" && window.location.protocol === "https:"
-      ? "; Secure"
-      : "";
-  const sameSite = "; SameSite=Lax";
-  return (
-    `firebase_session=${value}; path=/; max-age=${maxAge}` +
-    sameSite +
-    secureFlag
-  );
-}
-
-/**
- * Setel cookie firebase_session dengan fallback: coba refresh token dulu,
- * kalau gagal (network error, token expired, dll) pakai cached token.
- * onIdTokenChanged menjamin cookie selalu up-to-date setiap token di-refresh.
- */
-async function syncSessionCookie(user: User) {
-  try {
-    // Coba refresh → dapat token terbaru
-    const token = await user.getIdToken(true);
-    document.cookie = buildCookieString(token, 86400);
-    return;
-  } catch (refreshError) {
-    console.warn(
-      "⚠️ SessionGuard: gagal refresh token, fallback ke cached token:",
-      (refreshError as Error)?.message,
-    );
-  }
-
-  try {
-    // Fallback: gunakan token yang sudah di-cache oleh Firebase SDK
-    const cachedToken = await user.getIdToken(false);
-    if (cachedToken) {
-      document.cookie = buildCookieString(cachedToken, 86400);
-    }
-  } catch (cachedError) {
-    console.error(
-      "❌ SessionGuard: tidak bisa mendapatkan token sama sekali:",
-      (cachedError as Error)?.message,
-    );
-  }
-}
+import { onIdTokenChanged, signOut } from "firebase/auth";
+import { useRouter } from "next/navigation";
+import { syncSessionCookie, clearSessionCookie } from "@/lib/session-cookie";
 
 export default function SessionGuard({
   children,
@@ -58,7 +12,6 @@ export default function SessionGuard({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 🔥 WAKTU AUTO-LOGOUT: 1 JAM (dalam milidetik) 🔥
@@ -67,7 +20,7 @@ export default function SessionGuard({
   const handleLogout = useCallback(async () => {
     try {
       await signOut(auth);
-      document.cookie = buildCookieString("", 0);
+      await clearSessionCookie();
       router.push("/login");
     } catch (error) {
       console.error("Gagal auto-logout:", error);
@@ -80,8 +33,10 @@ export default function SessionGuard({
   }, [handleLogout, IDLE_TIMEOUT]);
 
   useEffect(() => {
-    // 🔥 onIdTokenChanged: lebih reliable dari onAuthStateChanged karena
-    // otomatis sync cookie setiap kali Firebase SDK me-refresh token (~1 jam).
+    // 🔥 onIdTokenChanged: otomatis sinkron cookie session ke server setiap
+    // kali Firebase SDK menerbitkan / me-refresh token (~1 jam). Cookie kini
+    // HttpOnly & diset lewat server (bukan document.cookie), jadi middleware
+    // selalu melihat cookie valid tanpa race-condition.
     const unsubscribe = onIdTokenChanged(auth, async (user) => {
       if (user) {
         await syncSessionCookie(user);
@@ -92,7 +47,8 @@ export default function SessionGuard({
         window.addEventListener("touchstart", resetTimer);
         resetTimer();
       } else {
-        document.cookie = buildCookieString("", 0);
+        // Fire-and-forget: hapus cookie lewat server. Aman & idempoten.
+        clearSessionCookie();
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         window.removeEventListener("mousemove", resetTimer);
         window.removeEventListener("keydown", resetTimer);
@@ -109,7 +65,7 @@ export default function SessionGuard({
       window.removeEventListener("scroll", resetTimer);
       window.removeEventListener("touchstart", resetTimer);
     };
-  }, [pathname, resetTimer]);
+  }, [resetTimer]);
 
   return <>{children}</>;
 }

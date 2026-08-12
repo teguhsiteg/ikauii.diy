@@ -5,6 +5,7 @@ import { toast } from "@/lib/toast";
 import { usePathname, useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { signOut, onAuthStateChanged } from "firebase/auth";
+import { clearSessionCookie } from "@/lib/session-cookie";
 import { useState, useEffect, useRef } from "react";
 import {
   collection,
@@ -194,11 +195,7 @@ export default function DashboardLayout({
 
   const handleLogout = async () => {
     await signOut(auth);
-    document.cookie =
-      "firebase_session=; path=/; max-age=0; SameSite=Lax" +
-      (typeof window !== "undefined" && window.location.protocol === "https:"
-        ? "; Secure"
-        : "");
+    await clearSessionCookie();
     router.push("/login");
   };
 
