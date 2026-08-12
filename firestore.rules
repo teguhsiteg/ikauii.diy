@@ -1,0 +1,162 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================================
+    // FUNGSI BANTU
+    // ============================================================
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+
+    // Admin = user terdaftar yang punya hak kelola:
+    // 1. role admin/super_admin/superadmin/koordinator di users/{uid}, ATAU
+    // 2. terdaftar di admin_emails/{email} dengan active == true
+    // (admin_emails diisi server-side oleh route API / lib vr-admin-auth —
+    //  client TIDAK bisa menulisnya karena butuh isAdmin dulu (circular).)
+    function isAdmin() {
+      return isLoggedIn() && (
+        (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).exists &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["admin", "super_admin", "superadmin", "koordinator"]
+        ) || (
+          get(/databases/$(database)/documents/admin_emails/$(request.auth.token.email)).exists &&
+          get(/databases/$(database)/documents/admin_emails/$(request.auth.token.email)).data.active == true
+        )
+      );
+    }
+
+    // Pemilik dokumen (jika dokumen menyimpan field uid)
+    function isOwner() {
+      return isLoggedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // ============================================================
+    // FORM PUBLIK — create tanpa login, update/delete pemilik atau admin
+    // ============================================================
+    match /pendaftaran_bisnis/{docId} {
+      allow read, create: if true;
+      allow update, delete: if isAdmin() || isOwner();
+    }
+    match /pendaftaran_iklan/{docId} {
+      allow read, create: if true;
+      allow update, delete: if isAdmin() || isOwner();
+    }
+    match /agenda_peserta/{docId} {
+      allow read, create: if true;
+      allow update, delete: if isAdmin() || isOwner();
+    }
+    match /agenda_donasi/{docId} {
+      allow read, create: if true;
+      allow update, delete: if isAdmin() || isOwner();
+    }
+    match /twibbon_logs/{docId} {
+      allow read, create: if true;
+      allow update, delete: if isAdmin() || isOwner();
+    }
+    match /offline_participants/{docId} {
+      allow read, create: if true;
+      allow update, delete: if isAdmin() || isOwner();
+    }
+
+    // ============================================================
+    // VIRTUAL RUN — paling sensitif (pembayaran & BIB)
+    // ============================================================
+    match /vr_participants/{docId} {
+      allow read: if true;
+
+      // Create dari form pendaftaran publik, tapi:
+      // - status WAJIB "Pending" (cegah create langsung Lunas)
+      // - field inti wajib ada
+      allow create: if true
+        && request.resource.data.statusPembayaran == "Pending"
+        && request.resource.data.nama is string
+        && request.resource.data.email is string
+        && request.resource.data.jarak is string
+        && request.resource.data.paket is string
+        && request.resource.data.totalTagihan is number;
+
+      // Update dari client HANYA field aman (snapToken untuk Midtrans &
+      // buktiBayarUrl untuk unggah/hapus bukti manual).
+      // Field sensitif (statusPembayaran, totalTagihan, nomorBibLengkap,
+      // email, nama, waktuDaftar, jarak, resiPengiriman, approvedKm, dll)
+      // HANYA bisa diubah via server route (dbAdmin) atau admin.
+      allow update: if isAdmin() || (
+        isLoggedIn() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "snapToken",
+          "buktiBayarUrl"
+        ])
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    match /vr_submissions/{docId} {
+      // Create HANYA via server route /api/vr-submit-run (memaksa status Pending)
+      allow read: if isLoggedIn();
+      allow create: if false;
+      allow update, delete: if isAdmin();
+    }
+
+    match /vr_logs/{docId} {
+      // Log hanya ditulis server (route admin/webhook); dibaca admin
+      allow read: if isAdmin();
+      allow create: if false;
+      allow update, delete: if isAdmin();
+    }
+
+    // ============================================================
+    // KONTEN PUBLIK — read bebas, tulis admin
+    // ============================================================
+    match /berita/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /pengaturan/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /settings/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /pengurus/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /dpd/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /direktori_bisnis/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /iklan_direktori/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /agenda/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /galeri/{docId} { allow read: if true; allow write: if isAdmin(); }
+    // Feedback: publik boleh baca & kirim, hanya admin yang hapus/edit
+    match /feedbacks/{docId} {
+      allow read, create: if true;
+      allow update, delete: if isAdmin();
+    }
+    // Kuis (dipakai mobile app tanpa login)
+    match /kuis/{docId} { allow read: if true; allow write: if isAdmin(); }
+
+    // ============================================================
+    // ADMIN EMAILS — index role by email (diisi server-side).
+    // Write butuh isAdmin (circular) => hanya server (firebase-admin)
+    // yang bisa menulis; client tidak akan pernah lolos.
+    // ============================================================
+    match /admin_emails/{email} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // ============================================================
+    // USERS — privasi: tulis hanya doc sendiri, admin bebas
+    // ============================================================
+    match /users/{uid} {
+      allow read: if isLoggedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if isLoggedIn() && request.auth.uid == uid;
+      allow update: if isLoggedIn() && (request.auth.uid == uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================
+    // CATCH-ALL — collection lain: baca (login), tulis ADMIN ONLY.
+    // Mencakup: nomor_surat, surat_edaran, kuitansi_organisasi,
+    // doorprize_items, promo_codes, pendaftar, oprec_*, masterclass_*,
+    // validasi_ttd, system, templates, donasi_*, bidang, periode, proker,
+    // merchandise, crew_volunteers, peserta, dll.
+    // ============================================================
+    match /{document=**} {
+      allow read: if isLoggedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

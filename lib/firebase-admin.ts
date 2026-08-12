@@ -1,21 +1,39 @@
 import * as admin from "firebase-admin";
 
-if (!admin.apps.length) {
+function initAdminApp() {
+  if (admin.apps.length > 0) {
+    return admin.apps[0]!;
+  }
+
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "suratdigitalv2";
+
   try {
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        // 🔥 Ini kunci utamanya: Memaksa teks \n menjadi format enter (newline) yang dikenali Google
-        privateKey: process.env.FIREBASE_PRIVATE_KEY
-          ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n")
-          : undefined,
-      }),
-    });
-    console.log("✅ Firebase Admin SDK berhasil diinisialisasi.");
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+    if (privateKey) {
+      console.log("✅ Firebase Admin SDK init dengan private key.");
+      return admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: privateKey.replace(/\\n/g, "\n"),
+        }),
+        projectId,
+      });
+    } else {
+      console.log("✅ Firebase Admin SDK init dengan ADC.");
+      return admin.initializeApp({
+        credential: admin.credential.applicationDefault(),
+        projectId,
+      });
+    }
   } catch (error) {
-    console.error("❌ Firebase Admin Initialization Error", error);
+    console.error("❌ Firebase Admin Initialization Error:", error);
+    throw error;
   }
 }
 
-export const authAdmin = admin.auth();
+const app = initAdminApp();
+
+export const authAdmin = admin.auth(app);
+export const dbAdmin = admin.firestore(app);

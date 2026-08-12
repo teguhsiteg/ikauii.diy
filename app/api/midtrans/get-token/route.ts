@@ -110,6 +110,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ token: data.token });
   } catch (error: any) {
     console.error("[Internal Server Error]:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Gagal mendapatkan token pembayaran" }, { status: 500 });
   }
 }

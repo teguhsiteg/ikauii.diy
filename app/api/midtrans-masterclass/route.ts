@@ -1,17 +1,44 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { dbAdmin } from "@/lib/firebase-admin";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { enrollmentId, grossAmount, customerName, customerEmail } = body;
+    const { enrollmentId, customerName, customerEmail } = body;
+
+    if (!enrollmentId) {
+      return NextResponse.json(
+        { error: "ID enrollment wajib diisi" },
+        { status: 400 },
+      );
+    }
+
+    // 🔒 AMBIL HARGA ASLI DARI DATABASE (Anti-Manipulasi)
+    const enrollmentRef = dbAdmin.collection("masterclass_enrollments").doc(enrollmentId);
+    const enrollmentSnap = await enrollmentRef.get();
+
+    if (!enrollmentSnap.exists) {
+      return NextResponse.json(
+        { error: "Data enrollment tidak ditemukan" },
+        { status: 404 },
+      );
+    }
+
+    const enrollmentData = enrollmentSnap.data();
+    const actualAmount = enrollmentData.totalTagihan || enrollmentData.harga;
+
+    if (!actualAmount || actualAmount <= 0) {
+      return NextResponse.json(
+        { error: "Nominal tagihan tidak valid" },
+        { status: 400 },
+      );
+    }
 
     // 1. Ambil Settingan Midtrans dari laci Kasir Masterclass
-    const settingsRef = doc(db, "settings", "masterclass");
-    const settingsSnap = await getDoc(settingsRef);
+    const settingsRef = dbAdmin.collection("settings").doc("masterclass");
+    const settingsSnap = await settingsRef.get();
 
-    if (!settingsSnap.exists()) {
+    if (!settingsSnap.exists) {
       return NextResponse.json(
         { error: "Pengaturan Midtrans Masterclass tidak ditemukan" },
         { status: 500 },
@@ -40,7 +67,7 @@ export async function POST(request: Request) {
     const payload = {
       transaction_details: {
         order_id: orderId,
-        gross_amount: Math.round(grossAmount),
+        gross_amount: Math.round(Number(actualAmount)),
       },
       customer_details: {
         first_name: customerName,
@@ -64,10 +91,9 @@ export async function POST(request: Request) {
 
     const data = await response.json();
 
-    // 6. KEMBALIKAN TOKEN KE FRONT-END
     if (response.ok) {
       // (Opsional) Simpan token ke Firebase agar terekam
-      await updateDoc(doc(db, "masterclass_enrollments", enrollmentId), {
+      await dbAdmin.collection("masterclass_enrollments").doc(enrollmentId).update({
         snapToken: data.token,
       });
 
@@ -81,6 +107,6 @@ export async function POST(request: Request) {
     }
   } catch (error: any) {
     console.error("API Route Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Gagal memproses transaksi Midtrans" }, { status: 500 });
   }
 }

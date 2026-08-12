@@ -14,6 +14,8 @@ import {
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import * as XLSX from "xlsx";
+import { sendEmailAction } from "@/app/actions/email";
+
 
 export default function AdminKomunitasPage() {
   const [groups, setGroups] = useState<any[]>([]);
@@ -288,10 +290,7 @@ export default function AdminKomunitasPage() {
 
     for (const group of targetGroups) {
       try {
-        const res = await fetch("/api/send-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        const res = await sendEmailAction({
             type: "reminder_racepack_komunitas",
             email: group.kapten?.email,
             nama: group.kapten?.nama,
@@ -302,10 +301,9 @@ export default function AdminKomunitasPage() {
               totalBiaya: group.totalBiaya || 0,
               participants: group.participants || [],
             },
-          }),
-        });
+          });
 
-        if (res.ok) successCount++;
+        if (res.success) successCount++;
         else failCount++;
       } catch (error) {
         failCount++;
@@ -397,10 +395,7 @@ export default function AdminKomunitasPage() {
         message: "Mengirim E-Ticket Kolektif ke email Kapten...",
       }));
 
-      const res = await fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const res = await sendEmailAction({
           type: "payment_success_komunitas",
           email: g.kapten?.email,
           nama: g.kapten?.nama,
@@ -411,10 +406,9 @@ export default function AdminKomunitasPage() {
             totalBiaya: g.totalBiaya || 0,
             participants: finalParticipants,
           },
-        }),
-      });
+        });
 
-      if (!res.ok)
+      if (!res.success)
         console.warn("Gagal mengirim email E-Ticket komunitas dari server.");
 
       await addDoc(collection(db, "vr_logs"), {

@@ -20,6 +20,8 @@ import NavbarPublic from "@/components/layout/NavbarPublic";
 import FooterPublic from "@/components/layout/FooterPublic";
 
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import { sendEmailAction } from "@/app/actions/email";
+
 
 function FormPendaftaranOffline() {
   const router = useRouter();
@@ -31,6 +33,45 @@ function FormPendaftaranOffline() {
   const [settings, setSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // --- STATE ALAMAT BERTINGKAT ---
+  const [wilayahData, setWilayahData] = useState<{provinces: any[], regencies: any[], districts: any[]} | null>(null);
+
+  const [provinces, setProvinces] = useState<any[]>([]);
+  const [regencies, setRegencies] = useState<any[]>([]);
+  const [districts, setDistricts] = useState<any[]>([]);
+
+  const [selectedProvId, setSelectedProvId] = useState("");
+  const [selectedRegId, setSelectedRegId] = useState("");
+  const [selectedDistId, setSelectedDistId] = useState("");
+
+  useEffect(() => {
+    fetch("/data-wilayah.json")
+      .then((res) => res.json())
+      .then((data) => {
+        setWilayahData(data);
+        setProvinces(data.provinces || []);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (selectedProvId && wilayahData) {
+      setRegencies(wilayahData.regencies.filter((r: any) => r.province_id === selectedProvId));
+    } else {
+      setRegencies([]);
+      setSelectedRegId("");
+    }
+  }, [selectedProvId, wilayahData]);
+
+  useEffect(() => {
+    if (selectedRegId && wilayahData) {
+      setDistricts(wilayahData.districts.filter((d: any) => d.regency_id === selectedRegId));
+    } else {
+      setDistricts([]);
+      setSelectedDistId("");
+    }
+  }, [selectedRegId, wilayahData]);
 
   // --- STATE KATEGORI TERSEDIA (DARI ADMIN) ---
   const [availableCategories, setAvailableCategories] = useState<string[]>([
@@ -70,6 +111,7 @@ function FormPendaftaranOffline() {
     kewarganegaraan: "Indonesia",
     provinsi: "",
     kotaKabupaten: "",
+    kecamatan: "",
     alamatLengkap: "",
     email: "",
     noWA: "",
@@ -89,6 +131,9 @@ function FormPendaftaranOffline() {
     hubunganDarurat: "",
     waDarurat: "",
     paketId: defaultPaketId,
+    // 🔥 CHARITY OFFLINE
+    isDonasi: false,
+    nominalDonasi: "",
   });
 
   // --- STATE PROMO & DISKON ---
@@ -180,7 +225,8 @@ function FormPendaftaranOffline() {
 
       let isAllowed = true;
 
-      if (!isOfflineEnabled || adminStatus === "tutup" || adminStatus === "coming_soon") {
+      if (!isOfflineEnabled || adminStatus === "tutup" || adminStatus === "coming_soon" || adminStatus === "preview") {
+        // "preview" = halaman /run tampil tapi pendaftaran tetap dikunci
         isAllowed = false;
       } else if (adminStatus !== "buka") {
         if (openDate && currentTime < openDate) isAllowed = false;
@@ -221,6 +267,12 @@ function FormPendaftaranOffline() {
     }
   }
 
+  const minCharity = Number(settings?.minCharity) || 25000;
+  const donasi =
+    settings?.isCharityActive && formData.isDonasi
+      ? Number(formData.nominalDonasi) || 0
+      : 0;
+
   let nominalDiskonAktif = 0;
   if (appliedPromo) {
     if (appliedPromo.jenisDiskon === "persen") {
@@ -229,16 +281,18 @@ function FormPendaftaranOffline() {
       nominalDiskonAktif = appliedPromo.nilaiDiskon;
     }
   }
-  const totalTagihanAktif = Math.max(0, hargaPaketAktif - nominalDiskonAktif);
+  const totalTagihanAktif = Math.max(0, hargaPaketAktif - nominalDiskonAktif) + donasi;
 
   const handleChange = (e: any) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     if (name === "paketId") return;
 
     if (["noWA", "waDarurat", "nim", "tahunLulus", "nik"].includes(name)) {
       setFormData({ ...formData, [name]: value.replace(/\D/g, "") });
     } else if (name === "namaBib") {
       setFormData({ ...formData, [name]: value.toUpperCase().slice(0, 12) });
+    } else if (type === "checkbox") {
+      setFormData({ ...formData, [name]: checked });
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -415,6 +469,16 @@ function FormPendaftaranOffline() {
       });
     }
 
+    // 🔥 VALIDASI CHARITY OFFLINE
+    if (settings?.isCharityActive && formData.isDonasi && donasi < minCharity) {
+      return setModal({
+        isOpen: true,
+        type: "warning",
+        title: "Nominal Donasi Kurang",
+        message: `Minimal donasi adalah Rp ${minCharity.toLocaleString("id-ID")}.`,
+      });
+    }
+
     const selectedPackage = settings.offlinePackages?.find(
       (pkg: any) => pkg.id === formData.paketId,
     );
@@ -527,6 +591,13 @@ function FormPendaftaranOffline() {
         totalTagihan = Math.max(0, hargaAsli - nominalDiskon);
       }
 
+      // 🔥 TAMBAHKAN DONASI KE TOTAL JIKA AKTIF
+      const nominalDonasiOffline =
+        settings?.isCharityActive && formData.isDonasi
+          ? Number(formData.nominalDonasi) || 0
+          : 0;
+      totalTagihan += nominalDonasiOffline;
+
       const isAkademikUII = formData.kategoriPeserta === "Alumni";
       const isPelajar = formData.kategoriPeserta === "SMA/Pelajar";
 
@@ -543,6 +614,7 @@ function FormPendaftaranOffline() {
         kodePromoDipakai: appliedPromo ? appliedPromo.kode : null,
         idPromoDipakai: appliedPromo ? appliedPromo.id : null,
         totalDiskon: nominalDiskon,
+        nominalDonasi: nominalDonasiOffline,
         totalTagihan: totalTagihan,
         statusPembayaran: "Pending",
         waktuDaftar: new Date().toISOString(),
@@ -555,10 +627,7 @@ function FormPendaftaranOffline() {
       );
 
       // Eksekusi pengiriman email di background (tanpa await agar tidak memperlambat transisi user)
-      fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      sendEmailAction({
           type: "offline_registration",
           email: formData.email,
           nama: formData.namaLengkap,
@@ -569,8 +638,7 @@ function FormPendaftaranOffline() {
             rekening: settings?.manualRekening || "-",
             atasNama: settings?.manualNama || "DPW IKA UII DIY",
           },
-        }),
-      }).catch((err) => console.error("Background Email Error:", err));
+        }).catch((err) => console.error("Background Email Error:", err));
 
       router.push(`/run/checkout/${docRef.id}`);
     } catch (error) {
@@ -1053,36 +1121,66 @@ function FormPendaftaranOffline() {
                         className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#152B5B] outline-none text-sm transition-all text-slate-800 font-bold"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
-                        Provinsi <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="provinsi"
-                        value={formData.provinsi}
-                        onChange={handleChange}
-                        required
-                        placeholder="Cth: DI Yogyakarta"
-                        className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#152B5B] outline-none text-sm transition-all text-slate-800 font-bold"
-                      />
-                    </div>
                   </div>
-                  <div className="grid sm:grid-cols-2 gap-5">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
-                        Kota / Kabupaten{" "}
-                        <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="kotaKabupaten"
-                        value={formData.kotaKabupaten}
-                        onChange={handleChange}
-                        required
-                        placeholder="Cth: Sleman"
-                        className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#152B5B] outline-none text-sm transition-all text-slate-800 font-bold"
-                      />
+                  
+                  <div className="space-y-4 mt-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Provinsi <span className="text-rose-500">*</span></label>
+                        <select
+                          required
+                          value={selectedProvId}
+                          onChange={(e) => {
+                            setSelectedProvId(e.target.value);
+                            const provName = e.target.options[e.target.selectedIndex].text;
+                            setFormData({ ...formData, provinsi: provName, kotaKabupaten: "", kecamatan: "" });
+                          }}
+                          className="w-full px-4 py-3.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#152B5B] outline-none text-sm transition-all text-slate-800"
+                        >
+                          <option value="">Pilih Provinsi</option>
+                          {provinces.map((p) => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Kota/Kabupaten <span className="text-rose-500">*</span></label>
+                        <select
+                          required
+                          disabled={!selectedProvId}
+                          value={selectedRegId}
+                          onChange={(e) => {
+                            setSelectedRegId(e.target.value);
+                            const regName = e.target.options[e.target.selectedIndex].text;
+                            setFormData({ ...formData, kotaKabupaten: regName, kecamatan: "" });
+                          }}
+                          className="w-full px-4 py-3.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#152B5B] outline-none text-sm transition-all text-slate-800 disabled:bg-slate-100"
+                        >
+                          <option value="">Pilih Kota/Kab</option>
+                          {regencies.map((r) => (
+                            <option key={r.id} value={r.id}>{r.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Kecamatan <span className="text-rose-500">*</span></label>
+                        <select
+                          required
+                          disabled={!selectedRegId}
+                          value={selectedDistId}
+                          onChange={(e) => {
+                            setSelectedDistId(e.target.value);
+                            const distName = e.target.options[e.target.selectedIndex].text;
+                            setFormData({ ...formData, kecamatan: distName });
+                          }}
+                          className="w-full px-4 py-3.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#152B5B] outline-none text-sm transition-all text-slate-800 disabled:bg-slate-100"
+                        >
+                          <option value="">Pilih Kecamatan</option>
+                          {districts.map((d) => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
@@ -1094,7 +1192,7 @@ function FormPendaftaranOffline() {
                         onChange={handleChange}
                         required
                         rows={2}
-                        placeholder="Nama jalan, RT/RW, Kecamatan"
+                        placeholder="Nama jalan, RT/RW, Kode Pos"
                         className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#152B5B] outline-none text-sm transition-all text-slate-800 font-medium custom-scrollbar"
                       ></textarea>
                     </div>
@@ -1455,6 +1553,66 @@ function FormPendaftaranOffline() {
               </div>
 
               {/* ========================================================== */}
+              {/* 💖 BLOK CHARITY — DONASI OFFLINE (JIKA AKTIF)              */}
+              {/* ========================================================== */}
+              {settings?.isCharityActive && (
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50/30 rounded-3xl p-6 sm:p-8 border border-emerald-100 shadow-sm">
+                  <div className="flex items-start gap-4 mb-5">
+                    <div className="w-12 h-12 bg-white text-emerald-500 rounded-2xl flex items-center justify-center text-2xl shrink-0 shadow-sm border border-emerald-100">
+                      💖
+                    </div>
+                    <div>
+                      <h4 className="text-base font-black text-emerald-900">
+                        {settings.charityTitle || "Run & Charity"}
+                      </h4>
+                      <p className="text-xs text-emerald-700 mt-1 leading-relaxed font-medium">
+                        {settings.charityDesc ||
+                          "Berlari sambil berbagi. Tambahkan donasi Anda untuk disalurkan 100% ke yang membutuhkan."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 bg-white p-4 rounded-xl border border-emerald-200 mb-3 hover:shadow-md transition-shadow">
+                    <input
+                      type="checkbox"
+                      id="isDonasi"
+                      name="isDonasi"
+                      checked={formData.isDonasi}
+                      onChange={handleChange}
+                      className="w-5 h-5 text-emerald-600 rounded border-emerald-300 focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <label
+                      htmlFor="isDonasi"
+                      className="text-sm font-bold text-emerald-900 cursor-pointer select-none flex-grow"
+                    >
+                      Ya, saya ingin melipatgandakan kebaikan!
+                    </label>
+                  </div>
+
+                  {formData.isDonasi && (
+                    <div className="animate-in fade-in slide-in-from-top-2 mt-4 relative">
+                      <label className="block text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1.5">
+                        Nominal Donasi Tambahan (Min. Rp{" "}
+                        {minCharity.toLocaleString("id-ID")})
+                      </label>
+                      <span className="absolute left-4 top-[29px] text-emerald-900 font-bold text-sm">
+                        Rp
+                      </span>
+                      <input
+                        type="number"
+                        name="nominalDonasi"
+                        value={formData.nominalDonasi}
+                        onChange={handleChange}
+                        placeholder={minCharity.toString()}
+                        min={minCharity}
+                        className="w-full pl-12 pr-4 py-3 bg-white border border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-emerald-900 font-black text-base transition-all font-mono shadow-inner"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ========================================================== */}
               {/* 🔥 BLOK 7: KODE PROMO & RINCIAN PEMBAYARAN 🔥              */}
               {/* ========================================================== */}
               <div>
@@ -1529,6 +1687,14 @@ function FormPendaftaranOffline() {
                         <span>
                           - Rp {nominalDiskonAktif.toLocaleString("id-ID")}
                         </span>
+                      </div>
+                    )}
+
+                    {/* 💖 DONASI OFFLINE */}
+                    {settings?.isCharityActive && formData.isDonasi && donasi > 0 && (
+                      <div className="flex justify-between items-center text-sm font-bold text-emerald-600">
+                        <span>💖 Donasi Kebaikan</span>
+                        <span>+ Rp {donasi.toLocaleString("id-ID")}</span>
                       </div>
                     )}
 

@@ -7,12 +7,14 @@ import {
   query,
   onSnapshot,
   doc,
-  updateDoc,
+  getDoc,
   writeBatch,
-  addDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import * as XLSX from "xlsx";
+import { CircleDollarSign, CheckCircle2, XCircle, RotateCcw, Edit3, AlertTriangle, Bell } from "lucide-react";
+import { sendEmailAction } from "@/app/actions/email";
+
 
 export default function DataPesertaPage() {
   const [participants, setParticipants] = useState<any[]>([]);
@@ -20,7 +22,6 @@ export default function DataPesertaPage() {
     [],
   );
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
-  const [adminUser, setAdminUser] = useState<any>(null);
 
   // --- 🔥 STATE PAGINATION, SORTING & LIMIT 🔥 ---
   const [sortConfig, setSortConfig] = useState<{
@@ -48,7 +49,12 @@ export default function DataPesertaPage() {
     imgUrl: string;
   }>({ isOpen: false, imgUrl: "" });
 
-  // 🔥 STATE BARU UNTUK POPUP UBAH STATUS PEMBAYARAN 🔥
+  const [detailModal, setDetailModal] = useState<{
+    isOpen: boolean;
+    data: any | null;
+  }>({ isOpen: false, data: null });
+
+  // 🔥 STATE UNTUK POPUP UBAH STATUS PEMBAYARAN 🔥
   const [paymentModal, setPaymentModal] = useState<{
     isOpen: boolean;
     participantId: string;
@@ -61,16 +67,27 @@ export default function DataPesertaPage() {
     currentStatus: "Pending",
   });
 
+  // 🔥 STATE UNTUK MODAL EDIT JARAK 🔥
+  const [jarakModal, setJarakModal] = useState<{
+    isOpen: boolean;
+    participantId: string;
+    participantName: string;
+    currentJarak: string;
+  }>({
+    isOpen: false,
+    participantId: "",
+    participantName: "",
+    currentJarak: "",
+  });
+
   const [popup, setPopup] = useState<{
     type: "success" | "error" | "info";
     text: string;
   } | null>(null);
 
-  // 1. Ambil Data Admin
+  // 1. Ambil Data Admin (untuk verifikasi sesi, token diambil saat aksi)
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setAdminUser(user);
-    });
+    const unsubscribe = onAuthStateChanged(auth, () => {});
     return () => unsubscribe();
   }, []);
 
@@ -116,7 +133,28 @@ export default function DataPesertaPage() {
     setSortConfig({ key, direction });
   };
 
-  // --- 🔥 AKSI: UBAH STATUS BAYAR & AUTO GENERATE BIB 🔥 ---
+  // --- 🔒 HELPER: SEMUA AKSI TULIS ADMIN VIA ROUTE SERVER (dbAdmin) ---
+  // Client tidak lagi menulis langsung ke Firestore supaya Security Rules
+  // bisa mengunci field sensitif (statusPembayaran, resi, jarak, BIB).
+  const callAdminAction = async (action: string, payload: any) => {
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) throw new Error("Sesi admin tidak valid, silakan login ulang.");
+
+    const res = await fetch("/api/vr-admin", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ action, ...payload }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Gagal memproses aksi.");
+    return data;
+  };
+
+  // --- 🔥 AKSI: UBAH STATUS BAYAR & AUTO GENERATE BIB (via server) 🔥 ---
   const executeStatusChange = async (newStatus: string) => {
     const { participantId: id, participantName } = paymentModal;
     setPaymentModal({ ...paymentModal, isOpen: false }); // Tutup modal duluan
@@ -124,88 +162,40 @@ export default function DataPesertaPage() {
 
     try {
       const targetPeserta = participants.find((p) => p.id === id);
-      let dataToUpdate: any = { statusPembayaran: newStatus };
 
-      // 🔥 LOGIKA CERDAS: GENERATE NOMOR BIB SAAT LUNAS 🔥
-      if (
-        newStatus === "Lunas" &&
-        targetPeserta &&
-        !targetPeserta.nomorBibLengkap
-      ) {
-        const kodeJarak = targetPeserta.jarak.replace(/\D/g, ""); // "5K" -> "5"
-
-        // Cari semua peserta di jarak yang sama yang SUDAH punya nomor BIB
-        const pesertaSatuJarak = participants.filter(
-          (p) => p.jarak === targetPeserta.jarak && p.nomorBibLengkap,
-        );
-
-        // Cari nomor urut paling tinggi saat ini
-        let maxUrut = 0;
-        pesertaSatuJarak.forEach((p) => {
-          // Buang kode depan (jarak), ambil sisa urutannya
-          const urutString = p.nomorBibLengkap.slice(kodeJarak.length);
-          const urut = parseInt(urutString, 10);
-          if (!isNaN(urut) && urut > maxUrut) {
-            maxUrut = urut;
-          }
-        });
-
-        const urutanBaru = maxUrut + 1;
-        // Gabungkan kode jarak + 3 digit nomor urut. Misal: 5 + 001 = 5001
-        const nomorBibBaru = `${kodeJarak}${String(urutanBaru).padStart(3, "0")}`;
-
-        dataToUpdate.nomorBibLengkap = nomorBibBaru;
-      }
-
-      await updateDoc(doc(db, "vr_participants", id), dataToUpdate);
+      // Server yang generate nomor BIB + catat log (lihat /api/vr-admin)
+      await callAdminAction("update-status", { id, status: newStatus });
 
       // Kirim Email Notifikasi Lunas
       if (newStatus === "Lunas" && targetPeserta && targetPeserta.email) {
-        fetch("/api/send-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        sendEmailAction({
             type: "payment_success",
             email: targetPeserta.email,
             nama: targetPeserta.nama,
             detail: {},
-          }),
-        }).catch((e) => console.log("Gagal kirim notif email lunas", e));
+          }).catch((e) => console.log("Gagal kirim notif email lunas", e));
       }
-
-      await addDoc(collection(db, "vr_logs"), {
-        type: "bayar",
-        action: `mengubah status pembayaran menjadi [${newStatus.toUpperCase()}] untuk`,
-        targetName: participantName,
-        adminEmail: adminUser?.email || "Admin",
-        timestamp: Date.now(),
-      });
 
       setPopup({
         type: "success",
         text: `Status ${participantName} berhasil diubah jadi ${newStatus}.`,
       });
-    } catch (error) {
-      setPopup({ type: "error", text: "Gagal merubah status pembayaran." });
+    } catch (error: any) {
+      console.error("Gagal ubah status:", error);
+      setPopup({ type: "error", text: error?.message || "Gagal merubah status pembayaran." });
     } finally {
       setLoadingAction(null);
     }
   };
 
-  // --- AKSI: SIMPAN RESI PENGIRIMAN ---
+  // --- AKSI: SIMPAN RESI PENGIRIMAN (via server) ---
   const handleSimpanResi = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoadingAction("resi");
     try {
-      await updateDoc(doc(db, "vr_participants", resiModal.participantId), {
-        resiPengiriman: resiModal.currentResi,
-      });
-      await addDoc(collection(db, "vr_logs"), {
-        type: "resi",
-        action: `menginput resi pengiriman untuk`,
-        targetName: resiModal.participantName,
-        adminEmail: adminUser?.email || "Admin",
-        timestamp: Date.now(),
+      await callAdminAction("update-resi", {
+        id: resiModal.participantId,
+        resi: resiModal.currentResi,
       });
       setResiModal({
         isOpen: false,
@@ -214,8 +204,66 @@ export default function DataPesertaPage() {
         participantName: "",
       });
       setPopup({ type: "success", text: "Nomor resi berhasil disimpan." });
+    } catch (error: any) {
+      setPopup({ type: "error", text: error?.message || "Gagal menyimpan nomor resi." });
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  // --- AKSI: EDIT JARAK PESERTA (via server) ---
+  const handleEditJarak = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!jarakModal.currentJarak) return;
+    setLoadingAction("editJarak");
+    try {
+      await callAdminAction("update-jarak", {
+        id: jarakModal.participantId,
+        jarak: jarakModal.currentJarak,
+      });
+      setJarakModal({ isOpen: false, participantId: "", participantName: "", currentJarak: "" });
+      setPopup({ type: "success", text: `Jarak ${jarakModal.participantName} berhasil diubah ke ${jarakModal.currentJarak}.` });
+    } catch (error: any) {
+      setPopup({ type: "error", text: error?.message || "Gagal mengubah jarak peserta." });
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  // --- AKSI: KIRIM REMINDER PEMBAYARAN ---
+  const handleSendReminder = async (p: any) => {
+    if (!confirm(`Kirim email reminder pembayaran ke ${p.nama}?`)) return;
+    setLoadingAction(`reminder-${p.id}`);
+    try {
+      // Ambil pengaturan bank terkini dari database
+      const settingsRef = doc(db, "vr_settings", "global");
+      const settingsSnap = await getDoc(settingsRef);
+      const settingsData = settingsSnap.exists() ? settingsSnap.data() : {};
+
+      const payload = {
+        type: "vr_payment_reminder",
+        email: p.email,
+        nama: p.nama,
+        detail: {
+          event: "Virtual Run DPW IKA UII DIY",
+          paket: p.paket,
+          totalTagihan: p.totalTagihan,
+          alamat: p.alamat || "Tidak ada pengiriman (Ambil Sendiri)",
+          bank: p.bank || settingsData.manualBank || "BNI",
+          rekening: p.rekening || settingsData.manualRekening || "8880801816",
+          atasNama: p.atasNama || settingsData.manualNama || "DPW IKA UII DIY",
+          id: p.id
+        },
+      };
+      const res = await sendEmailAction(payload);
+      if (res?.success) {
+        setPopup({ type: "success", text: `Reminder berhasil dikirim ke email ${p.nama}.` });
+      } else {
+        setPopup({ type: "error", text: "Gagal mengirim reminder email." });
+      }
     } catch (error) {
-      setPopup({ type: "error", text: "Gagal menyimpan nomor resi." });
+      console.error(error);
+      setPopup({ type: "error", text: "Terjadi kesalahan sistem saat mengirim email." });
     } finally {
       setLoadingAction(null);
     }
@@ -355,7 +403,7 @@ export default function DataPesertaPage() {
             <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
             <div className="text-center mb-6 mt-2">
               <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border-4 border-blue-100 shadow-inner">
-                💰
+                <CircleDollarSign className="w-8 h-8" />
               </div>
               <h3 className="text-xl font-black text-slate-800 tracking-tight">
                 Konfirmasi Pembayaran
@@ -373,14 +421,14 @@ export default function DataPesertaPage() {
                 onClick={() => executeStatusChange("Lunas")}
                 className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl shadow-md transition-transform active:scale-95 text-sm flex items-center justify-center gap-2"
               >
-                ✅ Validasi Lunas (Generate BIB)
+                <CheckCircle2 className="w-4 h-4" /> Validasi Lunas (Generate BIB)
               </button>
 
               <button
                 onClick={() => executeStatusChange("Batal")}
                 className="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2"
               >
-                ❌ Tolak / Batalkan
+                <XCircle className="w-4 h-4" /> Tolak / Batalkan
               </button>
 
               {paymentModal.currentStatus !== "Pending" && (
@@ -388,7 +436,7 @@ export default function DataPesertaPage() {
                   onClick={() => executeStatusChange("Pending")}
                   className="w-full bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2"
                 >
-                  ⏳ Kembalikan ke Pending
+                  <RotateCcw className="w-4 h-4" /> Kembalikan ke Pending
                 </button>
               )}
             </div>
@@ -401,6 +449,51 @@ export default function DataPesertaPage() {
             >
               Batalkan
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 🔥 MODAL EDIT JARAK 🔥 */}
+      {jarakModal.isOpen && (
+        <div className="fixed inset-0 z-[115] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-slate-600" /> Edit Kategori Jarak
+              </h3>
+              <button
+                onClick={() => setJarakModal({ isOpen: false, participantId: "", participantName: "", currentJarak: "" })}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 mb-4">
+              Ubah kategori jarak untuk: <strong className="text-slate-800">{jarakModal.participantName}</strong>
+            </p>
+            <p className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4 flex items-start gap-1.5">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>Perhatian: Mengubah jarak akan mempengaruhi nomor BIB yang sudah digenerate.</span>
+            </p>
+            <form onSubmit={handleEditJarak}>
+              <input
+                type="text"
+                value={jarakModal.currentJarak}
+                onChange={(e) => setJarakModal({ ...jarakModal, currentJarak: e.target.value })}
+                placeholder="Contoh: 10KM, 5KM, 21KM"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg mb-4 outline-none focus:border-[#1A73E8] focus:ring-1 focus:ring-[#1A73E8] text-sm bg-slate-50 font-bold uppercase"
+                required
+              />
+              <button
+                type="submit"
+                disabled={loadingAction === "editJarak"}
+                className="w-full bg-[#1A73E8] hover:bg-[#1557B0] text-white font-bold py-2.5 rounded-lg transition-colors text-sm disabled:opacity-50"
+              >
+                {loadingAction === "editJarak" ? "Menyimpan..." : "Simpan Perubahan"}
+              </button>
+            </form>
           </div>
         </div>
       )}
@@ -502,6 +595,114 @@ export default function DataPesertaPage() {
             >
               Buka di Tab Baru
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DETAIL PESERTA */}
+      {detailModal.isOpen && detailModal.data && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in"
+          onClick={() => setDetailModal({ isOpen: false, data: null })}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 max-w-2xl w-full shadow-2xl flex flex-col max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-4">
+              <h3 className="font-black text-slate-800 text-lg">
+                Detail Registrasi Peserta
+              </h3>
+              <button
+                onClick={() => setDetailModal({ isOpen: false, data: null })}
+                className="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 p-1.5 rounded-full transition-colors"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="overflow-y-auto custom-scrollbar pr-2 flex-grow">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Info Utama */}
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 border-b border-slate-200 pb-2">Informasi Pribadi</h4>
+                  <div>
+                    <p className="text-[10px] text-slate-500 font-medium">Nama Lengkap</p>
+                    <p className="text-sm font-bold text-slate-800">{detailModal.data.nama || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 font-medium">Nama di BIB</p>
+                    <p className="text-sm font-bold text-slate-800">{detailModal.data.namaBib || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 font-medium">Email</p>
+                    <p className="text-sm font-medium text-slate-800">{detailModal.data.email || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 font-medium">WhatsApp</p>
+                    <p className="text-sm font-medium text-slate-800">{detailModal.data.whatsapp || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 font-medium">Tipe Peserta</p>
+                    <p className="text-sm font-bold text-[#1A73E8]">
+                      {detailModal.data.tipePeserta === "umum" ? "UMUM" : "ALUMNI"}
+                      {detailModal.data.tipePeserta === "alumni" && ` (${detailModal.data.fakultas} - ${detailModal.data.angkatan})`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Info Lari & Pengiriman */}
+                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-3">
+                  <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2 border-b border-blue-200 pb-2">Paket & Pengiriman</h4>
+                  <div>
+                    <p className="text-[10px] text-blue-500 font-medium">Paket</p>
+                    <p className="text-sm font-bold text-blue-900">{detailModal.data.paket?.toUpperCase() || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-blue-500 font-medium">Jarak</p>
+                    <p className="text-sm font-bold text-blue-900">{detailModal.data.jarak || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-blue-500 font-medium">Ukuran Jersey</p>
+                    <p className="text-sm font-bold text-blue-900">{detailModal.data.ukuranJersey || "Tanpa Jersey"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-blue-500 font-medium">Alamat Pengiriman</p>
+                    <p className="text-xs font-medium text-blue-900">
+                      {detailModal.data.alamat ? (
+                        <>
+                          {detailModal.data.alamat}<br/>
+                          <span className="text-blue-700 mt-1 block">
+                            Kec. {detailModal.data.kecamatan}, {detailModal.data.kotaKabupaten}, {detailModal.data.provinsi}
+                          </span>
+                        </>
+                      ) : "Tanpa Pengiriman (Digital)"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tagihan & Pembayaran */}
+              <div className="mt-4 bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h4 className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-1">Total Tagihan</h4>
+                  <p className="text-2xl font-black text-emerald-700">Rp {Number(detailModal.data.totalTagihan || 0).toLocaleString('id-ID')}</p>
+                  {detailModal.data.isDonasi && (
+                    <p className="text-[10px] font-bold text-emerald-600 mt-1">+ Donasi: Rp {Number(detailModal.data.nominalDonasi || 0).toLocaleString('id-ID')}</p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <h4 className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-1">Status Pembayaran</h4>
+                  <span className={`inline-block px-3 py-1 rounded-lg text-xs font-bold border ${
+                    detailModal.data.statusPembayaran === "Lunas" ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
+                    detailModal.data.statusPembayaran === "Pending" ? "bg-amber-100 text-amber-700 border-amber-200" :
+                    "bg-rose-100 text-rose-700 border-rose-200"
+                  }`}>
+                    {detailModal.data.statusPembayaran || "Pending"}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -679,6 +880,12 @@ export default function DataPesertaPage() {
                           </span>
                         )}
                       </div>
+                      <button
+                        onClick={() => setDetailModal({ isOpen: true, data: p })}
+                        className="mt-2 text-[10px] font-bold text-[#1A73E8] hover:text-[#1557B0] flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded transition-colors w-fit border border-blue-100"
+                      >
+                        Lihat Detail &rarr;
+                      </button>
                     </td>
 
                     <td className="px-4 py-3 border-r border-slate-100 align-top">
@@ -707,8 +914,21 @@ export default function DataPesertaPage() {
                     <td className="px-4 py-3 border-r border-slate-100 align-top">
                       <div className="flex flex-wrap items-center gap-1 mb-2">
                         <span className="bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded">
-                          {p.jarak} • {p.paket?.toUpperCase()}
+                          {p.jarak || "-"} • {p.paket?.toUpperCase() || "-"}
                         </span>
+                        {/* 🔥 TOMBOL EDIT JARAK 🔥 */}
+                        <button
+                          onClick={() => setJarakModal({
+                            isOpen: true,
+                            participantId: p.id,
+                            participantName: p.nama,
+                            currentJarak: p.jarak || "",
+                          })}
+                          className="text-[9px] font-bold text-slate-400 hover:text-[#1A73E8] bg-slate-100 hover:bg-[#E8F0FE] border border-slate-200 hover:border-[#1A73E8] px-1.5 py-0.5 rounded transition-colors"
+                          title="Edit Kategori Jarak"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                        </button>
                         {/* 🔥 MENAMPILKAN NOMOR E-BIB JIKA SUDAH LUNAS 🔥 */}
                         {p.nomorBibLengkap && (
                           <span
@@ -791,28 +1011,42 @@ export default function DataPesertaPage() {
                           Cek Struk
                         </button>
                       )}
+
+                      {p.statusPembayaran !== "Lunas" && (
+                        <button
+                          onClick={() => handleSendReminder(p)}
+                          disabled={loadingAction === `reminder-${p.id}`}
+                          className="mt-2 text-[9px] font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 px-2 py-1.5 rounded w-full transition-colors border border-slate-200 flex items-center justify-center gap-1.5 disabled:opacity-50"
+                        >
+                          <Bell className="w-3 h-3" />
+                          {loadingAction === `reminder-${p.id}` ? "Mengirim..." : "Kirim Reminder"}
+                        </button>
+                      )}
                     </td>
 
                     <td className="px-4 py-3 align-top">
                       {p.paket === "basic" ? (
-                        <span className="text-[10px] text-slate-400 font-bold bg-slate-50 px-2 py-1 rounded border border-slate-100 flex items-center justify-center h-full">
+                        <span className="text-[10px] text-slate-400 font-bold bg-slate-50 px-2 py-1 rounded border border-slate-100 flex items-center justify-center">
                           Digital Only
                         </span>
                       ) : (
                         <div className="flex flex-col gap-2">
-                          <div
-                            className="text-[10px] text-slate-600 leading-tight max-w-[200px] line-clamp-2"
-                            title={p.alamat}
-                          >
-                            <span className="font-bold text-slate-800 block mb-0.5">
-                              Alamat:
-                            </span>
-                            {p.alamat || "-"}
-                          </div>
-                          <div className="flex items-center gap-2 mt-1">
+                          {/* Alamat */}
+                          {p.alamat && (
+                            <div
+                              className="text-[10px] text-slate-600 leading-tight max-w-[200px] line-clamp-2"
+                              title={p.alamat}
+                            >
+                              <span className="font-bold text-slate-800 block mb-0.5">Alamat:</span>
+                              {p.alamat}
+                            </div>
+                          )}
+                          {/* Resi + Tombol Edit */}
+                          <div className="flex items-center gap-2">
                             <div className="flex-grow">
                               {p.resiPengiriman ? (
-                                <div className="bg-slate-50 px-2 py-1 rounded border border-slate-200">
+                                <div className="bg-green-50 px-2 py-1.5 rounded border border-green-200">
+                                  <p className="text-[9px] text-green-600 font-bold uppercase mb-0.5">✓ Resi:</p>
                                   <p
                                     className="text-[10px] font-mono font-bold text-slate-800 uppercase truncate"
                                     title={p.resiPengiriman}
@@ -821,8 +1055,8 @@ export default function DataPesertaPage() {
                                   </p>
                                 </div>
                               ) : (
-                                <span className="text-[9px] text-[#D93025] font-bold uppercase bg-[#FCE8E6] px-2 py-1 rounded border border-[#D93025]/20">
-                                  Resi Kosong
+                                <span className="text-[9px] text-[#D93025] font-bold uppercase bg-[#FCE8E6] px-2 py-1.5 rounded border border-[#D93025]/20 flex items-center gap-1">
+                                  <AlertTriangle className="w-3 h-3" /> Belum Ada Resi
                                 </span>
                               )}
                             </div>
@@ -836,17 +1070,17 @@ export default function DataPesertaPage() {
                                 })
                               }
                               className="text-slate-400 hover:text-[#1A73E8] p-1.5 rounded bg-slate-50 hover:bg-[#E8F0FE] border border-slate-200 hover:border-[#1A73E8] transition-colors shrink-0"
-                              title="Input/Edit Resi"
+                              title={p.resiPengiriman ? "Edit Resi" : "Input Resi"}
                             >
-                              <svg
-                                className="w-3.5 h-3.5"
-                                fill="currentColor"
-                                viewBox="0 0 24 24"
-                              >
+                              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
                               </svg>
                             </button>
                           </div>
+                          {/* Jika tidak ada paket & tidak ada alamat, tampilkan placeholder */}
+                          {!p.alamat && !p.resiPengiriman && (
+                            <span className="text-[9px] text-slate-400 italic">Data pengiriman belum lengkap</span>
+                          )}
                         </div>
                       )}
                     </td>

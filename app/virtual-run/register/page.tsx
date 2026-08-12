@@ -7,6 +7,9 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, doc, getDoc, query, where, getCountFromServer } from "firebase/firestore";
 import Link from "next/link";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import { MapPin } from "lucide-react";
+import { sendEmailAction } from "@/app/actions/email";
+
 
 // =========================================================================
 // KOMPONEN FORM UTAMA (Dipisah agar bisa dibungkus Suspense oleh Next.js)
@@ -33,10 +36,52 @@ function RegistrationForm() {
     jarak: "",
     paketId: "",
     ukuranJersey: "L",
+    provinsi: "",
+    kotaKabupaten: "",
+    kecamatan: "",
     alamat: "",
     isDonasi: false,
     nominalDonasi: "",
   });
+
+  // --- STATE ALAMAT BERTINGKAT ---
+  const [wilayahData, setWilayahData] = useState<{provinces: any[], regencies: any[], districts: any[]} | null>(null);
+
+  const [provinces, setProvinces] = useState<any[]>([]);
+  const [regencies, setRegencies] = useState<any[]>([]);
+  const [districts, setDistricts] = useState<any[]>([]);
+
+  const [selectedProvId, setSelectedProvId] = useState("");
+  const [selectedRegId, setSelectedRegId] = useState("");
+  const [selectedDistId, setSelectedDistId] = useState("");
+
+  useEffect(() => {
+    fetch("/data-wilayah.json")
+      .then((res) => res.json())
+      .then((data) => {
+        setWilayahData(data);
+        setProvinces(data.provinces || []);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (selectedProvId && wilayahData) {
+      setRegencies(wilayahData.regencies.filter((r: any) => r.province_id === selectedProvId));
+    } else {
+      setRegencies([]);
+      setSelectedRegId("");
+    }
+  }, [selectedProvId, wilayahData]);
+
+  useEffect(() => {
+    if (selectedRegId && wilayahData) {
+      setDistricts(wilayahData.districts.filter((d: any) => d.regency_id === selectedRegId));
+    } else {
+      setDistricts([]);
+      setSelectedDistId("");
+    }
+  }, [selectedRegId, wilayahData]);
 
   const [isSyaratChecked, setIsSyaratChecked] = useState(false);
   const [isAsuransiChecked, setIsAsuransiChecked] = useState(false);
@@ -124,10 +169,16 @@ function RegistrationForm() {
       if (isBypassed || isForceOpen) return;
 
       const isBuka = settings.statusPendaftaran === "Buka";
+      const openDate = settings.tanggalPembukaan ? new Date(settings.tanggalPembukaan) : null;
       const closeDate = settings.tanggalPenutupan ? new Date(settings.tanggalPenutupan) : null;
       const currentTime = new Date();
       
       let isAllowed = isBuka;
+
+      // Jika belum masuk waktu pembukaan, tolak
+      if (openDate && currentTime < openDate) {
+        isAllowed = false;
+      }
 
       // Jika sudah melewati batas penutupan, tolak
       if (closeDate && currentTime > closeDate) {
@@ -241,8 +292,8 @@ function RegistrationForm() {
       toast.warning(`Minimal donasi Rp ${minCharity.toLocaleString("id-ID")}`);
       return;
     }
-    if (perluOngkir && formData.alamat.trim().length < 15) {
-      toast.warning("Mohon isi alamat pengiriman dengan detail.");
+    if (perluOngkir && (!formData.provinsi || !formData.kotaKabupaten || !formData.kecamatan || formData.alamat.trim().length < 10)) {
+      toast.warning("Mohon lengkapi Provinsi, Kota, Kecamatan dan isi detail alamat.");
       return;
     }
 
@@ -301,16 +352,20 @@ function RegistrationForm() {
       );
 
       // Email Trigger Berjalan di Background
-      fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      sendEmailAction({
           type: "registration",
           email: formData.email,
           nama: formData.nama,
-          detail: { id: userSlug, totalTagihan: grandTotal },
-        }),
-      }).catch((err) => console.error("Background Email Error:", err));
+          detail: { 
+            id: userSlug, 
+            totalTagihan: grandTotal,
+            metodePembayaran: settings?.metodePembayaran,
+            bank: settings?.bank,
+            rekening: settings?.nomorRekening,
+            atasNama: settings?.atasNamaRekening,
+            urlQris: settings?.urlQris
+          },
+        }).catch((err) => console.error("Background Email Error:", err));
 
       if (settings?.metodePembayaran === "midtrans") {
         const response = await fetch("/api/vr-midtrans", {
@@ -650,15 +705,16 @@ function RegistrationForm() {
             </div>
 
             {perluOngkir && (
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 animate-in fade-in slide-in-from-top-4 space-y-4">
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 animate-in fade-in slide-in-from-top-4 space-y-5">
                 <div className="flex items-center gap-2 mb-2 border-b border-slate-200/50 pb-3">
-                  <span className="text-xl">📦</span>
+                  <MapPin className="w-5 h-5 text-slate-700" />
                   <h4 className="font-bold text-slate-800 text-sm">
                     Detail Pengiriman Race Pack
                   </h4>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                  <div className="sm:col-span-1">
+                
+                <div className="space-y-4">
+                  <div>
                     <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                       Ukuran Baju
                     </label>
@@ -666,7 +722,7 @@ function RegistrationForm() {
                       name="ukuranJersey"
                       value={formData.ukuranJersey}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all font-bold text-slate-800 cursor-pointer"
+                      className="w-full sm:w-1/3 px-4 py-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all font-bold text-slate-800 cursor-pointer"
                     >
                       <option value="S">S (Small)</option>
                       <option value="M">M (Medium)</option>
@@ -675,20 +731,79 @@ function RegistrationForm() {
                       <option value="XXL">XXL (Double XL)</option>
                     </select>
                   </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                      Alamat Lengkap Pengiriman
-                    </label>
-                    <textarea
-                      name="alamat"
-                      value={formData.alamat}
-                      onChange={handleChange}
-                      rows={2}
-                      required
-                      placeholder="Detail Jalan, RT/RW, Kelurahan, Kecamatan, Kota/Kab, Kode Pos"
-                      className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all custom-scrollbar text-slate-800"
-                    ></textarea>
-                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Provinsi</label>
+                        <select
+                          required
+                          value={selectedProvId}
+                          onChange={(e) => {
+                            setSelectedProvId(e.target.value);
+                            const provName = e.target.options[e.target.selectedIndex].text;
+                            setFormData({ ...formData, provinsi: provName, kotaKabupaten: "", kecamatan: "" });
+                          }}
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none text-sm transition-all text-slate-800 font-bold"
+                        >
+                          <option value="">Pilih Provinsi</option>
+                          {provinces.map((p) => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Kota/Kabupaten</label>
+                        <select
+                          required
+                          disabled={!selectedProvId}
+                          value={selectedRegId}
+                          onChange={(e) => {
+                            setSelectedRegId(e.target.value);
+                            const regName = e.target.options[e.target.selectedIndex].text;
+                            setFormData({ ...formData, kotaKabupaten: regName, kecamatan: "" });
+                          }}
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none text-sm transition-all text-slate-800 font-bold disabled:bg-slate-100"
+                        >
+                          <option value="">Pilih Kota/Kab</option>
+                          {regencies.map((r) => (
+                            <option key={r.id} value={r.id}>{r.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Kecamatan</label>
+                        <select
+                          required
+                          disabled={!selectedRegId}
+                          value={selectedDistId}
+                          onChange={(e) => {
+                            setSelectedDistId(e.target.value);
+                            const distName = e.target.options[e.target.selectedIndex].text;
+                            setFormData({ ...formData, kecamatan: distName });
+                          }}
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none text-sm transition-all text-slate-800 font-bold disabled:bg-slate-100"
+                        >
+                          <option value="">Pilih Kecamatan</option>
+                          {districts.map((d) => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                        Alamat Detail (Jalan, RT/RW, Kelurahan, Kode Pos)
+                      </label>
+                      <textarea
+                        name="alamat"
+                        value={formData.alamat}
+                        onChange={handleChange}
+                        rows={2}
+                        required
+                        placeholder="Detail Jalan, RT/RW, Kelurahan, Kode Pos"
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none text-sm transition-all custom-scrollbar text-slate-800 font-bold"
+                      ></textarea>
+                    </div>
                 </div>
               </div>
             )}
@@ -940,7 +1055,7 @@ function RegistrationForm() {
                   Memverifikasi...
                 </span>
               ) : !isFormLengkap ? (
-                "Centang Persetujuan"
+                "Lanjutkan ke Pembayaran"
               ) : (
                 <>
                   {isMetodeMidtrans

@@ -15,6 +15,8 @@ import {
 } from "firebase/firestore";
 import * as XLSX from "xlsx";
 import QRCode from "react-qr-code";
+import { sendEmailAction } from "@/app/actions/email";
+
 
 export default function VerifikasiAnggotaPage() {
   const [pendaftarList, setPendaftarList] = useState<any[]>([]);
@@ -207,17 +209,13 @@ export default function VerifikasiAnggotaPage() {
     alasanDetail?: string,
   ) => {
     try {
-      const res = await fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const res = await sendEmailAction({
           type,
           email,
           nama,
           detail: { nia: niaValue, alasan: alasanDetail },
-        }),
-      });
-      return res.ok;
+        });
+      return res.success;
     } catch (error) {
       console.error(`Gagal trigger API Email ${type}:`, error);
       return false;

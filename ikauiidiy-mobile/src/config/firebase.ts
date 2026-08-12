@@ -1,21 +1,18 @@
 // src/config/firebase.ts
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// 🔥 TODO: Ganti value di bawah dengan konfigurasi dari Firebase Console jenengan
+// Konfigurasi Firebase project suratdigitalv2 (sama dengan web ikadiy.uii.ac.id)
 const firebaseConfig = {
-  apiKey: "API_KEY_JENENGAN",
-  authDomain: "PROJECT_ID.firebaseapp.com",
-  projectId: "PROJECT_ID",
-  storageBucket: "PROJECT_ID.appspot.com",
-  messagingSenderId: "SENDER_ID",
-  appId: "APP_ID",
+  apiKey: "AIzaSyB_oBi8xCjwk0Tj__FhKjjVpBIDKT0aY3Y",
+  authDomain: "ikadiy.uii.ac.id",
+  projectId: "suratdigitalv2",
+  storageBucket: "suratdigitalv2.appspot.com",
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Mencegah inisialisasi ganda (guard getApps)
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Services
 export const auth = getAuth(app);
 export const db = getFirestore(app);

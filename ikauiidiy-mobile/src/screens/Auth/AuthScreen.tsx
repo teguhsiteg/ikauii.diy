@@ -58,7 +58,13 @@ export default function AuthScreen({ navigation }: any) {
             "Akses Diberikan",
             `Selamat datang kembali, ${userData.nama}!`,
           );
-          // navigation.replace('MainApp');
+          // Pindah ke aplikasi utama setelah login berhasil
+          navigation.replace("MainApp");
+        } else {
+          Alert.alert(
+            "Identitas Tidak Ditemukan",
+            "Akun ada, tapi data profil belum lengkap. Hubungi admin IKA UII DIY.",
+          );
         }
       } else {
         const userCredential = await createUserWithEmailAndPassword(

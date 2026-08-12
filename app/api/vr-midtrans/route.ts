@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { dbAdmin } from "@/lib/firebase-admin";
 
 export async function POST(request: Request) {
   try {
@@ -10,18 +9,48 @@ export async function POST(request: Request) {
     // Jika tidak dikirim dari frontend, default-nya adalah "virtual"
     const {
       orderId,
-      grossAmount,
       customerName,
       customerEmail,
       customerPhone,
       eventType = "virtual",
     } = body;
 
-    // 1. Ambil Server Key & Pengaturan dari Firebase
-    const settingsRef = doc(db, "settings", "virtual_run");
-    const settingsSnap = await getDoc(settingsRef);
+    if (!orderId) {
+      return NextResponse.json(
+        { error: "Order ID wajib diisi" },
+        { status: 400 },
+      );
+    }
 
-    if (!settingsSnap.exists()) {
+    // 🔒 AMBIL HARGA ASLI DARI DATABASE (Anti-Manipulasi)
+    const firebaseDocId = orderId.split("-")[0];
+    const collectionName =
+      eventType === "offline" ? "offline_participants" : "vr_participants";
+    const participantRef = dbAdmin.collection(collectionName).doc(firebaseDocId);
+    const participantSnap = await participantRef.get();
+
+    if (!participantSnap.exists) {
+      return NextResponse.json(
+        { error: "Data peserta tidak ditemukan" },
+        { status: 404 },
+      );
+    }
+
+    const participantData = participantSnap.data();
+    const actualAmount = participantData.totalTagihan;
+
+    if (!actualAmount || actualAmount <= 0) {
+      return NextResponse.json(
+        { error: "Nominal tagihan tidak valid" },
+        { status: 400 },
+      );
+    }
+
+    // 1. Ambil Server Key & Pengaturan dari Firebase
+    const settingsRef = dbAdmin.collection("settings").doc("virtual_run");
+    const settingsSnap = await settingsRef.get();
+
+    if (!settingsSnap.exists) {
       return NextResponse.json(
         { error: "Pengaturan sistem tidak ditemukan" },
         { status: 500 },
@@ -48,7 +77,7 @@ export async function POST(request: Request) {
     const payload = {
       transaction_details: {
         order_id: orderId,
-        gross_amount: Math.round(grossAmount),
+        gross_amount: Math.round(Number(actualAmount)),
       },
       customer_details: {
         first_name: customerName,
@@ -83,7 +112,7 @@ export async function POST(request: Request) {
         eventType === "offline" ? "offline_participants" : "vr_participants";
 
       // Simpan token ke data peserta di tabel yang benar
-      await updateDoc(doc(db, collectionName, firebaseDocId), {
+      await dbAdmin.collection(collectionName).doc(firebaseDocId).update({
         snapToken: data.token,
       });
 
@@ -97,6 +126,6 @@ export async function POST(request: Request) {
     }
   } catch (error: any) {
     console.error("API Route Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Gagal memproses transaksi Midtrans" }, { status: 500 });
   }
 }

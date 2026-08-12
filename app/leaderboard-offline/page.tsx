@@ -33,6 +33,7 @@ export default function LeaderboardRacePage() {
   const [categories, setCategories] = useState<string[]>(["Umum"]);
   const [availableYears, setAvailableYears] = useState<number[]>([2026]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPublished, setIsPublished] = useState(false);
 
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [selectedDistance, setSelectedDistance] = useState<string>("");
@@ -50,6 +51,7 @@ export default function LeaderboardRacePage() {
         const snap = await getDoc(doc(db, "settings", "virtual_run"));
         if (doc.exists && snap.exists()) {
           const data = snap.data();
+          setIsPublished(data.showLeaderboard === true);
           let availDistances: string[] = [];
           if (data.offlinePackages && data.offlinePackages.length > 0) {
             availDistances = Array.from(
@@ -171,6 +173,27 @@ export default function LeaderboardRacePage() {
         <p className="text-white/70 text-xs uppercase font-bold tracking-widest animate-pulse">
           Menghubungkan Papan Klasemen...
         </p>
+      </div>
+    );
+  }
+
+  if (!isPublished) {
+    return (
+      <div className="min-h-screen bg-[#0B2239] flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mb-6 border border-white/20">
+          <svg className="w-10 h-10 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
+        <h1 className="text-2xl md:text-3xl font-black text-white uppercase tracking-widest mb-4 leading-tight">
+          Klasemen Belum <br/><span className="text-[#FCD116]">Dipublikasikan</span>
+        </h1>
+        <p className="text-white/60 text-sm md:text-base max-w-md font-medium leading-relaxed">
+          Papan klasemen sedang dikunci oleh admin. Silakan kembali lagi nanti atau pantau informasi terbaru melalui panggung utama.
+        </p>
+        <Link href="/run" className="mt-8 bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239] font-black px-8 py-3 rounded-full uppercase tracking-wider text-sm transition-all shadow-lg hover:shadow-xl hover:-translate-y-1">
+          Kembali ke Event
+        </Link>
       </div>
     );
   }

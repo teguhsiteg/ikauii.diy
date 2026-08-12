@@ -1,8 +1,13 @@
 import { ImageResponse } from "@vercel/og";
+import { NextRequest } from "next/server";
 
 export const runtime = "edge";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const title = searchParams.get("title") || "PORTAL ALUMNI";
+  const subtitle = searchParams.get("subtitle") || "DPW IKA UII DIY";
+
   return new ImageResponse(
     <div
       style={{
@@ -27,6 +32,7 @@ export async function GET() {
           padding: "40px 60px",
           borderRadius: "20px",
           boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+          maxWidth: "90%",
         }}
       >
         <img
@@ -38,15 +44,16 @@ export async function GET() {
         />
         <h1
           style={{
-            fontSize: "60px",
+            fontSize: title.length > 25 ? "45px" : "60px",
             fontWeight: "900",
             color: "#0B2239",
             margin: "0 0 10px 0",
             textAlign: "center",
             textTransform: "uppercase",
+            lineHeight: 1.2,
           }}
         >
-          UII SEHAT 2026
+          {title}
         </h1>
         <p
           style={{
@@ -54,10 +61,11 @@ export async function GET() {
             fontWeight: "bold",
             color: "#FCD116",
             margin: 0,
-            tracking: "2px",
+            letterSpacing: "2px",
+            textAlign: "center",
           }}
         >
-          SINERGI ALUMNI & MASYARAKAT
+          {subtitle}
         </p>
         <div
           style={{
@@ -71,7 +79,7 @@ export async function GET() {
             fontWeight: "bold",
           }}
         >
-          KLIK UNTUK MENDAFTAR ➔
+          KLIK UNTUK AKSES ➔
         </div>
       </div>
     </div>,

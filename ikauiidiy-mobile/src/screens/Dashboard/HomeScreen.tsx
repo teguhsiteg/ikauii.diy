@@ -8,6 +8,7 @@ import {
   Image,
   RefreshControl,
   ImageBackground,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import tw from "twrnc";
@@ -81,6 +82,13 @@ export default function HomeScreen({ navigation }: any) {
     fetchData().then(() => setRefreshing(false));
   }, []);
 
+  // Notifikasi untuk fitur yang belum tersedia
+  const comingSoon = (fitur: string) =>
+    Alert.alert(
+      "Segera Hadir",
+      `Fitur ${fitur} sedang dikembangkan oleh tim IKA UII DIY.`,
+    );
+
   // --- LOGIKA HELPER DARI WEB NEXT.JS ---
 
   // 1. Pembersih HTML (Regex)
@@ -107,6 +115,7 @@ export default function HomeScreen({ navigation }: any) {
         bg: "bg-slate-200",
         textCol: "text-slate-600",
         isPast: false,
+        isComingSoon: true,
       };
     if (!tanggal)
       return {
@@ -114,6 +123,7 @@ export default function HomeScreen({ navigation }: any) {
         bg: "bg-slate-200",
         textCol: "text-slate-500",
         isPast: false,
+        isComingSoon: false,
       };
 
     const eventDate = new Date(tanggal);
@@ -130,6 +140,7 @@ export default function HomeScreen({ navigation }: any) {
         bg: "bg-[#FFF0E6]",
         textCol: "text-[#FF5A36]",
         isPast: false,
+        isComingSoon: false,
       };
     if (diffDays === 0)
       return {
@@ -137,12 +148,14 @@ export default function HomeScreen({ navigation }: any) {
         bg: "bg-green-100",
         textCol: "text-green-700",
         isPast: false,
+        isComingSoon: false,
       };
     return {
       text: "SELESAI",
       bg: "bg-slate-200",
       textCol: "text-slate-500",
       isPast: true,
+      isComingSoon: false,
     };
   };
 
@@ -156,8 +169,7 @@ export default function HomeScreen({ navigation }: any) {
       >
         <View style={tw`flex-row items-center`}>
           <Image
-            source={{ uri: "https://ikauiidiy.org/logo.png" }}
-            defaultSource={require("../../../assets/icon.png")}
+            source={require("../../../assets/icon.png")}
             style={tw`w-10 h-10 mr-3`}
             resizeMode="contain"
           />
@@ -223,7 +235,7 @@ export default function HomeScreen({ navigation }: any) {
               icon="business"
               title="Direktori"
               color="yellow"
-              onPress={() => {}}
+              onPress={() => comingSoon("Direktori")}
             />
             <MenuIcon
               icon="stopwatch"
@@ -236,25 +248,25 @@ export default function HomeScreen({ navigation }: any) {
               icon="calendar"
               title="Agenda"
               color="purple"
-              onPress={() => {}}
+              onPress={() => comingSoon("Agenda")}
             />
             <MenuIcon
               icon="briefcase"
               title="Karir"
               color="indigo"
-              onPress={() => {}}
+              onPress={() => comingSoon("Karir")}
             />
             <MenuIcon
               icon="heart"
               title="Donasi"
               color="orange"
-              onPress={() => {}}
+              onPress={() => comingSoon("Donasi")}
             />
             <MenuIcon
               icon="ellipsis-horizontal"
               title="Lainnya"
               color="gray"
-              onPress={() => {}}
+              onPress={() => comingSoon("Lainnya")}
             />
           </View>
         </View>

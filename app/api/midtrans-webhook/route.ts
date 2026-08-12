@@ -1,30 +1,19 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import {
-  doc,
-  updateDoc,
-  getDoc,
-  collection,
-  query,
-  where,
-  getDocs,
-  runTransaction,
-} from "firebase/firestore";
+import { dbAdmin } from "@/lib/firebase-admin";
 import crypto from "crypto";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    // 1. Ambil Server Key (Cek di settingan VR dulu, kalau kosong cek di Masterclass)
     let serverKey = "";
-    const vrSnap = await getDoc(doc(db, "settings", "virtual_run"));
-    if (vrSnap.exists() && vrSnap.data().midtransServerKey) {
-      serverKey = vrSnap.data().midtransServerKey;
+    const vrSnap = await dbAdmin.collection("settings").doc("virtual_run").get();
+    if (vrSnap.exists && vrSnap.data()?.midtransServerKey) {
+      serverKey = vrSnap.data()?.midtransServerKey;
     } else {
-      const mcSnap = await getDoc(doc(db, "settings", "masterclass"));
-      if (mcSnap.exists() && mcSnap.data().midtransServerKey) {
-        serverKey = mcSnap.data().midtransServerKey;
+      const mcSnap = await dbAdmin.collection("settings").doc("masterclass").get();
+      if (mcSnap.exists && mcSnap.data()?.midtransServerKey) {
+        serverKey = mcSnap.data()?.midtransServerKey;
       }
     }
 
@@ -78,33 +67,33 @@ export async function POST(request: Request) {
     const realOrderId = lastDashIndex !== -1 ? order_id.substring(0, lastDashIndex) : order_id;    // =================================================================
     // 🔥 5. OMNI-ROUTING: CARI DATA DI 3 TABEL BERBEDA
     // =================================================================
-    let targetRef = doc(db, "offline_participants", realOrderId);
-    let targetSnap = await getDoc(targetRef);
+    let targetRef = dbAdmin.collection("offline_participants").doc(realOrderId);
+    let targetSnap = await targetRef.get();
     let eventType = "offline";
 
     // Jika tidak di Offline, cari di VR
-    if (!targetSnap.exists()) {
-      targetRef = doc(db, "vr_participants", realOrderId);
-      targetSnap = await getDoc(targetRef);
+    if (!targetSnap.exists) {
+      targetRef = dbAdmin.collection("vr_participants").doc(realOrderId);
+      targetSnap = await targetRef.get();
       eventType = "virtual";
     }
 
     // Jika tidak di VR, cari di Masterclass
-    if (!targetSnap.exists()) {
-      targetRef = doc(db, "masterclass_enrollments", realOrderId);
-      targetSnap = await getDoc(targetRef);
+    if (!targetSnap.exists) {
+      targetRef = dbAdmin.collection("masterclass_enrollments").doc(realOrderId);
+      targetSnap = await targetRef.get();
       eventType = "masterclass";
     }
 
     // =================================================================
     // 🔥 6. EKSEKUSI UPDATE DATABASE BERDASARKAN EVENT
     // =================================================================
-    if (targetSnap.exists()) {
+    if (targetSnap.exists) {
       const targetData = targetSnap.data();
 
       if (eventType === "masterclass") {
         // --- UPDATE MASTERCLASS ---
-        await updateDoc(targetRef, {
+        await targetRef.update({
           statusAkses:
             statusPembayaran === "Lunas"
               ? "Lunas"
@@ -128,18 +117,18 @@ export async function POST(request: Request) {
         ) {
           try {
             // Menggunakan transaksi Firestore untuk mencegah Race Condition
-            const counterRef = doc(db, "pengaturan", "counter_bib_offline");
+            const counterRef = dbAdmin.collection("pengaturan").doc("counter_bib_offline");
             
-            await runTransaction(db, async (transaction) => {
+            await dbAdmin.runTransaction(async (transaction) => {
               const counterSnap = await transaction.get(counterRef);
               let nomorUrutBaru = 1;
               
-              if (counterSnap.exists()) {
+              if (counterSnap.exists) {
                 nomorUrutBaru = (counterSnap.data()?.lastBib || 0) + 1;
               }
               
               // Ambil angka dari jarak (Cth: "10K" -> "10")
-              const jarakAngka = (targetData.jarak || "9").replace(/\D/g, "") || "9";
+              const jarakAngka = (targetData?.jarak || "9").replace(/\D/g, "") || "9";
               finalBib = `${jarakAngka}${String(nomorUrutBaru).padStart(3, "0")}`;
               
               // Simpan lastBib baru ke counter
@@ -152,7 +141,7 @@ export async function POST(request: Request) {
         }
 
         // Update Data ke Database Firebase
-        await updateDoc(targetRef, {
+        await targetRef.update({
           statusPembayaran:
             statusPembayaran === "Batal" ? "Dibatalkan" : statusPembayaran,
           paymentType: body.payment_type || "midtrans",
@@ -180,24 +169,24 @@ export async function POST(request: Request) {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 type: emailType,
-                email: targetData.email,
-                nama: targetData.namaLengkap,
+                email: targetData?.email,
+                nama: targetData?.namaLengkap,
                 detail: {
                   id: realOrderId,
-                  totalTagihan: targetData.totalTagihan,
+                  totalTagihan: targetData?.totalTagihan,
                   // 🔥 INJEKSI DATA UNTUK E-TICKET EMAIL 🔥
-                  nik: targetData.nik || "-",
-                  jarak: targetData.jarak || "-",
-                  ukuranJersey: targetData.ukuranJersey || "-",
-                  namaBib: targetData.namaBib || "-",
-                  bib: finalBib || targetData.nomorBIB || "-",
+                  nik: targetData?.nik || "-",
+                  jarak: targetData?.jarak || "-",
+                  ukuranJersey: targetData?.ukuranJersey || "-",
+                  namaBib: targetData?.namaBib || "-",
+                  bib: finalBib || targetData?.nomorBIB || "-",
                 },
               }),
             });
-            console.log(`[Midtrans] E-Ticket terkirim ke ${targetData.email}`);
+            console.log(`[Midtrans] E-Ticket terkirim ke ${targetData?.email}`);
           } catch (mailError) {
             console.error(
-              `[Midtrans] Gagal kirim email E-Ticket ke ${targetData.email}`,
+              `[Midtrans] Gagal kirim email E-Ticket ke ${targetData?.email}`,
               mailError,
             );
           }

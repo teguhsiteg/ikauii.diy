@@ -5,6 +5,8 @@ import { toast } from "@/lib/toast";
 import { useParams, useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { sendEmailAction } from "@/app/actions/email";
+
 import {
   doc,
   getDoc,
@@ -158,15 +160,9 @@ export default function CertificatePage() {
         },
       };
 
-      const response = await fetch("/api/send-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      const response = await sendEmailAction(payload);
 
-      if (response.ok) {
+      if (response.success) {
         // 🔥 GANTI ALERT DENGAN MODAL SUKSES 🔥
         setShowSuccessModal(true);
       } else {

@@ -5,7 +5,10 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 
 // URL public keys Google untuk Firebase
 const FIREBASE_JWKS_URL = "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
-const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || "suratdigitalv2";
+const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
+if (!projectId) {
+  throw new Error("FIREBASE_PROJECT_ID is required for JWT verification");
+}
 
 const JWKS = createRemoteJWKSet(new URL(FIREBASE_JWKS_URL));
 

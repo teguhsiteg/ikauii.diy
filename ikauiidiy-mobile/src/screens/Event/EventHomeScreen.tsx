@@ -159,7 +159,7 @@ export default function EventHomeScreen() {
 
                 {/* Card Progres Tembus Pandang */}
                 <View
-                  style={tw`bg-white/10 p-5 rounded-3xl border border-white/20 backdrop-blur-md`}
+                  style={tw`bg-white/10 p-5 rounded-3xl border border-white/20`}
                 >
                   <Text
                     style={tw`text-xs font-bold text-gray-300 mb-2 uppercase tracking-widest`}

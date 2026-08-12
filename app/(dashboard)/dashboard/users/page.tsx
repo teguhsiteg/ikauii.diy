@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { db, auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { sendEmailAction } from "@/app/actions/email";
+
 import {
   collection,
   query,
@@ -273,10 +275,7 @@ export default function ManajemenPenggunaPage() {
         closeDialog();
         setIsSendingEmail(user.id);
         try {
-          const res = await fetch("/api/send-email", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+          const res = await sendEmailAction({
               type: "akses_pengurus",
               email: user.email,
               nama: user.nama,
@@ -288,10 +287,9 @@ export default function ManajemenPenggunaPage() {
                     ? "Akses Penuh (Super Admin)"
                     : (user.aksesModul?.length || 0) + " Modul",
               },
-            }),
-          });
+            });
 
-          if (res.ok) {
+          if (res.success) {
             setTimeout(
               () =>
                 showAlert(

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ikauiidiy-mobile",
+    "name": "IKA UII DIY",
     "slug": "ikauiidiy-mobile",
     "version": "1.0.0",
     "scheme": "ikauiidiy",
@@ -14,9 +14,11 @@
       "backgroundColor": "#152B5B"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ikauiidiy.mobile"
     },
     "android": {
+      "package": "com.ikauiidiy.mobile",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -27,6 +29,15 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-web-browser"]
+    "plugins": [
+      "expo-web-browser",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Aplikasi membutuhkan akses kamera untuk memindai QR Code verifikasi dokumen, e-KTA, dan donasi.",
+          "microphonePermission": false
+        }
+      ]
+    ]
   }
 }

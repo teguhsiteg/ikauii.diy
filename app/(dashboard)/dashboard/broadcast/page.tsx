@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { toast } from "@/lib/toast";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, orderBy, where } from "firebase/firestore";
+import { sendEmailAction } from "@/app/actions/email";
+
 
 interface Peserta {
   id: string;
@@ -94,10 +96,7 @@ export default function BroadcastPage() {
     }
 
     try {
-      const res = await fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const res = await sendEmailAction({
           type: "custom_broadcast",
           email: peserta.email,
           nama: peserta.nama,
@@ -107,10 +106,9 @@ export default function BroadcastPage() {
             customSubject: customSubject,
             customMessage: customMessage,
           },
-        }),
-      });
+        });
 
-      if (res.ok) {
+      if (res.success) {
         setPesertaList((prev) =>
           prev.map((p) =>
             p.id === peserta.id ? { ...p, statusKirim: "Terkirim" } : p,

@@ -14,6 +14,8 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import * as XLSX from "xlsx";
+import { sendEmailAction } from "@/app/actions/email";
+
 
 const KATEGORI_LIST = [
   "Kuliner",
@@ -264,12 +266,8 @@ export default function AdminDirektoriPage() {
     detail: any,
   ) => {
     try {
-      const res = await fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, email, nama, detail }),
-      });
-      if (!res.ok) return false;
+      const res = await sendEmailAction({ type, email, nama, detail });
+      if (!res.success) return false;
       return true;
     } catch (error) {
       return false;

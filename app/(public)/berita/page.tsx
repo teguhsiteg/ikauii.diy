@@ -94,17 +94,21 @@ export default function BeritaPage() {
         setBeritaList(
           snapBerita.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
         );
+      } catch (error) {
+        console.error("Gagal memuat data Berita (Cek Rules/Index):", error);
+      }
 
+      try {
         // 2. Ambil Data Transparansi Donasi
         const docDonasi = await getDoc(doc(db, "pengaturan", "donasi_jumat"));
         if (docDonasi.exists()) {
           setDonasiStat(docDonasi.data());
         }
       } catch (error) {
-        console.error("Gagal memuat data:", error);
-      } finally {
-        setIsLoading(false);
+        console.error("Gagal memuat data Pengaturan donasi_jumat:", error);
       }
+
+      setIsLoading(false);
     };
     fetchData();
   }, []);

@@ -141,6 +141,8 @@ export default function TabOffline({
               <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">
                 Status Pendaftaran (Manual Override)
               </h4>
+
+              {/* Selector */}
               <div className="bg-[#F8F9FA] p-4 rounded-lg border border-slate-200">
                 <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
                   Kontrol Status Halaman Pendaftaran Offline
@@ -151,15 +153,70 @@ export default function TabOffline({
                   onChange={handleSettingChange}
                   className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-md focus:border-[#1A73E8] outline-none text-sm font-bold text-[#0B2239]"
                 >
-                  <option value="auto">Otomatis (Mengikuti Tanggal Buka/Tutup)</option>
-                  <option value="coming_soon">Tampilkan Layar "Segera Dibuka" (Coming Soon)</option>
-                  <option value="tutup">Tutup Total Pendaftaran (Tutup)</option>
-                  <option value="buka">Buka Paksa (Abaikan Tanggal)</option>
+                  <option value="auto">Otomatis — Ikuti tanggal buka/tutup</option>
+                  <option value="preview">Preview — Halaman tampil, tombol daftar dikunci</option>
+                  <option value="buka">Buka Paksa — Pendaftaran dibuka penuh (abaikan tanggal)</option>
+                  <option value="coming_soon">Coming Soon — Tampil layar "Segera Dibuka"</option>
+                  <option value="tutup">Tutup Total — Halaman ditutup sepenuhnya</option>
                 </select>
-                <p className="text-[10px] text-slate-400 mt-2">
-                  *Gunakan ini jika Anda ingin menutup/membuka pendaftaran secara manual tanpa mengubah tanggal.
-                </p>
               </div>
+
+              {/* Info Card sesuai status aktif */}
+              {(vrSettings.offlineStatus === "auto" || !vrSettings.offlineStatus) && (
+                <div className="flex gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <span className="text-lg shrink-0">🤖</span>
+                  <div>
+                    <p className="text-xs font-bold text-blue-700">Mode Otomatis</p>
+                    <p className="text-[11px] text-blue-600 mt-0.5 leading-relaxed">
+                      Halaman /run akan membuka atau menutup sendiri sesuai <strong>Waktu Buka</strong> dan <strong>Batas Penutupan</strong> yang Anda set di bawah. Tidak perlu ubah status manual.
+                    </p>
+                  </div>
+                </div>
+              )}
+              {vrSettings.offlineStatus === "preview" && (
+                <div className="flex gap-3 p-3 bg-amber-50 border border-amber-300 rounded-lg">
+                  <span className="text-lg shrink-0">👁️</span>
+                  <div>
+                    <p className="text-xs font-bold text-amber-700">Mode Preview (Tampil Tanpa Daftar)</p>
+                    <p className="text-[11px] text-amber-600 mt-0.5 leading-relaxed">
+                      Halaman /run <strong>bisa dilihat publik</strong> lengkap dengan info event, paket, dan race pack — tapi <strong>tombol "Daftar" dikunci</strong> dan tidak bisa diklik. Ideal untuk promosi sebelum pendaftaran resmi dibuka.
+                    </p>
+                  </div>
+                </div>
+              )}
+              {vrSettings.offlineStatus === "buka" && (
+                <div className="flex gap-3 p-3 bg-emerald-50 border border-emerald-300 rounded-lg">
+                  <span className="text-lg shrink-0">✅</span>
+                  <div>
+                    <p className="text-xs font-bold text-emerald-700">Mode Buka Paksa</p>
+                    <p className="text-[11px] text-emerald-600 mt-0.5 leading-relaxed">
+                      Pendaftaran <strong>dibuka penuh</strong> dan peserta bisa langsung mendaftar. Tanggal buka/tutup di bawah diabaikan selama mode ini aktif.
+                    </p>
+                  </div>
+                </div>
+              )}
+              {vrSettings.offlineStatus === "coming_soon" && (
+                <div className="flex gap-3 p-3 bg-purple-50 border border-purple-300 rounded-lg">
+                  <span className="text-lg shrink-0">⏳</span>
+                  <div>
+                    <p className="text-xs font-bold text-purple-700">Mode Coming Soon</p>
+                    <p className="text-[11px] text-purple-600 mt-0.5 leading-relaxed">
+                      Pengunjung akan melihat <strong>layar "Segera Dibuka"</strong> dengan countdown timer. Halaman utama event tidak bisa diakses.
+                    </p>
+                  </div>
+                </div>
+              )}
+              {vrSettings.offlineStatus === "tutup" && (
+                <div className="flex gap-3 p-3 bg-rose-50 border border-rose-300 rounded-lg">
+                  <span className="text-lg shrink-0">🔒</span>
+                  <div>
+                    <p className="text-xs font-bold text-rose-700">Mode Tutup Total</p>
+                    <p className="text-[11px] text-rose-600 mt-0.5 leading-relaxed">
+                      Halaman /run menampilkan layar <strong>"Pendaftaran Ditutup"</strong>. Tidak ada yang bisa dilihat atau didaftarkan.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="pt-6 border-t border-slate-100 mt-6 space-y-5">
@@ -190,6 +247,73 @@ export default function TabOffline({
                     onChange={handleSettingChange}
                     className="w-full px-4 py-2.5 bg-rose-50 border border-rose-200 rounded-lg focus:bg-white focus:border-rose-500 outline-none text-sm text-rose-800"
                   />
+                </div>
+              </div>
+            </div>
+
+            {/* 🔥 RACE PACK OFFLINE — GAMBAR JERSEY & MEDALI 🔥 */}
+            <div className="pt-6 border-t border-slate-100 mt-6 space-y-5">
+              <div>
+                <h4 className="text-xs font-bold text-emerald-700 uppercase tracking-widest mb-1 flex items-center gap-2">
+                  <span>👕</span> Gambar Race Pack Offline
+                </h4>
+                <p className="text-[11px] text-slate-500 mb-4 leading-relaxed">
+                  URL gambar jersey dan medali yang ditampilkan di halaman{" "}
+                  <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px] font-mono">/run</code>{" "}
+                  bagian <strong>Race Pack & Fasilitas</strong>. Gunakan link gambar publik (Google Drive, Imgur, dll).
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Jersey Offline */}
+                <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200">
+                  <label className="block text-[11px] font-bold text-emerald-700 mb-1 uppercase tracking-wide">
+                    👕 URL Foto Jersey Offline
+                  </label>
+                  <p className="text-[10px] text-emerald-600 mb-2">
+                    Ditampilkan di card "Runner Dry-Fit Jersey" halaman /run
+                  </p>
+                  <input
+                    type="url"
+                    name="urlJerseyOffline"
+                    value={vrSettings.urlJerseyOffline || ""}
+                    onChange={handleSettingChange}
+                    placeholder="https://..."
+                    className="w-full px-4 py-2.5 bg-white border border-emerald-200 rounded-lg focus:border-emerald-500 outline-none text-sm font-mono text-slate-700"
+                  />
+                  {vrSettings.urlJerseyOffline && (
+                    <img
+                      src={vrSettings.urlJerseyOffline}
+                      alt="Preview Jersey Offline"
+                      className="mt-3 w-full h-32 object-cover rounded-lg border border-emerald-200"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                  )}
+                </div>
+
+                {/* Medali Offline */}
+                <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
+                  <label className="block text-[11px] font-bold text-yellow-700 mb-1 uppercase tracking-wide">
+                    🏅 URL Foto Medali Offline
+                  </label>
+                  <p className="text-[10px] text-yellow-600 mb-2">
+                    Ditampilkan di card "Finisher Medal" halaman /run
+                  </p>
+                  <input
+                    type="url"
+                    name="urlMedaliOffline"
+                    value={vrSettings.urlMedaliOffline || ""}
+                    onChange={handleSettingChange}
+                    placeholder="https://..."
+                    className="w-full px-4 py-2.5 bg-white border border-yellow-200 rounded-lg focus:border-yellow-500 outline-none text-sm font-mono text-slate-700"
+                  />
+                  {vrSettings.urlMedaliOffline && (
+                    <img
+                      src={vrSettings.urlMedaliOffline}
+                      alt="Preview Medali Offline"
+                      className="mt-3 w-full h-32 object-cover rounded-lg border border-yellow-200"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                  )}
                 </div>
               </div>
             </div>
