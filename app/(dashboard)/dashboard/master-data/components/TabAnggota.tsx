@@ -212,8 +212,12 @@ export default function TabAnggota() {
       showToast(`${approveModal.form.nama} resmi disahkan!`, "success");
       setApproveModal({ isOpen: false, dataId: "", form: {} as any });
       await fetchData();
-    } catch (error) {
-      showToast("Gagal mengesahkan anggota.", "error");
+    } catch (error: any) {
+      console.error("[TabAnggota] Gagal mengesahkan anggota:", error);
+      showToast(
+        `Gagal mengesahkan anggota: ${error?.message || error?.code || "terjadi kesalahan"}`,
+        "error",
+      );
     } finally {
       setIsProcessing(false);
     }
