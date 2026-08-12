@@ -5,14 +5,15 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 
 // URL public keys Google untuk Firebase
 const FIREBASE_JWKS_URL = "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
-const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
-if (!projectId) {
-  throw new Error("FIREBASE_PROJECT_ID is required for JWT verification");
-}
 
 const JWKS = createRemoteJWKSet(new URL(FIREBASE_JWKS_URL));
 
 async function verifyFirebaseToken(token: string) {
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
+  if (!projectId) {
+    console.error("FIREBASE_PROJECT_ID is required for JWT verification");
+    return null;
+  }
   try {
     const { payload } = await jwtVerify(token, JWKS, {
       issuer: `https://securetoken.google.com/${projectId}`,
@@ -58,5 +59,10 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/run/admin/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/admin-vr/:path*",
+    "/dashboard/:path*",
+    "/run/admin/:path*",
+  ],
 };

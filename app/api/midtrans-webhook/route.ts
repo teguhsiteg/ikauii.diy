@@ -61,10 +61,11 @@ export async function POST(request: Request) {
       statusPembayaran = "Pending";
     }
 
-    // 4. POTONG ORDER ID (Contoh: ID123-TIMESTAMP -> ID123)
-    // Menggunakan lastIndexOf agar aman jika original ID mengandung karakter '-'
-    const lastDashIndex = order_id.lastIndexOf("-");
-    const realOrderId = lastDashIndex !== -1 ? order_id.substring(0, lastDashIndex) : order_id;    // =================================================================
+    // 4. POTONG ORDER ID (Contoh: ID123-1234567890 -> ID123)
+    // Gunakan regex untuk memisahkan: docId-timestamp
+    // Format docId TIDAK boleh mengandung "-" — jika ada, fallback ke full order_id
+    const separatorMatch = order_id.match(/^(.+)-(\d{10,13})$/);
+    const realOrderId = separatorMatch ? separatorMatch[1] : order_id;
     // 🔥 5. OMNI-ROUTING: CARI DATA DI 3 TABEL BERBEDA
     // =================================================================
     let targetRef = dbAdmin.collection("offline_participants").doc(realOrderId);
@@ -164,9 +165,13 @@ export async function POST(request: Request) {
               : "payment_success";
 
           try {
+            const internalSecret = process.env.INTERNAL_API_SECRET || "";
             await fetch(`${baseUrl}/api/send-email`, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                "x-internal-secret": internalSecret,
+              },
               body: JSON.stringify({
                 type: emailType,
                 email: targetData?.email,

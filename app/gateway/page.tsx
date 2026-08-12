@@ -83,13 +83,18 @@ export default function GatewayPage() {
           }
         }
 
-        // 3. JIKA BUKAN PENGURUS & BUKAN ALUMNI (PESERTA UMUM MASTERCLASS)
-        // Cek tabel 'users' barangkali dia Admin/Superadmin dari sana
+        // 3. SELALU CEK TABEL 'users' UNTUK HAK AKSES ADMIN/OFFICE
+        //    (JANGAN hanya sebagai fallback — koordinator mungkin juga ada di pendaftar)
         const uRef = doc(db, "users", user.uid);
         const uSnap = await getDoc(uRef);
         if (uSnap.exists()) {
-          const role = uSnap.data().role?.toLowerCase();
-          if (["admin", "superadmin", "super_admin"].includes(role)) {
+          const userData = uSnap.data();
+          const role = userData.role?.toLowerCase();
+          // 🔥 SEMUA role di tabel 'users' adalah staff (koordinator, super_admin, dll)
+          if (
+            userData.isActive !== false && // hanya tolak jika explicitly false
+            ["admin", "superadmin", "super_admin", "koordinator"].includes(role)
+          ) {
             isStaffMember = true;
           }
         }
