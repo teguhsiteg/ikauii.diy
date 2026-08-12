@@ -11,14 +11,22 @@ service cloud.firestore {
     }
 
     // Admin = user terdaftar yang punya hak kelola:
-    // 1. role admin/super_admin/superadmin/koordinator di users/{uid}, ATAU
-    // 2. terdaftar di admin_emails/{email} dengan active == true
+    // 1. role admin/super_admin/superadmin/koordinator di users/{uid} (by UID), ATAU
+    // 2. role admin/... di users/{email} (by EMAIL — legacy format), ATAU
+    // 3. terdaftar di admin_emails/{email} dengan active == true
     function isAdmin() {
       return isLoggedIn() && (
+        // Check by UID
         (
           get(/databases/$(database)/documents/users/$(request.auth.uid)).exists &&
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["admin", "super_admin", "superadmin", "koordinator"]
         ) || (
+          // Check by EMAIL (legacy — banyak dokumen users di-key oleh email)
+          request.auth.token.email != null &&
+          get(/databases/$(database)/documents/users/$(request.auth.token.email)).exists &&
+          get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role in ["admin", "super_admin", "superadmin", "koordinator"]
+        ) || (
+          // Check admin_emails
           request.auth.token.email != null &&
           get(/databases/$(database)/documents/admin_emails/$(request.auth.token.email)).exists &&
           get(/databases/$(database)/documents/admin_emails/$(request.auth.token.email)).data.active == true
@@ -198,11 +206,20 @@ service cloud.firestore {
 
     // ============================================================
     // USERS — privasi: tulis hanya doc sendiri, admin bebas
-    // ============================================================
+    // USERS — privasi: akses via UID, email, atau admin.
+    // NOTE: beberapa dokumen di-key oleh EMAIL (legacy), bukan UID.
     match /users/{uid} {
-      allow read: if isLoggedIn() && (request.auth.uid == uid || isAdmin());
+      allow read: if isLoggedIn() && (
+        request.auth.uid == uid ||
+        request.auth.token.email == uid ||
+        isAdmin()
+      );
       allow create: if isLoggedIn() && request.auth.uid == uid;
-      allow update: if isLoggedIn() && (request.auth.uid == uid || isAdmin());
+      allow update: if isLoggedIn() && (
+        request.auth.uid == uid ||
+        request.auth.token.email == uid ||
+        isAdmin()
+      );
       allow delete: if isAdmin();
     }
 
