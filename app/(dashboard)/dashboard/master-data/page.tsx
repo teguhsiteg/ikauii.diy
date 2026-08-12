@@ -8,6 +8,7 @@ import TabBidang from "./components/TabBidang";
 import TabPengurus from "./components/TabPengurus";
 import TabAnggota from "./components/TabAnggota";
 import TabDPD from "./components/TabDPD";
+import TabDuplikat from "./components/TabDuplikat";
 
 export default function MasterDataPage() {
   const [activeTab, setActiveTab] = useState("pengurus"); // Default tab aktif
@@ -18,6 +19,7 @@ export default function MasterDataPage() {
     { id: "pengurus", label: "Personalia Sah" },
     { id: "anggota_baru", label: "Antrean Daftar" },
     { id: "dpd", label: "Jaringan DPD" },
+    { id: "duplikat", label: "Cek Duplikat" },
   ];
 
   return (
@@ -58,6 +60,7 @@ export default function MasterDataPage() {
         {activeTab === "pengurus" && <TabPengurus />}
         {activeTab === "anggota_baru" && <TabAnggota />}
         {activeTab === "dpd" && <TabDPD />}
+        {activeTab === "duplikat" && <TabDuplikat />}
       </div>
     </div>
   );
