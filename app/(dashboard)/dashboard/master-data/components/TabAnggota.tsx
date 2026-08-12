@@ -10,6 +10,8 @@ import {
   updateDoc,
   query,
   orderBy,
+  where,
+  limit,
 } from "firebase/firestore";
 import * as XLSX from "xlsx";
 import {
@@ -190,7 +192,33 @@ export default function TabAnggota() {
     e.preventDefault();
     setIsProcessing(true);
     try {
-      // 🔥 Simpan payload yang akan ditulis (untuk debugging)
+      // 🔥 Auto-generate NIA: cari max existing, increment
+      let nia = "";
+      try {
+        const maxSnap = await getDocs(
+          query(
+            collection(db, "pengurus"),
+            where("nia", ">=", "26.08.34.00."),
+            orderBy("nia", "desc"),
+            limit(1),
+          ),
+        );
+        if (!maxSnap.empty) {
+          const lastNia = maxSnap.docs[0].data().nia || "";
+          const parts = lastNia.split(".");
+          const lastNum = parseInt(parts[parts.length - 1], 10);
+          if (!isNaN(lastNum)) {
+            nia = `26.08.34.00.${String(lastNum + 1).padStart(4, "0")}`;
+          }
+        }
+      } catch (e) {
+        console.warn("[TabAnggota] Gagal query max NIA, fallback:", e);
+      }
+      if (!nia) {
+        // Fallback: gunakan timestamp
+        nia = `26.08.34.00.${Date.now().toString().slice(-4)}`;
+      }
+
       const payload = {
         ...approveModal.form,
         noUrut: approveModal.form.noUrut !== ""
@@ -199,6 +227,7 @@ export default function TabAnggota() {
         isPengurus: true,
         status_pengurus: "Aktif",
         role: "pengurus",
+        nia,
         updatedAt: new Date().toISOString(),
       };
 
@@ -210,13 +239,16 @@ export default function TabAnggota() {
           "member_verified",
           approveModal.form.wa,
           approveModal.form.nama,
-          { nia: "Dalam Proses Update Admin" },
+          { nia },
         );
       } catch (waError: any) {
         console.warn("[TabAnggota] WA notification gagal (non-fatal):", waError);
       }
 
-      showToast(`${approveModal.form.nama} resmi disahkan!`, "success");
+      showToast(
+        `${approveModal.form.nama} resmi disahkan! NIA: ${nia}`,
+        "success",
+      );
       setApproveModal({ isOpen: false, dataId: "", form: {} as any });
       await fetchData();
     } catch (error: any) {

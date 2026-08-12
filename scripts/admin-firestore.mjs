@@ -1,12 +1,9 @@
-// Script: check/create Firestore admin documents
-// Usage:
-//   node scripts/admin-firestore.mjs list
-//   node scripts/admin-firestore.mjs add-admin-email <email>
-//   node scripts/admin-firestore.mjs add-user-email <email> [nama] [role]
+// Tambahan untuk mengecek field NIA di pengurus
+// Run: node scripts/admin-firestore.mjs check-nia
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 
 const envPath = resolve(process.cwd(), ".env.local");
 const envRaw = readFileSync(envPath, "utf-8");
@@ -65,6 +62,62 @@ async function main() {
     if (!email) { console.error("Usage: node scripts/admin-firestore.mjs add-user-email <email> [nama] [role]"); process.exit(1); }
     await db.collection("users").doc(email).set({ email, nama, role, isActive: true, bidang: "DPW", aksesModul: ["ringkasan"], createdAt: new Date().toISOString() });
     console.log(`✅ users/${email} created with role=${role}`);
+  }
+
+  if (cmd === "check-nia") {
+    // Cek sample pengurus yg sudah disahkan
+    const snap = await db.collection("pengurus").where("isPengurus", "==", true).limit(10).get();
+    console.log(`=== PENGURUS (isPengurus=true) — ${snap.size} docs ===`);
+    if (snap.empty) {
+      console.log("  (tidak ada pengurus yang sudah disahkan)");
+    } else {
+      snap.forEach(d => {
+        const data = d.data();
+        console.log(`  ${d.id} | nama=${data.nama} | noUrut=${data.noUrut} | nia=${data.nia || "(kosong)"} | status=${data.status_pengurus}`);
+      });
+    }
+    // Cari max noUrut untuk generate berikutnya
+    const allSnap = await db.collection("pengurus").orderBy("noUrut", "desc").limit(1).get();
+    if (!allSnap.empty) {
+      const max = allSnap.docs[0].data().noUrut;
+      console.log(`\n  Max noUrut: ${max} → next: ${(max || 0) + 1}`);
+    }
+  }
+
+  if (cmd === "generate-nia") {
+    // Ambil semua pengurus aktif, filter yang NIA kosong/null di JS
+    // (Firestore tidak support query "nia == ''" atau "nia == null" sekaligus)
+    const snap = await db.collection("pengurus")
+      .where("isPengurus", "==", true)
+      .get();
+    const missing = snap.docs.filter(d => {
+      const n = d.data().nia;
+      return !n || n === "" || n === "Dalam Proses" || n === "null";
+    });
+    if (missing.length === 0) {
+      console.log("✅ Semua pengurus sudah punya NIA valid");
+      process.exit(0);
+    }
+    // Cari max NIA yang sudah ada untuk generate berikutnya
+    let maxNia = 0;
+    snap.docs.forEach(d => {
+      const n = d.data().nia;
+      if (n && n !== "" && n !== "Dalam Proses" && n !== "null") {
+        const parts = n.split(".");
+        const num = parseInt(parts[parts.length - 1], 10);
+        if (!isNaN(num) && num > maxNia) maxNia = num;
+      }
+    });
+    console.log(`Ditemukan ${missing.length} pengurus tanpa NIA. Max existing: ${maxNia}`);
+    let count = 0;
+    for (const doc of missing) {
+      maxNia++;
+      const nia = `26.08.34.00.${String(maxNia).padStart(4, "0")}`;
+      await doc.ref.update({ nia });
+      count++;
+      console.log(`  ✅ ${doc.data().nama} → NIA=${nia}`);
+    }
+    console.log(`\n✅ ${count} NIA berhasil di-generate`);
   }
 
   process.exit(0);
