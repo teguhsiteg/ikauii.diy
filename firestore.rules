@@ -10,10 +10,8 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Admin = user terdaftar yang punya hak kelola:
-    // 1. role admin/super_admin/superadmin/koordinator di users/{uid} (by UID), ATAU
-    // 2. role admin/... di users/{email} (by EMAIL — legacy format), ATAU
-    // 3. terdaftar di admin_emails/{email} dengan active == true
+    // Admin = user terdaftar di collection users — dicari via UID ATAU email.
+    // (admin_emails TIDAK dipakai lagi — semua lewat users saja)
     function isAdmin() {
       return isLoggedIn() && (
         // Check by UID
@@ -21,15 +19,10 @@ service cloud.firestore {
           get(/databases/$(database)/documents/users/$(request.auth.uid)).exists &&
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["admin", "super_admin", "superadmin", "koordinator"]
         ) || (
-          // Check by EMAIL (legacy — banyak dokumen users di-key oleh email)
+          // Check by EMAIL (legacy — dokumen users di-key oleh email)
           request.auth.token.email != null &&
           get(/databases/$(database)/documents/users/$(request.auth.token.email)).exists &&
           get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role in ["admin", "super_admin", "superadmin", "koordinator"]
-        ) || (
-          // Check admin_emails
-          request.auth.token.email != null &&
-          get(/databases/$(database)/documents/admin_emails/$(request.auth.token.email)).exists &&
-          get(/databases/$(database)/documents/admin_emails/$(request.auth.token.email)).data.active == true
         )
       );
     }
