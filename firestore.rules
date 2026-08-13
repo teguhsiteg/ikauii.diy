@@ -78,7 +78,7 @@ service cloud.firestore {
     // VIRTUAL RUN — paling sensitif (pembayaran & BIB)
     // ============================================================
     match /vr_participants/{docId} {
-      allow read: if true;
+      allow read: if isAdmin() || (isLoggedIn() && request.auth.uid == resource.data.email);
 
       allow create: if true
         && request.resource.data.statusPembayaran == "Pending"

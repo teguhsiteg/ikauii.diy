@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { dbAdmin } from "@/lib/firebase-admin";
+import { dbAdmin, authAdmin } from "@/lib/firebase-admin";
 
 export async function POST(request: Request) {
   try {
@@ -49,7 +49,15 @@ export async function POST(request: Request) {
     // 4. Sukses! Hapus OTP agar tidak bisa dipakai ulang
     await otpRef.delete();
 
-    return NextResponse.json({ message: "Verifikasi berhasil" });
+    // 5. Buat Firebase Custom Token (menggunakan email sebagai UID)
+    const customToken = await authAdmin.createCustomToken(normalizedEmail, {
+      vr_participant: true // Custom claim untuk identifikasi peserta VR
+    });
+
+    return NextResponse.json({ 
+      message: "Verifikasi berhasil",
+      token: customToken 
+    });
   } catch (error: any) {
     console.error("Verify OTP error:", error);
     return NextResponse.json(

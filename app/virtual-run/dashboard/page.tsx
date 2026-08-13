@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { auth, db } from "@/lib/firebase";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { GoogleAuthProvider, signInWithPopup, signInWithCustomToken, onAuthStateChanged, signOut } from "firebase/auth";
 import {
   collection,
   query,
@@ -116,14 +116,20 @@ export default function ParticipantDashboard() {
 
     fetchSettingsAndInit();
 
-    // B. Cek Local Storage untuk Auto-Login
-    const savedEmail = localStorage.getItem("vr_user_email");
-    if (savedEmail) {
-      setEmailLogin(savedEmail);
-      performLogin(savedEmail, true);
-    } else {
-      setIsCheckingSession(false);
-    }
+    // B. Cek Session Resmi Firebase
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user && user.email) {
+        setEmailLogin(user.email);
+        fetchParticipantData(user.email).finally(() => {
+          setIsCheckingSession(false);
+        });
+      } else {
+        localStorage.removeItem("vr_user_email");
+        setIsCheckingSession(false);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   // Set default motto kalau data participant sudah di-load
@@ -229,7 +235,9 @@ export default function ParticipantDashboard() {
 
       if (!res.ok) {
         setPopup({ type: "error", title: "Kode Salah", text: data.error || "Kode OTP tidak valid." });
-      } else {
+      } else if (data.token) {
+        // Sign in with Firebase Custom Token
+        await signInWithCustomToken(auth, data.token);
         await fetchParticipantData(emailLogin);
       }
     } catch (error) {
@@ -256,10 +264,6 @@ export default function ParticipantDashboard() {
             new Date(a.waktuDaftar).getTime(),
         );
 
-        localStorage.setItem(
-          "vr_user_email",
-          emailToCheck.trim().toLowerCase(),
-        );
         setParticipantList(records);
 
         // Listener realtime agar status lunas langsung update
@@ -271,7 +275,8 @@ export default function ParticipantDashboard() {
 
         setActiveView("dashboard");
       } else {
-        localStorage.removeItem("vr_user_email");
+        // Email not found in participants, sign out
+        signOut(auth);
         setLoginStep("email");
       }
     } catch (error) {
