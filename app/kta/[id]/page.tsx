@@ -108,7 +108,7 @@ export default function KTAPage() {
   const [isProcessingPDF, setIsProcessingPDF] = useState(false);
 
   const [isOwner, setIsOwner] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(undefined);
 
   const exportContainerRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -502,11 +502,6 @@ export default function KTAPage() {
               style={{ width: "100%", height: "100%" }}
               level="M"
             />
-          </div>
-          <div className="max-w-full overflow-hidden px-2">
-            <p className="text-[10px] sm:text-xs font-black text-[#0B1528] tracking-wider md:tracking-widest uppercase bg-[#F8F9FA] px-4 py-2 rounded-lg border border-[#EBEBEB] text-center whitespace-nowrap shadow-sm">
-              Scan Validasi Identitas
-            </p>
           </div>
         </div>
       </div>

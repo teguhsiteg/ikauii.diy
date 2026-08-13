@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-import { createRemoteJWKSet, jwtVerify } from "jose";
+import { createRemoteJWKSet, jwtVerify, decodeJwt } from "jose";
 
 // URL public keys Google untuk Firebase
 const FIREBASE_JWKS_URL = "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
@@ -9,16 +9,23 @@ const FIREBASE_JWKS_URL = "https://www.googleapis.com/service_accounts/v1/jwk/se
 const JWKS = createRemoteJWKSet(new URL(FIREBASE_JWKS_URL));
 
 async function verifyFirebaseToken(token: string) {
-  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
-  if (!projectId) {
-    console.error("FIREBASE_PROJECT_ID is required for JWT verification");
-    return null;
-  }
   try {
+    // 1. Decode payload tanpa verifikasi untuk mengambil projectId (audience)
+    const decodedUnverified = decodeJwt(token);
+    const projectId = decodedUnverified.aud as string;
+
+    if (!projectId) {
+      console.error("Token tidak memiliki audience (projectId)");
+      return null;
+    }
+
+    // 2. Verifikasi dengan kunci publik Google dan projectId dinamis
     const { payload } = await jwtVerify(token, JWKS, {
       issuer: `https://securetoken.google.com/${projectId}`,
       audience: projectId,
+      clockTolerance: 15, // Toleransi perbedaan waktu 15 detik
     });
+    
     // Jika verify berhasil, berarti token valid, ditandatangani Google, dan belum expired.
     return payload;
   } catch (error) {

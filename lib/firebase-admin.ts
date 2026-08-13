@@ -8,15 +8,20 @@ function initAdminApp() {
   const projectId = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "suratdigitalv2";
 
   try {
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+    const rawPrivateKey = process.env.FIREBASE_PRIVATE_KEY;
 
-    if (privateKey) {
+    if (rawPrivateKey) {
       console.log("✅ Firebase Admin SDK init dengan private key.");
+      // Hapus tanda kutip ganda/tunggal di awal & akhir jika ada (sering terjadi di Vercel env vars)
+      let formattedKey = rawPrivateKey.replace(/^["']|["']$/g, "");
+      // Ganti escaped \n menjadi newline sungguhan
+      formattedKey = formattedKey.replace(/\\n/g, "\n");
+      
       return admin.initializeApp({
         credential: admin.credential.cert({
           projectId,
           clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: privateKey.replace(/\\n/g, "\n"),
+          privateKey: formattedKey,
         }),
         projectId,
       });

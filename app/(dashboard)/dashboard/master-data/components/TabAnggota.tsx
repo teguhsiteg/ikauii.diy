@@ -9,6 +9,10 @@ import {
   deleteDoc,
   doc,
   updateDoc,
+  writeBatch,
+  query,
+  orderBy,
+  limit,
 } from "firebase/firestore";
 import * as XLSX from "xlsx";
 import {
@@ -167,9 +171,11 @@ export default function TabAnggota() {
       if (deleteModal.type === "single" && deleteModal.id) {
         await deleteDoc(doc(db, "pengurus", deleteModal.id));
       } else if (deleteModal.type === "bulk" && selectedIds.length > 0) {
-        await Promise.all(
-          selectedIds.map((id) => deleteDoc(doc(db, "pengurus", id))),
-        );
+        const batch = writeBatch(db);
+        selectedIds.forEach((id) => {
+          batch.delete(doc(db, "pengurus", id));
+        });
+        await batch.commit();
       }
       showToast("Data pendaftar ditolak & dihapus.", "success");
       await fetchData();
@@ -205,24 +211,24 @@ export default function TabAnggota() {
     e.preventDefault();
     setIsProcessing(true);
     try {
-      // 🔥 Auto-generate NIA: Gunakan JS filter untuk hindari Error Index Firebase
+      // 🔥 Auto-generate NIA: Ambil 1 data terbaru berdasarkan NIA (Single-field index dibuat otomatis oleh Firestore)
       let nia = "";
       try {
-        const snap = await getDocs(collection(db, "pengurus"));
-        const allNia = snap.docs
-          .map((d) => d.data().nia)
-          .filter(
-            (n) => n && typeof n === "string" && n.startsWith("26.08.34.00."),
-          );
+        const q = query(
+          collection(db, "pengurus"),
+          orderBy("nia", "desc"),
+          limit(1)
+        );
+        const snap = await getDocs(q);
 
-        if (allNia.length > 0) {
-          // Urutkan menurun untuk mendapatkan NIA terbesar
-          allNia.sort((a, b) => b.localeCompare(a));
-          const lastNia = allNia[0];
-          const parts = lastNia.split(".");
-          const lastNum = parseInt(parts[parts.length - 1], 10);
-          if (!isNaN(lastNum)) {
-            nia = `26.08.34.00.${String(lastNum + 1).padStart(4, "0")}`;
+        if (!snap.empty) {
+          const lastNia = snap.docs[0].data().nia;
+          if (lastNia && typeof lastNia === "string" && lastNia.startsWith("26.08.34.00.")) {
+            const parts = lastNia.split(".");
+            const lastNum = parseInt(parts[parts.length - 1], 10);
+            if (!isNaN(lastNum)) {
+              nia = `26.08.34.00.${String(lastNum + 1).padStart(4, "0")}`;
+            }
           }
         }
       } catch (e) {
@@ -264,7 +270,11 @@ export default function TabAnggota() {
         `${approveModal.form.nama} resmi disahkan! NIA: ${nia}`,
         "success",
       );
-      setApproveModal({ isOpen: false, dataId: "", form: {} as any });
+      setApproveModal({ 
+        isOpen: false, 
+        dataId: "", 
+        form: { nama: "", wa: "", email: "", jabatan: "Anggota", bidang: "", noUrut: "", isInti: false, isTampilBeranda: false, periodeId: "" } 
+      });
       await fetchData();
     } catch (error: any) {
       console.error(`[TabAnggota] GAGAL APPROVE:`, error);
@@ -380,7 +390,7 @@ export default function TabAnggota() {
                   setApproveModal({
                     isOpen: false,
                     dataId: "",
-                    form: {} as any,
+                    form: { nama: "", wa: "", email: "", jabatan: "Anggota", bidang: "", noUrut: "", isInti: false, isTampilBeranda: false, periodeId: "" },
                   })
                 }
                 className="text-[#5F6368] hover:bg-[#E8EAED] p-1.5 rounded-full"
@@ -537,7 +547,7 @@ export default function TabAnggota() {
                     setApproveModal({
                       isOpen: false,
                       dataId: "",
-                      form: {} as any,
+                      form: { nama: "", wa: "", email: "", jabatan: "Anggota", bidang: "", noUrut: "", isInti: false, isTampilBeranda: false, periodeId: "" },
                     })
                   }
                   className="px-5 py-2 text-sm font-medium border rounded-md hover:bg-slate-50"

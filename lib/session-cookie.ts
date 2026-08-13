@@ -12,7 +12,7 @@ import type { User } from "firebase/auth";
 /** Kirim idToken ke server → set cookie HttpOnly. Return true jika sukses. */
 export async function syncSessionCookie(user: User): Promise<boolean> {
   try {
-    const token = await user.getIdToken();
+    const token = await user.getIdToken(true); // 🔥 Paksa refresh token untuk menghindari loop
     if (!token) return false;
 
     const res = await fetch("/api/auth/session", {

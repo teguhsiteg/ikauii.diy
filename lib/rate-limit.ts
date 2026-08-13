@@ -10,15 +10,9 @@ interface RateLimitEntry {
 
 const store = new Map<string, RateLimitEntry>();
 
-// Cleanup stale entries every 10 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of store) {
-    if (now > entry.resetAt) {
-      store.delete(key);
-    }
-  }
-}, 10 * 60 * 1000);
+// Tidak menggunakan setInterval agar tidak menghalangi Serverless Function (Vercel) untuk shut down (menghindari 503 Timeout/Service Unavailable).
+// Sebagai gantinya, Map akan di-reset saat cold-start, atau kita bisa membersihkannya secara manual saat ukuran Map terlalu besar.
+
 
 export function rateLimit(options: {
   windowMs?: number;   // default 60 detik
