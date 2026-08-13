@@ -3,6 +3,7 @@ import Swal from "sweetalert2";
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { db } from "@/lib/firebase";
+import { sendWaAction } from "@/app/actions/wa";
 import {
   collection,
   addDoc,
@@ -113,12 +114,12 @@ export default function TabAnggotaSah() {
   ) => {
     if (!phone || phone.length < 9) return false;
     try {
-      const res = await fetch("/api/send-wa", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, phone, nama, detail: detailData }),
+      const data = await sendWaAction({
+        type,
+        phone,
+        nama,
+        detail: detailData,
       });
-      const data = await res.json();
       return data.success;
     } catch (error) {
       return false;

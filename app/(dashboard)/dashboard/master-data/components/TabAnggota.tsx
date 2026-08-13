@@ -2,16 +2,13 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { db } from "@/lib/firebase";
+import { sendWaAction } from "@/app/actions/wa";
 import {
   collection,
   getDocs,
   deleteDoc,
   doc,
   updateDoc,
-  query,
-  orderBy,
-  where,
-  limit,
 } from "firebase/firestore";
 import * as XLSX from "xlsx";
 import {
@@ -80,12 +77,12 @@ export default function TabAnggota() {
   ) => {
     if (!phone || phone.length < 9) return false;
     try {
-      const res = await fetch("/api/send-wa", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, phone, nama, detail: detailData }),
+      const data = await sendWaAction({
+        type,
+        phone,
+        nama,
+        detail: detailData,
       });
-      const data = await res.json();
       return data.success;
     } catch (error) {
       return false;
@@ -95,22 +92,31 @@ export default function TabAnggota() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      // Ambil Periode & Bidang untuk opsi form pengesahan
-      const pSnap = await getDocs(
-        query(collection(db, "periode"), orderBy("tglMulai", "desc")),
-      );
-      setPeriodeList(pSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      // 1. Ambil Periode tanpa orderBy (Sort manual pakai JavaScript)
+      const pSnap = await getDocs(collection(db, "periode"));
+      const pData = pSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      pData.sort((a: any, b: any) => {
+        const dateA = a.tglMulai || "";
+        const dateB = b.tglMulai || "";
+        return dateB.localeCompare(dateA); // Descending
+      });
+      setPeriodeList(pData);
 
-      const bSnap = await getDocs(
-        query(collection(db, "bidang"), orderBy("namaBidang", "asc")),
-      );
-      setBidangList(bSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      // 2. Ambil Bidang tanpa orderBy (Sort manual pakai JavaScript)
+      const bSnap = await getDocs(collection(db, "bidang"));
+      const bData = bSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      bData.sort((a: any, b: any) => {
+        const nameA = a.namaBidang || "";
+        const nameB = b.namaBidang || "";
+        return nameA.localeCompare(nameB); // Ascending
+      });
+      setBidangList(bData);
 
-      // Ambil User (Anggota belum sah)
-      const uSnap = await getDocs(
-        query(collection(db, "pengurus"), orderBy("createdAt", "desc")),
-      );
+      // 3. Ambil User (Anggota) tanpa orderBy untuk menghindari Index Error
+      const uSnap = await getDocs(collection(db, "pengurus"));
       const allUsers = uSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      
+      // Filter hanya yang belum sah & Urutkan berdasarkan createdAt di JavaScript
       const pending = allUsers.filter(
         (u: any) =>
           !u.isPengurus &&
@@ -118,10 +124,17 @@ export default function TabAnggota() {
           u.status_pengurus !== "Aktif" &&
           !u.tampilDiWeb,
       );
+      
+      pending.sort((a: any, b: any) => {
+        const timeA = a.createdAt || "";
+        const timeB = b.createdAt || "";
+        return timeB.localeCompare(timeA); // Descending
+      });
 
       setAnggotaList(pending);
-    } catch (error) {
-      showToast("Gagal memuat data anggota.", "error");
+    } catch (error: any) {
+      console.error("Gagal load data:", error);
+      showToast("Gagal memuat data anggota. Cek console.", "error");
     } finally {
       setIsLoading(false);
       setSelectedIds([]);
@@ -192,19 +205,20 @@ export default function TabAnggota() {
     e.preventDefault();
     setIsProcessing(true);
     try {
-      // 🔥 Auto-generate NIA: cari max existing, increment
+      // 🔥 Auto-generate NIA: Gunakan JS filter untuk hindari Error Index Firebase
       let nia = "";
       try {
-        const maxSnap = await getDocs(
-          query(
-            collection(db, "pengurus"),
-            where("nia", ">=", "26.08.34.00."),
-            orderBy("nia", "desc"),
-            limit(1),
-          ),
-        );
-        if (!maxSnap.empty) {
-          const lastNia = maxSnap.docs[0].data().nia || "";
+        const snap = await getDocs(collection(db, "pengurus"));
+        const allNia = snap.docs
+          .map((d) => d.data().nia)
+          .filter(
+            (n) => n && typeof n === "string" && n.startsWith("26.08.34.00."),
+          );
+
+        if (allNia.length > 0) {
+          // Urutkan menurun untuk mendapatkan NIA terbesar
+          allNia.sort((a, b) => b.localeCompare(a));
+          const lastNia = allNia[0];
           const parts = lastNia.split(".");
           const lastNum = parseInt(parts[parts.length - 1], 10);
           if (!isNaN(lastNum)) {
@@ -212,8 +226,9 @@ export default function TabAnggota() {
           }
         }
       } catch (e) {
-        console.warn("[TabAnggota] Gagal query max NIA, fallback:", e);
+        console.warn("[TabAnggota] Gagal cari NIA max, fallback timestamp:", e);
       }
+
       if (!nia) {
         // Fallback: gunakan timestamp
         nia = `26.08.34.00.${Date.now().toString().slice(-4)}`;
@@ -252,19 +267,9 @@ export default function TabAnggota() {
       setApproveModal({ isOpen: false, dataId: "", form: {} as any });
       await fetchData();
     } catch (error: any) {
-      // Firebase errors kadang punya properti non-enumerable (code, message)
-      // yang tidak muncul saat di-serialize → tampilkan semua cara
-      const rawKeys = error ? Object.getOwnPropertyNames(error) : [];
-      const errCode = error?.code || "(none)";
-      const errMsg = error?.message || "(none)";
-      const errStack = error?.stack?.split("\n")?.[0] || "(none)";
-      console.error(
-        `[TabAnggota] GAGAL APPROVE | code=${errCode} msg="${errMsg}" | keys=[${rawKeys.join(",")}] | stack=${errStack}`,
-      );
-      // Juga log full error object
-      console.dir(error);
+      console.error(`[TabAnggota] GAGAL APPROVE:`, error);
       showToast(
-        `Gagal mengesahkan: ${errCode} — ${errMsg}`,
+        `Gagal mengesahkan. Cek console.`,
         "error",
       );
     } finally {
