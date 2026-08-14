@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     // 🔥 6. EKSEKUSI UPDATE DATABASE BERDASARKAN EVENT
     // =================================================================
     if (targetSnap.exists) {
-      const targetData = targetSnap.data();
+      const targetData = targetSnap.data() || {};
 
       if (eventType === "masterclass") {
         // --- UPDATE MASTERCLASS ---

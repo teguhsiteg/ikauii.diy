@@ -5,19 +5,23 @@ import { rateLimit } from "@/lib/rate-limit";
 const emailRateLimiter = rateLimit({ windowMs: 60 * 1000, maxRequests: 10 });
 
 export async function POST(request: Request) {
-  // Rate limiting
-  const rl = emailRateLimiter(request);
-  if (!rl.allowed) {
-    return NextResponse.json(
-      { error: "Terlalu banyak permintaan. Coba lagi nanti." },
-      { status: 429 },
-    );
-  }
-
   try {
-    // Validasi: hanya boleh dipanggil dari server internal
+    // 1. Validasi: Internal server bypass rate limiting
     const internalSecret = request.headers.get("x-internal-secret");
-    if (internalSecret !== process.env.INTERNAL_API_SECRET) {
+    const isInternal = internalSecret === process.env.INTERNAL_API_SECRET;
+
+    if (!isInternal) {
+      // Rate limiting untuk external calls
+      const rl = emailRateLimiter(request);
+      if (!rl.allowed) {
+        return NextResponse.json(
+          { error: "Terlalu banyak permintaan. Coba lagi nanti." },
+          { status: 429 },
+        );
+      }
+      
+      // Jika bukan internal, mungkin Anda ingin memblokir sepenuhnya?
+      // Tapi untuk sekarang kita kembalikan 403 jika butuh internal
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 403 },

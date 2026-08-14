@@ -153,7 +153,7 @@ export default function ManajemenNomorSuratPage() {
       // Auto-suggest Nomor Urut hanya jika TIDAK sedang mode edit
       if (!editId) {
         if (data.length > 0 && !genForm.nomorUrut) {
-          const lastNumber = parseInt(data[0].nomor.split("/")[0]);
+          const lastNumber = parseInt((data[0] as any).nomor.split("/")[0]);
           if (!isNaN(lastNumber)) {
             setGenForm((prev) => ({
               ...prev,

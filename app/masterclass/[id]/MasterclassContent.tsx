@@ -76,7 +76,7 @@ export default function MasterclassPublicDetailPage() {
         router.push("/masterclass");
         return;
       }
-      const courseData = { id: courseSnap.id, ...courseSnap.data() };
+      const courseData: any = { id: courseSnap.id, ...courseSnap.data() };
       setCourse(courseData);
 
       const cmsSnap = await getDoc(doc(db, "settings", "masterclass_cms"));
@@ -120,7 +120,7 @@ export default function MasterclassPublicDetailPage() {
       setReviews(
         reviewSnaps.docs
           .map((d) => ({ id: d.id, ...d.data() }))
-          .filter((r) => r.status !== "Sembunyi"),
+          .filter((r: any) => r.status !== "Sembunyi"),
       );
 
       if (user) {

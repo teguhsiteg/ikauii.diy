@@ -124,13 +124,13 @@ export default function MasterclassPublicPage() {
       const snapReviews = await getDocs(collection(db, "masterclass_reviews"));
       const fetchedReviews = snapReviews.docs
         .map((d) => ({ id: d.id, ...d.data() }))
-        .filter((r) => r.status !== "Sembunyi");
+        .filter((r: any) => r.status !== "Sembunyi");
       setReviews(fetchedReviews);
 
       // Kalkulasi Rating
       const ratingMap: Record<string, { totalScore: number; count: number }> =
         {};
-      fetchedReviews.forEach((r) => {
+      fetchedReviews.forEach((r: any) => {
         if (!ratingMap[r.courseId])
           ratingMap[r.courseId] = { totalScore: 0, count: 0 };
         ratingMap[r.courseId].totalScore += Number(r.rating);

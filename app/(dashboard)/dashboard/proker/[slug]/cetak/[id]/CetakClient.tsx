@@ -641,7 +641,7 @@ const SuratTugasTemplate = ({ printData }: { printData: ProkerPayload }) => {
 };
 
 // --- MAIN COMPONENT ---
-export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
+export default function RuangKerjaProkerDinamic({ id, slug }: { id?: string; slug?: string }) {
   const params = useParams();
   const router = useRouter();
   const rawSlug = params.slug as string;

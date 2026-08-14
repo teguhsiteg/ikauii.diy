@@ -182,7 +182,7 @@ export default function DashboardAnggotaPage() {
       setUserAuth(currentUser);
 
       try {
-        let fetchedData = null;
+        let fetchedData: any = null;
         let currentKoleksi: "pengurus" | "pendaftar" = "pendaftar";
         const userEmail = (currentUser.email || "").toLowerCase();
 

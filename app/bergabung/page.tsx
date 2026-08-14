@@ -35,7 +35,7 @@ export default function BergabungPage() {
 
   const { executeRecaptcha } = useGoogleReCaptcha();
 
-  const [modal, setModal] = useState({
+  const [modal, setModal] = useState<any>({
     isOpen: false,
     type: "warning",
     title: "",
@@ -56,6 +56,7 @@ export default function BergabungPage() {
     pekerjaan: "",
     keahlian: "",
     motto: "",
+    alamatLengkap: "",
   });
 
   const checkDuplicate = async (

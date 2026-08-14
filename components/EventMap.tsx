@@ -51,10 +51,11 @@ const WaypointIcons: Record<string, string> = {
 };
 
 type Waypoint = {
-  lat: number;
-  lng: number;
+  lat: number | string;
+  lng: number | string;
   type?: string;
   name?: string;
+  label?: string;
 };
 
 export default function EventMap({
@@ -117,7 +118,7 @@ export default function EventMap({
     // 8. Pasang Pin Titik Lokasi
     waypoints.forEach((wp) => {
       if (wp.lat && wp.lng) {
-        const emoji = WaypointIcons[wp.type] || "📍";
+        const emoji = WaypointIcons[wp.type as string] || "📍";
 
         // Bikin Ikon Kustom
         const customIcon = L.divIcon({
@@ -128,7 +129,7 @@ export default function EventMap({
         });
 
         // Pasang Marker & Popup
-        L.marker([parseFloat(wp.lat), parseFloat(wp.lng)], { icon: customIcon })
+        L.marker([parseFloat(String(wp.lat)), parseFloat(String(wp.lng))], { icon: customIcon })
           .addTo(map)
           .bindPopup(
             `<div style="font-family: sans-serif; font-weight: bold; color: #1e293b; text-align: center;"><div style="font-size: 20px; margin-bottom: 4px;">${emoji}</div><div style="text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px;">${wp.label}</div></div>`,

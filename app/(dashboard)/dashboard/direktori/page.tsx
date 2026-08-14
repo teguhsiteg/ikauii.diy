@@ -131,7 +131,7 @@ export default function AdminDirektoriPage() {
       }));
 
       const combinedBisnis = [...dataPendaftaran, ...dataBisnis].sort(
-        (a, b) => {
+        (a: any, b: any) => {
           const dateA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
           const dateB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
           return dateB - dateA;

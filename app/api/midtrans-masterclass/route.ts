@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const enrollmentData = enrollmentSnap.data();
+    const enrollmentData = enrollmentSnap.data() || {};
     const actualAmount = enrollmentData.totalTagihan || enrollmentData.harga;
 
     if (!actualAmount || actualAmount <= 0) {
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const settings = settingsSnap.data();
+    const settings = settingsSnap.data() || {};
     const serverKey = settings.midtransServerKey?.trim();
     const isProduction = settings.isProduction || false;
 

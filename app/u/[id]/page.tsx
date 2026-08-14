@@ -28,7 +28,7 @@ export default function PublicRunnerProfile() {
       if (!id) return;
 
       try {
-        let pData = null;
+        let pData: any = null;
 
         // A1. Coba cari berdasarkan field "slug" terlebih dahulu
         const qSlug = query(

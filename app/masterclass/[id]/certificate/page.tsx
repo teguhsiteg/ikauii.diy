@@ -94,7 +94,7 @@ export default function CertificatePage() {
 
       // 5. Kalkulasi Durasi & Pemrosesan Data Transkrip
       let totalMinutes = 0;
-      const processedModules = fetchedModules.map((mod) => {
+      const processedModules = fetchedModules.map((mod: any) => {
         const durasi = Number(mod.durasi) || Number(mod.durasiUjian) || 15;
         totalMinutes += durasi;
 

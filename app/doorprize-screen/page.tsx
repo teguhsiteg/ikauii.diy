@@ -9,6 +9,7 @@ export default function DoorprizeScreenPage() {
     action: "idle",
     prize: "",
     winnerName: "",
+    winnerBib: "",
   });
   const [settings, setSettings] = useState<any>({});
   const [poolData, setPoolData] = useState<{ name: string; bib: string }[]>([
@@ -153,7 +154,7 @@ export default function DoorprizeScreenPage() {
 
   // --- EFEK MESIN SPIN (MENGACAK DATA) ---
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (signal.action === "spin") {
       interval = setInterval(() => {
         if (poolData.length > 1) {

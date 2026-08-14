@@ -8,6 +8,9 @@ import tw from "twrnc";
 import TabNavigator from "./src/navigation/TabNavigator";
 import OnboardingScreen from "./src/screens/Onboarding/OnboardingScreen";
 import AuthScreen from "./src/screens/Auth/AuthScreen";
+import ActiveQuizScreen from "./src/screens/Quiz/ActiveQuizScreen";
+import AgendaScreen from "./src/screens/Dashboard/AgendaScreen";
+import KarirScreen from "./src/screens/Dashboard/KarirScreen";
 import { IKA_COLORS } from "./src/constants/colors";
 
 const Stack = createNativeStackNavigator();
@@ -54,6 +57,13 @@ export default function App() {
 
         {/* 3. AuthScreen Disembunyikan, hanya dipanggil jika ditekan */}
         <Stack.Screen name="Auth" component={AuthScreen} />
+
+        {/* 4. Active Quiz Screen */}
+        <Stack.Screen name="ActiveQuiz" component={ActiveQuizScreen} />
+
+        {/* 5. Agenda & Karir */}
+        <Stack.Screen name="Agenda" component={AgendaScreen} />
+        <Stack.Screen name="Karir" component={KarirScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

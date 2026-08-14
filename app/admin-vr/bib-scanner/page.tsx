@@ -28,7 +28,7 @@ export default function BibScannerPage() {
   // Mesin Waktu (Timer Engine)
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [isPaused, setIsPaused] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<any>(null);
 
   // Monitor status TV & Ambil Template Awal
   useEffect(() => {
@@ -80,7 +80,7 @@ export default function BibScannerPage() {
     if (timerRef.current) clearInterval(timerRef.current);
 
     if (timeLeft > 0 && !isPaused && activeBibOnTv) {
-      timerRef.current = setInterval(async () => {
+      timerRef.current = window.setInterval(async () => {
         const newTime = timeLeft - 1;
         setTimeLeft(newTime);
         await updateDoc(doc(db, "settings", "virtual_run"), {

@@ -38,10 +38,10 @@ export default function TabDashboard() {
         ...d.data(),
       }));
       const lunasEnrollments = enrollments.filter(
-        (e) => e.statusAkses === "Lunas",
+        (e: any) => e.statusAkses === "Lunas",
       );
 
-      const totalRevenue = lunasEnrollments.reduce((acc, curr) => {
+      const totalRevenue = lunasEnrollments.reduce((acc, curr: any) => {
         return acc + (Number(curr.hargaTransaksi) || 0);
       }, 0);
 

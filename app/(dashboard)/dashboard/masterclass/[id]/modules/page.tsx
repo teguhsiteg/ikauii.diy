@@ -293,7 +293,7 @@ export default function ModuleManagementPage() {
                         </span>
                       </div>
                       <div className="divide-y divide-slate-100">
-                        {groupedModules[babName].map((mod) => (
+                        {groupedModules[babName].map((mod: any) => (
                           <div
                             key={mod.id}
                             className="p-5 hover:bg-slate-50 transition-colors flex items-start gap-4"

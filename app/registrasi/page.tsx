@@ -1689,7 +1689,7 @@ export default function MejaRegistrasiPage() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number) => [value, "Peserta"]}
+                        formatter={(value: any) => [value, "Peserta"]}
                         contentStyle={{
                           borderRadius: "8px",
                           fontSize: "12px",

@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const participantData = participantSnap.data();
+    const participantData = participantSnap.data() || {};
     const actualAmount = participantData.totalTagihan;
 
     if (!actualAmount || actualAmount <= 0) {
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const settings = settingsSnap.data();
+    const settings = settingsSnap.data() || {};
     const serverKey = settings.midtransServerKey?.trim();
     const isProduction = settings.isProduction;
 

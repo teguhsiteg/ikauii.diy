@@ -16,19 +16,19 @@ service cloud.firestore {
     // 3. admin_emails/{email} — fallback via email dengan active=true
     function isAdmin() {
       return isLoggedIn() && (
-        // Check by UID
+        // 1. Check by UID (Gunakan exists() agar tidak error jika dokumen tidak ada)
         (
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).exists &&
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["admin", "super_admin", "superadmin", "koordinator"]
         ) || (
-          // Check by EMAIL
+          // 2. Check by EMAIL
           request.auth.token.email != null &&
-          get(/databases/$(database)/documents/users/$(request.auth.token.email)).exists &&
+          exists(/databases/$(database)/documents/users/$(request.auth.token.email)) &&
           get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role in ["admin", "super_admin", "superadmin", "koordinator"]
         ) || (
-          // Fallback: admin_emails/{email} dengan active=true
+          // 3. Fallback: admin_emails/{email} dengan active=true
           request.auth.token.email != null &&
-          get(/databases/$(database)/documents/admin_emails/$(request.auth.token.email)).exists &&
+          exists(/databases/$(database)/documents/admin_emails/$(request.auth.token.email)) &&
           get(/databases/$(database)/documents/admin_emails/$(request.auth.token.email)).data.active == true
         )
       );
@@ -50,27 +50,33 @@ service cloud.firestore {
     // FORM PUBLIK — create tanpa login, update/delete pemilik atau admin
     // ============================================================
     match /pendaftaran_bisnis/{docId} {
-      allow read, create: if true;
+      allow read: if isAdmin();
+      allow create: if true;
       allow update, delete: if isAdmin() || isOwner();
     }
     match /pendaftaran_iklan/{docId} {
-      allow read, create: if true;
+      allow read: if isAdmin();
+      allow create: if true;
       allow update, delete: if isAdmin() || isOwner();
     }
     match /agenda_peserta/{docId} {
-      allow read, create: if true;
+      allow read: if isAdmin();
+      allow create: if true;
       allow update, delete: if isAdmin() || isOwner();
     }
     match /agenda_donasi/{docId} {
-      allow read, create: if true;
+      allow read: if isAdmin();
+      allow create: if true;
       allow update, delete: if isAdmin() || isOwner();
     }
     match /twibbon_logs/{docId} {
-      allow read, create: if true;
+      allow read: if isAdmin();
+      allow create: if true;
       allow update, delete: if isAdmin() || isOwner();
     }
     match /offline_participants/{docId} {
-      allow read, create: if true;
+      allow read: if isAdmin();
+      allow create: if true;
       allow update, delete: if isAdmin() || isOwner();
     }
 
@@ -78,7 +84,8 @@ service cloud.firestore {
     // VIRTUAL RUN — paling sensitif (pembayaran & BIB)
     // ============================================================
     match /vr_participants/{docId} {
-      allow read: if isAdmin() || (isLoggedIn() && request.auth.uid == resource.data.email);
+      // FIX: ubah request.auth.uid menjadi request.auth.token.email saat komparasi dengan resource.data.email
+      allow read: if isAdmin() || (isLoggedIn() && request.auth.token.email == resource.data.email);
 
       allow create: if true
         && request.resource.data.statusPembayaran == "Pending"
@@ -225,12 +232,6 @@ service cloud.firestore {
 
     // ============================================================
     // CATCH-ALL — sisa koleksi internal: read (login), write ADMIN ONLY.
-    // Mencakup: nomor_surat, surat_edaran, kuitansi_organisasi,
-    // doorprize_items, promo_codes, system, templates, bidang, periode,
-    // merchandise, crew_volunteers, peserta, merchandise_usulan, dll.
-    //
-    // ⚠️  Aturan: setiap koleksi baru yang menyimpan data sensitif HARUS
-    //     punya rules eksplisit di atas, jangan mengandalkan catch-all.
     // ============================================================
     match /{document=**} {
       allow read: if isLoggedIn();

@@ -12,7 +12,7 @@ export default function SessionGuard({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<any>(null);
 
   // 🔥 WAKTU AUTO-LOGOUT: 1 JAM (dalam milidetik) 🔥
   const IDLE_TIMEOUT = 3600000;

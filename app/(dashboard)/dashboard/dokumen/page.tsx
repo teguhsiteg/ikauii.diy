@@ -24,7 +24,7 @@ export default function GudangDokumenPage() {
         setPeriodeList(data);
 
         // Default: Pilih periode yang sedang "Aktif", atau periode pertama jika tidak ada
-        const active = data.find((p) => p.status === "Aktif");
+        const active = data.find((p: any) => p.status === "Aktif");
         if (active) setSelectedPeriode(active.id);
         else if (data.length > 0) setSelectedPeriode(data[0].id);
       } catch (error) {

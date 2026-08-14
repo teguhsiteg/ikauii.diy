@@ -91,7 +91,7 @@ export default function MyCoursesPage() {
       setEnrollments(enrollData);
 
       // Extract unique Course IDs
-      const cIds = [...new Set(enrollData.map((e) => e.courseId))];
+      const cIds = [...new Set(enrollData.map((e: any) => e.courseId))];
 
       // 3. Tarik Data Kelas (Untuk nerjemahin ID ke Judul & Gambar)
       const cMap: Record<string, any> = {};

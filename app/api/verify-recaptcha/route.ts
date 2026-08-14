@@ -78,9 +78,9 @@ export async function POST(request: Request) {
 
     // Cek pembajakan akun (Hanya jika email dikirim)
     let isAccountHijacked = false;
-    if (response.accountDefendersAssessment?.labels) {
-      isAccountHijacked = response.accountDefendersAssessment.labels.includes(
-        "PROFILE_MATCH_MITIGATION_REQUIRED",
+    if (response.accountDefenderAssessment?.labels) {
+      isAccountHijacked = response.accountDefenderAssessment.labels.includes(
+        "PROFILE_MATCH_MITIGATION_REQUIRED" as any,
       );
     }
 

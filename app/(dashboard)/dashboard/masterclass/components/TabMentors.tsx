@@ -241,7 +241,7 @@ export default function TabMentors() {
                 Memuat data ekspert...
               </div>
             ) : (
-              mentors.map((m) => (
+              mentors.map((m: any) => (
                 <div
                   key={m.id}
                   className="bg-white rounded-2xl border border-slate-200 p-4 flex items-center justify-between gap-4 hover:shadow-md transition-shadow group"
@@ -274,7 +274,6 @@ export default function TabMentors() {
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
-                            title="Tanda Tangan Tersedia"
                           >
                             <path
                               strokeLinecap="round"

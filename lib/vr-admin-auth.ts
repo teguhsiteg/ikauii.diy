@@ -86,6 +86,31 @@ export async function verifyVrAdmin(
       }
     }
 
+    // 3) Fallback 3: admin_emails/{email} dengan active=true
+    if (email) {
+      const adminEmailRef = dbAdmin.collection("admin_emails").doc(email);
+      const adminEmailSnap = await adminEmailRef.get();
+      
+      if (adminEmailSnap.exists && adminEmailSnap.data()?.active) {
+        const data = adminEmailSnap.data()!;
+        const role = String(data.role || "admin").toLowerCase();
+        
+        if (ADMIN_ROLES.includes(role)) {
+          // Self-healing ke users/{uid}
+          await userRef.set(
+            {
+              role: "admin",
+              email: email,
+              verifiedAs: role,
+              verifiedAt: new Date().toISOString(),
+            },
+            { merge: true },
+          );
+          return { uid, email, role: role };
+        }
+      }
+    }
+
     return null;
   } catch (error) {
     console.error("[vr-admin-auth] Token verification failed:", error);

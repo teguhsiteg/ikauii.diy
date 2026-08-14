@@ -11,7 +11,8 @@ export default function AdminVRLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [user, setUser] = useState<{ email: string } | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [emailLogin, setEmailLogin] = useState("");
   const [passwordLogin, setPasswordLogin] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -101,7 +102,7 @@ export default function AdminVRLayout({
   // Jika sudah login, tampilkan layout admin
   return (
     <div className="flex h-screen bg-[#F4F7FB] font-sans selection:bg-blue-100 selection:text-blue-900 overflow-hidden">
-      <Sidebar />
+      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <Header userEmail={user.email || "Admin"} />
         <main className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar relative">

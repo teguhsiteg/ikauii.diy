@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 export default function SponsorManagementPage() {
   const [sponsorGroups, setSponsorGroups] = useState<any[]>([]);
@@ -185,17 +185,20 @@ export default function SponsorManagementPage() {
     e.preventDefault();
     setIsSaving(true);
     try {
-      await updateDoc(doc(db, "settings", "virtual_run"), {
-        sponsorGroups: sponsorGroups,
-      });
+      // Menggunakan setDoc + merge untuk menghindari error jika document belum ada
+      // JSON.parse(JSON.stringify) digunakan untuk membersihkan properti "undefined" yang ditolak Firebase
+      await setDoc(doc(db, "settings", "virtual_run"), {
+        sponsorGroups: JSON.parse(JSON.stringify(sponsorGroups)),
+      }, { merge: true });
       setPopup({
         type: "success",
         text: "Hierarki sponsor berhasil diperbarui.",
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Firebase Save Error:", error);
       setPopup({
         type: "error",
-        text: "Terjadi kesalahan saat menyimpan data.",
+        text: `Gagal menyimpan: ${error?.message || "Kesalahan tak dikenal"}`,
       });
     } finally {
       setIsSaving(false);
@@ -563,52 +566,20 @@ export default function SponsorManagementPage() {
                               </svg>
                             )}
 
-                            {/* Hover Overlay Actions */}
-                            <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover/logo:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
-                              <button
-                                type="button"
-                                title={logo.isHidden ? "Tampilkan di Web" : "Sembunyikan dari Web"}
-                                onClick={() =>
-                                  handleUpdateLogo(group.id, logo.id, "isHidden", !logo.isHidden)
-                                }
-                                className={`p-2 rounded-full transition-transform hover:scale-110 ${logo.isHidden ? "bg-slate-200 text-slate-700" : "bg-emerald-500 text-white"}`}
-                              >
-                                {logo.isHidden ? (
-                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                                  </svg>
-                                ) : (
-                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                  </svg>
-                                )}
-                              </button>
-                              <button
-                                type="button"
-                                title="Hapus Logo"
-                                onClick={() => handleRemoveLogo(group.id, logo.id)}
-                                className="p-2 rounded-full bg-rose-500 text-white transition-transform hover:scale-110"
-                              >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            </div>
                           </div>
 
-                          {/* Info Edit Area */}
-                          <div className="p-3 bg-white border-t border-slate-100 flex flex-col gap-2">
-                            <input
-                              type="text"
-                              value={logo.name}
-                              onChange={(e) =>
-                                handleUpdateLogo(group.id, logo.id, "name", e.target.value)
-                              }
-                              placeholder="Nama Brand (Opsional)"
-                              className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-[#1A73E8] focus:outline-none transition-colors text-xs font-bold text-slate-800 placeholder:font-normal pb-1"
-                            />
-                            <div className="relative">
+                          {/* Info Edit Area (Input & Action Buttons) */}
+                          <div className="p-3 bg-white border-t border-slate-100 flex flex-col gap-3">
+                            <div className="flex flex-col gap-2">
+                              <input
+                                type="text"
+                                value={logo.name}
+                                onChange={(e) =>
+                                  handleUpdateLogo(group.id, logo.id, "name", e.target.value)
+                                }
+                                placeholder="Nama Brand (Opsional)"
+                                className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-[#1A73E8] focus:outline-none transition-colors text-xs font-bold text-slate-800 placeholder:font-normal pb-1"
+                              />
                               <input
                                 type="url"
                                 value={logo.url}
@@ -619,6 +590,47 @@ export default function SponsorManagementPage() {
                                 className="w-full bg-slate-50 border border-slate-200 focus:border-[#1A73E8] focus:bg-white outline-none rounded p-1.5 text-[10px] font-mono text-slate-600 transition-colors"
                                 required
                               />
+                            </div>
+
+                            {/* Tombol Aksi (Selalu Muncul) */}
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                              <button
+                                type="button"
+                                title={logo.isHidden ? "Tampilkan di Web" : "Sembunyikan dari Web"}
+                                onClick={() =>
+                                  handleUpdateLogo(group.id, logo.id, "isHidden", !logo.isHidden)
+                                }
+                                className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold uppercase transition-colors ${logo.isHidden ? "bg-slate-100 text-slate-500 hover:bg-slate-200" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"}`}
+                              >
+                                {logo.isHidden ? (
+                                  <>
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                    </svg>
+                                    Tersembunyi
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    Tampil
+                                  </>
+                                )}
+                              </button>
+                              
+                              <button
+                                type="button"
+                                title="Hapus Logo"
+                                onClick={() => handleRemoveLogo(group.id, logo.id)}
+                                className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold uppercase bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Hapus
+                              </button>
                             </div>
                           </div>
                         </div>

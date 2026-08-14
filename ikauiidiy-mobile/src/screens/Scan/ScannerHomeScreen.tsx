@@ -11,7 +11,8 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { Ionicons } from "@expo/vector-icons";
 import tw from "twrnc";
 import { IKA_COLORS } from "../../constants/colors";
-import { useIsFocused } from "@react-navigation/native"; // 🔥 IMPORT HOOK SAKTI INI
+import { useIsFocused } from "@react-navigation/native";
+import * as WebBrowser from "expo-web-browser";
 
 export default function ScannerHomeScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -61,7 +62,7 @@ export default function ScannerHomeScreen() {
   }
 
   // Fungsi Logika "Polisi Lalu Lintas" saat QR terbaca
-  const handleBarcodeScanned = ({
+  const handleBarcodeScanned = async ({
     type,
     data,
   }: {
@@ -70,23 +71,26 @@ export default function ScannerHomeScreen() {
   }) => {
     setScanned(true);
 
-    // 1. Logika Scan Validasi Dokumen
-    if (data.includes("validasi") || data.includes("surat")) {
-      Alert.alert(
-        "📄 Validasi E-Office",
-        `Mengecek keaslian dokumen...\nData: ${data}`,
-        [{ text: "OK", onPress: () => setScanned(false) }],
-      );
+    // 1. Jika data adalah URL (http/https), buka di WebBrowser
+    if (data.startsWith("http://") || data.startsWith("https://")) {
+      try {
+        await WebBrowser.openBrowserAsync(data);
+      } catch (error) {
+        Alert.alert("Error", "Gagal membuka tautan.");
+      }
+      setScanned(false);
+      return;
     }
+
     // 2. Logika Scan e-KTA
-    else if (data.includes("KTA-") || data.includes("alumni")) {
+    if (data.includes("KTA-") || data.includes("alumni")) {
       Alert.alert(
         "👤 Profil Alumni",
         `Membuka e-KTA Digital...\nData: ${data}`,
         [{ text: "OK", onPress: () => setScanned(false) }],
       );
     }
-    // 3. Logika Scan Donasi / Iuran (QRIS/Payment Link)
+    // 3. Logika Scan Donasi / Iuran (QRIS/Payment Link non URL)
     else if (
       data.includes("qris") ||
       data.includes("pay") ||

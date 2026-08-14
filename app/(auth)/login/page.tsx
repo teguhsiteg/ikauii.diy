@@ -38,7 +38,10 @@ export default function LoginPage() {
       await syncSessionCookie(user);
 
       if (cancelled) return;
-      router.replace(target);
+      // Gunakan window.location (hard navigation) bukan router.replace() untuk
+      // menghindari race condition: Next.js client router bisa navigasi sebelum
+      // browser selesai commit cookie HttpOnly dari response sebelumnya.
+      window.location.replace(target);
     });
 
     return () => {

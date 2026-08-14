@@ -229,6 +229,7 @@ interface CrewMember {
   certEmailStatus?: "sent" | "failed" | null;
   emailError?: string;
   sourceDb: "crew_volunteers" | "oprec_pelamar";
+  alasanTolak?: string;
 }
 
 export default function CrewManagementPage() {
@@ -982,7 +983,7 @@ export default function CrewManagementPage() {
     } else if (selectedCrew.status === "rejected") {
       await handleSendRejectEmail(selectedCrew);
     } else {
-      showNotif("warning", "Hanya untuk pelamar Diterima / Ditolak.");
+      showNotif("error", "Hanya untuk pelamar Diterima / Ditolak.");
     }
   };
 

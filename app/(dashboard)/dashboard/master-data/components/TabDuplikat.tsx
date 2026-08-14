@@ -91,7 +91,7 @@ export default function TabDuplikat() {
       const data2 = snap2.docs.map(doc => ({ ...doc.data(), id: `pendaftar_${doc.id}`, realId: doc.id, source: "pendaftar" }));
 
       const combined = [...data1, ...data2];
-      combined.sort((a, b) => (a.nama || "").localeCompare(b.nama || ""));
+      combined.sort((a: any, b: any) => (a.nama || "").localeCompare(b.nama || ""));
       setPengurusList(combined);
     } catch (e) {
       console.error(e);

@@ -172,7 +172,9 @@ export default function DataPesertaPage() {
             type: "payment_success",
             email: targetPeserta.email,
             nama: targetPeserta.nama,
-            detail: {},
+            detail: {
+              eventName: "Virtual Run DPW IKA UII DIY",
+            },
           }).catch((e) => console.log("Gagal kirim notif email lunas", e));
       }
 
@@ -236,7 +238,7 @@ export default function DataPesertaPage() {
     setLoadingAction(`reminder-${p.id}`);
     try {
       // Ambil pengaturan bank terkini dari database
-      const settingsRef = doc(db, "vr_settings", "global");
+      const settingsRef = doc(db, "settings", "virtual_run");
       const settingsSnap = await getDoc(settingsRef);
       const settingsData = settingsSnap.exists() ? settingsSnap.data() : {};
 

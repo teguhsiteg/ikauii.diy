@@ -702,7 +702,7 @@ function OfflineRunLandingPageContent() {
               const sisaKuota = isUnlimited
                 ? "Tak Terbatas"
                 : Math.max(0, batasKuota - terisi);
-              const isSoldOut = !isUnlimited && sisaKuota <= 0;
+              const isSoldOut = !isUnlimited && Number(sisaKuota) <= 0;
               const persentase = isUnlimited
                 ? 0
                 : Math.min(100, (terisi / batasKuota) * 100);

@@ -143,7 +143,7 @@ export default function KTAPage() {
         }
 
         if (docSnap.exists()) {
-          const uData = { id: docSnap.id, ...docSnap.data() };
+          const uData: any = { id: docSnap.id, ...docSnap.data() };
           setUserData(uData);
           setUserKoleksi(koleksiFound);
 
@@ -223,11 +223,15 @@ export default function KTAPage() {
   };
 
   const updatePrintStats = async () => {
-    const currentDate = new Date().toISOString();
-    await updateDoc(doc(db, userKoleksi || "pendaftar", id), {
-      printCount: increment(1),
-      lastPrintDate: currentDate,
-    });
+    try {
+      const currentDate = new Date().toISOString();
+      await updateDoc(doc(db, userKoleksi || "pendaftar", id), {
+        printCount: increment(1),
+        lastPrintDate: currentDate,
+      });
+    } catch (error) {
+      console.warn("Gagal update statistik KTA, melanjutkan unduhan...", error);
+    }
   };
 
   const handleDownloadPNG = async () => {
@@ -241,9 +245,7 @@ export default function KTAPage() {
 
       const dataUrl = await toPng(exportContainerRef.current, {
         cacheBust: true,
-        pixelRatio: 3,
         backgroundColor: "#ffffff",
-        useCORS: true,
       });
 
       const link = document.createElement("a");
@@ -252,8 +254,9 @@ export default function KTAPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } catch (error) {
-      toast.error("Terjadi kesalahan saat mengunduh gambar.");
+    } catch (error: any) {
+      console.error("Unduh PNG Error:", error);
+      toast.error(`Gagal mengunduh gambar: ${error?.message || "Kesalahan tak dikenal"}`);
     } finally {
       setIsProcessingPNG(false);
     }
@@ -272,7 +275,6 @@ export default function KTAPage() {
         cacheBust: true,
         pixelRatio: 3,
         backgroundColor: "#ffffff",
-        useCORS: true,
       });
 
       const pdf = new jsPDF({
@@ -302,8 +304,9 @@ export default function KTAPage() {
       pdf.save(
         `E-KTA_${userData?.nama ? userData.nama.replace(/\s+/g, "_") : "Anggota"}.pdf`,
       );
-    } catch (error) {
-      toast.error("Terjadi kesalahan saat mengunduh PDF.");
+    } catch (error: any) {
+      console.error("Unduh PDF Error:", error);
+      toast.error(`Gagal mengunduh PDF: ${error?.message || "Kesalahan tak dikenal"}`);
     } finally {
       setIsProcessingPDF(false);
     }

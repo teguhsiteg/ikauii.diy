@@ -88,7 +88,7 @@ export default function AdminOfflineRunPage() {
 
       // Logika Pemantau Bukti Baru (Pending)
       const currentPendingCount = data.filter(
-        (p) => p.statusPembayaran === "Pending",
+        (p: any) => p.statusPembayaran === "Pending",
       ).length;
 
       // Jika jumlah pending bertambah (ada upload baru) dan ini bukan render pertama

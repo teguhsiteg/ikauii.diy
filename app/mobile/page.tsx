@@ -38,7 +38,7 @@ export default function LandingPage() {
   const handleAcceptCookies = () => setShowCookie(false);
 
   // Logic Kirim ke WhatsApp
-  const handleSendWA = (e) => {
+  const handleSendWA = (e: any) => {
     e.preventDefault();
     if (!formData.name || !formData.message) return;
 
@@ -725,7 +725,7 @@ export default function LandingPage() {
                 </label>
                 <textarea
                   required
-                  rows="3"
+                  rows={3}
                   placeholder="Tulis pesan Anda di sini..."
                   className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#25D366]/40 focus:border-[#25D366] transition-all bg-white resize-none shadow-sm"
                   value={formData.message}

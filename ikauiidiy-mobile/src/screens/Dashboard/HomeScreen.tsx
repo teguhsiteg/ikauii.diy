@@ -16,6 +16,8 @@ import { IKA_COLORS } from "../../constants/colors";
 import { StatusBar } from "expo-status-bar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { Agenda, Berita } from "../../types";
+
 // Firebase Imports
 import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { db, auth } from "../../config/firebase";
@@ -25,8 +27,8 @@ export default function HomeScreen({ navigation }: any) {
   const [userName, setUserName] = useState("Alumni");
   const [refreshing, setRefreshing] = useState(false);
 
-  const [agendas, setAgendas] = useState<any[]>([]);
-  const [beritas, setBeritas] = useState<any[]>([]);
+  const [agendas, setAgendas] = useState<Agenda[]>([]);
+  const [beritas, setBeritas] = useState<Berita[]>([]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -51,7 +53,7 @@ export default function HomeScreen({ navigation }: any) {
       const agendaData = agendaSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
-      }));
+      })) as Agenda[];
 
       const beritaQuery = query(
         collection(db, "berita"),
@@ -62,7 +64,7 @@ export default function HomeScreen({ navigation }: any) {
       const beritaData = beritaSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
-      }));
+      })) as Berita[];
 
       setAgendas(agendaData.length > 0 ? agendaData : fallbackAgendas);
       setBeritas(beritaData.length > 0 ? beritaData : fallbackBeritas);
@@ -248,13 +250,13 @@ export default function HomeScreen({ navigation }: any) {
               icon="calendar"
               title="Agenda"
               color="purple"
-              onPress={() => comingSoon("Agenda")}
+              onPress={() => navigation.navigate("Agenda")}
             />
             <MenuIcon
               icon="briefcase"
               title="Karir"
               color="indigo"
-              onPress={() => comingSoon("Karir")}
+              onPress={() => navigation.navigate("Karir")}
             />
             <MenuIcon
               icon="heart"

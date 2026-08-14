@@ -49,17 +49,18 @@ const decodePolyline = (str: string, precision = 5) => {
 };
 
 type Waypoint = {
-  lat: number;
-  lng: number;
+  lat: number | string;
+  lng: number | string;
   type?: string;
   name?: string;
+  label?: string;
 };
 
 // Fitur Auto-Zoom agar rute pas di tengah layar
 function MapFitter({ bounds }: { bounds: L.LatLngBoundsExpression | null }) {
   const map = useMap();
   useEffect(() => {
-    if (bounds && bounds.length > 0) {
+    if (bounds && (bounds as any).length > 0) {
       map.fitBounds(bounds, { padding: [40, 40] });
     }
   }, [bounds, map]);
@@ -77,11 +78,15 @@ const WaypointIcons: Record<string, string> = {
 };
 
 export default function EventMap({
+  coords,
+  theme,
   polyline,
   waypoints = [],
 }: {
-  polyline: string;
+  polyline?: string;
   waypoints?: Waypoint[];
+  coords?: [number, number][];
+  theme?: "light" | "dark";
 }) {
   const [isMounted, setIsMounted] = useState(false);
   const [mapKey, setMapKey] = useState("");
@@ -99,9 +104,9 @@ export default function EventMap({
         Memuat Peta...
       </div>
     );
-  if (!polyline) return null;
+  if (!polyline && !coords) return null;
 
-  const coordinates = decodePolyline(polyline);
+  const coordinates = coords || (polyline ? decodePolyline(polyline) : []);
 
   if (coordinates.length === 0) return null;
 
@@ -169,11 +174,11 @@ export default function EventMap({
         return (
           <Marker
             key={idx}
-            position={[parseFloat(wp.lat), parseFloat(wp.lng)]}
-            icon={createCustomIcon(wp.type)}
+            position={[parseFloat(String(wp.lat)), parseFloat(String(wp.lng))]}
+            icon={createCustomIcon(wp.type as string)}
           >
             <Popup className="font-sans font-bold text-slate-800 text-center">
-              <div className="text-xl mb-1">{WaypointIcons[wp.type]}</div>
+              <div className="text-xl mb-1">{WaypointIcons[wp.type as string]}</div>
               <div className="uppercase tracking-widest text-[10px]">
                 {wp.label}
               </div>

@@ -98,6 +98,7 @@ export default function QuizScreen({ navigation }: any) {
             </Text>
             <TouchableOpacity
               activeOpacity={0.9}
+              onPress={() => navigation.navigate("ActiveQuiz", { quizId: activeQuiz.id, quizTitle: activeQuiz.judul, totalStep: activeQuiz.totalStep })}
               style={tw`bg-[${IKA_COLORS.primary.navy}] p-6 rounded-[30px] shadow-xl shadow-blue-900/20`}
             >
               <View style={tw`flex-row justify-between items-start mb-6`}>
@@ -195,6 +196,7 @@ export default function QuizScreen({ navigation }: any) {
                             "@active_quiz_data",
                             JSON.stringify(quizData),
                           );
+                          navigation.navigate("ActiveQuiz", { quizId: item.id, quizTitle: item.judul, totalStep: item.jmlSoal || 10 });
                         },
                       },
                     ],

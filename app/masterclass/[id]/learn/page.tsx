@@ -163,7 +163,7 @@ export default function MasterclassLearnPage() {
 
       const courseSnap = await getDoc(doc(db, "masterclass_courses", courseId));
       if (courseSnap.exists()) {
-        const cData = { id: courseSnap.id, ...courseSnap.data() };
+        const cData: any = { id: courseSnap.id, ...courseSnap.data() };
         setCourse(cData);
         if (cData.mentorId) {
           const mSnap = await getDoc(

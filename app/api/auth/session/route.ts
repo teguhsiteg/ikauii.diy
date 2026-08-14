@@ -49,7 +49,12 @@ export async function POST(request: Request) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: expiresIn,
+      // Gunakan maxAge tetap 7 hari agar cookie tidak langsung kadaluarsa.
+      // Keamanan tetap terjaga karena validasi JWT sesungguhnya dilakukan
+      // oleh firebase-admin di setiap API route yang membutuhkan autentikasi.
+      // SessionGuard di client akan me-refresh cookie ini setiap ~1 jam
+      // via onIdTokenChanged → syncSessionCookie.
+      maxAge: 60 * 60 * 24 * 7,
     });
 
     return response;

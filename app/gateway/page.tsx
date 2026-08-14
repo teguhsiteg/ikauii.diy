@@ -31,7 +31,7 @@ export default function GatewayPage() {
       }
 
       try {
-        let fetchedData = null;
+        let fetchedData: any = null;
         let isStaffMember = false;
         let isAlumniMember = false;
 

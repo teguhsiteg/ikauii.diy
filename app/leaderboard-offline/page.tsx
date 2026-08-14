@@ -49,7 +49,7 @@ export default function LeaderboardRacePage() {
     const fetchSettings = async () => {
       try {
         const snap = await getDoc(doc(db, "settings", "virtual_run"));
-        if (doc.exists && snap.exists()) {
+        if (snap.exists()) {
           const data = snap.data();
           setIsPublished(data.showLeaderboard === true);
           let availDistances: string[] = [];

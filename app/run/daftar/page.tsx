@@ -242,13 +242,19 @@ function FormPendaftaranOffline() {
   useEffect(() => {
     const fetchCount = async () => {
       if (formData.paketId) {
-        const q = query(
-          collection(db, "offline_participants"),
-          where("paketId", "==", formData.paketId),
-          where("statusPembayaran", "==", "Lunas")
-        );
-        const snapshot = await getCountFromServer(q);
-        setPaketTerisi(snapshot.data().count);
+        try {
+          const res = await fetch("/api/run-offline/validator", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "check_quota", paketId: formData.paketId })
+          });
+          const data = await res.json();
+          if (data.terisi !== undefined) {
+            setPaketTerisi(data.terisi);
+          }
+        } catch (error) {
+          console.error("Gagal cek kuota", error);
+        }
       }
     };
     fetchCount();
@@ -310,59 +316,34 @@ function FormPendaftaranOffline() {
     }
     setIsCheckingNik(true);
     try {
-      const q = query(
-        collection(db, "offline_participants"),
-        where("nik", "==", formData.nik),
-      );
-      const snap = await getDocs(q);
+      const res = await fetch("/api/run-offline/validator", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "check_nik", nik: formData.nik })
+      });
+      const result = await res.json();
 
-      if (!snap.empty) {
-        const allPastData = snap.docs.map((doc) => doc.data());
-        allPastData.sort((a, b) => {
-          const timeA = a.waktuDaftar ? new Date(a.waktuDaftar).getTime() : 0;
-          const timeB = b.waktuDaftar ? new Date(b.waktuDaftar).getTime() : 0;
-          return timeB - timeA;
-        });
-
-        const pastData = allPastData[0];
-
-        setFormData((prev) => ({
-          ...prev,
-          namaLengkap: pastData.namaLengkap || prev.namaLengkap,
-          namaBib: pastData.namaBib || prev.namaBib,
-          tanggalLahir: pastData.tanggalLahir || prev.tanggalLahir,
-          jenisKelamin: pastData.jenisKelamin || prev.jenisKelamin,
-          provinsi: pastData.provinsi || prev.provinsi,
-          kotaKabupaten: pastData.kotaKabupaten || prev.kotaKabupaten,
-          alamatLengkap: pastData.alamatLengkap || prev.alamatLengkap,
-          email: pastData.email || prev.email,
-          noWA: pastData.noWA || prev.noWA,
-          golonganDarah: pastData.golonganDarah || prev.golonganDarah,
-          riwayatPenyakit: pastData.riwayatPenyakit || prev.riwayatPenyakit,
-        }));
-
+      if (result.exists) {
         setModal({
           isOpen: true,
           type: "success",
           title: "Data Ditemukan",
-          message: `Selamat datang kembali, ${pastData.namaLengkap || "Peserta"}! Riwayat Pendaftaran Anda berhasil dimuat ke dalam formulir.`,
+          message: result.message + " Namun demi keamanan, sistem tidak lagi mengisi data pribadi secara otomatis. Silakan lengkapi formulir pendaftaran secara manual.",
         });
       } else {
         setModal({
           isOpen: true,
-          type: "warning",
-          title: "Belum Terdaftar",
-          message:
-            "NIK ini belum pernah mengikuti event sebelumnya. Silakan isi form secara manual.",
+          type: "info",
+          title: "NIK Tersedia",
+          message: "NIK belum terdaftar di sistem. Anda dapat melanjutkan pendaftaran.",
         });
       }
     } catch (error) {
-      console.error(error);
       setModal({
         isOpen: true,
         type: "error",
-        title: "Gagal Mengambil Data",
-        message: "Gagal mengecek NIK. Pastikan koneksi internet Anda stabil.",
+        title: "Gagal Cek NIK",
+        message: "Terjadi kesalahan saat menghubungi server.",
       });
     } finally {
       setIsCheckingNik(false);
@@ -503,12 +484,18 @@ function FormPendaftaranOffline() {
       // Jika batasKuota adalah 0, berarti kuota Unlimited (bebas masuk).
       // Tapi jika batasKuota > 0, kita WAJIB cek sisa real-time ke server detik ini juga!
       if (batasKuota > 0) {
-        const qCount = query(
-          collection(db, "offline_participants"),
-          where("paketId", "==", formData.paketId),
-        );
-        const snapshot = await getCountFromServer(qCount);
-        const currentTerisi = snapshot.data().count;
+        let currentTerisi = 0;
+        try {
+          const res = await fetch("/api/run-offline/validator", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "check_quota", paketId: formData.paketId })
+          });
+          const data = await res.json();
+          currentTerisi = data.terisi || 0;
+        } catch (e) {
+          console.error("Gagal cek kuota saat submit", e);
+        }
 
         if (currentTerisi >= batasKuota) {
           setIsSubmitting(false);
@@ -562,13 +549,19 @@ function FormPendaftaranOffline() {
       let hargaAsli = Number(selectedPackage?.harga || 0);
 
       if (selectedPackage?.isEarlyBird) {
-        const qCountEB = query(
-          collection(db, "offline_participants"),
-          where("paketId", "==", formData.paketId),
-          where("statusPembayaran", "==", "Lunas")
-        );
-        const snapshotEB = await getCountFromServer(qCountEB);
-        const terisiEB = snapshotEB.data().count;
+        let terisiEB = 0;
+        try {
+          const res = await fetch("/api/run-offline/validator", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "check_quota", paketId: formData.paketId })
+          });
+          const data = await res.json();
+          terisiEB = data.terisiEB || 0;
+        } catch (e) {
+          console.error("Gagal cek kuota EB saat submit", e);
+        }
+
         
         const targetEB = Number(selectedPackage.earlyBirdTarget);
         const isUnderQuotaEB = targetEB > 0 ? terisiEB < targetEB : true;

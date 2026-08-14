@@ -20,9 +20,15 @@ import { auth, db } from "../../config/firebase";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithCredential
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as WebBrowser from "expo-web-browser";
+import * as Google from "expo-auth-session/providers/google";
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function AuthScreen({ navigation }: any) {
   const [isLogin, setIsLogin] = useState(true);
@@ -33,6 +39,51 @@ export default function AuthScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: "46792735306-flav1h1ca6pi4b4upm47uc4b9vfbioh3.apps.googleusercontent.com",
+    androidClientId: "46792735306-c5uvrlhg4u8ol0iij3artp0nvetd5b10.apps.googleusercontent.com",
+  });
+
+  React.useEffect(() => {
+    if (response?.type === "success") {
+      const { id_token } = response.params;
+      const credential = GoogleAuthProvider.credential(id_token);
+      handleGoogleLogin(credential);
+    }
+  }, [response]);
+
+  const handleGoogleLogin = async (credential: any) => {
+    setIsLoading(true);
+    try {
+      const userCredential = await signInWithCredential(auth, credential);
+      const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        await AsyncStorage.setItem("@user_role", userData.role || "public");
+        await AsyncStorage.setItem("@user_name", userData.nama || userCredential.user.displayName || "Alumni");
+        Alert.alert("Akses Diberikan", `Selamat datang, ${userData.nama || userCredential.user.displayName}!`);
+        navigation.replace("MainApp");
+      } else {
+        // Register new user via Google
+        await setDoc(doc(db, "users", userCredential.user.uid), {
+          nama: userCredential.user.displayName,
+          email: userCredential.user.email,
+          role: "public",
+          createdAt: new Date().toISOString(),
+        });
+        await AsyncStorage.setItem("@user_role", "public");
+        await AsyncStorage.setItem("@user_name", userCredential.user.displayName || "Alumni");
+        Alert.alert("Registrasi Berhasil", "Identitas digital Google Anda telah terdaftar.");
+        navigation.replace("MainApp");
+      }
+    } catch (error) {
+      Alert.alert("Otentikasi Gagal", "Gagal login dengan Google.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleAuth = async () => {
     if (!email || !password || (!isLogin && !name)) {
@@ -273,7 +324,22 @@ export default function AuthScreen({ navigation }: any) {
               )}
             </TouchableOpacity>
 
-            <View style={tw`flex-row justify-center mt-6`}>
+            <View style={tw`flex-row items-center my-6`}>
+              <View style={tw`flex-1 h-px bg-slate-200`} />
+              <Text style={tw`mx-4 text-xs font-bold text-slate-400 uppercase`}>ATAU</Text>
+              <View style={tw`flex-1 h-px bg-slate-200`} />
+            </View>
+
+            <TouchableOpacity
+              onPress={() => promptAsync()}
+              disabled={!request || isLoading}
+              style={tw`w-full bg-white border border-slate-200 py-3.5 rounded-2xl flex-row items-center justify-center shadow-sm mb-4`}
+            >
+              <Ionicons name="logo-google" size={20} color="#EA4335" style={tw`mr-3`} />
+              <Text style={tw`text-slate-700 font-bold text-sm tracking-wide`}>Lanjutkan dengan Google</Text>
+            </TouchableOpacity>
+
+            <View style={tw`flex-row justify-center mt-2`}>
               <Text style={tw`text-slate-400 text-sm font-medium`}>
                 {isLogin
                   ? "Belum terdaftar di sistem? "
