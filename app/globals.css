@@ -1,5 +1,57 @@
 @import "tailwindcss";
 
+@layer base {
+  body {
+    transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
+  }
+
+  html.theme-merdeka {
+    --color-blue-50: var(--color-red-50);
+    --color-blue-100: var(--color-red-100);
+    --color-blue-200: var(--color-red-200);
+    --color-blue-300: var(--color-red-300);
+    --color-blue-400: var(--color-red-400);
+    --color-blue-500: var(--color-red-500);
+    --color-blue-600: var(--color-red-600);
+    --color-blue-700: var(--color-red-700);
+    --color-blue-800: var(--color-red-800);
+    --color-blue-900: var(--color-red-900);
+    --color-blue-950: var(--color-red-950);
+    
+    --color-yellow-400: var(--color-slate-100);
+    --color-yellow-500: var(--color-white);
+    --color-yellow-600: var(--color-slate-200);
+  }
+
+  html.theme-ramadhan {
+    --color-blue-50: var(--color-emerald-50);
+    --color-blue-100: var(--color-emerald-100);
+    --color-blue-200: var(--color-emerald-200);
+    --color-blue-300: var(--color-emerald-300);
+    --color-blue-400: var(--color-emerald-400);
+    --color-blue-500: var(--color-emerald-500);
+    --color-blue-600: var(--color-emerald-600);
+    --color-blue-700: var(--color-emerald-700);
+    --color-blue-800: var(--color-emerald-800);
+    --color-blue-900: var(--color-emerald-900);
+    --color-blue-950: var(--color-emerald-950);
+  }
+
+  html.theme-pink {
+    --color-blue-50: var(--color-pink-50);
+    --color-blue-100: var(--color-pink-100);
+    --color-blue-200: var(--color-pink-200);
+    --color-blue-300: var(--color-pink-300);
+    --color-blue-400: var(--color-pink-400);
+    --color-blue-500: var(--color-pink-500);
+    --color-blue-600: var(--color-pink-600);
+    --color-blue-700: var(--color-pink-700);
+    --color-blue-800: var(--color-pink-800);
+    --color-blue-900: var(--color-pink-900);
+    --color-blue-950: var(--color-pink-950);
+  }
+}
+
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;

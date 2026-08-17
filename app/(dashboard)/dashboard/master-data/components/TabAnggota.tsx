@@ -62,6 +62,7 @@ export default function TabAnggota() {
       isInti: false,
       isTampilBeranda: false,
       periodeId: "",
+      domisili: "",
     },
   });
 
@@ -203,6 +204,7 @@ export default function TabAnggota() {
         isInti: p.isInti || false,
         isTampilBeranda: p.isTampilBeranda || false,
         periodeId: activePeriode ? activePeriode.id : "",
+        domisili: p.domisili || "",
       },
     });
   };
@@ -211,32 +213,32 @@ export default function TabAnggota() {
     e.preventDefault();
     setIsProcessing(true);
     try {
-      // 🔥 Auto-generate NIA: Ambil 1 data terbaru berdasarkan NIA (Single-field index dibuat otomatis oleh Firestore)
+      // 🔥 Auto-generate NIA: Ambil dari counter_nia dan domisili
       let nia = "";
       try {
-        const q = query(
-          collection(db, "pengurus"),
-          orderBy("nia", "desc"),
-          limit(1)
-        );
-        const snap = await getDocs(q);
+        const { getDoc, setDoc, doc } = require("firebase/firestore");
+        const counterRef = doc(db, "pengaturan", "counter_nia");
+        const counterSnap = await getDoc(counterRef);
+        let newNumber = 89;
+        if (counterSnap.exists())
+          newNumber = (counterSnap.data().lastNumber || 88) + 1;
+        await setDoc(counterRef, { lastNumber: newNumber }, { merge: true });
 
-        if (!snap.empty) {
-          const lastNia = snap.docs[0].data().nia;
-          if (lastNia && typeof lastNia === "string" && lastNia.startsWith("26.08.34.00.")) {
-            const parts = lastNia.split(".");
-            const lastNum = parseInt(parts[parts.length - 1], 10);
-            if (!isNaN(lastNum)) {
-              nia = `26.08.34.00.${String(lastNum + 1).padStart(4, "0")}`;
-            }
-          }
-        }
+        const dateObj = new Date();
+        const yearStr = dateObj.getFullYear().toString().slice(-2);
+        const monthStr = String(dateObj.getMonth() + 1).padStart(2, "0");
+        let kabStr = "00";
+        const dom = (approveModal.form.domisili || "").toLowerCase();
+        if (dom.includes("sleman")) kabStr = "04";
+        else if (dom.includes("bantul")) kabStr = "02";
+        else if (dom.includes("gunung")) kabStr = "03";
+        else if (dom.includes("kulon")) kabStr = "01";
+        else if (dom.includes("kota") || dom.includes("yogya")) kabStr = "71";
+
+        const urutStr = String(newNumber).padStart(4, "0");
+        nia = `${yearStr}.${monthStr}.34.${kabStr}.${urutStr}`;
       } catch (e) {
         console.warn("[TabAnggota] Gagal cari NIA max, fallback timestamp:", e);
-      }
-
-      if (!nia) {
-        // Fallback: gunakan timestamp
         nia = `26.08.34.00.${Date.now().toString().slice(-4)}`;
       }
 
@@ -249,6 +251,7 @@ export default function TabAnggota() {
         status_pengurus: "Aktif",
         role: "pengurus",
         nia,
+        domisili: approveModal.form.domisili,
         updatedAt: new Date().toISOString(),
       };
 
@@ -273,7 +276,7 @@ export default function TabAnggota() {
       setApproveModal({ 
         isOpen: false, 
         dataId: "", 
-        form: { nama: "", wa: "", email: "", jabatan: "Anggota", bidang: "", noUrut: "", isInti: false, isTampilBeranda: false, periodeId: "" } 
+        form: { nama: "", wa: "", email: "", jabatan: "Anggota", bidang: "", noUrut: "", isInti: false, isTampilBeranda: false, periodeId: "", domisili: "" } 
       });
       await fetchData();
     } catch (error: any) {
@@ -390,7 +393,7 @@ export default function TabAnggota() {
                   setApproveModal({
                     isOpen: false,
                     dataId: "",
-                    form: { nama: "", wa: "", email: "", jabatan: "Anggota", bidang: "", noUrut: "", isInti: false, isTampilBeranda: false, periodeId: "" },
+                    form: { nama: "", wa: "", email: "", jabatan: "Anggota", bidang: "", noUrut: "", isInti: false, isTampilBeranda: false, periodeId: "", domisili: "" },
                   })
                 }
                 className="text-[#5F6368] hover:bg-[#E8EAED] p-1.5 rounded-full"
@@ -510,6 +513,31 @@ export default function TabAnggota() {
                   ))}
                 </select>
               </div>
+              <div className="grid grid-cols-1 gap-4 mt-4">
+                <div>
+                  <label className="block text-xs font-medium mb-1">
+                    Pilih Domisili
+                  </label>
+                  <select
+                    value={approveModal.form.domisili}
+                    onChange={(e) =>
+                      setApproveModal((p) => ({
+                        ...p,
+                        form: { ...p.form, domisili: e.target.value },
+                      }))
+                    }
+                    className="w-full border px-3 py-2 rounded-md text-sm outline-none focus:border-[#1A73E8]"
+                  >
+                    <option value="">-- Kosong --</option>
+                    <option value="Kabupaten Sleman">Kabupaten Sleman</option>
+                    <option value="Kabupaten Bantul">Kabupaten Bantul</option>
+                    <option value="Kabupaten Gunungkidul">Kabupaten Gunungkidul</option>
+                    <option value="Kabupaten Kulon Progo">Kabupaten Kulon Progo</option>
+                    <option value="Kota Yogyakarta">Kota Yogyakarta</option>
+                    <option value="Luar DIY">Luar DIY</option>
+                  </select>
+                </div>
+              </div>
               <div className="flex gap-5 pt-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -547,7 +575,7 @@ export default function TabAnggota() {
                     setApproveModal({
                       isOpen: false,
                       dataId: "",
-                      form: { nama: "", wa: "", email: "", jabatan: "Anggota", bidang: "", noUrut: "", isInti: false, isTampilBeranda: false, periodeId: "" },
+                      form: { nama: "", wa: "", email: "", jabatan: "Anggota", bidang: "", noUrut: "", isInti: false, isTampilBeranda: false, periodeId: "", domisili: "" },
                     })
                   }
                   className="px-5 py-2 text-sm font-medium border rounded-md hover:bg-slate-50"

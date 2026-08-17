@@ -385,7 +385,7 @@ export default function KTAPage() {
             KARTU TANDA {userData.isPengurus ? "PENGURUS" : "ANGGOTA"}
           </h1>
           <h2 className="text-[#F29900] font-bold text-[9px] tracking-[0.2em] uppercase drop-shadow-sm">
-            DPW IKA UII YOGYAKARTA
+            DPW IKA UII D.I.YOGYAKARTA
           </h2>
         </div>
       </div>
@@ -724,7 +724,7 @@ export default function KTAPage() {
                 <p className="text-[#5F6368] text-[16px] leading-relaxed mb-8 text-center max-w-sm">
                   Kartu Tanda Anggota ini adalah dokumen resmi yang sah dan
                   terdaftar pada database{" "}
-                  <strong>DPW IKA UII Yogyakarta</strong>.
+                  <strong>DPW IKA UII D.I.YOGYAKARTA</strong>.
                 </p>
                 <div className="w-full max-w-[200px] h-[2px] bg-[#EBEBEB] mb-8"></div>
                 <p className="text-xs text-[#9AA0A6] font-mono tracking-widest uppercase bg-[#F8F9FA] px-4 py-2 rounded-md border border-[#EBEBEB]">

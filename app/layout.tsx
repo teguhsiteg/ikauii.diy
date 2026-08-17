@@ -8,6 +8,7 @@ import FeedbackWidget from "@/components/FeedbackWidget";
 import CookieBanner from "@/components/CookieBanner";
 import SessionGuard from "@/components/SessionGuard";
 import ToastContainer from "@/components/ui/Toast";
+import ThemeProvider from "@/components/layout/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -71,6 +72,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <ThemeProvider />
         <NextTopLoader
           color="#FCD116"
           initialPosition={0.08}

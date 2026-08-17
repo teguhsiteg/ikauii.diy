@@ -25,6 +25,7 @@ import {
   IconCheck,
   IconAlert,
   IconEmpty,
+  IconRefresh,
 } from "./Icons";
 
 export default function TabAnggotaSah() {
@@ -240,10 +241,18 @@ export default function TabAnggotaSah() {
           p.domisili?.toLowerCase().includes(q),
       );
     }
-    if (sortMode === "nama") {
+    if (sortMode === "Nama-Asc") {
       result.sort((a, b) => (a.nama || "").localeCompare(b.nama || ""));
-    } else if (sortMode === "nia") {
+    } else if (sortMode === "Nama-Desc") {
+      result.sort((a, b) => (b.nama || "").localeCompare(a.nama || ""));
+    } else if (sortMode === "NIA-Asc") {
       result.sort((a, b) => (a.nia || "").localeCompare(b.nia || ""));
+    } else if (sortMode === "NIA-Desc") {
+      result.sort((a, b) => (b.nia || "").localeCompare(a.nia || ""));
+    } else if (sortMode === "Fakultas-Asc") {
+      result.sort((a, b) => (a.fakultas || "").localeCompare(b.fakultas || ""));
+    } else if (sortMode === "Fakultas-Desc") {
+      result.sort((a, b) => (b.fakultas || "").localeCompare(a.fakultas || ""));
     }
     return result;
   }, [search, filterPeriode, sortMode, pengurusList]);
@@ -497,9 +506,39 @@ export default function TabAnggotaSah() {
               <table className="w-full text-left text-sm">
                 <thead className="bg-[#F8F9FA] border-b border-[#DADCE0]">
                   <tr>
-                    <th className="py-4 px-5 text-left text-xs font-bold text-slate-500 uppercase">Nama</th>
-                    <th className="py-4 px-5 text-left text-xs font-bold text-slate-500 uppercase">Fakultas / Angkatan</th>
-                    <th className="py-4 px-5 text-left text-xs font-bold text-slate-500 uppercase">NIA</th>
+                    <th 
+                      className="py-4 px-5 text-left text-xs font-bold text-slate-500 uppercase cursor-pointer hover:bg-slate-200 transition-colors group"
+                      onClick={() => setSortMode(sortMode === "Nama-Asc" ? "Nama-Desc" : "Nama-Asc")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Nama
+                        <span className="text-slate-400 group-hover:text-slate-600">
+                          {sortMode === "Nama-Asc" ? "↑" : sortMode === "Nama-Desc" ? "↓" : "↕"}
+                        </span>
+                      </div>
+                    </th>
+                    <th 
+                      className="py-4 px-5 text-left text-xs font-bold text-slate-500 uppercase cursor-pointer hover:bg-slate-200 transition-colors group"
+                      onClick={() => setSortMode(sortMode === "Fakultas-Asc" ? "Fakultas-Desc" : "Fakultas-Asc")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Fakultas / Angkatan
+                        <span className="text-slate-400 group-hover:text-slate-600">
+                          {sortMode === "Fakultas-Asc" ? "↑" : sortMode === "Fakultas-Desc" ? "↓" : "↕"}
+                        </span>
+                      </div>
+                    </th>
+                    <th 
+                      className="py-4 px-5 text-left text-xs font-bold text-slate-500 uppercase cursor-pointer hover:bg-slate-200 transition-colors group"
+                      onClick={() => setSortMode(sortMode === "NIA-Asc" ? "NIA-Desc" : "NIA-Asc")}
+                    >
+                      <div className="flex items-center gap-1">
+                        NIA
+                        <span className="text-slate-400 group-hover:text-slate-600">
+                          {sortMode === "NIA-Asc" ? "↑" : sortMode === "NIA-Desc" ? "↓" : "↕"}
+                        </span>
+                      </div>
+                    </th>
                     <th className="py-4 px-5 text-right text-xs font-bold text-slate-500 uppercase">Aksi</th>
                   </tr>
                 </thead>
@@ -511,6 +550,13 @@ export default function TabAnggotaSah() {
                       <td className="py-4 px-5 font-mono text-xs">{user.nia || "-"}</td>
                       <td className="py-4 px-5 text-right">
                         <div className="flex justify-end gap-2">
+                          <button 
+                            onClick={() => setBypassModal({ isOpen: true, user: user, domisili: user.domisili || "" })} 
+                            className="border border-blue-200 bg-blue-50 text-blue-700 p-1.5 rounded-md hover:bg-blue-100 shadow-sm transition-colors"
+                            title={user.nia ? "Reset & Generate Ulang NIA" : "Generate NIA"}
+                          >
+                            <IconRefresh />
+                          </button>
                           <button onClick={() => jadikanCalonPengurus(user.id, user.nama)} className="border border-emerald-200 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-md text-xs font-bold hover:bg-emerald-100 shadow-sm transition-colors">Jadikan Pengurus</button>
                           <button onClick={() => cabutPengurus(user.id, user.nama)} className="border border-red-200 text-red-600 px-3 py-1.5 rounded-md text-xs font-bold hover:bg-red-50 shadow-sm transition-colors">Cabut</button>
                         </div>

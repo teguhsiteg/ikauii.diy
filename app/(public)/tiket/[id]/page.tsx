@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import NavbarPublic from "@/components/layout/NavbarPublic";
@@ -11,12 +11,16 @@ export default function TiketDigitalPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params);
-
+  const [id, setId] = useState<string | null>(null);
   const [peserta, setPeserta] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    params.then((p) => setId(decodeURIComponent(p.id)));
+  }, [params]);
+
+  useEffect(() => {
+    if (!id) return;
     const fetchTiket = async () => {
       try {
         const docRef = doc(db, "agenda_peserta", id);

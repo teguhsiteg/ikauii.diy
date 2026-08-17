@@ -73,7 +73,9 @@ export default function PrintSuratPage() {
           let jabatanAsliPengurus = "Pengurus DPW IKA UII DIY";
 
           // 🔥 KEMBALI KE FORMAT ST KEMARIN (Nomor - Perihal) 🔥
-          const namaFile = `${suratData.nomor.replace(/\//g, "_")}_${suratData.perihal.replace(/[^a-z0-9]/gi, "_")}`;
+          const safeNomor = (suratData.nomor || "Tanpa_Nomor").replace(/\//g, "_");
+          const safePerihal = (suratData.perihal || "Tanpa_Perihal").replace(/[^a-z0-9]/gi, "_");
+          const namaFile = `${safeNomor}_${safePerihal}`;
           document.title = namaFile;
 
           if (suratData.qrValidationUrl) {
@@ -123,7 +125,7 @@ export default function PrintSuratPage() {
     );
   if (!surat) return null;
 
-  const tglSurat = new Date(surat.tanggal).toLocaleDateString("id-ID", {
+  const tglSurat = new Date(surat.tanggal || Date.now()).toLocaleDateString("id-ID", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -292,11 +294,17 @@ export default function PrintSuratPage() {
                       </tr>
                       <tr>
                         <td className="whitespace-nowrap align-top pb-1">
-                          Lokasi
+                          {surat.tipePelaksanaan === "Online" ? "Link Zoom/Meet" : "Lokasi"}
                         </td>
                         <td className="align-top pb-1">:</td>
                         <td className="font-bold align-top pb-1">
-                          {surat.tempatPelaksanaan || "-"}
+                          {surat.tipePelaksanaan === "Online" ? (
+                            <a href={surat.linkZoom} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                              {surat.linkZoom || "Belum ada link"}
+                            </a>
+                          ) : (
+                            surat.tempatPelaksanaan || "-"
+                          )}
                         </td>
                       </tr>
                       <tr>
@@ -648,7 +656,47 @@ export default function PrintSuratPage() {
 
           <div className="text-sm text-justify leading-relaxed whitespace-pre-wrap flex-grow relative z-10">
             {/* 🔥 ISI SURAT + PENUTUP SURAT A4 🔥 */}
-            <div className="mb-6">{surat.isiSurat}</div>
+            <div className="mb-4">{surat.isiSurat}</div>
+            
+            {(surat.tglPelaksanaan || surat.waktuPelaksanaan || surat.tempatPelaksanaan || surat.linkZoom) && (
+              <table className="text-sm mb-6 w-full ml-8">
+                <tbody>
+                  <tr>
+                    <td className="w-40 whitespace-nowrap align-top pb-2">
+                      Hari / Tanggal
+                    </td>
+                    <td className="w-4 align-top pb-2">:</td>
+                    <td className="font-bold align-top pb-2">
+                      {hariTglPelaksanaan}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="whitespace-nowrap align-top pb-2">
+                      Jam
+                    </td>
+                    <td className="align-top pb-2">:</td>
+                    <td className="font-bold align-top pb-2">
+                      {surat.waktuPelaksanaan || "--:--"} WIB
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="whitespace-nowrap align-top pb-2">
+                      {surat.tipePelaksanaan === "Online" ? "Link Zoom/Meet" : "Tempat"}
+                    </td>
+                    <td className="align-top pb-2">:</td>
+                    <td className="font-bold align-top pb-2">
+                      {surat.tipePelaksanaan === "Online" ? (
+                        <a href={surat.linkZoom} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                          {surat.linkZoom || "Belum ada link"}
+                        </a>
+                      ) : (
+                        surat.tempatPelaksanaan || "-"
+                      )}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            )}
 
             {surat.penutupSurat && (
               <div className="mb-10">{surat.penutupSurat}</div>

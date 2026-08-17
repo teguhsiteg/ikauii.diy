@@ -40,7 +40,8 @@ export default function ManajemenNomorSuratPage() {
     kategori: "Internal",
     index: "UND",
     perihal: "",
-    isiSurat: "",
+    isiSurat:
+      "Assalamu’alaikum warahmatullahi wabarakaatuh.\n\nDengan hormat, sehubungan dengan akan dilaksanakannya [nama agenda], kami mengundang Bapak/Ibu untuk berkenan hadir pada rapat koordinasi yang akan dilaksanakan pada:",
     penutupSurat:
       "Demikian surat undangan ini kami sampaikan. Atas perhatian dan kehadirannya, kami ucapkan terima kasih.",
     pembuat: "",
@@ -51,7 +52,9 @@ export default function ManajemenNomorSuratPage() {
     penerima: [] as string[],
     tglPelaksanaan: "",
     waktuPelaksanaan: "",
+    tipePelaksanaan: "Offline" as "Offline" | "Online",
     tempatPelaksanaan: "",
+    linkZoom: "",
   });
 
   // 🔥 TAMBAHAN STATE UNTUK MODE AMBIL NOMOR SAJA 🔥
@@ -61,6 +64,8 @@ export default function ManajemenNomorSuratPage() {
     perihal: "",
     tujuan: "",
     tanggalSurat: new Date().toISOString().split("T")[0],
+    pembuat: "",
+    jabatanPembuat: "",
   });
 
   const handleAmbilNomor = async (e: React.FormEvent) => {
@@ -111,6 +116,8 @@ export default function ManajemenNomorSuratPage() {
         tanggal: formCepat.tanggalSurat,
         tipeForm: "Buku Agenda Manual",
         status: "Sudah terpakai", // Langsung terpakai agar tidak diambil orang lain
+        pembuat: formCepat.pembuat,
+        jabatanPembuat: formCepat.jabatanPembuat,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -118,7 +125,7 @@ export default function ManajemenNomorSuratPage() {
       await addDoc(collection(db, "nomor_surat"), payload);
       toast.success(`Berhasil! Nomor Surat Anda: ${generatedNomor}. Silakan salin nomor tersebut ke dokumen Word Anda.`);
 
-      setFormCepat({ ...formCepat, perihal: "", tujuan: "" });
+      setFormCepat({ ...formCepat, perihal: "", tujuan: "", pembuat: "", jabatanPembuat: "" });
       setIsModalOpen(false);
       fetchData();
     } catch (error) {
@@ -243,9 +250,12 @@ export default function ManajemenNomorSuratPage() {
       penerima: docData.penerima || [],
       tglPelaksanaan: docData.tglPelaksanaan || "",
       waktuPelaksanaan: docData.waktuPelaksanaan || "",
+      tipePelaksanaan: docData.tipePelaksanaan || "Offline",
       tempatPelaksanaan: docData.tempatPelaksanaan || "",
+      linkZoom: docData.linkZoom || "",
     });
     setEditId(docData.id);
+    setModeForm("lengkap");
     setIsModalOpen(true);
   };
 
@@ -263,7 +273,9 @@ export default function ManajemenNomorSuratPage() {
         penutupSurat: genForm.penutupSurat,
         tglPelaksanaan: genForm.tglPelaksanaan,
         waktuPelaksanaan: genForm.waktuPelaksanaan,
+        tipePelaksanaan: genForm.tipePelaksanaan,
         tempatPelaksanaan: genForm.tempatPelaksanaan,
+        linkZoom: genForm.linkZoom,
         jenis: genForm.jenis,
         kategori: genForm.kategori,
         tanggal: genForm.tglMasehi,
@@ -292,9 +304,8 @@ export default function ManajemenNomorSuratPage() {
         kategori: "Internal",
         index: "UND",
         perihal: "",
-        isiSurat: "",
-        penutupSurat:
-          "Demikian surat undangan ini kami sampaikan. Atas perhatian dan kehadirannya, kami ucapkan terima kasih.",
+        isiSurat: "Assalamu’alaikum warahmatullahi wabarakaatuh.\n\nDengan hormat, sehubungan dengan akan dilaksanakannya [nama agenda], kami mengundang Bapak/Ibu untuk berkenan hadir pada rapat koordinasi yang akan dilaksanakan pada:",
+        penutupSurat: "Demikian surat undangan ini kami sampaikan. Atas perhatian dan kehadirannya, kami ucapkan terima kasih.",
         pembuat: "",
         jabatanPembuat: "",
         tglMasehi: new Date().toISOString().split("T")[0],
@@ -303,7 +314,9 @@ export default function ManajemenNomorSuratPage() {
         penerima: [],
         tglPelaksanaan: "",
         waktuPelaksanaan: "",
+        tipePelaksanaan: "Offline",
         tempatPelaksanaan: "",
+        linkZoom: "",
       });
       setSearchPenerima("");
       fetchData();
@@ -433,109 +446,123 @@ export default function ManajemenNomorSuratPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-12 font-sans text-[#202124]">
-      <div className="max-w-7xl mx-auto animate-in fade-in duration-500 pt-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen pb-12 font-sans text-slate-800">
+      <div className="max-w-7xl mx-auto animate-in fade-in duration-500">
         {/* HEADER */}
-        <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#DADCE0] pb-5">
+        <div className="mb-6 mt-4 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-normal text-[#202124] tracking-tight">
-              Registri & Templat Surat
-            </h1>
-            <p className="text-[#5F6368] text-sm mt-1">
+            <h2 className="text-2xl font-medium text-slate-900 mb-1 tracking-tight">
+              E-Office & Registri Surat
+            </h2>
+            <p className="text-slate-500 text-sm">
               Manajemen penomoran dan draf dokumen resmi IKA UII DIY.
             </p>
           </div>
-          <button
-            onClick={() => {
-              setEditId(null);
-              setGenForm({
-                nomorUrut: "",
-                jenis: "Surat Undangan",
-                kategori: "Internal",
-                index: "UND",
-                perihal: "",
-                isiSurat: "",
-                penutupSurat:
-                  "Demikian surat undangan ini kami sampaikan. Atas perhatian dan kehadirannya, kami ucapkan terima kasih.",
-                pembuat: "",
-                jabatanPembuat: "",
-                tglMasehi: new Date().toISOString().split("T")[0],
-                preview: "",
-                templateSurat: "Undangan Lipat 3",
-                penerima: [],
-                tglPelaksanaan: "",
-                waktuPelaksanaan: "",
-                tempatPelaksanaan: "",
-              });
-              fetchData();
-              setIsModalOpen(true);
-            }}
-            className="w-full sm:w-auto bg-[#1A73E8] hover:bg-[#1557B0] text-white px-5 py-2.5 rounded-md font-medium text-sm shadow-sm transition-colors flex items-center justify-center gap-2"
-          >
-            Buat Dokumen Baru
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => {
+                setEditId(null);
+                setModeForm("cepat");
+                fetchData();
+                setIsModalOpen(true);
+              }}
+              className="w-full sm:w-auto bg-white border border-blue-200 hover:border-blue-300 hover:bg-blue-50 text-blue-700 px-5 py-2.5 rounded-xl font-semibold text-sm shadow-sm transition-all flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" /></svg>
+              Generate Nomor Surat
+            </button>
+            <button
+              onClick={() => {
+                setEditId(null);
+                setModeForm("lengkap");
+                setGenForm({
+                  nomorUrut: "",
+                  jenis: "Surat Undangan",
+                  kategori: "Internal",
+                  index: "UND",
+                  perihal: "",
+                  isiSurat: "Assalamu’alaikum warahmatullahi wabarakaatuh.\n\nDengan hormat, sehubungan dengan akan dilaksanakannya [nama agenda], kami mengundang Bapak/Ibu untuk berkenan hadir pada rapat koordinasi yang akan dilaksanakan pada:",
+                  penutupSurat: "Demikian surat undangan ini kami sampaikan. Atas perhatian dan kehadirannya, kami ucapkan terima kasih.",
+                  pembuat: "",
+                  jabatanPembuat: "",
+                  tglMasehi: new Date().toISOString().split("T")[0],
+                  preview: "",
+                  templateSurat: "Undangan Lipat 3",
+                  penerima: [],
+                  tglPelaksanaan: "",
+                  waktuPelaksanaan: "",
+                  tipePelaksanaan: "Offline",
+                  tempatPelaksanaan: "",
+                  linkZoom: "",
+                });
+                fetchData();
+                setIsModalOpen(true);
+              }}
+              className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md transition-all flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              Buat Surat Undangan
+            </button>
+          </div>
         </div>
 
         {/* STATISTIK */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
           <div
             onClick={() => setFilterStatus("semua")}
-            className={`p-5 rounded-lg cursor-pointer transition-all border ${filterStatus === "semua" ? "border-[#1A73E8] bg-[#E8F0FE]" : "bg-white border-[#DADCE0] hover:bg-[#F8F9FA]"}`}
+            className={`p-6 rounded-2xl cursor-pointer transition-all border shadow-sm ${filterStatus === "semua" ? "border-blue-200 bg-blue-50/80" : "bg-white/80 border-slate-200 hover:bg-slate-50 hover:shadow-md"}`}
           >
-            <div className="text-xs font-medium text-[#5F6368] mb-1">
+            <div className="text-sm font-medium text-slate-500 mb-2 flex items-center gap-2">
+              <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
               Total Dokumen
             </div>
-            <h3
-              className={`text-3xl font-normal ${filterStatus === "semua" ? "text-[#1A73E8]" : "text-[#202124]"}`}
-            >
+            <h3 className={`text-4xl font-bold ${filterStatus === "semua" ? "text-blue-700" : "text-slate-800"}`}>
               {nomorList.length}
             </h3>
           </div>
           <div
             onClick={() => setFilterStatus("belum")}
-            className={`p-5 rounded-lg cursor-pointer transition-all border ${filterStatus === "belum" ? "border-[#F29900] bg-[#FEF7E0]" : "bg-white border-[#DADCE0] hover:bg-[#F8F9FA]"}`}
+            className={`p-6 rounded-2xl cursor-pointer transition-all border shadow-sm ${filterStatus === "belum" ? "border-amber-200 bg-amber-50/80" : "bg-white/80 border-slate-200 hover:bg-slate-50 hover:shadow-md"}`}
           >
-            <div className="text-xs font-medium text-[#5F6368] mb-1">
+            <div className="text-sm font-medium text-slate-500 mb-2 flex items-center gap-2">
+              <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
               Draf / Belum Terpakai
             </div>
-            <h3
-              className={`text-3xl font-normal ${filterStatus === "belum" ? "text-[#E37400]" : "text-[#202124]"}`}
-            >
+            <h3 className={`text-4xl font-bold ${filterStatus === "belum" ? "text-amber-600" : "text-slate-800"}`}>
               {nomorList.filter((n) => n.status === "Belum terpakai").length}
             </h3>
           </div>
           <div
             onClick={() => setFilterStatus("terpakai")}
-            className={`p-5 rounded-lg cursor-pointer transition-all border ${filterStatus === "terpakai" ? "border-[#1E8E3E] bg-[#E6F4EA]" : "bg-white border-[#DADCE0] hover:bg-[#F8F9FA]"}`}
+            className={`p-6 rounded-2xl cursor-pointer transition-all border shadow-sm ${filterStatus === "terpakai" ? "border-emerald-200 bg-emerald-50/80" : "bg-white/80 border-slate-200 hover:bg-slate-50 hover:shadow-md"}`}
           >
-            <div className="text-xs font-medium text-[#5F6368] mb-1">
+            <div className="text-sm font-medium text-slate-500 mb-2 flex items-center gap-2">
+              <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               Dokumen Final
             </div>
-            <h3
-              className={`text-3xl font-normal ${filterStatus === "terpakai" ? "text-[#1E8E3E]" : "text-[#202124]"}`}
-            >
+            <h3 className={`text-4xl font-bold ${filterStatus === "terpakai" ? "text-emerald-600" : "text-slate-800"}`}>
               {nomorList.filter((n) => n.status === "Sudah terpakai").length}
             </h3>
           </div>
         </div>
 
         {/* TABEL DATABASE */}
-        <div className="bg-white rounded-lg shadow-sm border border-[#DADCE0] overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-[#DADCE0] flex flex-col sm:flex-row justify-between items-center gap-4 bg-white">
+        <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+          <div className="p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-3">
-              <h3 className="font-medium text-[#202124] text-sm">
+              <h3 className="font-semibold text-slate-800">
                 Daftar Registri
               </h3>
-              <span className="bg-[#F1F3F4] text-[#5F6368] border border-[#DADCE0] text-[10px] font-medium px-2 py-0.5 rounded">
-                {filterStatus.toUpperCase()}
+              <span className="bg-slate-100 text-slate-600 border border-slate-200 text-xs font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">
+                {filterStatus}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-[#5F6368]">
+            <div className="flex items-center gap-2 text-sm text-slate-500">
               <span>Tampilkan:</span>
               <select
                 value={itemsPerPage}
                 onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                className="border border-[#DADCE0] rounded px-2 py-1 outline-none focus:border-[#1A73E8] bg-white cursor-pointer"
+                className="border border-slate-200 rounded-lg px-3 py-1.5 outline-none focus:border-blue-500 bg-white cursor-pointer"
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
@@ -547,13 +574,13 @@ export default function ManajemenNomorSuratPage() {
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-[#F8F9FA] border-b border-[#DADCE0] text-[#5F6368] text-xs font-medium">
+              <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 text-xs font-semibold uppercase tracking-wider">
                 <tr>
-                  <th className="px-6 py-3 font-medium">Nomor Dokumen</th>
-                  <th className="px-6 py-3 font-medium">Perihal & Template</th>
-                  <th className="px-6 py-3 font-medium">Pembuat / Tanggal</th>
-                  <th className="px-6 py-3 font-medium text-center">Status</th>
-                  <th className="px-6 py-3 font-medium text-right">Aksi</th>
+                  <th className="px-6 py-4">Nomor Dokumen</th>
+                  <th className="px-6 py-4">Perihal & Template</th>
+                  <th className="px-6 py-4">Pembuat / Tanggal</th>
+                  <th className="px-6 py-4 text-center">Status</th>
+                  <th className="px-6 py-4 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E8EAED]">
@@ -947,51 +974,89 @@ export default function ManajemenNomorSuratPage() {
                         className="w-full border border-[#DADCE0] px-3 py-2 rounded text-sm outline-none focus:border-[#1E8E3E] focus:ring-1 focus:ring-[#1E8E3E]"
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-4 bg-[#F8F9FA] p-3 rounded border border-[#DADCE0]">
-                      <div className="col-span-2">
-                        <label className="block text-[10px] font-bold text-[#5F6368] uppercase tracking-widest mb-1">
-                          Waktu & Tempat
+                    <div className="bg-[#F8F9FA] p-4 rounded border border-[#DADCE0] space-y-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-[#5F6368] uppercase tracking-widest mb-2">
+                          Waktu & Tempat Pelaksanaan
                         </label>
-                      </div>
-                      <div>
-                        <input
-                          type="date"
-                          value={genForm.tglPelaksanaan}
-                          onChange={(e) =>
-                            setGenForm({
-                              ...genForm,
-                              tglPelaksanaan: e.target.value,
-                            })
-                          }
-                          className="w-full border border-[#DADCE0] px-2 py-1.5 rounded text-xs outline-none focus:border-[#1E8E3E]"
-                        />
-                      </div>
-                      <div>
-                        <input
-                          type="time"
-                          value={genForm.waktuPelaksanaan}
-                          onChange={(e) =>
-                            setGenForm({
-                              ...genForm,
-                              waktuPelaksanaan: e.target.value,
-                            })
-                          }
-                          className="w-full border border-[#DADCE0] px-2 py-1.5 rounded text-xs outline-none focus:border-[#1E8E3E]"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <input
-                          type="text"
-                          value={genForm.tempatPelaksanaan}
-                          onChange={(e) =>
-                            setGenForm({
-                              ...genForm,
-                              tempatPelaksanaan: e.target.value,
-                            })
-                          }
-                          placeholder="Tempat / Lokasi"
-                          className="w-full border border-[#DADCE0] px-2 py-1.5 rounded text-xs outline-none focus:border-[#1E8E3E]"
-                        />
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                          <div>
+                            <input
+                              type="date"
+                              value={genForm.tglPelaksanaan}
+                              onChange={(e) =>
+                                setGenForm({
+                                  ...genForm,
+                                  tglPelaksanaan: e.target.value,
+                                })
+                              }
+                              className="w-full border border-[#DADCE0] px-2 py-1.5 rounded text-xs outline-none focus:border-[#1E8E3E]"
+                            />
+                          </div>
+                          <div>
+                            <input
+                              type="time"
+                              value={genForm.waktuPelaksanaan}
+                              onChange={(e) =>
+                                setGenForm({
+                                  ...genForm,
+                                  waktuPelaksanaan: e.target.value,
+                                })
+                              }
+                              className="w-full border border-[#DADCE0] px-2 py-1.5 rounded text-xs outline-none focus:border-[#1E8E3E]"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-3 mb-3">
+                          <label className="flex items-center gap-1.5 text-xs text-[#5F6368] cursor-pointer">
+                            <input 
+                              type="radio" 
+                              name="tipePelaksanaan"
+                              checked={genForm.tipePelaksanaan === "Offline"}
+                              onChange={() => setGenForm({ ...genForm, tipePelaksanaan: "Offline" })}
+                              className="accent-[#1E8E3E]"
+                            />
+                            Tatap Muka (Offline)
+                          </label>
+                          <label className="flex items-center gap-1.5 text-xs text-[#5F6368] cursor-pointer">
+                            <input 
+                              type="radio" 
+                              name="tipePelaksanaan"
+                              checked={genForm.tipePelaksanaan === "Online"}
+                              onChange={() => setGenForm({ ...genForm, tipePelaksanaan: "Online" })}
+                              className="accent-[#1E8E3E]"
+                            />
+                            Daring (Online Zoom/Meet)
+                          </label>
+                        </div>
+                        
+                        {genForm.tipePelaksanaan === "Offline" ? (
+                          <input
+                            type="text"
+                            value={genForm.tempatPelaksanaan}
+                            onChange={(e) =>
+                              setGenForm({
+                                ...genForm,
+                                tempatPelaksanaan: e.target.value,
+                              })
+                            }
+                            placeholder="Tempat / Lokasi / Alamat Lengkap"
+                            className="w-full border border-[#DADCE0] px-2 py-1.5 rounded text-xs outline-none focus:border-[#1E8E3E]"
+                          />
+                        ) : (
+                          <input
+                            type="url"
+                            value={genForm.linkZoom}
+                            onChange={(e) =>
+                              setGenForm({
+                                ...genForm,
+                                linkZoom: e.target.value,
+                              })
+                            }
+                            placeholder="Link Zoom / Google Meet (https://...)"
+                            className="w-full border border-[#DADCE0] px-2 py-1.5 rounded text-xs outline-none focus:border-[#1A73E8]"
+                          />
+                        )}
                       </div>
                     </div>
                     <div>
@@ -1251,6 +1316,36 @@ export default function ManajemenNomorSuratPage() {
                         }
                         className="w-full border border-[#DADCE0] rounded p-2.5 text-sm focus:border-[#1E8E3E] outline-none"
                       />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-[#5F6368] mb-1">
+                        Penanda Tangan <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        required
+                        value={formCepat.pembuat}
+                        onChange={(e) => {
+                          const selectedNama = e.target.value;
+                          const pengurus = pengurusList.find(
+                            (p) => p.nama === selectedNama,
+                          );
+                          setFormCepat({
+                            ...formCepat,
+                            pembuat: selectedNama,
+                            jabatanPembuat: pengurus ? pengurus.jabatan : "",
+                          });
+                        }}
+                        className="w-full border border-[#DADCE0] rounded p-2.5 text-sm focus:border-[#1E8E3E] outline-none"
+                      >
+                        <option value="">-- Pilih Penandatangan --</option>
+                        {pengurusList
+                          .filter((p) => p.nama)
+                          .map((p) => (
+                            <option key={p.id} value={p.nama}>
+                              {p.nama}
+                            </option>
+                          ))}
+                      </select>
                     </div>
 
                     <div className="pt-4 flex gap-2 justify-end">

@@ -89,8 +89,11 @@ function ResetPasswordForm() {
         );
       } else if (err.code === "auth/invalid-action-code") {
         setError("Tautan tidak valid atau sudah digunakan.");
+      } else if (err.code === "auth/weak-password") {
+        setError("Kata sandi terlalu lemah. Gunakan kombinasi huruf dan angka.");
       } else {
-        setError("Terjadi kesalahan saat mengatur kata sandi. Coba lagi.");
+        // Tampilkan pesan error asli dari Firebase agar lebih jelas
+        setError(err.message || "Terjadi kesalahan saat mengatur kata sandi. Coba lagi.");
       }
     } finally {
       setIsLoading(false);

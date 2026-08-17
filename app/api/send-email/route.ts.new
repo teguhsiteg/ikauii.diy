@@ -1,0 +1,40 @@
+﻿import { NextResponse } from "next/server";
+import { rateLimit } from "@/lib/rate-limit";
+import { executeSendEmail } from "@/lib/core-email";
+
+const emailRateLimiter = rateLimit({ windowMs: 60 * 1000, maxRequests: 10 });
+
+export async function POST(request: Request) {
+  try {
+    const internalSecret = request.headers.get("x-internal-secret");
+    const isInternal = internalSecret === process.env.INTERNAL_API_SECRET;
+
+    if (!isInternal) {
+      const rl = emailRateLimiter(request);
+      if (!rl.allowed) {
+        return NextResponse.json(
+          { error: "Terlalu banyak permintaan. Coba lagi nanti." },
+          { status: 429 },
+        );
+      }
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 403 },
+      );
+    }
+
+    const payload = await request.json();
+    const result = await executeSendEmail(payload);
+    
+    if (result.success) {
+      return NextResponse.json(result);
+    } else {
+      return NextResponse.json(result, { status: 400 });
+    }
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 },
+    );
+  }
+}

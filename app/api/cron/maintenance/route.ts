@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { adminDb } from "@/lib/firebase-admin";
+import { dbAdmin } from "@/lib/firebase-admin";
 
 export async function GET(request: Request) {
   try {
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     let spamDeleted = 0;
 
     // Bersihkan VR Participants
-    const vrRef = adminDb.collection("vr_participants");
+    const vrRef = dbAdmin.collection("vr_participants");
     const oldVr = await vrRef
       .where("statusPembayaran", "==", "Menunggu Pembayaran")
       .get();
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
     });
 
     // Bersihkan Offline Participants
-    const offlineRef = adminDb.collection("offline_participants");
+    const offlineRef = dbAdmin.collection("offline_participants");
     const oldOffline = await offlineRef
       .where("statusPembayaran", "==", "Menunggu Pembayaran")
       .get();

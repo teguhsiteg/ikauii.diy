@@ -218,6 +218,7 @@ export default function Sidebar({
                 <Link
                   key={index}
                   href={group.path!}
+                  prefetch={false}
                   onClick={() => setIsOpen(false)}
                   title={isCollapsed ? group.title : ""}
                   className={`flex items-center gap-4 px-6 py-3 mx-2 rounded-xl text-sm transition-all duration-200 group relative ${
@@ -295,6 +296,7 @@ export default function Sidebar({
                         <Link
                           key={subIdx}
                           href={sub.path}
+                          prefetch={false}
                           target={sub.isExternal ? "_blank" : "_self"} // Buka di tab baru khusus layar TV
                           onClick={() => {
                             if (!sub.isExternal) setIsOpen(false);

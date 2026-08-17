@@ -1,26 +1,13 @@
-"use server";
+﻿"use server";
 
-import { headers } from "next/headers";
+import { executeSendWa } from "@/lib/core-wa";
 
 export async function sendWaAction(payload: any) {
-  const headersList = await headers();
-  const host = headersList.get("host") || "localhost:3000";
-  const protocol = host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https";
-  const baseUrl = `${protocol}://${host}`;
-  const internalSecret = process.env.INTERNAL_API_SECRET || "";
-
   try {
-    const response = await fetch(`${baseUrl}/api/send-wa`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-internal-secret": internalSecret,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      console.warn("Server Action WA Failed:", await response.text());
+    const result = await executeSendWa(payload);
+    
+    if (!result.success) {
+      console.warn("Server Action WA Failed:", result.error);
       return { success: false };
     }
 

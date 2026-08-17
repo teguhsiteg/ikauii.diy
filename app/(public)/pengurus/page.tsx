@@ -220,7 +220,7 @@ export default function PengurusPage() {
 
         <div className="relative w-16 h-16 md:w-20 md:h-20 mb-3">
           <div
-            className={`w-full h-full rounded-full overflow-hidden border-2 bg-slate-50 flex items-center justify-center relative z-10 transition-colors
+            className={`w-full h-full rounded-[1.5rem] overflow-hidden border-2 bg-slate-50 flex items-center justify-center relative z-10 transition-colors
             ${isVIP ? "border-yellow-400" : "border-slate-100 group-hover:border-blue-200"}`}
           >
             <img
@@ -662,7 +662,7 @@ export default function PengurusPage() {
                     onClick={() => setSelectedDpd(dpd)}
                     className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-lg hover:-translate-y-1 hover:border-blue-300 transition-all duration-300 cursor-pointer group flex items-center gap-4"
                   >
-                    <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-slate-100 bg-slate-50 shrink-0 group-hover:border-blue-300 transition-colors flex items-center justify-center relative">
+                    <div className="w-14 h-14 rounded-xl overflow-hidden border-2 border-slate-100 bg-slate-50 shrink-0 group-hover:border-blue-300 transition-colors flex items-center justify-center relative">
                       {dpd.fotoUrl ? (
                         <img
                           src={dpd.fotoUrl}
@@ -715,7 +715,7 @@ export default function PengurusPage() {
             <div className="bg-blue-950 p-8 pt-10 flex flex-col items-center text-center relative overflow-hidden">
               <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-800/50 rounded-full blur-3xl"></div>
 
-              <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white shadow-xl bg-slate-50 relative z-10 mb-4 flex items-center justify-center">
+              <div className="w-28 h-28 rounded-[2rem] overflow-hidden border-4 border-white shadow-xl bg-slate-50 relative z-10 mb-4 flex items-center justify-center">
                 {selectedDpd.fotoUrl ? (
                   <img
                     src={selectedDpd.fotoUrl}

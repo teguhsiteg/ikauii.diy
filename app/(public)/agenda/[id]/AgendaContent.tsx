@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { toast } from "@/lib/toast";
 import { db } from "@/lib/firebase";
 import {
@@ -15,12 +15,7 @@ import {
 import FooterPublic from "@/components/layout/FooterPublic";
 import { sendEmailAction } from "@/app/actions/email";
 
-export default function DetailAgendaPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
+export default function DetailAgendaPage({ id }: { id: string }) {
 
   const [agenda, setAgenda] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);

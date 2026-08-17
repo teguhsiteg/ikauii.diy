@@ -26,8 +26,9 @@ export default function DashboardLayout({
   const router = useRouter();
 
   const [bidangList, setBidangList] = useState<any[]>([]);
-  const [isBidangOpen, setIsBidangOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isBidangOpen, setIsBidangOpen] = useState(false);
+  const [isMobileAppOpen, setIsMobileAppOpen] = useState(false); // NEW
 
   // --- STATE MENU PROFIL (DROPDOWN KANAN ATAS) ---
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -310,6 +311,7 @@ export default function DashboardLayout({
       name: "Ringkasan",
       path: "/dashboard",
       icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6",
+      group: "Utama",
     },
     // 🔥 MENU BARU: LMS MASTERCLASS (DITAMBAHKAN KEMBALI) 🔥
     {
@@ -319,6 +321,7 @@ export default function DashboardLayout({
       icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253",
       badge: "PRO",
       theme: "indigo", // Tema warna khusus
+      group: "Event & Program",
     },
     {
       id: "bio_engine",
@@ -327,48 +330,63 @@ export default function DashboardLayout({
       icon: "M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1",
       badge: "Shortlink",
       theme: "amber",
+      group: "Utama",
     },
     {
       id: "registri_surat",
       name: "Registri Surat",
       path: "/dashboard/e-office",
       icon: "M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z",
+      group: "Berkas & Tata Usaha",
     },
     {
       id: "master_organisasi",
       name: "Master Organisasi",
       path: "/dashboard/master-data",
       icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10",
+      group: "Pendaftaran & Anggota",
     },
     {
       id: "verifikasi_anggota",
       name: "Verifikasi Anggota",
       path: "/dashboard/verifikasi-anggota",
       icon: "M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z",
+      group: "Pendaftaran & Anggota",
     },
     {
       id: "gudang_dokumen",
       name: "Gudang Dokumen",
       path: "/dashboard/dokumen",
       icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
+      group: "Berkas & Tata Usaha",
     },
     {
       id: "qr_tanda_tangan",
       name: "QR Tanda Tangan",
       path: "/dashboard/validasi",
       icon: "M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z",
+      group: "Berkas & Tata Usaha",
     },
     {
       id: "cetak_kuitansi",
       name: "Cetak Kuitansi",
       path: "/dashboard/kuitansi",
       icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
+      group: "Berkas & Tata Usaha",
+    },
+    {
+      id: "cetak_invoice",
+      name: "Cetak Invoice",
+      path: "/dashboard/invoice",
+      icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
+      group: "Berkas & Tata Usaha",
     },
     {
       id: "data_pendaftar",
       name: "Data Pendaftar",
       path: "/dashboard/peserta",
       icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z",
+      group: "Pendaftaran & Anggota",
     },
     {
       id: "manajemen_pengguna",
@@ -376,30 +394,58 @@ export default function DashboardLayout({
       path: "/dashboard/users",
       icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z",
       requireSuperAdmin: true,
+      group: "Pendaftaran & Anggota",
     },
     {
       id: "kelola_direktori",
       name: "Kelola Direktori",
       path: "/dashboard/direktori",
       icon: "M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z",
+      group: "Publikasi & Konten",
     },
     {
       id: "manajemen_event_run",
       name: "Manajemen Event Run",
       path: "/admin-vr/offline",
       icon: "M13 10V3L4 14h7v7l9-11h-7z",
+      group: "Event & Program",
     },
     {
       id: "broadcast_sistem",
       name: "Broadcast Email",
       path: "/dashboard/broadcast",
       icon: "M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z",
+      group: "Publikasi & Konten",
     },
     {
       id: "manajemen_ulasan",
       name: "Manajemen Ulasan",
       path: "/dashboard/ulasan",
       icon: "M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z",
+      group: "Publikasi & Konten",
+    },
+    {
+      id: "kelola_karir",
+      name: "Karir & Loker",
+      path: "/dashboard/karir",
+      icon: "M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z",
+      badge: "NEW",
+      theme: "emerald",
+      group: "Aplikasi Mobile",
+    },
+    {
+      id: "manajemen_kuis",
+      name: "Manajemen Kuis",
+      path: "/dashboard/kuis",
+      icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
+      group: "Aplikasi Mobile",
+    },
+    {
+      id: "manajemen_event_mobile",
+      name: "Manajemen Event Mobile",
+      path: "/dashboard/event-mobile",
+      icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
+      group: "Aplikasi Mobile",
     },
     {
       id: "manajemen_mobile_app",
@@ -408,6 +454,7 @@ export default function DashboardLayout({
       icon: "M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z",
       badge: "NEW",
       theme: "indigo",
+      group: "Aplikasi Mobile",
     },
   ];
 
@@ -434,6 +481,16 @@ export default function DashboardLayout({
     if ((item as any).requireSuperAdmin) return false;
     return userProfile.aksesModul.includes(item.id);
   });
+
+  // Group visibleTopMenu by group
+  const groupedTopMenu = visibleTopMenu.reduce((acc, item) => {
+    const groupName = item.group || "Lainnya";
+    if (!acc[groupName]) {
+      acc[groupName] = [];
+    }
+    acc[groupName].push(item);
+    return acc;
+  }, {} as Record<string, any[]>);
 
   // 🔥 Filter Menu Bawah Berdasarkan Hak Akses Array 🔥
   const visibleBottomMenu = allBottomMenuItems.filter((item) => {
@@ -462,14 +519,14 @@ export default function DashboardLayout({
         />
       )}
 
-      {/* SIDEBAR (Midnight Blue/Slate-950) */}
+      {/* SIDEBAR (Clean Light) */}
       <aside
-        className={`w-[280px] bg-[#0B1120] text-slate-300 flex flex-col fixed h-full z-30 shadow-2xl border-r border-slate-800 transition-transform duration-300 ease-in-out lg:translate-x-0 print:hidden ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`w-[280px] bg-white text-slate-600 flex flex-col fixed h-full z-30 shadow-[4px_0_24px_rgba(0,0,0,0.02)] border-r border-slate-200 transition-transform duration-300 ease-in-out lg:translate-x-0 print:hidden ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         {/* Brand Area */}
-        <div className="h-20 flex items-center justify-between gap-4 px-6 border-b border-slate-800 shrink-0 bg-[#0A0F1C]">
+        <div className="h-20 flex items-center justify-between gap-4 px-6 border-b border-slate-100 shrink-0 bg-white">
           <div className="flex items-center gap-3">
-            <div className="bg-white p-1.5 rounded-lg shadow-sm">
+            <div className="bg-slate-50 p-1.5 rounded-lg shadow-sm border border-slate-100">
               <img
                 src="/logo-dpp-ika.png"
                 alt="Logo"
@@ -477,17 +534,17 @@ export default function DashboardLayout({
               />
             </div>
             <div className="flex flex-col">
-              <h2 className="font-bold text-[15px] tracking-wide text-white leading-tight">
+              <h2 className="font-bold text-[15px] tracking-wide text-slate-800 leading-tight">
                 DPW IKA UII
               </h2>
-              <p className="text-[9px] text-blue-400 font-bold uppercase tracking-[0.2em] mt-0.5">
+              <p className="text-[9px] text-blue-600 font-bold uppercase tracking-[0.2em] mt-0.5">
                 UII JAYA ALUMNI BERDAYA
               </p>
             </div>
           </div>
           <button
             onClick={() => setIsSidebarOpen(false)}
-            className="lg:hidden text-slate-500 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors"
+            className="lg:hidden text-slate-400 hover:text-slate-700 p-2 rounded-lg hover:bg-slate-50 transition-colors"
           >
             <svg
               className="w-5 h-5"
@@ -507,58 +564,120 @@ export default function DashboardLayout({
 
         {/* Scrollable Menu Area */}
         <div className="flex-grow py-6 pb-20 overflow-y-auto custom-scrollbar">
-          <p className="px-8 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
-            Menu {isSuperAdmin ? "Administrator" : "Utama"}
-          </p>
-
-          <div className="space-y-1 mb-8 px-4">
-            {visibleTopMenu.map((item: any) => {
-              const isActive =
-                item.path === "/dashboard"
-                  ? pathname === "/dashboard"
-                  : pathname.startsWith(item.path);
-
-              // 🎨 LOGIKA STYLE DINAMIS UNTUK MENU BER-BADGE 🎨
-              if (item.badge) {
-                // Menentukan warna berdasarkan tema yang di-set di object menu
-                const colorConfig = {
-                  amber: {
-                    activeBg:
-                      "from-amber-500/20 to-transparent border-amber-500/50 text-amber-400",
-                    inactiveBg:
-                      "hover:bg-slate-800/50 border-transparent hover:border-amber-500/30 text-amber-500/70 hover:text-amber-400",
-                    iconActive: "text-amber-400",
-                    iconInactive:
-                      "text-amber-500/50 group-hover:text-amber-400",
-                    badgeActive: "bg-amber-400 text-slate-900",
-                    badgeInactive: "bg-amber-500/20 text-amber-500",
-                  },
-                  indigo: {
-                    activeBg:
-                      "from-indigo-500/20 to-transparent border-indigo-500/50 text-indigo-400",
-                    inactiveBg:
-                      "hover:bg-slate-800/50 border-transparent hover:border-indigo-500/30 text-indigo-400/70 hover:text-indigo-400",
-                    iconActive: "text-indigo-400",
-                    iconInactive:
-                      "text-indigo-400/50 group-hover:text-indigo-400",
-                    badgeActive: "bg-indigo-400 text-slate-900",
-                    badgeInactive: "bg-indigo-500/20 text-indigo-400",
-                  },
-                };
-
-                const theme =
-                  colorConfig[item.theme as keyof typeof colorConfig] ||
-                  colorConfig.amber;
-
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.path}
-                    className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all font-medium text-sm group border ${isActive ? `bg-gradient-to-r ${theme.activeBg}` : theme.inactiveBg}`}
+          {Object.entries(groupedTopMenu).map(([groupName, items]) => {
+            if (groupName === "Aplikasi Mobile") {
+              const isActiveGroup = items.some((item: any) => pathname.startsWith(item.path));
+              return (
+                <div key={groupName} className="mb-8 px-4">
+                  <p className="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
+                    {groupName}
+                  </p>
+                  <button
+                    onClick={() => setIsMobileAppOpen(!isMobileAppOpen)}
+                    className={`w-full flex items-center justify-between gap-4 px-4 py-3 rounded-xl transition-all font-medium text-sm group border ${isActiveGroup ? "bg-blue-50 text-blue-700 border-blue-100 shadow-sm" : "border-transparent hover:bg-slate-50 text-slate-600 hover:text-slate-900"}`}
                   >
                     <div className="flex items-center gap-3.5">
+                      <svg className={`w-5 h-5 shrink-0 ${isActiveGroup ? "text-blue-600" : "text-slate-400 group-hover:text-blue-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      Manajemen App
+                    </div>
+                    <svg className={`w-4 h-4 transition-transform duration-300 ${(isMobileAppOpen || isActiveGroup) ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  
+                  {(isMobileAppOpen || isActiveGroup) && (
+                    <div className="mt-1 pl-12 space-y-1 relative before:absolute before:left-6 before:top-0 before:bottom-2 before:w-[1px] before:bg-slate-200 animate-in slide-in-from-top-2">
+                      {items.map((item: any) => {
+                         const isActive = pathname.startsWith(item.path);
+                         return (
+                           <Link key={item.name} href={item.path} className={`block py-2 text-xs font-medium transition-colors relative before:absolute before:left-[-24px] before:top-1/2 before:w-3 before:h-[1px] before:bg-slate-200 ${isActive ? "text-blue-600 font-bold" : "text-slate-500 hover:text-slate-800"}`}>
+                             {item.name}
+                           </Link>
+                         )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+
+            return (
+            <div key={groupName} className="mb-8">
+              <p className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
+                {groupName}
+              </p>
+              <div className="space-y-1 px-4">
+                {items.map((item: any) => {
+                  const isActive =
+                    item.path === "/dashboard"
+                      ? pathname === "/dashboard"
+                      : pathname.startsWith(item.path);
+
+                  // 🎨 LOGIKA STYLE DINAMIS UNTUK MENU BER-BADGE 🎨
+                  if (item.badge) {
+                    const colorConfig = {
+                      amber: {
+                        activeBg: "bg-amber-50 border-amber-200 text-amber-700 shadow-sm",
+                        inactiveBg: "hover:bg-slate-50 border-transparent hover:border-amber-200 text-slate-600 hover:text-amber-700",
+                        iconActive: "text-amber-600",
+                        iconInactive: "text-slate-400 group-hover:text-amber-500",
+                        badgeActive: "bg-amber-100 text-amber-700",
+                        badgeInactive: "bg-slate-100 text-slate-500 group-hover:bg-amber-50 group-hover:text-amber-600",
+                      },
+                      indigo: {
+                        activeBg: "bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm",
+                        inactiveBg: "hover:bg-slate-50 border-transparent hover:border-indigo-200 text-slate-600 hover:text-indigo-700",
+                        iconActive: "text-indigo-600",
+                        iconInactive: "text-slate-400 group-hover:text-indigo-500",
+                        badgeActive: "bg-indigo-100 text-indigo-700",
+                        badgeInactive: "bg-slate-100 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600",
+                      },
+                    };
+
+                    const theme =
+                      colorConfig[item.theme as keyof typeof colorConfig] ||
+                      colorConfig.amber;
+
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.path}
+                        className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all font-medium text-sm group border ${isActive ? theme.activeBg : theme.inactiveBg}`}
+                      >
+                        <div className="flex items-center gap-3.5">
+                          <svg
+                            className={`w-5 h-5 shrink-0 transition-colors ${isActive ? theme.iconActive : theme.iconInactive}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={isActive ? 2.5 : 2}
+                              d={item.icon}
+                            />
+                          </svg>
+                          {item.name}
+                        </div>
+                        <span
+                          className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full transition-colors ${isActive ? theme.badgeActive : theme.badgeInactive}`}
+                        >
+                          {item.badge}
+                        </span>
+                      </Link>
+                    );
+                  }
+
+                  // Style Menu Normal (Default)
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.path}
+                      className={`flex items-center gap-3.5 px-4 py-3 rounded-xl transition-all font-medium text-sm group border ${isActive ? "bg-blue-50 text-blue-700 border-blue-100 shadow-sm" : "border-transparent hover:bg-slate-50 hover:text-slate-900 text-slate-600"}`}
+                    >
                       <svg
-                        className={`w-5 h-5 shrink-0 transition-colors ${isActive ? theme.iconActive : theme.iconInactive}`}
+                        className={`w-5 h-5 shrink-0 transition-colors ${isActive ? "text-blue-600" : "text-slate-400 group-hover:text-blue-500"}`}
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -571,56 +690,28 @@ export default function DashboardLayout({
                         />
                       </svg>
                       {item.name}
-                    </div>
-                    <span
-                      className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${isActive ? theme.badgeActive : theme.badgeInactive}`}
-                    >
-                      {item.badge}
-                    </span>
-                  </Link>
-                );
-              }
-
-              // Style Menu Normal (Default)
-              return (
-                <Link
-                  key={item.name}
-                  href={item.path}
-                  className={`flex items-center gap-3.5 px-4 py-3 rounded-xl transition-all font-medium text-sm group ${isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "hover:bg-slate-800/50 hover:text-slate-100 text-slate-400"}`}
-                >
-                  <svg
-                    className={`w-5 h-5 shrink-0 transition-colors ${isActive ? "text-white" : "text-slate-500 group-hover:text-blue-400"}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={isActive ? 2.5 : 2}
-                      d={item.icon}
-                    />
-                  </svg>
-                  {item.name}
-                </Link>
-              );
-            })}
-          </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
 
           {/* HANYA TAMPILKAN PROKER JIKA PUNYA AKSES */}
           {hasAksesProker && visibleBidangList.length > 0 && (
             <>
-              <p className="px-8 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
+              <p className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
                 Ruang Kerja Bidang
               </p>
               <div className="px-4 mb-8">
                 <button
                   onClick={() => setIsBidangOpen(!isBidangOpen)}
-                  className="w-full flex items-center justify-between gap-4 px-4 py-3 rounded-xl hover:bg-slate-800/50 text-slate-400 hover:text-slate-100 transition-all font-medium text-sm group"
+                  className="w-full flex items-center justify-between gap-4 px-4 py-3 rounded-xl hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-all font-medium text-sm group"
                 >
                   <div className="flex items-center gap-3.5">
                     <svg
-                      className="w-5 h-5 shrink-0 text-slate-500 group-hover:text-yellow-500 transition-colors"
+                      className="w-5 h-5 shrink-0 text-slate-400 group-hover:text-yellow-600 transition-colors"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -649,7 +740,7 @@ export default function DashboardLayout({
                   </svg>
                 </button>
                 {isBidangOpen && (
-                  <div className="mt-1 pl-12 space-y-1 relative before:absolute before:left-6 before:top-0 before:bottom-2 before:w-[1px] before:bg-slate-800 animate-in slide-in-from-top-2">
+                  <div className="mt-1 pl-12 space-y-1 relative before:absolute before:left-6 before:top-0 before:bottom-2 before:w-[1px] before:bg-slate-200 animate-in slide-in-from-top-2">
                     {visibleBidangList.map((b, index) => {
                       const slug = (b.namaBidang || "bidang")
                         .toLowerCase()
@@ -661,7 +752,7 @@ export default function DashboardLayout({
                         <Link
                           key={b.id || `sidebar-bidang-${index}`}
                           href={`/dashboard/proker/${slug}`}
-                          className={`block py-2 text-xs font-medium transition-colors relative before:absolute before:left-[-24px] before:top-1/2 before:w-3 before:h-[1px] before:bg-slate-800 ${isActive ? "text-yellow-400 font-bold" : "text-slate-400 hover:text-slate-200"}`}
+                          className={`block py-2 text-xs font-medium transition-colors relative before:absolute before:left-[-24px] before:top-1/2 before:w-3 before:h-[1px] before:bg-slate-200 ${isActive ? "text-yellow-600 font-bold" : "text-slate-500 hover:text-slate-800"}`}
                         >
                           {b.namaBidang}
                         </Link>
@@ -675,21 +766,21 @@ export default function DashboardLayout({
 
           {visibleBottomMenu.length > 0 && (
             <>
-              <p className="px-8 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
+              <p className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
                 Ekstensi Opsional
               </p>
               <div className="space-y-1 px-4">
                 {visibleBottomMenu.map((item) => {
                   const isActive = pathname.startsWith(item.path);
                   let baseStyle =
-                    "flex items-center gap-3.5 px-4 py-3 rounded-xl transition-all font-medium text-sm group ";
+                    "flex items-center gap-3.5 px-4 py-3 rounded-xl transition-all font-medium text-sm group border ";
                   let specificStyle = item.isHighlight
                     ? isActive
-                      ? "bg-emerald-600 text-white shadow-lg shadow-emerald-900/30"
-                      : "bg-emerald-900/20 text-emerald-400 hover:bg-emerald-800/40 border border-emerald-800/50"
+                      ? "bg-emerald-50 text-emerald-700 shadow-sm border-emerald-100"
+                      : "bg-emerald-50/50 text-emerald-600 hover:bg-emerald-50 border-transparent hover:border-emerald-100"
                     : isActive
-                      ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40"
-                      : "hover:bg-slate-800/50 hover:text-slate-100 text-slate-400";
+                      ? "bg-blue-50 text-blue-700 shadow-sm border-blue-100"
+                      : "hover:bg-slate-50 hover:text-slate-900 text-slate-600 border-transparent";
 
                   return (
                     <Link
@@ -698,7 +789,7 @@ export default function DashboardLayout({
                       className={baseStyle + specificStyle}
                     >
                       <svg
-                        className={`w-5 h-5 shrink-0 transition-colors ${isActive ? "text-white" : item.isHighlight ? "text-emerald-500" : "text-slate-500 group-hover:text-blue-400"}`}
+                        className={`w-5 h-5 shrink-0 transition-colors ${isActive ? (item.isHighlight ? "text-emerald-600" : "text-blue-600") : item.isHighlight ? "text-emerald-500" : "text-slate-400 group-hover:text-blue-500"}`}
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"

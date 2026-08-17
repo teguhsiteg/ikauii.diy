@@ -10,18 +10,29 @@ export interface User {
 export interface Agenda {
   id: string;
   judul: string;
-  tanggal: string; // ISO String
+  tanggal?: string; // ISO String
   lokasi?: string;
   createdAt?: string;
   isComingSoon?: boolean;
+  waktu?: string;
+  format?: string;
+  tiket?: string;
+  koordinator?: string;
+  imgUrl?: string;
+  posterUrl?: string;
 }
 
 export interface Berita {
   id: string;
   judul: string;
-  ringkasan: string;
+  ringkasan?: string;
   coverUrl?: string;
   createdAt?: string;
+  imgUrl?: string;
+  imageUrl?: string;
+  kategori?: string;
+  title?: string;
+  isi?: string;
 }
 
 export interface Event {

@@ -32,6 +32,7 @@ export default function VerifikasiAnggotaPage() {
 
   const [itemsPerPage, setItemsPerPage] = useState<number | "Semua">(10);
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortOrder, setSortOrder] = useState("Terbaru");
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -93,9 +94,10 @@ export default function VerifikasiAnggotaPage() {
       const querySnapshot = await getDocs(q);
       const data = querySnapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data(),
+        ...(doc.data() as any),
       }));
-      setPendaftarList(data);
+      // Filter out Disetujui so they don't show up if there are any lingering ones
+      setPendaftarList(data.filter((p: any) => p.status?.toLowerCase() !== "disetujui"));
     } catch (error) {
       console.error("Error fetching data: ", error);
       showToast("Gagal mengambil data dari server.", "error");
@@ -134,9 +136,9 @@ export default function VerifikasiAnggotaPage() {
     [pendaftarList],
   );
 
-  // 🔥 LOGIC FILTERING GANDA 🔥
+  // 🔥 LOGIC FILTERING GANDA & SORTING 🔥
   const filteredList = useMemo(() => {
-    return pendaftarList.filter((p) => {
+    const result = pendaftarList.filter((p) => {
       const matchStatus = p.status === filterStatus;
       const lowerSearch = searchQuery.toLowerCase();
       const matchSearch =
@@ -157,6 +159,49 @@ export default function VerifikasiAnggotaPage() {
         matchDomisili
       );
     });
+
+    result.sort((a, b) => {
+      let valA, valB;
+
+      if (sortOrder === "Terbaru") {
+        return new Date(b.tanggalDaftar).getTime() - new Date(a.tanggalDaftar).getTime();
+      }
+      if (sortOrder === "Terlama") {
+        return new Date(a.tanggalDaftar).getTime() - new Date(b.tanggalDaftar).getTime();
+      }
+
+      if (sortOrder === "Nama-Asc") {
+        return (a.namaLengkap || "").localeCompare(b.namaLengkap || "");
+      }
+      if (sortOrder === "Nama-Desc") {
+        return (b.namaLengkap || "").localeCompare(a.namaLengkap || "");
+      }
+      
+      if (sortOrder === "Fakultas-Asc") {
+        return (a.fakultas || "").localeCompare(b.fakultas || "");
+      }
+      if (sortOrder === "Fakultas-Desc") {
+        return (b.fakultas || "").localeCompare(a.fakultas || "");
+      }
+      
+      if (sortOrder === "Domisili-Asc") {
+        return (a.domisili || "").localeCompare(b.domisili || "");
+      }
+      if (sortOrder === "Domisili-Desc") {
+        return (b.domisili || "").localeCompare(a.domisili || "");
+      }
+      
+      if (sortOrder === "Status-Asc") {
+        return (a.status || "").localeCompare(b.status || "");
+      }
+      if (sortOrder === "Status-Desc") {
+        return (b.status || "").localeCompare(a.status || "");
+      }
+
+      return 0;
+    });
+
+    return result;
   }, [
     pendaftarList,
     filterStatus,
@@ -164,6 +209,7 @@ export default function VerifikasiAnggotaPage() {
     filterFakultas,
     filterAngkatan,
     filterDomisili,
+    sortOrder,
   ]);
 
   useEffect(() => {
@@ -175,6 +221,7 @@ export default function VerifikasiAnggotaPage() {
     filterFakultas,
     filterAngkatan,
     filterDomisili,
+    sortOrder,
   ]);
 
   const totalPages =
@@ -238,39 +285,31 @@ export default function VerifikasiAnggotaPage() {
       const pengurusRef = doc(db, "pengurus", user.id);
 
       const isComplete = isProfileComplete(user);
-      let finalNIA = "Dalam Proses";
 
-      // Jika profil lengkap, generate NIA sekarang
-      if (isComplete) {
-        const counterRef = doc(db, "pengaturan", "counter_nia");
-        const counterSnap = await getDoc(counterRef);
-        let newNumber = 89;
-        if (counterSnap.exists())
-          newNumber = (counterSnap.data().lastNumber || 88) + 1;
-        await setDoc(counterRef, { lastNumber: newNumber }, { merge: true });
-
-        const dateObj = new Date();
-        const yearStr = dateObj.getFullYear().toString().slice(-2);
-        const monthStr = String(dateObj.getMonth() + 1).padStart(2, "0");
-        let kabStr = "00";
-        const dom = (user.domisili || "").toLowerCase();
-        if (dom.includes("sleman")) kabStr = "04";
-        else if (dom.includes("bantul")) kabStr = "02";
-        else if (dom.includes("gunung")) kabStr = "03";
-        else if (dom.includes("kulon")) kabStr = "01";
-        else if (dom.includes("kota") || dom.includes("yogya")) kabStr = "71";
-
-        const urutStr = String(newNumber).padStart(4, "0");
-        finalNIA = `${yearStr}.${monthStr}.34.${kabStr}.${urutStr}`;
-      }
-
-      await updateDoc(pendaftarRef, {
-        status: "Disetujui",
-        nia: finalNIA,
-        emailSent: isComplete ? true : false,
-      });
+      // Selalu generate NIA saat masuk menjadi Anggota Sah
+      const counterRef = doc(db, "pengaturan", "counter_nia");
+      const counterSnap = await getDoc(counterRef);
+      let newNumber = 89;
+      if (counterSnap.exists())
+        newNumber = (counterSnap.data().lastNumber || 88) + 1;
+      await setDoc(counterRef, { lastNumber: newNumber }, { merge: true });
 
       const dateObj = new Date();
+      const yearStr = dateObj.getFullYear().toString().slice(-2);
+      const monthStr = String(dateObj.getMonth() + 1).padStart(2, "0");
+      let kabStr = "00";
+      const dom = (user.domisili || "").toLowerCase();
+      if (dom.includes("sleman")) kabStr = "04";
+      else if (dom.includes("bantul")) kabStr = "02";
+      else if (dom.includes("gunung")) kabStr = "03";
+      else if (dom.includes("kulon")) kabStr = "01";
+      else if (dom.includes("kota") || dom.includes("yogya")) kabStr = "71";
+
+      const urutStr = String(newNumber).padStart(4, "0");
+      const finalNIA = `${yearStr}.${monthStr}.34.${kabStr}.${urutStr}`;
+
+      await deleteDoc(pendaftarRef);
+
       await setDoc(pengurusRef, {
         ...user,
         nia: finalNIA,
@@ -289,18 +328,18 @@ export default function VerifikasiAnggotaPage() {
         status: "Disetujui",
       });
 
-      // Hanya kirim email penerbitan E-KTA jika profil lengkap
+      // Kirim email penerbitan E-KTA
+      await triggerEmailApi(
+        "member_verified",
+        user.email,
+        user.namaLengkap,
+        finalNIA,
+      );
       if (isComplete) {
-        await triggerEmailApi(
-          "member_verified",
-          user.email,
-          user.namaLengkap,
-          finalNIA,
-        );
         showToast(`Anggota disetujui. NIA tercetak: ${finalNIA}`, "success");
       } else {
         showToast(
-          `Anggota disetujui sementara (Profil belum lengkap). NIA: Dalam Proses`,
+          `Anggota disetujui, NIA (${finalNIA}) tercetak (Profil belum lengkap)`,
           "info",
         );
       }
@@ -595,8 +634,13 @@ export default function VerifikasiAnggotaPage() {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
+        setIsLoading(true); // Optional: show loading while fetching
+        const pengurusSnapshot = await getDocs(collection(db, "pengurus"));
+        const pengurusList = pengurusSnapshot.docs.map(doc => doc.data());
+        setIsLoading(false);
+
         const data = new Uint8Array(event.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: "array" });
         const sheetName = workbook.SheetNames[0];
@@ -607,11 +651,17 @@ export default function VerifikasiAnggotaPage() {
           const nimTrim = String(item.nim || "").trim();
 
           const isEmailEmpty = !emailTrim;
-          const isRegistered = pendaftarList.some(
+          const isRegisteredPendaftar = pendaftarList.some(
             (p) =>
               (p.email && p.email.toLowerCase() === emailTrim) ||
               (p.nim && p.nim === nimTrim),
           );
+          const isRegisteredPengurus = pengurusList.some(
+            (p) =>
+              (p.email && p.email.toLowerCase() === emailTrim) ||
+              (p.nim && p.nim === nimTrim),
+          );
+          const isRegistered = isRegisteredPendaftar || isRegisteredPengurus;
 
           let isValid = true;
           let statusPesan = "Siap Import";
@@ -871,7 +921,7 @@ export default function VerifikasiAnggotaPage() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-3">
           {/* TABS */}
           <div className="flex w-full md:w-auto overflow-x-auto no-scrollbar">
-            {["Dalam Proses", "Disetujui", "Ditolak"].map((tab) => (
+            {["Dalam Proses", "Ditolak"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => {
@@ -1046,17 +1096,49 @@ export default function VerifikasiAnggotaPage() {
                   <th className="px-4 py-4 font-bold text-[11px] uppercase tracking-wider text-center w-12 border-r border-slate-100">
                     No
                   </th>
-                  <th className="px-4 py-4 font-bold text-[11px] uppercase tracking-wider">
-                    Identitas & Kontak
+                  <th 
+                    className="px-4 py-4 font-bold text-[11px] uppercase tracking-wider cursor-pointer hover:bg-slate-100 transition-colors group"
+                    onClick={() => setSortOrder(sortOrder === "Nama-Asc" ? "Nama-Desc" : "Nama-Asc")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Identitas & Kontak
+                      <span className="text-slate-400 group-hover:text-slate-600">
+                        {sortOrder === "Nama-Asc" ? "↑" : sortOrder === "Nama-Desc" ? "↓" : "↕"}
+                      </span>
+                    </div>
                   </th>
-                  <th className="px-4 py-4 font-bold text-[11px] uppercase tracking-wider">
-                    Latar Belakang UII
+                  <th 
+                    className="px-4 py-4 font-bold text-[11px] uppercase tracking-wider cursor-pointer hover:bg-slate-100 transition-colors group"
+                    onClick={() => setSortOrder(sortOrder === "Fakultas-Asc" ? "Fakultas-Desc" : "Fakultas-Asc")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Latar Belakang UII
+                      <span className="text-slate-400 group-hover:text-slate-600">
+                        {sortOrder === "Fakultas-Asc" ? "↑" : sortOrder === "Fakultas-Desc" ? "↓" : "↕"}
+                      </span>
+                    </div>
                   </th>
-                  <th className="px-4 py-4 font-bold text-[11px] uppercase tracking-wider">
-                    Profesi & Domisili
+                  <th 
+                    className="px-4 py-4 font-bold text-[11px] uppercase tracking-wider cursor-pointer hover:bg-slate-100 transition-colors group"
+                    onClick={() => setSortOrder(sortOrder === "Domisili-Asc" ? "Domisili-Desc" : "Domisili-Asc")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Profesi & Domisili
+                      <span className="text-slate-400 group-hover:text-slate-600">
+                        {sortOrder === "Domisili-Asc" ? "↑" : sortOrder === "Domisili-Desc" ? "↓" : "↕"}
+                      </span>
+                    </div>
                   </th>
-                  <th className="px-4 py-4 font-bold text-[11px] uppercase tracking-wider text-center">
-                    Status Dokumen
+                  <th 
+                    className="px-4 py-4 font-bold text-[11px] uppercase tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors group"
+                    onClick={() => setSortOrder(sortOrder === "Status-Asc" ? "Status-Desc" : "Status-Asc")}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      Status Dokumen
+                      <span className="text-slate-400 group-hover:text-slate-600">
+                        {sortOrder === "Status-Asc" ? "↑" : sortOrder === "Status-Desc" ? "↓" : "↕"}
+                      </span>
+                    </div>
                   </th>
                   <th className="px-4 py-4 font-bold text-[11px] uppercase tracking-wider text-right">
                     Aksi
@@ -1667,7 +1749,7 @@ export default function VerifikasiAnggotaPage() {
                                 KARTU TANDA ANGGOTA
                               </h1>
                               <h2 className="text-[#F29900] font-bold text-[8px] tracking-[0.2em] uppercase">
-                                DPW IKA UII YOGYAKARTA
+                                DPW IKA UII D.I.YOGYAKARTA
                               </h2>
                             </div>
                           </div>

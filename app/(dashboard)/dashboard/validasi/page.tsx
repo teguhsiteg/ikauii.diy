@@ -252,10 +252,17 @@ export default function ValidasiAdminPage() {
   const handlePilihSurat = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const nomor = e.target.value;
     const surat = suratList.find((s) => s.nomor === nomor);
+    
+    // Auto-fill Penandatangan based on pembuat
+    const pembuat = surat?.pembuat || "";
+    const jabatanPembuat = surat?.jabatanPembuat || "";
+    
     setFormData({
       ...formData,
       nomorSurat: nomor,
       perihal: surat ? surat.perihal : "", // Ambil 'perihal' dari E-Office
+      penandatangan: pembuat,
+      jabatan: jabatanPembuat,
     });
   };
 
@@ -446,26 +453,26 @@ export default function ValidasiAdminPage() {
         );
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-12 font-sans selection:bg-[#E8F0FE] selection:text-[#1A73E8] pt-4 px-4 sm:px-6 lg:px-8">
-      {/* CUSTOM DIALOG (POPUP GOOGLE STYLE) */}
+    <div className="min-h-screen pb-12 font-sans text-slate-800">
+      {/* CUSTOM DIALOG */}
       {dialog.isOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#202124]/40 animate-in fade-in duration-200 print:hidden">
-          <div className="bg-white rounded-lg w-full max-w-sm shadow-xl flex flex-col overflow-hidden border border-[#DADCE0] animate-in zoom-in-95">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200 print:hidden">
+          <div className="bg-white/95 rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden border border-slate-200 animate-in zoom-in-95">
             <div className="px-6 py-5">
               <h2
-                className={`text-lg font-normal mb-2 ${dialog.title.includes("Gagal") || dialog.title.includes("Cabut") || dialog.title.includes("Hapus") || dialog.title.includes("Peringatan") ? "text-[#D93025]" : "text-[#1A73E8]"}`}
+                className={`text-xl font-bold mb-2 ${dialog.title.includes("Gagal") || dialog.title.includes("Cabut") || dialog.title.includes("Hapus") || dialog.title.includes("Peringatan") ? "text-red-600" : "text-blue-700"}`}
               >
                 {dialog.title}
               </h2>
-              <p className="text-sm text-[#5F6368] leading-relaxed whitespace-pre-wrap">
+              <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
                 {dialog.message}
               </p>
             </div>
-            <div className="px-6 py-4 bg-white border-t border-[#DADCE0] flex justify-end gap-2">
+            <div className="px-6 py-4 bg-slate-50/80 border-t border-slate-200 flex justify-end gap-2">
               {dialog.type === "confirm" && (
                 <button
                   onClick={closeDialog}
-                  className="px-4 py-2 text-sm font-medium text-[#5F6368] hover:bg-[#F1F3F4] rounded transition-colors"
+                  className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-xl transition-all"
                 >
                   Batal
                 </button>
@@ -478,7 +485,7 @@ export default function ValidasiAdminPage() {
                     closeDialog();
                   }
                 }}
-                className={`px-4 py-2 text-sm font-medium text-white rounded transition-colors shadow-sm ${dialog.title.includes("Cabut") || dialog.title.includes("Hapus") ? "bg-[#D93025] hover:bg-[#b52a1f]" : "bg-[#1A73E8] hover:bg-[#1557B0]"}`}
+                className={`px-4 py-2 text-sm font-semibold text-white rounded-xl transition-all shadow-md ${dialog.title.includes("Cabut") || dialog.title.includes("Hapus") ? "bg-red-600 hover:bg-red-700" : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"}`}
               >
                 {dialog.type === "confirm" ? "Lanjutkan" : "Mengerti"}
               </button>
@@ -488,15 +495,15 @@ export default function ValidasiAdminPage() {
       )}
 
       <div className="max-w-7xl mx-auto animate-in fade-in duration-500">
-        {/* --- HEADER GOOGLE WORKSPACE STYLE --- */}
-        <div className="mb-8 border-b border-[#DADCE0] pb-5 pt-4">
-          <div className="inline-flex items-center gap-1.5 bg-[#E8F0FE] text-[#1A73E8] text-[10px] font-medium px-2.5 py-1 rounded mb-3 uppercase tracking-widest border border-[#D2E3FC]">
+        {/* --- HEADER PREMIUM --- */}
+        <div className="mb-6 mt-4 border-b border-slate-200 pb-5">
+          <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1 rounded-full mb-3 uppercase tracking-widest border border-blue-200 shadow-sm">
             <IconQR /> Tanda Tangan Elektronik
           </div>
-          <h1 className="text-2xl font-normal text-[#202124] tracking-tight mb-2">
+          <h2 className="text-2xl font-medium text-slate-900 mb-1 tracking-tight">
             Validasi & Otorisasi
-          </h1>
-          <p className="text-[#5F6368] text-sm max-w-2xl">
+          </h2>
+          <p className="text-slate-500 text-sm max-w-2xl">
             Buat, bubuhkan, dan kelola QR Code validasi keaslian dokumen untuk
             surat-surat dari sistem E-Office.
           </p>
@@ -505,22 +512,22 @@ export default function ValidasiAdminPage() {
         <div className="grid lg:grid-cols-12 gap-6 items-start">
           {/* KOLOM KIRI (Form) */}
           <div className="lg:col-span-4 space-y-6">
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-[#DADCE0]">
-              <h3 className="font-medium text-[#202124] mb-5 flex items-center gap-2 text-sm">
+            <div className="bg-white/90 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-slate-200">
+              <h3 className="font-semibold text-slate-800 mb-5 flex items-center gap-2">
                 Buat Segel QR Baru
               </h3>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-[#5F6368] mb-1">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
                     Pilih Surat dari E-Office{" "}
-                    <span className="text-[#D93025]">*</span>
+                    <span className="text-red-500">*</span>
                   </label>
                   <select
                     required
                     value={formData.nomorSurat}
                     onChange={handlePilihSurat}
-                    className="w-full bg-white border border-[#DADCE0] px-3 py-2 rounded text-sm outline-none focus:ring-1 focus:ring-[#1A73E8] focus:border-[#1A73E8] text-[#202124] transition-all"
+                    className="w-full bg-white border border-slate-200 px-3 py-2.5 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 text-slate-800 transition-all"
                   >
                     <option value="">-- Pilih dari database E-Office --</option>
                     {suratList.map((s) => (
@@ -537,7 +544,7 @@ export default function ValidasiAdminPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-[#5F6368] mb-1">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
                     Subjek / Perihal Surat
                   </label>
                   <input
@@ -545,22 +552,26 @@ export default function ValidasiAdminPage() {
                     type="text"
                     value={formData.perihal}
                     readOnly
-                    className="w-full bg-[#F1F3F4] border border-[#DADCE0] px-3 py-2 rounded text-sm outline-none text-[#5F6368] cursor-not-allowed"
+                    className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl text-sm outline-none text-slate-500 cursor-not-allowed"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-[#5F6368] mb-1">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
                     Otoritas Penandatangan{" "}
-                    <span className="text-[#D93025]">*</span>
+                    <span className="text-red-500">*</span>
                   </label>
                   <select
                     required
                     value={formData.penandatangan}
                     onChange={handlePilihPengurus}
-                    className="w-full bg-white border border-[#DADCE0] px-3 py-2 rounded text-sm outline-none focus:ring-1 focus:ring-[#1A73E8] focus:border-[#1A73E8] text-[#202124] transition-all"
+                    className="w-full bg-white border border-slate-200 px-3 py-2.5 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 text-slate-800 transition-all"
                   >
                     <option value="">-- Pilih Pengurus Berwenang --</option>
+                    {/* Fallback jika ada dari E-Office tapi tidak ada di list */}
+                    {formData.penandatangan && !pengurusList.some(p => p.nama === formData.penandatangan) && (
+                      <option value={formData.penandatangan}>{formData.penandatangan}</option>
+                    )}
                     {pengurusList
                       .filter((p) => p.nama)
                       .map((p) => (
@@ -573,7 +584,7 @@ export default function ValidasiAdminPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-[#5F6368] mb-1">
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">
                       Jabatan
                     </label>
                     <input
@@ -581,12 +592,12 @@ export default function ValidasiAdminPage() {
                       type="text"
                       value={formData.jabatan}
                       readOnly
-                      className="w-full bg-[#F1F3F4] border border-[#DADCE0] px-3 py-2 rounded text-sm outline-none text-[#5F6368] cursor-not-allowed"
+                      className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl text-sm outline-none text-slate-500 cursor-not-allowed"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[#5F6368] mb-1">
-                      Tanggal Sah <span className="text-[#D93025]">*</span>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">
+                      Tanggal Sah <span className="text-red-500">*</span>
                     </label>
                     <input
                       required
@@ -595,7 +606,7 @@ export default function ValidasiAdminPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, tanggal: e.target.value })
                       }
-                      className="w-full bg-white border border-[#DADCE0] px-3 py-2 rounded text-sm outline-none focus:ring-1 focus:ring-[#1A73E8] focus:border-[#1A73E8] transition-all"
+                      className="w-full bg-white border border-slate-200 px-3 py-2.5 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all"
                     />
                   </div>
                 </div>
@@ -603,7 +614,7 @@ export default function ValidasiAdminPage() {
                 <button
                   disabled={isSubmitting || suratList.length === 0}
                   type="submit"
-                  className="w-full bg-[#1A73E8] hover:bg-[#1557B0] text-white font-medium py-2 rounded transition-colors mt-4 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-2.5 rounded-xl transition-all mt-4 shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
                 >
                   {isSubmitting ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -619,10 +630,10 @@ export default function ValidasiAdminPage() {
 
           {/* KOLOM KANAN (Daftar Dokumen QR) */}
           <div className="lg:col-span-8">
-            <div className="bg-white rounded-lg shadow-sm border border-[#DADCE0] overflow-hidden flex flex-col min-h-[500px]">
+            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[500px]">
               {/* Toolbar & Pagination */}
-              <div className="flex flex-col sm:flex-row justify-between items-center bg-white px-5 py-3 border-b border-[#DADCE0] gap-3">
-                <div className="flex items-center gap-2 text-xs text-[#5F6368] font-medium">
+              <div className="flex flex-col sm:flex-row justify-between items-center bg-slate-50/50 px-5 py-4 border-b border-slate-200 gap-3">
+                <div className="flex items-center gap-2 text-sm text-slate-500 font-medium">
                   <span>Tampilkan:</span>
                   <select
                     value={itemsPerPage}
@@ -633,7 +644,7 @@ export default function ValidasiAdminPage() {
                           : Number(e.target.value),
                       );
                     }}
-                    className="border border-[#DADCE0] rounded px-2 py-1 outline-none focus:border-[#1A73E8] bg-white cursor-pointer"
+                    className="border border-slate-200 rounded-lg px-3 py-1.5 outline-none focus:border-blue-500 bg-white cursor-pointer"
                   >
                     <option value={5}>5 Baris</option>
                     <option value={10}>10 Baris</option>
@@ -642,7 +653,7 @@ export default function ValidasiAdminPage() {
                 </div>
 
                 {dokumenList.length > 0 && (
-                  <div className="flex items-center gap-4 text-xs text-[#5F6368] font-medium">
+                  <div className="flex items-center gap-4 text-sm text-slate-500 font-medium">
                     <span>
                       {itemsPerPage === "all"
                         ? `1-${totalItems}`
@@ -656,7 +667,7 @@ export default function ValidasiAdminPage() {
                             setCurrentPage((p) => Math.max(1, p - 1))
                           }
                           disabled={currentPage === 1}
-                          className="p-1 hover:bg-[#F1F3F4] disabled:opacity-30 rounded text-[#5F6368] transition-colors"
+                          className="p-1 hover:bg-slate-200 disabled:opacity-30 rounded text-slate-500 transition-colors"
                         >
                           <IconPrev />
                         </button>
@@ -665,7 +676,7 @@ export default function ValidasiAdminPage() {
                             setCurrentPage((p) => Math.min(totalPages, p + 1))
                           }
                           disabled={currentPage === totalPages}
-                          className="p-1 hover:bg-[#F1F3F4] disabled:opacity-30 rounded text-[#5F6368] transition-colors"
+                          className="p-1 hover:bg-slate-200 disabled:opacity-30 rounded text-slate-500 transition-colors"
                         >
                           <IconNext />
                         </button>
@@ -677,41 +688,41 @@ export default function ValidasiAdminPage() {
 
               {isLoading ? (
                 <div className="flex-1 flex justify-center items-center p-20">
-                  <div className="w-8 h-8 border-4 border-[#DADCE0] border-t-[#1A73E8] rounded-full animate-spin"></div>
+                  <div className="w-8 h-8 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
                 </div>
               ) : dokumenList.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center p-20 opacity-60">
-                  <div className="w-12 h-12 bg-[#F1F3F4] text-[#5F6368] rounded-full flex items-center justify-center mb-3">
+                  <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-4">
                     <IconQR />
                   </div>
-                  <h3 className="font-medium text-[#202124] text-sm">
+                  <h3 className="font-medium text-slate-800 text-lg">
                     Repositori Kosong
                   </h3>
-                  <p className="text-xs text-[#5F6368] mt-1">
-                    Gunakan formulir untuk membuat QR pertama.
+                  <p className="text-sm text-slate-500 mt-1 text-center max-w-xs">
+                    Gunakan formulir untuk membuat QR pertama Anda.
                   </p>
                 </div>
               ) : (
                 <div className="overflow-x-auto flex-1 bg-white">
                   <table className="w-full text-left border-collapse whitespace-nowrap">
                     <thead>
-                      <tr className="bg-[#F8F9FA] border-b border-[#DADCE0] text-[#5F6368] text-[11px] font-medium">
-                        <th className="px-5 py-3 w-28">Visual QR</th>
-                        <th className="px-5 py-3">Informasi Dokumen</th>
-                        <th className="px-5 py-3 text-center">Status</th>
-                        <th className="px-5 py-3 text-right">Tindakan</th>
+                      <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                        <th className="px-6 py-4 w-28">Visual QR</th>
+                        <th className="px-6 py-4">Informasi Dokumen</th>
+                        <th className="px-6 py-4 text-center">Status</th>
+                        <th className="px-6 py-4 text-right">Tindakan</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#E8EAED]">
+                    <tbody className="divide-y divide-slate-100">
                       {displayedDokumen.map((doc) => {
                         const validationUrl = `${baseUrl}/verifttd/${doc.id}`;
                         return (
                           <tr
                             key={doc.id}
-                            className="hover:bg-[#F8F9FA] transition-colors"
+                            className="hover:bg-slate-50 transition-colors group"
                           >
-                            <td className="px-5 py-4 align-top">
-                              <div className="bg-white p-1.5 border border-[#DADCE0] rounded inline-block shadow-sm">
+                            <td className="px-6 py-5 align-top">
+                              <div className="bg-white p-2 border border-slate-200 rounded-xl inline-block shadow-sm group-hover:shadow-md transition-all">
                                 <QRCodeCanvas
                                   id={`qr-${doc.id}`}
                                   value={validationUrl}
@@ -721,70 +732,76 @@ export default function ValidasiAdminPage() {
                                 />
                               </div>
                             </td>
-                            <td className="px-5 py-4 align-top">
-                              <div className="font-medium text-[#1A73E8] text-[13px] mb-0.5">
+                            <td className="px-6 py-5 align-top">
+                              <div className="font-semibold text-blue-700 text-sm mb-1">
                                 {doc.nomorSurat}
                               </div>
-                              <div className="text-xs text-[#202124] mb-2 truncate max-w-xs md:max-w-sm">
+                              <div className="text-sm text-slate-800 mb-2 truncate max-w-xs md:max-w-sm">
                                 {doc.perihal}
                               </div>
-                              <div className="text-[11px] text-[#5F6368]">
-                                <span className="font-medium">Otoritas:</span>{" "}
+                              <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                <span className="font-semibold text-slate-700">Otoritas:</span>{" "}
                                 {doc.penandatangan} <br />
-                                <span className="font-medium">
+                                <span className="font-semibold text-slate-700 mt-1 inline-block">
                                   Disahkan:
                                 </span>{" "}
                                 {doc.tanggal}
                               </div>
                             </td>
-                            <td className="px-5 py-4 align-top text-center">
+                            <td className="px-6 py-5 align-top text-center">
                               {doc.isAttached ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#E6F4EA] text-[#1E8E3E] border border-[#CEEAD6] text-[10px] font-medium">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold uppercase tracking-widest shadow-sm">
                                   Telah Dibubuhkan
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#F1F3F4] text-[#5F6368] border border-[#DADCE0] text-[10px] font-medium">
-                                  Tersedia
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold uppercase tracking-widest shadow-sm">
+                                  Belum Dibubuhkan
                                 </span>
                               )}
                             </td>
-                            <td className="px-5 py-4 align-top text-right">
-                              <div className="flex flex-col items-end gap-1.5">
-                                {doc.isAttached ? (
-                                  <button
-                                    onClick={() => handleCabutValidasi(doc)}
-                                    className="flex items-center justify-center gap-1.5 w-32 bg-white hover:bg-[#FEF7E0] text-[#E37400] border border-[#DADCE0] hover:border-[#F29900] py-1.5 rounded text-xs font-medium transition-colors"
-                                  >
-                                    <IconDetach /> Cabut Tautan
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={() => handleBubuhkanQR(doc)}
-                                    className="flex items-center justify-center gap-1.5 w-32 bg-white hover:bg-[#E8F0FE] text-[#1A73E8] border border-[#DADCE0] hover:border-[#1A73E8] py-1.5 rounded text-xs font-medium transition-colors"
-                                  >
-                                    <IconAttach /> Bubuhkan
-                                  </button>
-                                )}
-
-                                <button
-                                  onClick={() =>
-                                    downloadQR(doc.id, doc.nomorSurat)
-                                  }
-                                  className="flex items-center justify-center gap-1.5 w-32 bg-white hover:bg-[#F1F3F4] text-[#5F6368] border border-[#DADCE0] py-1.5 rounded text-xs font-medium transition-colors"
-                                >
-                                  <IconDownload /> Unduh Berkas
-                                </button>
-
-                                {!doc.isAttached && (
+                            <td className="px-6 py-5 align-top text-right">
+                              <div className="flex flex-col gap-2 items-end">
+                                <div className="flex gap-2">
+                                  {!doc.isAttached ? (
+                                    <button
+                                      onClick={() => handleBubuhkanQR(doc)}
+                                      title="Bubuhkan ke Surat E-Office"
+                                      className="p-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-100 flex items-center gap-2 text-xs font-semibold shadow-sm"
+                                    >
+                                      <IconAttach /> Pasang
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleCabutValidasi(doc)}
+                                      title="Cabut Validasi"
+                                      className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors border border-amber-100 flex items-center gap-2 text-xs font-semibold shadow-sm"
+                                    >
+                                      <IconDetach /> Cabut
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="flex gap-2 mt-1">
                                   <button
                                     onClick={() =>
-                                      handleDeleteQR(doc.id, doc.nomorSurat)
+                                      downloadQR(doc.id, doc.nomorSurat)
                                     }
-                                    className="flex items-center justify-center gap-1.5 w-32 bg-white hover:bg-[#FCE8E6] text-[#D93025] border border-transparent hover:border-[#FAD2CF] py-1.5 rounded text-xs font-medium transition-colors mt-1"
+                                    title="Download Gambar QR"
+                                    className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-lg transition-colors flex items-center gap-2 text-xs font-semibold shadow-sm"
                                   >
-                                    <IconTrash /> Hapus Sistem
+                                    <IconDownload /> Unduh
                                   </button>
-                                )}
+                                  {!doc.isAttached && (
+                                    <button
+                                      onClick={() =>
+                                        handleDeleteQR(doc.id, doc.nomorSurat)
+                                      }
+                                      title="Hapus Permanen QR"
+                                      className="p-2 text-red-500 bg-red-50 hover:bg-red-100 border border-red-100 rounded-lg transition-colors flex items-center gap-2 text-xs font-semibold shadow-sm"
+                                    >
+                                      <IconTrash /> Hapus
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             </td>
                           </tr>

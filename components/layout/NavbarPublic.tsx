@@ -3,30 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-
-// --- DAFTAR HARI BESAR & EVENT (Bisa disesuaikan manual) ---
-// Format key: "Bulan-Tanggal"
-const EVENT_KALENDER: Record<string, string> = {
-  "1-1": "Tahun Baru Masehi",
-  "2-14": "Hari Valentine",
-  "3-1": "Hari Peringatan Serangan Umum 1 Maret",
-  "5-1": "Hari Buruh Internasional",
-  "5-2": "Hari Pendidikan Nasional",
-  "5-20": "Hari Kebangkitan Nasional",
-  "6-1": "Hari Lahir Pancasila",
-  "8-17": "Hari Kemerdekaan RI",
-  "10-1": "Hari Kesaktian Pancasila",
-  "10-28": "Hari Sumpah Pemuda",
-  "11-10": "Hari Pahlawan",
-  "12-22": "Hari Ibu",
-  "12-25": "Hari Raya Natal",
-  // Khusus event 2026 yang kamu sebutkan (bisa ganti sesuai tahun berjalan):
-  "2-17": "Awal Ramadhan 1447 H",
-  "3-19": "Hari Raya Idul Fitri 1447 H",
-  "3-20": "Cuti Bersama Lebaran",
-  "3-21": "Hari Raya Nyepi Tahun Baru Saka 1948",
-  "5-26": "Hari Raya Idul Adha 1447 H",
-};
+import { getTodayEvent } from "@/components/layout/ThemeProvider";
 
 export default function NavbarPublic() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -65,17 +42,17 @@ export default function NavbarPublic() {
     setWaktuLokal(formatter.format(today));
 
     // Cek Event Hari Ini
-    const month = today.getMonth() + 1; // getMonth() mulai dari 0
-    const date = today.getDate();
-    const keyEvent = `${month}-${date}`;
-    if (EVENT_KALENDER[keyEvent]) {
-      setCurrentEvent(EVENT_KALENDER[keyEvent]);
+    const eventName = getTodayEvent();
+    if (eventName) {
+      setCurrentEvent(eventName);
     }
 
     // Fetch Jadwal Sholat DIY (ID Kota Jogja: 1609 di API MyQuran)
     const fetchSholat = async () => {
       try {
         const year = today.getFullYear();
+        const month = today.getMonth() + 1;
+        const date = today.getDate();
         const monthStr = String(month).padStart(2, "0");
         const dateStr = String(date).padStart(2, "0");
 

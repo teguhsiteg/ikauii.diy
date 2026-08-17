@@ -645,14 +645,14 @@ export default function LandingPage() {
                       }`}
                     >
                       <div
-                        className={`w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden mb-6 flex items-center justify-center p-1.5 ${
-                          isKetua ? "bg-yellow-100" : "bg-slate-50"
+                        className={`w-32 h-32 md:w-40 md:h-40 rounded-[2rem] overflow-hidden mb-6 flex items-center justify-center p-1.5 ${
+                          isKetua ? "bg-yellow-400 shadow-xl shadow-yellow-400/20" : "bg-blue-100"
                         }`}
                       >
                         <img
                           src={p.fotoUrl || "/logo-dpp-ika.png"}
                           alt={p.nama}
-                          className={`w-full h-full rounded-full transition-transform duration-500 group-hover:scale-110 ${
+                          className={`w-full h-full rounded-[2rem] transition-transform duration-500 group-hover:scale-110 ${
                             p.fotoUrl
                               ? "object-cover object-top"
                               : "object-contain p-4 opacity-30"

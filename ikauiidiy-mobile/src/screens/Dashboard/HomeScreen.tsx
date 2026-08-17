@@ -9,6 +9,7 @@ import {
   RefreshControl,
   ImageBackground,
   Alert,
+  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import tw from "twrnc";
@@ -19,7 +20,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Agenda, Berita } from "../../types";
 
 // Firebase Imports
-import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, doc, getDoc } from "firebase/firestore";
 import { db, auth } from "../../config/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
@@ -29,6 +30,7 @@ export default function HomeScreen({ navigation }: any) {
 
   const [agendas, setAgendas] = useState<Agenda[]>([]);
   const [beritas, setBeritas] = useState<Berita[]>([]);
+  const [banners, setBanners] = useState<any[]>([]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -68,6 +70,14 @@ export default function HomeScreen({ navigation }: any) {
 
       setAgendas(agendaData.length > 0 ? agendaData : fallbackAgendas);
       setBeritas(beritaData.length > 0 ? beritaData : fallbackBeritas);
+
+      // Fetch Banners
+      const configRef = doc(db, "pengaturan", "mobile_config");
+      const configSnap = await getDoc(configRef);
+      if (configSnap.exists()) {
+        setBanners(configSnap.data().banners || []);
+      }
+
     } catch (error) {
       console.log("Error Fetching Firebase:", error);
       setAgendas(fallbackAgendas);
@@ -213,6 +223,36 @@ export default function HomeScreen({ navigation }: any) {
           />
         }
       >
+        {/* --- BANNERS CAROUSEL --- */}
+        {banners.length > 0 && (
+          <View style={tw`mb-6`}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={tw`px-6 gap-4`}
+            >
+              {banners.map((banner, index) => (
+                <TouchableOpacity
+                  key={banner.id || index.toString()}
+                  style={tw`w-80 h-40 rounded-2xl overflow-hidden bg-gray-200 shadow-sm`}
+                  onPress={() => {
+                    if (banner.link) {
+                      Linking.openURL(banner.link);
+                    }
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <Image
+                    source={{ uri: banner.imageUrl }}
+                    style={tw`w-full h-full`}
+                    resizeMode="cover"
+                  />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         {/* --- MENU AKSES CEPAT --- */}
         <View style={tw`px-6 mb-8 mt-2`}>
           <Text

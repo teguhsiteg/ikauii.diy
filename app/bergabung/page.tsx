@@ -69,12 +69,13 @@ export default function BergabungPage() {
     }
 
     try {
+      const normalizedValue = field === "email" ? value.toLowerCase() : value;
       const pendaftarRef = collection(db, "pendaftar");
       const pengurusRef = collection(db, "pengurus");
 
       const [snapPendaftar, snapPengurus] = await Promise.all([
-        getDocs(query(pendaftarRef, where(field, "==", value))),
-        getDocs(query(pengurusRef, where(field, "==", value))),
+        getDocs(query(pendaftarRef, where(field, "==", normalizedValue))),
+        getDocs(query(pengurusRef, where(field === "noWA" ? "wa" : field, "==", normalizedValue))),
       ]);
 
       if (!snapPendaftar.empty || !snapPengurus.empty) {
@@ -209,20 +210,28 @@ export default function BergabungPage() {
 
       // 2. CEK DUPLIKASI DATA (HANYA DIEKSEKUSI JIKA BUKAN BOT)
       const pendaftarRef = collection(db, "pendaftar");
-      const [cekEmail, cekWA, cekNIM] = await Promise.all([
+      const pengurusRef = collection(db, "pengurus");
+      
+      const [cekEmail, cekWA, cekNIM, cekEmailPengurus, cekWAPengurus, cekNIMPengurus] = await Promise.all([
         getDocs(query(pendaftarRef, where("email", "==", formData.email))),
         getDocs(query(pendaftarRef, where("noWA", "==", formData.noWA))),
         getDocs(query(pendaftarRef, where("nim", "==", formData.nim))),
+        getDocs(query(pengurusRef, where("email", "==", formData.email))),
+        getDocs(query(pengurusRef, where("wa", "==", formData.noWA))),
+        getDocs(query(pengurusRef, where("nim", "==", formData.nim))),
       ]);
 
-      if (!cekEmail.empty || !cekWA.empty || !cekNIM.empty) {
+      if (
+        !cekEmail.empty || !cekWA.empty || !cekNIM.empty ||
+        !cekEmailPengurus.empty || !cekWAPengurus.empty || !cekNIMPengurus.empty
+      ) {
         setIsSubmitting(false);
         return setModal({
           isOpen: true,
           type: "error",
           title: "Data Sudah Digunakan",
           message:
-            "Email, WhatsApp, atau NIM Anda baru saja didaftarkan oleh sesi lain. Silakan periksa kembali.",
+            "Email, WhatsApp, atau NIM Anda sudah terdaftar di sistem. Silakan periksa kembali atau hubungi admin jika ini adalah kesalahan.",
         });
       }
 

@@ -8,7 +8,7 @@ import TabBidang from "./components/TabBidang";
 import TabPengurus from "./components/TabPengurus";
 import TabAnggota from "./components/TabAnggota";
 import TabDPD from "./components/TabDPD";
-import TabDuplikat from "./components/TabDuplikat";
+import TabStatistik from "./components/TabStatistik";
 import TabAnggotaSah from "./components/TabAnggotaSah";
 
 export default function MasterDataPage() {
@@ -20,7 +20,7 @@ export default function MasterDataPage() {
     { id: "pengurus", label: "Personalia Sah" },
     { id: "anggota_baru", label: "Antrean Daftar" },
     { id: "dpd", label: "Jaringan DPD" },
-    { id: "duplikat", label: "Cek Duplikat" },
+    { id: "statistik", label: "Statistik & Laporan" },
     { id: "anggota_sah", label: "Anggota Sah" },
   ];
 
@@ -62,7 +62,7 @@ export default function MasterDataPage() {
         {activeTab === "pengurus" && <TabPengurus />}
         {activeTab === "anggota_baru" && <TabAnggota />}
         {activeTab === "dpd" && <TabDPD />}
-        {activeTab === "duplikat" && <TabDuplikat />}
+        {activeTab === "statistik" && <TabStatistik />}
         {activeTab === "anggota_sah" && <TabAnggotaSah />}
       </div>
     </div>

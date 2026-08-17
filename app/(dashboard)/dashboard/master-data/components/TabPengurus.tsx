@@ -7,6 +7,8 @@ import {
   collection,
   addDoc,
   getDocs,
+  getDoc,
+  setDoc,
   deleteDoc,
   doc,
   updateDoc,
@@ -22,6 +24,7 @@ import {
   IconCheck,
   IconAlert,
   IconEmpty,
+  IconRefresh,
 } from "./Icons";
 
 export default function TabPengurus() {
@@ -181,8 +184,16 @@ export default function TabPengurus() {
       );
     }
     result = [...result].sort((a, b) => {
-      if (sortMode === "abjad")
+      if (sortMode === "Nama-Asc") {
         return (a.nama || "").localeCompare(b.nama || "");
+      } else if (sortMode === "Nama-Desc") {
+        return (b.nama || "").localeCompare(a.nama || "");
+      } else if (sortMode === "Bidang-Asc") {
+        return (a.bidang || "").localeCompare(b.bidang || "");
+      } else if (sortMode === "Bidang-Desc") {
+        return (b.bidang || "").localeCompare(a.bidang || "");
+      }
+      
       const urutA =
         a.noUrut !== undefined && a.noUrut !== "" ? Number(a.noUrut) : 99;
       const urutB =
@@ -245,6 +256,53 @@ export default function TabPengurus() {
       await fetchData();
     } catch (error) {
       showToast("Gagal merubah status.", "error");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRegenerateNIA = async (user: any) => {
+    const finalDomisili = user.domisili;
+    if (!finalDomisili) {
+      showToast("Gagal: Pengurus belum memiliki data Domisili. Silakan Edit terlebih dahulu.", "error");
+      return;
+    }
+    
+    if (!confirm(`Apakah Anda yakin ingin meng-generate ulang NIA untuk ${user.nama}? NIA sebelumnya akan diganti dengan yang baru.`)) return;
+    
+    setIsProcessing(true);
+    try {
+      const counterRef = doc(db, "pengaturan", "counter_nia");
+      const counterSnap = await getDoc(counterRef);
+      let newNumber = 89;
+      if (counterSnap.exists())
+        newNumber = (counterSnap.data().lastNumber || 88) + 1;
+      await setDoc(counterRef, { lastNumber: newNumber }, { merge: true });
+
+      const dateObj = new Date();
+      const yearStr = dateObj.getFullYear().toString().slice(-2);
+      const monthStr = String(dateObj.getMonth() + 1).padStart(2, "0");
+      let kabStr = "00";
+      const dom = finalDomisili.toLowerCase();
+      if (dom.includes("sleman")) kabStr = "04";
+      else if (dom.includes("bantul")) kabStr = "02";
+      else if (dom.includes("gunung")) kabStr = "03";
+      else if (dom.includes("kulon")) kabStr = "01";
+      else if (dom.includes("kota") || dom.includes("yogya")) kabStr = "71";
+
+      const urutStr = String(newNumber).padStart(4, "0");
+      const finalNIA = `${yearStr}.${monthStr}.34.${kabStr}.${urutStr}`;
+
+      await updateDoc(doc(db, "pengurus", user.id), { nia: finalNIA });
+      try {
+        await updateDoc(doc(db, "pendaftar", user.id), { nia: finalNIA });
+      } catch (e) {}
+
+      showToast(`NIA berhasil di-generate ulang: ${finalNIA}`, "success");
+      fetchData();
+    } catch (error) {
+      console.error(error);
+      showToast("Terjadi kesalahan saat me-generate ulang NIA.", "error");
     } finally {
       setIsProcessing(false);
     }
@@ -406,7 +464,7 @@ export default function TabPengurus() {
                               : "ANGGOTA"}
                           </h1>
                           <h2 className="text-[#F29900] font-bold text-[8px] tracking-[0.2em] uppercase">
-                            DPW IKA UII YOGYAKARTA
+                            DPW IKA UII D.I.YOGYAKARTA
                           </h2>
                         </div>
                       </div>
@@ -550,9 +608,25 @@ export default function TabPengurus() {
 
             {/* INFORMASI WHATSAPP & TOMBOL KIRIM */}
             <div className="w-full max-w-[280px] mt-4 bg-white rounded-xl p-3 shadow-md border border-[#DADCE0]">
-              <p className="text-[11px] text-slate-500 font-medium text-center mb-2">
-                Kirim akses KTA ini melalui WhatsApp ke nomor:
-              </p>
+              {(() => {
+                const isComplete = Boolean(
+                  detailModal.data.fotoUrl && detailModal.data.domisili
+                );
+                return (
+                  <>
+                    {!isComplete && (
+                      <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded text-center">
+                        <span className="text-[10px] text-amber-700 font-bold flex items-center justify-center gap-1">
+                          <IconAlert /> Profil Belum Lengkap!
+                        </span>
+                        <p className="text-[9px] text-amber-600 mt-1">
+                          Pesan WA akan berisi "Magic Link" agar anggota melengkapi datanya.
+                        </p>
+                      </div>
+                    )}
+                    <p className="text-[11px] text-slate-500 font-medium text-center mb-2">
+                      Kirim akses KTA ini melalui WhatsApp ke nomor:
+                    </p>
               <div className="flex items-center justify-center gap-2 mb-3 bg-slate-50 py-1.5 rounded-lg border border-slate-100">
                 <svg
                   className="w-4 h-4 text-emerald-600"
@@ -579,11 +653,14 @@ export default function TabPengurus() {
                   disabled={isSendingWA || !detailModal.data.wa}
                   onClick={async () => {
                     setIsSendingWA(true);
+                    const isComplete = Boolean(
+                      detailModal.data.fotoUrl && detailModal.data.domisili
+                    );
                     const success = await triggerWaApi(
                       "send_kta",
                       detailModal.data.wa,
                       detailModal.data.nama,
-                      { userId: detailModal.data.id },
+                      { userId: detailModal.data.id, isComplete },
                     );
                     setIsSendingWA(false);
                     if (success) {
@@ -593,17 +670,25 @@ export default function TabPengurus() {
                       );
                       setDetailModal({ isOpen: false, data: null });
                     } else {
-                      showToast(
-                        "Gagal mengirim WA. Pastikan nomor benar.",
-                        "error",
-                      );
+                      showToast("Gagal mengirim pesan WA.", "error");
                     }
                   }}
-                  className={`flex-1 text-white font-bold text-xs py-2 rounded-lg shadow-sm transition-colors ${!detailModal.data.wa ? "bg-slate-400 cursor-not-allowed" : "bg-[#1E8E3E] hover:bg-[#137333]"}`}
+                  className={`flex-[2] text-white text-xs font-bold py-2 rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5 ${
+                    Boolean(detailModal.data.fotoUrl && detailModal.data.domisili)
+                      ? "bg-[#1E8E3E] hover:bg-[#156E2F]"
+                      : "bg-amber-500 hover:bg-amber-600"
+                  } disabled:opacity-50`}
                 >
-                  {isSendingWA ? "Memproses..." : "Kirim Sekarang"}
+                  {isSendingWA
+                    ? "Mengirim..."
+                    : Boolean(detailModal.data.fotoUrl && detailModal.data.domisili)
+                      ? "Kirim KTA (Selesai)"
+                      : "Kirim Magic Link WA"}
                 </button>
               </div>
+              </>
+            );
+          })()}
             </div>
           </div>
         </div>
@@ -728,11 +813,27 @@ export default function TabPengurus() {
                         }
                       />
                     </th>
-                    <th className="px-4 py-4 font-bold text-[11px] uppercase tracking-wider">
-                      Identitas Profil
+                    <th 
+                      className="px-4 py-4 font-bold text-[11px] uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group"
+                      onClick={() => setSortMode(sortMode === "Nama-Asc" ? "Nama-Desc" : "Nama-Asc")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Identitas Profil
+                        <span className="text-slate-400 group-hover:text-slate-600">
+                          {sortMode === "Nama-Asc" ? "↑" : sortMode === "Nama-Desc" ? "↓" : "↕"}
+                        </span>
+                      </div>
                     </th>
-                    <th className="px-4 py-4 font-bold text-[11px] uppercase tracking-wider">
-                      Penempatan & Domisili
+                    <th 
+                      className="px-4 py-4 font-bold text-[11px] uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group"
+                      onClick={() => setSortMode(sortMode === "Bidang-Asc" ? "Bidang-Desc" : "Bidang-Asc")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Penempatan & Domisili
+                        <span className="text-slate-400 group-hover:text-slate-600">
+                          {sortMode === "Bidang-Asc" ? "↑" : sortMode === "Bidang-Desc" ? "↓" : "↕"}
+                        </span>
+                      </div>
                     </th>
                     <th className="px-4 py-4 font-bold text-[11px] uppercase tracking-wider">
                       Status KTA
@@ -829,6 +930,13 @@ export default function TabPengurus() {
 
                         <td className="px-4 py-4 text-right">
                           <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => handleRegenerateNIA(p)}
+                              className="border border-amber-200 bg-amber-50 text-amber-600 p-1.5 rounded-md hover:bg-amber-100 shadow-sm transition-colors"
+                              title="Reset & Generate Ulang NIA"
+                            >
+                              <IconRefresh />
+                            </button>
                             <button
                               onClick={() => openDetail(p)}
                               className="border border-[#1A73E8] text-[#1A73E8] bg-white px-3 py-1.5 rounded-md text-xs font-bold hover:bg-[#E8F0FE] shadow-sm transition-colors flex items-center gap-1"

@@ -14,9 +14,20 @@ import {
 import { db, auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import Link from "next/link";
+import {
+  Activity,
+  Users,
+  FileText,
+  Calendar,
+  Settings,
+  ChevronRight,
+  TrendingUp,
+  Globe,
+  Award,
+  Zap
+} from "lucide-react";
 
 export default function DashboardPage() {
-  // 1. STATE UNTUK STATISTIK & LOG
   const [stats, setStats] = useState({
     berita: 0,
     agenda: 0,
@@ -25,15 +36,12 @@ export default function DashboardPage() {
   });
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // 2. STATE UNTUK PROFIL HAK AKSES
   const [userProfile, setUserProfile] = useState({
     name: "Memuat...",
-    role: "loading", // super_admin | koordinator | pengurus
+    role: "loading",
     bidang: "",
   });
 
-  // 3. FETCH PROFIL PENGGUNA
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -58,15 +66,12 @@ export default function DashboardPage() {
         }
       }
     });
-
     return () => unsubscribe();
   }, []);
 
-  // 4. FETCH STATISTIK & RECENT ACTIVITY
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // A. Hitung Statistik
         const beritaSnap = await getCountFromServer(collection(db, "berita"));
         const agendaSnap = await getCountFromServer(collection(db, "agenda"));
         const bidangSnap = await getCountFromServer(collection(db, "bidang"));
@@ -81,22 +86,10 @@ export default function DashboardPage() {
           total: beritaCount + agendaCount,
         });
 
-        // B. Tarik Log Aktivitas (Gabungan Berita & Agenda Terbaru)
-        const qBerita = query(
-          collection(db, "berita"),
-          orderBy("createdAt", "desc"),
-          limit(4),
-        );
-        const qAgenda = query(
-          collection(db, "agenda"),
-          orderBy("createdAt", "desc"),
-          limit(4),
-        );
+        const qBerita = query(collection(db, "berita"), orderBy("createdAt", "desc"), limit(4));
+        const qAgenda = query(collection(db, "agenda"), orderBy("createdAt", "desc"), limit(4));
 
-        const [snapB, snapA] = await Promise.all([
-          getDocs(qBerita),
-          getDocs(qAgenda),
-        ]);
+        const [snapB, snapA] = await Promise.all([getDocs(qBerita), getDocs(qAgenda)]);
 
         const dataBerita = snapB.docs.map((d) => ({
           id: d.id,
@@ -114,11 +107,8 @@ export default function DashboardPage() {
           author: d.data().koordinator || "Admin",
         }));
 
-        // Gabungkan, urutkan berdasarkan waktu terbaru, ambil 5 teratas
         const mergedLogs = [...dataBerita, ...dataAgenda]
-          .sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-          )
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
           .slice(0, 5);
 
         setRecentLogs(mergedLogs);
@@ -128,7 +118,6 @@ export default function DashboardPage() {
         setIsLoading(false);
       }
     };
-
     fetchDashboardData();
   }, []);
 
@@ -141,225 +130,183 @@ export default function DashboardPage() {
 
   if (userProfile.role === "loading") {
     return (
-      <div className="h-full min-h-[60vh] flex flex-col items-center justify-center animate-pulse">
-        <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
-        <p className="text-slate-500 font-medium">Menyiapkan Workspace...</p>
+      <div className="h-full min-h-[60vh] flex flex-col items-center justify-center animate-pulse bg-[#F8FAFC]">
+        <div className="relative flex items-center justify-center">
+          <div className="absolute w-16 h-16 border-4 border-slate-200 rounded-full"></div>
+          <div className="absolute w-16 h-16 border-4 border-transparent border-t-blue-600 rounded-full animate-spin"></div>
+        </div>
+        <p className="mt-8 text-slate-500 font-medium tracking-widest text-xs uppercase">Menyiapkan Workspace...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-12 font-sans selection:bg-blue-100 selection:text-blue-900">
-      <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pt-4">
-        {/* --- HEADER --- */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 px-2 md:px-0">
+    <div className="min-h-screen bg-slate-50 pb-12 font-sans relative overflow-hidden">
+      {/* Background Decorators */}
+      <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-blue-600/10 via-indigo-600/5 to-transparent pointer-events-none"></div>
+      <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/20 rounded-full blur-[100px] pointer-events-none"></div>
+      <div className="absolute top-20 -left-20 w-72 h-72 bg-purple-500/20 rounded-full blur-[80px] pointer-events-none"></div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700 pt-8 relative z-10">
+        
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 backdrop-blur-sm bg-white/40 p-6 rounded-3xl border border-white/60 shadow-sm">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight mb-2">
-              Overview Dashboard
-            </h1>
-            <p className="text-slate-500 text-sm md:text-base max-w-2xl">
-              Selamat datang,{" "}
-              <span className="font-semibold text-slate-700">
-                {userProfile.name}
-              </span>
-              .{" "}
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-600/20">
+                <Globe className="w-5 h-5" />
+              </div>
+              <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
+                Overview
+              </h1>
+            </div>
+            <p className="text-slate-600 text-sm md:text-base max-w-2xl leading-relaxed">
+              Selamat datang, <span className="font-bold text-slate-900">{userProfile.name}</span>.{" "}
               {isSuperAdmin
-                ? "Anda memiliki akses penuh (Super Admin) untuk mengelola seluruh sistem."
-                : `Anda login sebagai Koordinator Bidang. Akses Anda terbatas pada pengelolaan program kerja internal.`}
+                ? "Anda memiliki akses Super Admin untuk mengelola seluruh ekosistem."
+                : "Anda login sebagai Koordinator Bidang."}
             </p>
           </div>
 
-          <div className="hidden lg:flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm">
-            <svg
-              className="w-4 h-4 text-slate-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z"
-              />
-            </svg>
-            <span className="text-sm font-medium text-slate-600">
-              {new Date().toLocaleDateString("id-ID", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })}
-            </span>
+          <div className="flex items-center gap-3 bg-white/80 backdrop-blur-md border border-slate-200/60 px-5 py-3 rounded-2xl shadow-sm hover:shadow-md transition-all">
+            <Calendar className="w-5 h-5 text-blue-600" />
+            <div className="flex flex-col">
+              <span className="text-xs text-slate-500 font-medium">Hari ini</span>
+              <span className="text-sm font-bold text-slate-800">
+                {new Date().toLocaleDateString("id-ID", {
+                  weekday: "long", day: "numeric", month: "long", year: "numeric",
+                })}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* --- KARTU STATISTIK (DITAMPILKAN KE SEMUA ROLE) --- */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between group hover:border-slate-300 transition-colors">
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-sm font-medium text-slate-500">
-                Total Berita & Artikel
-              </p>
-              <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
-                  />
-                </svg>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Card 1 */}
+          <div className="bg-white/80 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-500">
+              <FileText className="w-24 h-24" />
+            </div>
+            <div className="flex justify-between items-start mb-6">
+              <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Publikasi Berita</p>
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30">
+                <FileText className="w-6 h-6" />
               </div>
             </div>
             <div className="flex items-baseline gap-3">
-              <h3 className="text-4xl font-bold text-slate-900 tracking-tight">
+              <h3 className="text-5xl font-extrabold text-slate-900 tracking-tighter">
                 {isLoading ? "..." : stats.berita}
               </h3>
-              <span className="flex items-center text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-md">
-                Publikasi
+              <span className="flex items-center text-xs font-bold text-blue-700 bg-blue-100/80 px-2.5 py-1 rounded-lg">
+                Artikel
               </span>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between group hover:border-slate-300 transition-colors">
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-sm font-medium text-slate-500">
-                Agenda Terjadwal
-              </p>
-              <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z"
-                  />
-                </svg>
+          {/* Card 2 */}
+          <div className="bg-white/80 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-500">
+              <Calendar className="w-24 h-24" />
+            </div>
+            <div className="flex justify-between items-start mb-6">
+              <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Agenda Aktif</p>
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-red-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/30">
+                <Calendar className="w-6 h-6" />
               </div>
             </div>
             <div className="flex items-baseline gap-3">
-              <h3 className="text-4xl font-bold text-slate-900 tracking-tight">
+              <h3 className="text-5xl font-extrabold text-slate-900 tracking-tighter">
                 {isLoading ? "..." : stats.agenda}
               </h3>
-              <span className="flex items-center text-xs font-medium text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md">
-                Aktif
+              <span className="flex items-center text-xs font-bold text-orange-700 bg-orange-100/80 px-2.5 py-1 rounded-lg">
+                Kegiatan
               </span>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between group hover:border-slate-300 transition-colors">
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-sm font-medium text-slate-500">
-                Departemen / Bidang
-              </p>
-              <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                  />
-                </svg>
+          {/* Card 3 */}
+          <div className="bg-white/80 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-500">
+              <Users className="w-24 h-24" />
+            </div>
+            <div className="flex justify-between items-start mb-6">
+              <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Departemen</p>
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 text-white flex items-center justify-center shadow-lg shadow-purple-500/30">
+                <Users className="w-6 h-6" />
               </div>
             </div>
             <div className="flex items-baseline gap-3">
-              <h3 className="text-4xl font-bold text-slate-900 tracking-tight">
+              <h3 className="text-5xl font-extrabold text-slate-900 tracking-tighter">
                 {isLoading ? "..." : stats.bidang}
               </h3>
-              <span className="flex items-center text-xs font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
-                Organisasi
+              <span className="flex items-center text-xs font-bold text-purple-700 bg-purple-100/80 px-2.5 py-1 rounded-lg">
+                Bidang
               </span>
             </div>
           </div>
         </div>
 
-        {/* --- MAIN LAYOUT --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* KOLOM KIRI (Distribusi & Aksi Cepat) */}
-          <div className="lg:col-span-7 xl:col-span-8 space-y-6">
-            {/* DISTRIBUSI KONTEN */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8">
-              <div className="flex justify-between items-center mb-8 border-b border-slate-100 pb-4">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900">
-                    Distribusi Konten Publik
-                  </h3>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Volume rilis berita berbanding agenda acara
-                  </p>
+        {/* Main Content Area */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          
+          {/* Left Column: Charts / Distribution */}
+          <div className="xl:col-span-2 space-y-6">
+            <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-slate-200/60 shadow-sm p-8">
+              <div className="flex justify-between items-center mb-8 pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+                    <TrendingUp className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">Distribusi Publikasi</h3>
+                    <p className="text-sm text-slate-500 mt-1">Perbandingan berita vs agenda</p>
+                  </div>
                 </div>
               </div>
 
               {isLoading ? (
-                <div className="h-32 flex items-center justify-center">
-                  <div className="w-6 h-6 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+                <div className="h-40 flex items-center justify-center">
+                  <div className="w-8 h-8 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin"></div>
                 </div>
               ) : stats.total === 0 ? (
-                <div className="h-32 flex flex-col items-center justify-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                  <p className="text-sm font-medium">
-                    Belum ada data metrik tersedia.
-                  </p>
+                <div className="h-40 flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200">
+                  <Activity className="w-8 h-8 text-slate-400 mb-2" />
+                  <p className="text-sm font-bold text-slate-500">Belum ada data metrik</p>
                 </div>
               ) : (
                 <div className="space-y-8 max-w-xl">
-                  <div>
+                  <div className="group">
                     <div className="flex justify-between items-end mb-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
-                        <span className="text-sm font-semibold text-slate-700">
-                          Berita & Artikel
-                        </span>
+                        <div className="w-3 h-3 rounded-full bg-blue-500 shadow-sm shadow-blue-500/50"></div>
+                        <span className="text-sm font-bold text-slate-700">Berita & Artikel</span>
                       </div>
-                      <span className="text-sm font-bold text-slate-900">
-                        {getPercentage(stats.berita)}%{" "}
-                        <span className="text-slate-400 font-medium ml-1">
-                          ({stats.berita})
-                        </span>
+                      <span className="text-sm font-black text-slate-900">
+                        {getPercentage(stats.berita)}% <span className="text-slate-400 font-medium text-xs ml-1">({stats.berita})</span>
                       </span>
                     </div>
-                    <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                    <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden shadow-inner">
                       <div
-                        className="bg-blue-500 h-full rounded-full transition-all duration-1000 ease-out"
+                        className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full transition-all duration-1000 ease-out group-hover:brightness-110"
                         style={{ width: `${getPercentage(stats.berita)}%` }}
                       ></div>
                     </div>
                   </div>
 
-                  <div>
+                  <div className="group">
                     <div className="flex justify-between items-end mb-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-2.5 h-2.5 rounded-full bg-orange-400"></div>
-                        <span className="text-sm font-semibold text-slate-700">
-                          Agenda Kegiatan
-                        </span>
+                        <div className="w-3 h-3 rounded-full bg-orange-400 shadow-sm shadow-orange-400/50"></div>
+                        <span className="text-sm font-bold text-slate-700">Agenda Kegiatan</span>
                       </div>
-                      <span className="text-sm font-bold text-slate-900">
-                        {getPercentage(stats.agenda)}%{" "}
-                        <span className="text-slate-400 font-medium ml-1">
-                          ({stats.agenda})
-                        </span>
+                      <span className="text-sm font-black text-slate-900">
+                        {getPercentage(stats.agenda)}% <span className="text-slate-400 font-medium text-xs ml-1">({stats.agenda})</span>
                       </span>
                     </div>
-                    <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                    <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden shadow-inner">
                       <div
-                        className="bg-orange-400 h-full rounded-full transition-all duration-1000 ease-out"
+                        className="bg-gradient-to-r from-orange-400 to-red-500 h-full rounded-full transition-all duration-1000 ease-out group-hover:brightness-110"
                         style={{ width: `${getPercentage(stats.agenda)}%` }}
                       ></div>
                     </div>
@@ -368,213 +315,115 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* AKSI CEPAT (Hanya Super Admin) */}
+            {/* Quick Actions for Super Admin */}
             {isSuperAdmin && (
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8">
-                <h3 className="text-lg font-bold text-slate-900 mb-6">
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl shadow-xl p-8 relative overflow-hidden">
+                <div className="absolute -right-10 -top-10 w-40 h-40 bg-blue-500/20 blur-3xl rounded-full"></div>
+                
+                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                  <Zap className="w-5 h-5 text-yellow-400" />
                   Manajemen Master Data
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Link
-                    href="/dashboard/pengaturan"
-                    className="flex items-start gap-4 p-4 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 transition-all group"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                      </svg>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Link href="/dashboard/pengaturan" className="flex flex-col p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group">
+                    <div className="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                      <Settings className="w-6 h-6" />
                     </div>
-                    <div>
-                      <h4 className="font-bold text-slate-800 text-sm group-hover:text-blue-700">
-                        Konten Landing Page
-                      </h4>
-                      <p className="text-xs text-slate-500 mt-1 line-clamp-2">
-                        Ubah teks utama, banner, dan pengaturan dasar web
-                        publik.
-                      </p>
-                    </div>
+                    <h4 className="text-base font-bold text-white mb-1">Web Info</h4>
+                    <p className="text-xs text-slate-400">Atur deskripsi & kontak utama.</p>
                   </Link>
 
-                  <Link
-                    href="/dashboard/master-data"
-                    className="flex items-start gap-4 p-4 rounded-xl border border-slate-200 hover:border-purple-300 hover:bg-purple-50/50 transition-all group"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                        />
-                      </svg>
+                  <Link href="/dashboard/master-data" className="flex flex-col p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                      <Users className="w-6 h-6" />
                     </div>
-                    <div>
-                      <h4 className="font-bold text-slate-800 text-sm group-hover:text-purple-700">
-                        Departemen & Bidang
-                      </h4>
-                      <p className="text-xs text-slate-500 mt-1 line-clamp-2">
-                        Kelola daftar bidang untuk keperluan struktur
-                        organisasi.
-                      </p>
+                    <h4 className="text-base font-bold text-white mb-1">Organisasi</h4>
+                    <p className="text-xs text-slate-400">Kelola kepengurusan struktural.</p>
+                  </Link>
+
+                  <Link href="/dashboard/users" className="flex flex-col p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group">
+                    <div className="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                      <Award className="w-6 h-6" />
                     </div>
+                    <h4 className="text-base font-bold text-white mb-1">Akses RBAC</h4>
+                    <p className="text-xs text-slate-400">Atur kewenangan hak akses.</p>
                   </Link>
                 </div>
               </div>
             )}
           </div>
 
-          {/* KOLOM KANAN (Profil & Log Aktivitas) */}
-          <div className="lg:col-span-5 xl:col-span-4 space-y-6">
-            {/* PROFIL CARD */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
-                Profil Akses
-              </h4>
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-lg shadow-inner">
-                  {userProfile.name.charAt(0).toUpperCase()}
+          {/* Right Column: Recent Activity */}
+          <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-slate-200/60 shadow-sm p-8 h-full">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                  <Activity className="w-5 h-5" />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-slate-900 text-sm">
-                    {userProfile.name}
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5 capitalize">
-                    {userProfile.role.replace("_", " ")}
-                  </p>
-                </div>
-              </div>
-              <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">
-                  Area Kerja Internal
-                </p>
-                <p className="text-sm font-medium text-slate-800 mt-0.5 line-clamp-1">
-                  {isSuperAdmin
-                    ? "Semua Akses (Global)"
-                    : userProfile.bidang || "Belum ditentukan"}
-                </p>
+                <h3 className="text-xl font-bold text-slate-900">Aktivitas Terkini</h3>
               </div>
             </div>
 
-            {/* RECENT ACTIVITY LOGS */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h4 className="text-sm font-bold text-slate-900">
-                  Aktivitas Terakhir
-                </h4>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
-                  Live
-                </span>
-              </div>
-
+            <div className="space-y-5">
               {isLoading ? (
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="flex gap-3 animate-pulse">
-                      <div className="w-8 h-8 bg-slate-200 rounded-lg shrink-0"></div>
-                      <div className="w-full space-y-2 py-1">
-                        <div className="h-3 bg-slate-200 rounded w-3/4"></div>
-                        <div className="h-2 bg-slate-100 rounded w-1/2"></div>
-                      </div>
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex gap-4 p-4 rounded-2xl bg-slate-50 animate-pulse">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 shrink-0"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+                      <div className="h-3 bg-slate-200 rounded w-1/2"></div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))
               ) : recentLogs.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-4 border border-dashed border-slate-200 rounded-xl">
-                  Belum ada aktivitas tercatat.
-                </p>
+                <div className="py-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                  <Activity className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+                  <p className="text-sm font-medium text-slate-500">Belum ada aktivitas publikasi</p>
+                </div>
               ) : (
-                <div className="space-y-5 relative before:absolute before:inset-0 before:ml-4 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
-                  {recentLogs.map((log, idx) => (
-                    <div
-                      key={log.id + idx}
-                      className="relative flex items-start gap-4"
-                    >
-                      {/* Icon Indikator Log */}
-                      <div
-                        className={`w-8 h-8 rounded-lg shrink-0 flex items-center justify-center relative z-10 shadow-sm border border-white ${log.type === "Berita" ? "bg-blue-100 text-blue-600" : "bg-orange-100 text-orange-600"}`}
-                      >
-                        {log.type === "Berita" ? (
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
-                            />
-                          </svg>
-                        ) : (
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z"
-                            />
-                          </svg>
-                        )}
-                      </div>
-
-                      {/* Konten Log */}
-                      <div className="flex-1 min-w-0 bg-slate-50 border border-slate-100 rounded-xl p-3 hover:bg-slate-100 transition-colors cursor-default">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span
-                            className={`text-[10px] font-bold uppercase tracking-wider ${log.type === "Berita" ? "text-blue-600" : "text-orange-600"}`}
-                          >
-                            {log.type} Baru
-                          </span>
-                          <span className="text-[10px] text-slate-400">
-                            {new Date(log.date).toLocaleDateString("id-ID", {
-                              day: "numeric",
-                              month: "short",
-                            })}
-                          </span>
-                        </div>
-                        <p className="text-sm font-semibold text-slate-800 line-clamp-1 mb-1">
-                          {log.title}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          Oleh: {log.author}
-                        </p>
+                recentLogs.map((log) => (
+                  <div
+                    key={log.id}
+                    className="flex gap-4 p-4 rounded-2xl border border-transparent hover:border-slate-200 hover:bg-slate-50 transition-all group cursor-pointer"
+                  >
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
+                      log.type === "Berita" ? "bg-blue-100 text-blue-600" : "bg-orange-100 text-orange-600"
+                    }`}>
+                      {log.type === "Berita" ? <FileText className="w-5 h-5" /> : <Calendar className="w-5 h-5" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
+                        {log.title}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-500 font-medium">
+                        <span className={`px-2 py-0.5 rounded-md ${
+                          log.type === "Berita" ? "bg-blue-50 text-blue-700" : "bg-orange-50 text-orange-700"
+                        }`}>
+                          {log.type}
+                        </span>
+                        <span>•</span>
+                        <span>{new Date(log.date).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}</span>
+                        <span>•</span>
+                        <span className="truncate">{log.author}</span>
                       </div>
                     </div>
-                  ))}
-                </div>
+                    <div className="hidden group-hover:flex items-center text-slate-400">
+                      <ChevronRight className="w-5 h-5" />
+                    </div>
+                  </div>
+                ))
               )}
+            </div>
+            
+            <div className="mt-6 pt-6 border-t border-slate-100 text-center">
+              <Link href="/dashboard/berita" className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center justify-center gap-1">
+                Lihat Semua Data <ChevronRight className="w-4 h-4" />
+              </Link>
             </div>
           </div>
         </div>
+        
       </div>
     </div>
   );

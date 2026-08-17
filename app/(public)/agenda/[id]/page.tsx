@@ -57,6 +57,7 @@ export async function generateMetadata({
   };
 }
 
-export default function Page({ params }: { params: Promise<{ id: string }> }) {
-  return <AgendaContent params={params} />;
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  return <AgendaContent id={resolvedParams.id} />;
 }

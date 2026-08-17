@@ -43,8 +43,8 @@ export async function POST(request: Request) {
     const urlObj = new URL(rawFirebaseLink);
     const oobCode = urlObj.searchParams.get("oobCode"); // Ambil kode rahasianya saja
 
-    // Rakit URL murni milik kita sendiri!
-    const directResetLink = `${baseUrl}/reset-password?oobCode=${oobCode}`;
+    // Rakit URL murni milik kita sendiri! (Gunakan encodeURIComponent untuk menghindari masalah karakter khusus)
+    const directResetLink = `${baseUrl}/reset-password?oobCode=${encodeURIComponent(oobCode || "")}`;
     // =========================================================================
 
     // 2. Setup Nodemailer
