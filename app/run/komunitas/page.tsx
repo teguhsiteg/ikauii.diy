@@ -359,7 +359,7 @@ export default function PendaftaranKomunitasPage() {
       const waMessage = `Halo Admin IKA UII DIY, saya ${kapten.nama} telah mendaftarkan Komunitas/Grup *${kapten.komunitas}* dengan total ${participants.length} peserta.\n\nMohon petunjuk untuk pembayaran kolektif sebesar *Rp ${totalBiayaBersih.toLocaleString("id-ID")}*.\n\nTerima kasih.`;
 
       window.open(
-        `https://wa.me/6285179594146?text=${encodeURIComponent(waMessage)}`,
+        `https://wa.me/${process.env.NEXT_PUBLIC_WA_ADMIN_PHONE || "6285179594146"}?text=${encodeURIComponent(waMessage)}`,
         "_blank",
       );
 

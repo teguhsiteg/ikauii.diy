@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { dbAdmin } from "@/lib/firebase-admin";
 
 export async function POST(request: Request) {
   try {
@@ -19,17 +18,17 @@ export async function POST(request: Request) {
     // Asumsi: parameter 'type' isinya "offline" atau "virtual"
     const collectionName =
       type === "offline" ? "offline_participants" : "vr_participants";
-    const participantRef = doc(db, collectionName, id);
-    const participantSnap = await getDoc(participantRef);
+    const participantRef = dbAdmin.collection(collectionName).doc(id);
+    const participantSnap = await participantRef.get();
 
-    if (!participantSnap.exists()) {
+    if (!participantSnap.exists) {
       return NextResponse.json(
         { error: "Data peserta tidak ditemukan di sistem" },
         { status: 404 },
       );
     }
 
-    const participantData = participantSnap.data();
+    const participantData = participantSnap.data()!;
     const actualTagihan = participantData.totalTagihan; // Ini harga asli yang tersimpan di server!
 
     if (!actualTagihan || actualTagihan <= 0) {
@@ -40,18 +39,22 @@ export async function POST(request: Request) {
     }
 
     // 1. Ambil Pengaturan dari Admin Panel (Firebase)
-    const sRef = doc(db, "settings", "virtual_run");
-    const sSnap = await getDoc(sRef);
+    const sRef = dbAdmin.collection("settings").doc("virtual_run");
+    const sSnap = await sRef.get();
 
-    if (!sSnap.exists()) {
+    if (!sSnap.exists) {
       return NextResponse.json(
         { error: "Settings not found" },
         { status: 404 },
       );
     }
 
-    const settings = sSnap.data();
-    const serverKey = settings.midtransServerKey;
+    const settings = sSnap.data()!;
+    let serverKey = settings.midtransServerKey;
+    const secretsSnap = await dbAdmin.collection("secrets").doc("virtual_run").get();
+    if (secretsSnap.exists && secretsSnap.data()?.midtransServerKey) {
+      serverKey = String(secretsSnap.data()!.midtransServerKey);
+    }
 
     if (!serverKey) {
       return NextResponse.json(

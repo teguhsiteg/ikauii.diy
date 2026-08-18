@@ -47,10 +47,20 @@ export async function POST(request: Request) {
           );
         }
 
+        // Server key Midtrans dipisah ke koleksi `secrets` (admin-only),
+        // agar tidak tersimpan di `settings` yang bisa dibaca publik.
+        const { midtransServerKey, ...restSettings } = settings;
+        if (midtransServerKey) {
+          await dbAdmin
+            .collection("secrets")
+            .doc("virtual_run")
+            .set({ midtransServerKey }, { merge: true });
+        }
+
         await dbAdmin
           .collection("settings")
           .doc("virtual_run")
-          .set(settings, { merge: true });
+          .set(restSettings, { merge: true });
 
         return NextResponse.json({ success: true });
       }

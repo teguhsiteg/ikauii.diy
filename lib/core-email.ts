@@ -1,8 +1,4 @@
-import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
-import { rateLimit } from "@/lib/rate-limit";
-
-const emailRateLimiter = rateLimit({ windowMs: 60 * 1000, maxRequests: 10 });
 
 export async function executeSendEmail(body: any) {
   try {
@@ -1130,10 +1126,7 @@ export async function executeSendEmail(body: any) {
         break;
 
       default:
-        return NextResponse.json(
-          { error: "Invalid email type" },
-          { status: 400 },
-        );
+        return { success: false, error: "Invalid email type" };
     }
 
 

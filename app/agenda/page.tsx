@@ -66,20 +66,27 @@ export default function AgendaPage() {
 
       if (!agenda.isComingSoon && agenda.tanggal) {
         const eventDate = new Date(agenda.tanggal);
-        eventDate.setHours(0, 0, 0, 0);
-
-        const diffTime = eventDate.getTime() - today.getTime();
-        diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diffDays > 0) {
-          daysLeftText = `${diffDays} HARI LAGI`;
-        } else if (diffDays === 0) {
-          daysLeftText = "HARI INI";
-          badgeColor = "bg-green-100 text-green-700 animate-pulse";
+        
+        if (!isNaN(eventDate.getTime())) {
+          eventDate.setHours(0, 0, 0, 0);
+  
+          const diffTime = eventDate.getTime() - today.getTime();
+          diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+          if (diffDays > 0) {
+            daysLeftText = `${diffDays} HARI LAGI`;
+          } else if (diffDays === 0) {
+            daysLeftText = "HARI INI";
+            badgeColor = "bg-green-100 text-green-700 animate-pulse";
+          } else {
+            isPast = true;
+            daysLeftText = "SELESAI";
+            badgeColor = "bg-slate-200 text-slate-500 border border-slate-300";
+          }
         } else {
-          isPast = true;
-          daysLeftText = "SELESAI";
-          badgeColor = "bg-slate-200 text-slate-500 border border-slate-300";
+          // Invalid date handling
+          isPast = false;
+          diffDays = -1;
         }
       }
 
@@ -271,15 +278,17 @@ export default function AgendaPage() {
                               d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z"
                             />
                           </svg>
-                          {new Date(featuredAgenda.tanggal).toLocaleDateString(
-                            "id-ID",
-                            {
-                              weekday: "long",
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric",
-                            },
-                          )}{" "}
+                          {!isNaN(new Date(featuredAgenda.tanggal).getTime()) 
+                            ? new Date(featuredAgenda.tanggal).toLocaleDateString(
+                                "id-ID",
+                                {
+                                  weekday: "long",
+                                  day: "numeric",
+                                  month: "long",
+                                  year: "numeric",
+                                },
+                              )
+                            : featuredAgenda.tanggal}{" "}
                           • {featuredAgenda.waktu} WIB
                         </div>
                         <h2 className="text-2xl md:text-4xl font-black text-slate-900 mb-4 leading-tight group-hover:text-[#1A73E8] transition-colors">
@@ -440,7 +449,9 @@ export default function AgendaPage() {
                               <span className="truncate">
                                 {agenda.isComingSoon
                                   ? "Tanggal akan diumumkan"
-                                  : `${new Date(agenda.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })} • ${agenda.waktu} WIB`}
+                                  : (!isNaN(new Date(agenda.tanggal).getTime())
+                                      ? `${new Date(agenda.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })} • ${agenda.waktu} WIB`
+                                      : `${agenda.tanggal} • ${agenda.waktu} WIB`)}
                               </span>
                             </div>
                             <div

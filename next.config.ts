@@ -1,11 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // ⚠️ PERINGATAN: Build errors disembunyikan karena 1026+ lint/TS error.
-  // HARUS dihapus setelah semua TS error diperbaiki bertahap.
-  // Jangan deploy dengan ini selamanya — broken code bisa lolos ke production.
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  // TypeScript type-check TETAP berjalan saat build (ignoreBuildErrors sudah DIHAPUS).
+  // ESLint style rules (no-explicit-any, no-unescaped-entities, dll.) masih banyak
+  // warisan — jalankan manual via `npm run lint`; jangan blokir build.
   eslint: {
     ignoreDuringBuilds: true,
   },

@@ -42,7 +42,7 @@ export default function LandingPage() {
     e.preventDefault();
     if (!formData.name || !formData.message) return;
 
-    const waNumber = "6285179594146";
+    const waNumber = process.env.NEXT_PUBLIC_WA_ADMIN_PHONE || "6285179594146";
     const text = `Halo Admin IKA UII DIY,%0A%0APerkenalkan saya *${formData.name}*.%0A%0A${formData.message}`;
 
     window.open(`https://wa.me/${waNumber}?text=${text}`, "_blank");

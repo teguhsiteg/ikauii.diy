@@ -108,7 +108,7 @@ export default function HomeScreen({ navigation }: any) {
     str ? str.replace(/<[^>]*>?/gm, "") : "";
 
   // 2. Format Tanggal Standar
-  const formatDate = (isoString: string) => {
+  const formatDate = (isoString?: string) => {
     if (!isoString) return "Terbaru";
     const date = new Date(isoString);
     if (isNaN(date.getTime())) return isoString;

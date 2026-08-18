@@ -221,13 +221,29 @@ service cloud.firestore {
         request.auth.token.email == uid ||
         isAdmin()
       );
-      allow create: if isLoggedIn() && request.auth.uid == uid;
+      allow create: if isLoggedIn() && (
+        (
+          request.auth.uid == uid &&
+          (!("role" in request.resource.data) ||
+            request.resource.data.role in ["koordinator", "anggota", "peserta_umum", "pengurus", "calon_pengurus"])
+        ) || isAdmin()
+      );
       allow update: if isLoggedIn() && (
-        request.auth.uid == uid ||
-        request.auth.token.email == uid ||
-        isAdmin()
+        (
+          (request.auth.uid == uid || request.auth.token.email == uid) &&
+          (!("role" in request.resource.data) ||
+            request.resource.data.role in ["koordinator", "anggota", "peserta_umum", "pengurus", "calon_pengurus"])
+        ) || isAdmin()
       );
       allow delete: if isAdmin();
+    }
+
+    // ============================================================
+    // SECRETS — kredensial server (mis. Midtrans server key). ADMIN ONLY.
+    // Tidak boleh public-read. Routes membaca via firebase-admin.
+    // ============================================================
+    match /secrets/{docId} {
+      allow read, write: if isAdmin();
     }
 
     // ============================================================

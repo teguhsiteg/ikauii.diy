@@ -46,7 +46,11 @@ export async function POST(request: Request) {
     }
 
     const settings = settingsSnap.data() || {};
-    const serverKey = settings.midtransServerKey?.trim();
+    let serverKey = settings.midtransServerKey?.trim() || "";
+    const secretsSnap = await dbAdmin.collection("secrets").doc("masterclass").get();
+    if (secretsSnap.exists && secretsSnap.data()?.midtransServerKey) {
+      serverKey = String(secretsSnap.data()!.midtransServerKey).trim();
+    }
     const isProduction = settings.isProduction || false;
 
     if (!serverKey) {

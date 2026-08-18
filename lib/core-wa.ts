@@ -1,8 +1,3 @@
-import { NextResponse } from "next/server";
-import { rateLimit } from "@/lib/rate-limit";
-
-const waRateLimiter = rateLimit({ windowMs: 60 * 1000, maxRequests: 5 });
-
 export async function executeSendWa(body: any) {
   try {
     const { type, phone, nama, detail } = body;
@@ -120,10 +115,7 @@ export async function executeSendWa(body: any) {
         `- Organized by DPW IKA UII DIY -\n` +
         `_Pesan ini dikirim otomatis oleh sistem._`;
     } else {
-      return NextResponse.json(
-        { success: false, error: "Tipe pesan tidak dikenali." },
-        { status: 400 },
-      );
+      return { success: false, error: "Tipe pesan tidak dikenali." };
     }
 
     // 4. Eksekusi Request ke Server Fonnte menggunakan JSON

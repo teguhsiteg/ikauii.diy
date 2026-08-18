@@ -40,7 +40,7 @@ export default function LengkapiProfilPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        let foundData = null;
+        let foundData: any = null;
         let sources = [];
         let isP = false;
 

@@ -158,6 +158,14 @@ export default function PengaturanAdminPage() {
         if (docSnap.exists()) {
           const data = docSnap.data();
 
+          // Server key Midtrans kini di koleksi `secrets` (admin-only) — merge ke state
+          try {
+            const secretSnap = await getDoc(doc(db, "secrets", "virtual_run"));
+            if (secretSnap.exists() && secretSnap.data()?.midtransServerKey) {
+              data.midtransServerKey = secretSnap.data()!.midtransServerKey;
+            }
+          } catch {}
+
           // 🔥 MAP Data Offline agar field rute yang baru tidak error (undefined) di data lama
           const processedOfflinePackages = (
             data.offlinePackages || defaultSettings.offlinePackages

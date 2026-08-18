@@ -45,3 +45,4 @@ node_modules/
 .firebase/
 out/
 build/
+.secret-backup-*.json

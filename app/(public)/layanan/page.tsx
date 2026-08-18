@@ -247,7 +247,7 @@ export default function LayananAlumniPage() {
                   keperluan administrasi dan informasi alumni Anda.
                 </p>
                 <a
-                  href="https://wa.me/6285179594146" // Nomor WA resmi
+                  href={`https://wa.me/${process.env.NEXT_PUBLIC_WA_ADMIN_PHONE || "6285179594146"}`} // Nomor WA resmi
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center justify-center gap-2 w-full px-5 py-3.5 md:py-4 bg-[#FBBC04] hover:bg-[#F9AB00] text-[#202124] rounded-xl text-xs md:text-sm font-bold transition-colors shadow-md"

@@ -33,7 +33,14 @@ export default function TabPengaturan() {
     try {
       const docSnap = await getDoc(doc(db, "settings", "masterclass"));
       if (docSnap.exists()) {
-        setMcSettings({ ...defaultSettings, ...docSnap.data() });
+        const data = docSnap.data();
+        try {
+          const secretSnap = await getDoc(doc(db, "secrets", "masterclass"));
+          if (secretSnap.exists() && secretSnap.data()?.midtransServerKey) {
+            data.midtransServerKey = secretSnap.data()!.midtransServerKey;
+          }
+        } catch {}
+        setMcSettings({ ...defaultSettings, ...data });
       }
     } catch (error) {
       console.error("Gagal memuat pengaturan:", error);
@@ -54,10 +61,18 @@ export default function TabPengaturan() {
     e.preventDefault();
     setIsSaving(true);
     try {
+      const { midtransServerKey, ...restMcSettings } = mcSettings;
       await setDoc(doc(db, "settings", "masterclass"), {
-        ...mcSettings,
+        ...restMcSettings,
         updatedAt: serverTimestamp(),
       });
+      if (midtransServerKey) {
+        await setDoc(
+          doc(db, "secrets", "masterclass"),
+          { midtransServerKey, updatedAt: serverTimestamp() },
+          { merge: true },
+        );
+      }
       setPopup({
         type: "success",
         text: "Konfigurasi LMS berhasil diperbarui.",

@@ -39,7 +39,11 @@ export async function POST(request: Request) {
       .doc("virtual_run")
       .get();
     const settings = settingsSnap.exists ? settingsSnap.data() : {};
-    const serverKey = settings?.midtransServerKey?.trim();
+    let serverKey = settings?.midtransServerKey?.trim() || "";
+    const secretsSnap = await dbAdmin.collection("secrets").doc("virtual_run").get();
+    if (secretsSnap.exists && secretsSnap.data()?.midtransServerKey) {
+      serverKey = String(secretsSnap.data()!.midtransServerKey).trim();
+    }
 
     if (!serverKey) {
       return NextResponse.json(
