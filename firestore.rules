@@ -124,6 +124,7 @@ service cloud.firestore {
     match /berita/{docId}         { allow read: if true; allow write: if isAdmin(); }
     match /pengaturan/{docId}     { allow read: if true; allow write: if isAdmin(); }
     match /invitation_settings/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /invitation_wishes/{docId}   { allow read, create: if true; allow update, delete: if isAdmin(); }
     match /settings/{docId}       { allow read: if true; allow write: if isAdmin(); }
     match /pengurus/{docId}       { allow read: if true; allow write: if isAdmin(); }
     match /dpd/{docId}            { allow read: if true; allow write: if isAdmin(); }

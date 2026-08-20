@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Send, CheckCircle2, MessageSquare, Heart, UserCheck } from 'lucide-react';
-import { GuestInfo, GuestWish, INITIAL_WISHES } from '@/data/eventData';
+import { GuestInfo, GuestWish } from '@/data/eventData';
 import { InvitationSettings } from '@/lib/invitation-settings';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, Timestamp } from 'firebase/firestore';
 
 interface RsvpSectionProps {
   guest: GuestInfo;
@@ -9,53 +11,73 @@ interface RsvpSectionProps {
 }
 
 export const RsvpSection: React.FC<RsvpSectionProps> = ({ guest, dynamicSettings }) => {
-  const [wishes, setWishes] = useState<GuestWish[]>(() => {
-    try {
-      const saved = localStorage.getItem('ika_uii_guest_wishes');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch {
-      // ignore
-    }
-    return INITIAL_WISHES;
-  });
-
+  const [wishes, setWishes] = useState<GuestWish[]>([]);
   const [name, setName] = useState<string>(guest.name || '');
   const [role, setRole] = useState<string>(guest.role || '');
   const [message, setMessage] = useState<string>('');
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  const handleSubmitRsvp = (e: React.FormEvent) => {
+  // Real-time listener for wishes
+  React.useEffect(() => {
+    const q = query(collection(db, 'invitation_wishes'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedWishes: GuestWish[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        // format date from serverTimestamp
+        let timeString = 'Baru saja';
+        if (data.createdAt) {
+          const date = (data.createdAt as Timestamp).toDate();
+          timeString = date.toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        }
+        
+        fetchedWishes.push({
+          id: doc.id,
+          name: data.name || 'Hamba Allah',
+          role: data.role || '',
+          message: data.message || '',
+          timestamp: timeString,
+        });
+      });
+      setWishes(fetchedWishes);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleSubmitRsvp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || isSubmitting) return;
 
-    const newWish: GuestWish = {
-      id: 'wish-' + Date.now(),
-      name: name.trim(),
-      role: role.trim() || undefined,
-      message:
-        message.trim() ||
-        'Selamat atas pelantikan pengurus baru, semoga amanah dan sukses selalu.',
-      timestamp: 'Baru saja',
-    };
-
-    const updated = [newWish, ...wishes];
-    setWishes(updated);
+    setIsSubmitting(true);
     try {
-      localStorage.setItem('ika_uii_guest_wishes', JSON.stringify(updated));
-    } catch {
-      // ignore
+      await addDoc(collection(db, 'invitation_wishes'), {
+        name: name.trim(),
+        role: role.trim() || null,
+        message: message.trim() || 'Selamat atas pelantikan pengurus baru, semoga amanah dan sukses selalu.',
+        createdAt: serverTimestamp(),
+      });
+      
+      setIsSubmitted(true);
+      setTimeout(() => {
+        setName(guest.name || '');
+        setRole(guest.role || '');
+        setMessage('');
+        setIsSubmitted(false);
+      }, 4000);
+    } catch (error) {
+      console.error('Error saving wish:', error);
+      alert('Maaf, terjadi kesalahan saat mengirim ucapan. Silakan coba lagi.');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsSubmitted(true);
-    // Reset form after 3 seconds
-    setTimeout(() => {
-      setName(guest.name || '');
-      setRole(guest.role || '');
-      setMessage('');
-      setIsSubmitted(false);
-    }, 3000);
   };
 
   return (
@@ -128,10 +150,19 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ guest, dynamicSettings
           <button
             id="btn-submit-rsvp"
             type="submit"
-            className="w-full py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#0e2142] border-2 border-amber-500 font-extrabold text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 cursor-pointer transition-colors"
+            disabled={isSubmitting}
+            className={`w-full py-2.5 px-4 rounded-xl text-[#0e2142] border-2 font-extrabold text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 transition-colors ${
+              isSubmitting 
+                ? 'bg-amber-500/50 border-amber-500/50 cursor-not-allowed' 
+                : 'bg-amber-400 hover:bg-amber-300 border-amber-500 cursor-pointer'
+            }`}
           >
-            <Send className="w-4 h-4 text-[#0e2142]" />
-            <span>Kirim Ucapan & Doa</span>
+            {isSubmitting ? (
+              <div className="w-4 h-4 rounded-full border-2 border-[#0e2142] border-t-transparent animate-spin"></div>
+            ) : (
+              <Send className="w-4 h-4 text-[#0e2142]" />
+            )}
+            <span>{isSubmitting ? 'Mengirim...' : 'Kirim Ucapan & Doa'}</span>
           </button>
 
           {isSubmitted && (
