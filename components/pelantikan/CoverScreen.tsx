@@ -135,9 +135,9 @@ export const CoverScreen: React.FC<CoverScreenProps> = ({
           <button
             id="btn-open-invitation"
             onClick={handleOpenInvitation}
-            className="w-full mt-4 py-3.5 px-6 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-sm sm:text-base shadow-[0_0_15px_rgba(251,191,36,0.6)] flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95 animate-pulse"
+            className="w-full mt-4 py-3.5 px-6 rounded-xl bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:from-yellow-300 hover:to-amber-300 text-blue-950 font-black text-sm sm:text-base shadow-[0_0_20px_rgba(251,191,36,0.8)] border border-yellow-200 flex items-center justify-center gap-2 transition-all hover:scale-[1.03] active:scale-95 animate-pulse hover:animate-none"
           >
-            <MailOpen className="w-5 h-5 text-slate-950" />
+            <MailOpen className="w-5 h-5 text-blue-950" />
             <span>BUKA UNDANGAN DIGITAL</span>
           </button>
         </div>

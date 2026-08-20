@@ -240,13 +240,26 @@ export default function AgendaPage() {
                     <div className="flex flex-col md:flex-row">
                       <div className="md:w-1/2 aspect-[4/3] md:aspect-auto relative overflow-hidden bg-slate-100">
                         {featuredAgenda.imgUrl || featuredAgenda.posterUrl ? (
-                          <img
-                            src={
-                              featuredAgenda.imgUrl || featuredAgenda.posterUrl
-                            }
-                            alt={featuredAgenda.judul}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                          />
+                          (() => {
+                            const url = featuredAgenda.imgUrl || featuredAgenda.posterUrl;
+                            const isRawVideo = url.match(/\.(mp4|webm|ogg)$/i) || url.includes('/video/upload/');
+                            return isRawVideo ? (
+                              <video
+                                src={url}
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                              />
+                            ) : (
+                              <img
+                                src={url}
+                                alt={featuredAgenda.judul}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                              />
+                            );
+                          })()
                         ) : (
                           <div className="absolute inset-0 flex items-center justify-center opacity-20">
                             <img
@@ -373,17 +386,31 @@ export default function AgendaPage() {
                       >
                         <div className="w-full aspect-[4/3] rounded-[16px] overflow-hidden bg-slate-100 relative shrink-0">
                           {hasImage ? (
-                            <img
-                              src={hasImage}
-                              onError={(e) => {
-                                e.currentTarget.src = "/logo-dpp-ika.png";
-                                e.currentTarget.className =
-                                  "w-1/2 h-1/2 object-contain m-auto opacity-30";
-                              }}
-                              alt={agenda.judul}
-                              className={`w-full h-full object-cover transition-transform duration-700 ${agenda.isPast ? "grayscale-[0.5] group-hover:grayscale-0" : "group-hover:scale-105"}`}
-                              loading="lazy"
-                            />
+                            (() => {
+                              const isRawVideo = hasImage.match(/\.(mp4|webm|ogg)$/i) || hasImage.includes('/video/upload/');
+                              return isRawVideo ? (
+                                <video
+                                  src={hasImage}
+                                  autoPlay
+                                  loop
+                                  muted
+                                  playsInline
+                                  className={`w-full h-full object-cover transition-transform duration-700 ${agenda.isPast ? "grayscale-[0.5] group-hover:grayscale-0" : "group-hover:scale-105"}`}
+                                />
+                              ) : (
+                                <img
+                                  src={hasImage}
+                                  onError={(e) => {
+                                    e.currentTarget.src = "/logo-dpp-ika.png";
+                                    e.currentTarget.className =
+                                      "w-1/2 h-1/2 object-contain m-auto opacity-30";
+                                  }}
+                                  alt={agenda.judul}
+                                  className={`w-full h-full object-cover transition-transform duration-700 ${agenda.isPast ? "grayscale-[0.5] group-hover:grayscale-0" : "group-hover:scale-105"}`}
+                                  loading="lazy"
+                                />
+                              );
+                            })()
                           ) : (
                             <div className="w-full h-full flex items-center justify-center bg-blue-50/50">
                               <img

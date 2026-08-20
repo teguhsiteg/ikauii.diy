@@ -3,12 +3,22 @@ import { Calendar, MapPin, ShieldCheck } from 'lucide-react';
 import { GuestInfo } from '@/data/eventData';
 import { EVENT_DETAILS } from '@/data/eventData';
 import { UiiLogoBadge, BatikCorner, GununganWayang, JogloSilhouette } from './HeaderDecorations';
+import { motion } from 'motion/react';
 import { CountdownTimer } from './CountdownTimer';
 import { RundownSection } from './RundownSection';
 import { LocationSection } from './LocationSection';
 import { RsvpSection } from './RsvpSection';
 
 import { InvitationSettings } from '@/lib/invitation-settings';
+
+const fadeUpVariant = {
+  hidden: { opacity: 0, y: 40 },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } 
+  }
+};
 
 interface MainInvitationProps {
   guest: GuestInfo;
@@ -30,7 +40,13 @@ export const MainInvitation: React.FC<MainInvitationProps> = ({ guest, onBackToC
       {/* Main Container */}
       <main className="max-w-4xl mx-auto px-4 pt-6 sm:pt-10">
         {/* Hero Card Section */}
-        <section className="relative rounded-3xl bg-gradient-to-b from-[#0e2142] via-[#091730] to-[#050e1e] border-2 border-amber-400/40 p-6 sm:p-10 shadow-2xl text-center overflow-hidden mb-8">
+        <motion.section 
+          variants={fadeUpVariant}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
+          className="relative rounded-3xl bg-gradient-to-b from-[#0e2142] via-[#091730] to-[#050e1e] border-2 border-amber-400/40 p-6 sm:p-10 shadow-2xl text-center overflow-hidden mb-8"
+        >
           <BatikCorner position="tl" className="absolute top-0 left-0" />
           <BatikCorner position="tr" className="absolute top-0 right-0" />
           <BatikCorner position="bl" className="absolute bottom-0 left-0" />
@@ -171,27 +187,35 @@ export const MainInvitation: React.FC<MainInvitationProps> = ({ guest, onBackToC
           <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-48 h-48 opacity-20 pointer-events-none flex justify-center z-0">
              <GununganWayang className="w-full h-full" />
           </div>
-        </section>
+        </motion.section>
 
         {/* Section 1: Countdown Timer */}
         {dynamicSettings.targetDateTime && dynamicSettings.targetDateTime.trim() !== '' && (
-          <CountdownTimer targetDateTime={dynamicSettings.targetDateTime} />
+          <motion.div variants={fadeUpVariant} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }}>
+            <CountdownTimer targetDateTime={dynamicSettings.targetDateTime} />
+          </motion.div>
         )}
 
         {/* Section 2: Susunan Acara (Rundown) */}
         {dynamicSettings.rundown && dynamicSettings.rundown.length > 0 && (
-          <RundownSection rundown={dynamicSettings.rundown} />
+          <motion.div variants={fadeUpVariant} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }}>
+            <RundownSection rundown={dynamicSettings.rundown} />
+          </motion.div>
         )}
 
         {/* Section 3: Lokasi & Peta */}
-        <LocationSection dynamicSettings={dynamicSettings} />
+        <motion.div variants={fadeUpVariant} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }}>
+          <LocationSection dynamicSettings={dynamicSettings} />
+        </motion.div>
 
         {/* Section 4: RSVP & Guestbook */}
-        <RsvpSection guest={guest} dynamicSettings={dynamicSettings} />
+        <motion.div variants={fadeUpVariant} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }}>
+          <RsvpSection guest={guest} dynamicSettings={dynamicSettings} />
+        </motion.div>
 
         {/* Section 5: Gallery / Media */}
         {dynamicSettings.mediaUrls && dynamicSettings.mediaUrls.length > 0 && (
-          <section className="w-full max-w-3xl mx-auto my-8 px-4">
+          <motion.section variants={fadeUpVariant} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="w-full max-w-3xl mx-auto my-8 px-4">
             <div className="relative rounded-2xl bg-gradient-to-b from-[#0e2142]/90 to-[#081326]/95 border border-amber-400/50 p-5 sm:p-8 shadow-xl backdrop-blur-md">
               <div className="text-center mb-6">
                 <h2 className="font-cinzel text-xl sm:text-2xl font-bold gold-gradient-text tracking-wide">
@@ -227,11 +251,11 @@ export const MainInvitation: React.FC<MainInvitationProps> = ({ guest, onBackToC
                 })}
               </div>
             </div>
-          </section>
+          </motion.section>
         )}
 
         {/* Official Closing Statement */}
-        <section className="my-10 text-center space-y-4 max-w-2xl mx-auto px-4">
+        <motion.section variants={fadeUpVariant} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="my-10 text-center space-y-4 max-w-2xl mx-auto px-4">
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
             Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan hadir serta memberikan doa restu kepada jajaran pengurus DPW IKA UII DIY.
           </p>
@@ -251,7 +275,7 @@ export const MainInvitation: React.FC<MainInvitationProps> = ({ guest, onBackToC
             </p>
             
           </div>
-        </section>
+        </motion.section>
       </main>
 
 

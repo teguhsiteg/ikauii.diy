@@ -988,17 +988,31 @@ export default function LandingPage() {
                     >
                       <div className="w-full aspect-[4/3] rounded-[16px] md:rounded-[20px] overflow-hidden bg-white relative shrink-0">
                         {hasImage ? (
-                          <img
-                            src={hasImage}
-                            onError={(e) => {
-                              e.currentTarget.src = "/logo-dpp-ika.png";
-                              e.currentTarget.className =
-                                "w-1/2 h-1/2 object-contain m-auto opacity-30";
-                            }}
-                            alt={agenda.judul}
-                            className={`w-full h-full object-cover transition-transform duration-700 ${isPast ? "" : "group-hover:scale-105"}`}
-                            loading="lazy"
-                          />
+                          (() => {
+                            const isRawVideo = hasImage.match(/\.(mp4|webm|ogg)$/i) || hasImage.includes('/video/upload/');
+                            return isRawVideo ? (
+                              <video
+                                src={hasImage}
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                className={`w-full h-full object-cover transition-transform duration-700 ${isPast ? "" : "group-hover:scale-105"}`}
+                              />
+                            ) : (
+                              <img
+                                src={hasImage}
+                                onError={(e) => {
+                                  e.currentTarget.src = "/logo-dpp-ika.png";
+                                  e.currentTarget.className =
+                                    "w-1/2 h-1/2 object-contain m-auto opacity-30";
+                                }}
+                                alt={agenda.judul}
+                                className={`w-full h-full object-cover transition-transform duration-700 ${isPast ? "" : "group-hover:scale-105"}`}
+                                loading="lazy"
+                              />
+                            );
+                          })()
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-blue-50/50">
                             <img

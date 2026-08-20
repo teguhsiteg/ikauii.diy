@@ -921,11 +921,26 @@ export default function DetailAgendaPage({ id }: { id: string }) {
             <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex justify-center relative">
               <div className="aspect-[4/5] w-full max-w-lg rounded-2xl overflow-hidden bg-slate-50 relative border border-slate-100 shadow-inner">
                 {agenda.imgUrl || agenda.posterUrl ? (
-                  <img
-                    src={agenda.imgUrl || agenda.posterUrl}
-                    alt="Poster Agenda"
-                    className={`w-full h-full object-cover transition-all ${isPastEvent ? "grayscale" : ""}`}
-                  />
+                  (() => {
+                    const url = agenda.imgUrl || agenda.posterUrl;
+                    const isRawVideo = url.match(/\.(mp4|webm|ogg)$/i) || url.includes('/video/upload/');
+                    return isRawVideo ? (
+                      <video
+                        src={url}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className={`w-full h-full object-cover transition-all ${isPastEvent ? "grayscale" : ""}`}
+                      />
+                    ) : (
+                      <img
+                        src={url}
+                        alt="Poster Agenda"
+                        className={`w-full h-full object-cover transition-all ${isPastEvent ? "grayscale" : ""}`}
+                      />
+                    );
+                  })()
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center opacity-30">
                     <img
