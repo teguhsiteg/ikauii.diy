@@ -104,7 +104,7 @@ export default function DoorprizeScreenPage() {
   useEffect(() => {
     const fetchParticipants = async () => {
       try {
-        let pList: { name: string; bib: string }[] = [];
+        const pList: { name: string; bib: string }[] = [];
 
         // Ambil Data Offline
         const snapOff = await getDocs(collection(db, "offline_participants"));
@@ -125,7 +125,7 @@ export default function DoorprizeScreenPage() {
         });
 
         if (pList.length > 0) setPoolData(pList);
-      } catch (error) {
+      } catch {
         console.error("Gagal load data peserta");
       }
     };
@@ -250,7 +250,8 @@ export default function DoorprizeScreenPage() {
             </p>
           </div>
         </div>
-      )}      {/* --- MODE 3: WINNER --- */}
+      )}
+      {/* --- MODE 3: WINNER --- */}
       {signal.action === "winner" && (
         <div className="relative z-10 flex flex-col items-center w-full max-w-7xl px-4 animate-in fade-in zoom-in-95 duration-500">
           

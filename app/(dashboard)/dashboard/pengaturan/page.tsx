@@ -334,7 +334,7 @@ export default function PengaturanWebPage() {
         text: "Pengaturan Utama berhasil disimpan!",
       });
       setTimeout(() => setMessage({ type: "", text: "" }), 3000);
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "Gagal menyimpan data." });
     } finally {
       setIsSavingLanding(false);
@@ -360,7 +360,7 @@ export default function PengaturanWebPage() {
         koordinator: "",
       });
       setTimeout(() => setMessage({ type: "", text: "" }), 3000);
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "Gagal menerbitkan berita." });
     } finally {
       setIsSavingBerita(false);
@@ -373,7 +373,7 @@ export default function PengaturanWebPage() {
     setMessage({ type: "", text: "" });
 
     try {
-      let sourceText = agendaData.slug ? agendaData.slug : agendaData.judul;
+      const sourceText = agendaData.slug ? agendaData.slug : agendaData.judul;
       let customSlug = sourceText
         .toLowerCase()
         .replace(/[^a-z0-9\s-]/g, "")
@@ -433,7 +433,7 @@ export default function PengaturanWebPage() {
       setMessage({ type: "success", text: "Foto Galeri berhasil diunggah!" });
       setGaleriData({ judul: "", tanggal: "", imgUrl: "" });
       setTimeout(() => setMessage({ type: "", text: "" }), 3000);
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "Gagal mengunggah galeri." });
     } finally {
       setIsSavingGaleri(false);
@@ -1081,7 +1081,7 @@ export default function PengaturanWebPage() {
                         htmlFor="isComingSoon"
                         className="text-xs font-bold text-amber-800 cursor-pointer select-none"
                       >
-                        Tandai sebagai "Coming Soon" (Waktu & Tanggal
+                        Tandai sebagai &quot;Coming Soon&quot; (Waktu & Tanggal
                         dirahasiakan)
                       </label>
                     </div>

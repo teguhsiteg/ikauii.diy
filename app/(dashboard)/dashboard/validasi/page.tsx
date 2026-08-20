@@ -301,7 +301,7 @@ export default function ValidasiAdminPage() {
           ),
         300,
       );
-    } catch (error) {
+    } catch {
       setTimeout(
         () => showAlert("Gagal", "Gagal membuat QR Code. Silakan coba lagi."),
         300,
@@ -317,7 +317,7 @@ export default function ValidasiAdminPage() {
     const pngUrl = canvas
       .toDataURL("image/png")
       .replace("image/png", "image/octet-stream");
-    let link = document.createElement("a");
+    const link = document.createElement("a");
     link.href = pngUrl;
     link.download = `QR_TTD_${nomor.replace(/[^a-zA-Z0-9]/g, "_")}.png`;
     document.body.appendChild(link);

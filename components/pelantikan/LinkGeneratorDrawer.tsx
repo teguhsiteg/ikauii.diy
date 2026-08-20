@@ -11,7 +11,6 @@ import {
   Building,
   Users,
   ExternalLink,
-  Sliders,
 } from 'lucide-react';
 import { PRESET_VIP_GUESTS, MUSIC_PRESETS } from '@/data/eventData';
 import {
@@ -58,15 +57,13 @@ export const LinkGeneratorDrawer: React.FC<LinkGeneratorDrawerProps> = ({
   const generatedUrl = generateInvitationUrl(
     name,
     role,
-    category,
-    customAudioUrl || undefined
+    category
   );
   const waShareText = generateWhatsAppShareText(name, role, generatedUrl);
   const embedCode = generateEmbedIframeCode(
     name,
     role,
-    category,
-    customAudioUrl || undefined
+    category
   );
 
   const handleCopyLink = () => {
@@ -357,7 +354,7 @@ export const LinkGeneratorDrawer: React.FC<LinkGeneratorDrawerProps> = ({
                   <strong className="text-slate-300">WordPress / CMS:</strong> Buat laman baru (e.g. <code>/pelantikan-2026</code>), lalu tambahkan blok <em>Custom HTML</em> dan tempel kode di atas.
                 </li>
                 <li>
-                  <strong className="text-slate-300">Responsif:</strong> Atribut <code>width="100%"</code> memastikan tampilan pas di laptop maupun layar ponsel.
+                  <strong className="text-slate-300">Responsif:</strong> Atribut <code>width=&quot;100%&quot;</code> memastikan tampilan pas di laptop maupun layar ponsel.
                 </li>
                 <li>
                   <strong className="text-slate-300">Parameter Dinamis:</strong> Jika website utama memiliki query parameter tamu, Anda dapat meneruskannya ke atribut <code>src</code>.

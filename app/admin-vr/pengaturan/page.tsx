@@ -45,7 +45,7 @@ async function callVrAdminApi(action: string, payload: Record<string, unknown>) 
 }
 
 export default function PengaturanAdminPage() {
-  const [adminUser, setAdminUser] = useState<any>(null);
+  const [, setAdminUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("virtual");
 
   const defaultSettings = {
@@ -186,7 +186,7 @@ export default function PengaturanAdminPage() {
         setPromoCodes(
           promoSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
         );
-      } catch (error) {
+      } catch {
       } finally {
         setIsLoading(false);
       }

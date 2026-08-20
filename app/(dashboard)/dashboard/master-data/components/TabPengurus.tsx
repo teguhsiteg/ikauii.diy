@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, } from "react";
 import { db } from "@/lib/firebase";
 import { sendWaAction } from "@/app/actions/wa";
 import {
@@ -114,7 +114,7 @@ export default function TabPengurus() {
         detail: detailData,
       });
       return data.success;
-    } catch (error) {
+    } catch {
       return false;
     }
   };
@@ -155,7 +155,7 @@ export default function TabPengurus() {
       );
 
       setPengurusList(sah);
-    } catch (error) {
+    } catch {
       showToast("Gagal memuat data personalia.", "error");
     } finally {
       setIsLoading(false);
@@ -234,7 +234,7 @@ export default function TabPengurus() {
       setEditId(null);
       await fetchData();
       setView("list");
-    } catch (error) {
+    } catch {
       showToast("Gagal menyimpan data.", "error");
     } finally {
       setIsProcessing(false);
@@ -254,7 +254,7 @@ export default function TabPengurus() {
       });
       showToast(`Status Pengurus ${nama} dicabut.`, "success");
       await fetchData();
-    } catch (error) {
+    } catch {
       showToast("Gagal merubah status.", "error");
     } finally {
       setIsProcessing(false);
@@ -296,7 +296,7 @@ export default function TabPengurus() {
       await updateDoc(doc(db, "pengurus", user.id), { nia: finalNIA });
       try {
         await updateDoc(doc(db, "pendaftar", user.id), { nia: finalNIA });
-      } catch (e) {}
+      } catch {}
 
       showToast(`NIA berhasil di-generate ulang: ${finalNIA}`, "success");
       fetchData();
@@ -320,7 +320,7 @@ export default function TabPengurus() {
       }
       showToast("Data dihapus permanen.", "success");
       await fetchData();
-    } catch (error) {
+    } catch {
       showToast("Gagal menghapus data.", "error");
     } finally {
       setIsProcessing(false);
@@ -620,7 +620,7 @@ export default function TabPengurus() {
                           <IconAlert /> Profil Belum Lengkap!
                         </span>
                         <p className="text-[9px] text-amber-600 mt-1">
-                          Pesan WA akan berisi "Magic Link" agar anggota melengkapi datanya.
+                          Pesan WA akan berisi &quot;Magic Link&quot; agar anggota melengkapi datanya.
                         </p>
                       </div>
                     )}
@@ -854,7 +854,7 @@ export default function TabPengurus() {
                       </td>
                     </tr>
                   ) : (
-                    filteredData.map((p, i) => (
+                    filteredData.map((p, _i) => (
                       <tr
                         key={p.id}
                         className={`transition-colors ${selectedIds.includes(p.id) ? "bg-[#E8F0FE]" : "hover:bg-[#F8F9FA]"}`}

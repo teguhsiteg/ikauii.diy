@@ -299,7 +299,7 @@ export default function DirektoriBisnisPage() {
         fotoUrl: "",
       });
       setUploadProgress("");
-    } catch (error) {
+    } catch {
       showDialog(
         "error",
         "Kesalahan Sistem",

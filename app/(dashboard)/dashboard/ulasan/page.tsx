@@ -22,9 +22,9 @@ export default function AdminUlasanPage() {
     "Pending",
   );
   const [searchQuery, setSearchQuery] = useState("");
-  const [itemsPerPage, setItemsPerPage] = useState<number | "Semua">(10);
+  const [itemsPerPage] = useState<number | "Semua">(10);
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [, setSelectedIds] = useState<string[]>([]);
 
   // Dialog & Toast State
   const [toast, setToast] = useState({
@@ -95,10 +95,6 @@ export default function AdminUlasanPage() {
     setCurrentPage(1);
   }, [activeTab, searchQuery, itemsPerPage]);
 
-  const totalPages =
-    itemsPerPage === "Semua"
-      ? 1
-      : Math.ceil(filteredData.length / itemsPerPage);
   const currentData = useMemo(() => {
     if (itemsPerPage === "Semua") return filteredData;
     const start = (currentPage - 1) * itemsPerPage;
@@ -115,7 +111,7 @@ export default function AdminUlasanPage() {
       await updateDoc(doc(db, "feedbacks", id), { status: newStatus });
       fetchFeedbacks();
       showToast(`Status ulasan berhasil diubah menjadi ${newStatus}.`);
-    } catch (error) {
+    } catch {
       showToast("Gagal mengubah status.", "error");
     } finally {
       setIsProcessing(false);
@@ -133,7 +129,7 @@ export default function AdminUlasanPage() {
           await deleteDoc(doc(db, "feedbacks", id));
           fetchFeedbacks();
           showToast("Ulasan berhasil dihapus.");
-        } catch (error) {
+        } catch {
           showToast("Gagal menghapus ulasan.", "error");
         } finally {
           setIsProcessing(false);
@@ -308,7 +304,7 @@ export default function AdminUlasanPage() {
                         <td className="px-6 py-4 align-top">
                           <div className="mb-2">{renderStars(f.rating)}</div>
                           <p className="text-sm text-[#202124] leading-relaxed italic bg-slate-50 border border-slate-100 p-3 rounded-lg">
-                            "{f.ulasan}"
+                            &quot;{f.ulasan}&quot;
                           </p>
                         </td>
                         <td className="px-6 py-4 text-center align-top whitespace-nowrap">

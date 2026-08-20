@@ -153,8 +153,8 @@ export default function MasterclassRegisterPage() {
                 </span>
               </div>
               <p className="text-xs text-slate-300 italic mb-4 leading-relaxed">
-                "Platform belajar yang sangat terstruktur. Sangat membantu saya
-                dalam *upskilling* di dunia kerja nyata."
+                &quot;Platform belajar yang sangat terstruktur. Sangat membantu saya
+                dalam *upskilling* di dunia kerja nyata.&quot;
               </p>
               <div className="flex items-center gap-3">
                 <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-[10px] font-bold text-white">

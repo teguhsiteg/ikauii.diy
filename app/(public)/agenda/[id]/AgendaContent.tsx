@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import { toast } from "@/lib/toast";
 import { db } from "@/lib/firebase";
@@ -100,9 +101,9 @@ export default function DetailAgendaPage({ id }: { id: string }) {
   const handlePointerDown = (e: React.MouseEvent | React.TouchEvent) => {
     if (!userPhoto) return;
     setIsDragging(true);
-    // @ts-ignore
+    // @ts-expect-error - see below
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    // @ts-ignore
+    // @ts-expect-error - see below
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     setDragStart({ x: clientX, y: clientY });
   };
@@ -111,9 +112,9 @@ export default function DetailAgendaPage({ id }: { id: string }) {
     if (!isDragging || !canvasRef.current) return;
     e.preventDefault();
 
-    // @ts-ignore
+    // @ts-expect-error - see below
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    // @ts-ignore
+    // @ts-expect-error - see below
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
     const rect = canvasRef.current.getBoundingClientRect();
@@ -299,7 +300,7 @@ export default function DetailAgendaPage({ id }: { id: string }) {
         waktu: new Date().toISOString(),
       });
       setDonasiStep(2);
-    } catch (error) {
+    } catch {
       toast.error("Terjadi kesalahan, silakan coba lagi.");
     } finally {
       setIsSubmittingDonasi(false);
@@ -407,7 +408,7 @@ export default function DetailAgendaPage({ id }: { id: string }) {
         },
       }).catch((err) => console.warn("Email notifikasi gagal:", err));
 
-    } catch (error) {
+    } catch {
       toast.error("Terjadi kesalahan sistem. Silakan coba lagi.");
     } finally {
       setIsSubmitting(false);
@@ -428,9 +429,9 @@ export default function DetailAgendaPage({ id }: { id: string }) {
         <h2 className="text-2xl font-black text-blue-950">
           Agenda Tidak Ditemukan
         </h2>
-        <a href="/#agenda" className="text-blue-600 font-bold hover:underline">
+        <Link href="/#agenda" className="text-blue-600 font-bold hover:underline">
           &larr; Kembali ke Beranda
-        </a>
+        </Link>
       </div>
     );
   }
@@ -878,12 +879,12 @@ export default function DetailAgendaPage({ id }: { id: string }) {
       {/* HEADER AGENDA */}
       <div className="bg-blue-950 pt-32 pb-12">
         <div className="max-w-7xl mx-auto px-6">
-          <a
+          <Link
             href="/#agenda"
             className="text-yellow-400 text-sm font-bold flex items-center gap-2 mb-6 hover:text-yellow-300 w-fit transition-colors"
           >
             &larr; Kembali ke Daftar Agenda
-          </a>
+          </Link>
           <h1 className="text-3xl md:text-5xl font-black text-white leading-tight mb-4">
             {agenda.judul}
           </h1>

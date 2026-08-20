@@ -213,7 +213,7 @@ export default function AdminMobilePage() {
         </div>
 
         <div className="space-y-4">
-          {config.banners.map((banner, index) => (
+          {config.banners.map((banner) => (
             <div key={banner.id} className="border border-slate-200 rounded-xl p-4 flex gap-4 bg-slate-50 relative">
               <div className="flex-1 space-y-3">
                 <div>

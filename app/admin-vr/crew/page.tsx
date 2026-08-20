@@ -295,7 +295,7 @@ export default function CrewManagementPage() {
 
   // Email State
   const [isSendingMail, setIsSendingMail] = useState(false);
-  const [emailProgress, setEmailProgress] = useState<{
+  const [, setEmailProgress] = useState<{
     total: number;
     sent: number;
     failed: number;
@@ -475,7 +475,7 @@ export default function CrewManagementPage() {
       await deleteDoc(doc(db, "oprec_master", id));
       setEvents(events.filter((e) => e.id !== id));
       showNotif("success", "Event berhasil dihapus.");
-    } catch (e) {
+    } catch {
       showNotif("error", "Gagal menghapus event.");
     }
   };
@@ -623,7 +623,7 @@ export default function CrewManagementPage() {
       });
       await batch.commit();
       showNotif("success", "Pengaturan kepanitiaan berhasil disimpan.");
-    } catch (error) {
+    } catch {
       showNotif("error", "Gagal menyimpan pengaturan.");
     } finally {
       setIsSaving(false);
@@ -717,7 +717,7 @@ export default function CrewManagementPage() {
           setSelectedRejected(
             selectedRejected.filter((id) => id !== selectedCrew.id),
           );
-        } catch (e) {
+        } catch {
           showNotif("error", "Gagal memperbarui status.");
         }
       },
@@ -738,7 +738,7 @@ export default function CrewManagementPage() {
       );
       showNotif("success", "Posisi divisi berhasil diperbarui.");
       setIsDetailOpen(false);
-    } catch (e) {
+    } catch {
       showNotif("error", "Gagal memperbarui posisi.");
     }
   };
@@ -754,7 +754,7 @@ export default function CrewManagementPage() {
       showNotif("success", "Data pelamar berhasil diperbarui!");
       setSelectedCrew({ ...selectedCrew, ...editFormData });
       setIsEditingData(false);
-    } catch (e) {
+    } catch {
       showNotif("error", "Gagal menyimpan perubahan data.");
     }
   };
@@ -810,7 +810,7 @@ export default function CrewManagementPage() {
           setSelectedPending([]);
           setSelectedRejected([]);
           showNotif("success", "Status massal diperbarui.");
-        } catch (err) {
+        } catch {
           showNotif("error", "Gagal memproses pembaruan massal.");
         }
       },
@@ -863,7 +863,7 @@ export default function CrewManagementPage() {
         setSelectedRejected([]);
         showNotif("success", "Pelamar terpilih berhasil ditolak.");
       }
-    } catch (e) {
+    } catch {
       showNotif("error", "Gagal menyimpan penolakan.");
     } finally {
       setRejectModalOpen(false);
@@ -892,7 +892,7 @@ export default function CrewManagementPage() {
       else setSelectedRejected([]);
 
       showNotif("success", "Data dihapus secara permanen.");
-    } catch (err) {
+    } catch {
       showNotif("error", "Gagal menghapus data.");
     }
   };
@@ -937,7 +937,7 @@ export default function CrewManagementPage() {
       } else {
         showNotif("error", "Gagal mengirim undangan.");
       }
-    } catch (e: any) {
+    } catch {
       showNotif("error", "Error sistem.");
     } finally {
       setIsSendingMail(false);
@@ -969,7 +969,7 @@ export default function CrewManagementPage() {
       } else {
         showNotif("error", "Gagal mengirim notifikasi.");
       }
-    } catch (e: any) {
+    } catch {
       showNotif("error", "Error sistem.");
     } finally {
       setIsSendingMail(false);
@@ -1021,7 +1021,7 @@ export default function CrewManagementPage() {
       } else {
         showNotif("error", "Gagal mengirim sertifikat.");
       }
-    } catch (e: any) {
+    } catch {
       showNotif("error", "Error sistem.");
     } finally {
       setIsSendingMail(false);
@@ -1105,7 +1105,7 @@ export default function CrewManagementPage() {
             } else {
               failCount++;
             }
-          } catch (e: any) {
+          } catch {
             failCount++;
           }
           setEmailProgress((prev) =>
@@ -2416,7 +2416,7 @@ export default function CrewManagementPage() {
                     </div>
                   ) : (
                     <span className="font-bold text-left">
-                      {selectedCrew.fakultas || "-"} (Angkatan '
+                      {selectedCrew.fakultas || "-"} (Angkatan &apos;
                       {selectedCrew.angkatan || "-"})
                     </span>
                   )}

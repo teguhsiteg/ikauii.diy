@@ -166,7 +166,7 @@ export default function KebijakanPrivasiPage() {
               Penggunaan Cookie & Teknologi Pelacakan
             </h2>
             <p className="pl-11 text-justify">
-              Website kami menggunakan "Cookie" (berkas teks kecil yang disimpan
+              Website kami menggunakan &quot;Cookie&quot; (berkas teks kecil yang disimpan
               di perangkat Anda) untuk memastikan sistem berjalan dengan cepat
               dan aman. Kami membagi penggunaan cookie ke dalam dua jenis:
               <strong> Cookie Esensial</strong> yang wajib ada agar Anda bisa

@@ -239,7 +239,6 @@ export default function RaceManagementPage() {
   const [bibInput, setBibInput] = useState("");
   const [selectedPrizeId, setSelectedPrizeId] = useState("");
   const [filterDoorprize, setFilterDoorprize] = useState("all");
-  const [spinDuration, setSpinDuration] = useState<number>(5);
   const [manualPrize, setManualPrize] = useState({
     namaHadiah: "",
     kategori: "Umum",
@@ -247,7 +246,7 @@ export default function RaceManagementPage() {
   });
   const [isSpinning, setIsSpinning] = useState(false);
 
-  const [message, setMessage] = useState({ type: "", text: "" });
+  const [, setMessage] = useState({ type: "", text: "" });
   const [isProcessing, setIsProcessing] = useState(false);
   const bibInputRef = useRef<HTMLInputElement>(null);
 
@@ -388,7 +387,7 @@ export default function RaceManagementPage() {
       });
       setVrParticipants(lunasVR);
       showMsg("success", "Sinkronisasi data kolam berhasil.");
-    } catch (error) {
+    } catch {
       showMsg("error", "Gagal menarik data dari database.");
     } finally {
       setIsProcessing(false);
@@ -411,7 +410,7 @@ export default function RaceManagementPage() {
   }, [offlineParticipants, vrParticipants, manualParticipants]);
 
   const candidates = useMemo(() => {
-    let allCandidates = [
+    const allCandidates = [
       ...offlineParticipants,
       ...vrParticipants,
       ...manualParticipants,
@@ -500,7 +499,7 @@ export default function RaceManagementPage() {
           }
         }
         showMsg("success", `${count} Hadiah diimport.`);
-      } catch (err) {
+      } catch {
         showMsg("error", "Gagal import Excel.");
       } finally {
         setIsProcessing(false);
@@ -526,7 +525,7 @@ export default function RaceManagementPage() {
       });
       showMsg("success", "Hadiah manual ditambahkan.");
       setManualPrize({ namaHadiah: "", kategori: "Umum", jumlah: 1 });
-    } catch (e) {
+    } catch {
       showMsg("error", "Gagal menambahkan hadiah.");
     }
     setIsProcessing(false);
@@ -549,7 +548,7 @@ export default function RaceManagementPage() {
           );
           setSelectedPrizeId("");
           showMsg("success", "Database hadiah dikosongkan.");
-        } catch (e) {
+        } catch {
           showMsg("error", "Gagal menghapus hadiah.");
         }
         setIsProcessing(false);
@@ -592,7 +591,7 @@ export default function RaceManagementPage() {
             [`gunTime${safeDistKey}`]: withCountdown ? Date.now() + 10000 : Date.now(),
           });
           showMsg("success", `RACE ${dist} DIMULAI!`);
-        } catch (error) {
+        } catch {
           showMsg("error", "Gagal memulai race.");
         }
       },
@@ -614,7 +613,7 @@ export default function RaceManagementPage() {
             [`gunTime${safeDistKey}`]: null,
           });
           showMsg("success", `Timer ${dist} direset.`);
-        } catch (error) {
+        } catch {
           showMsg("error", "Gagal mereset timer.");
         }
       },
@@ -628,7 +627,7 @@ export default function RaceManagementPage() {
         [`cot${safeDistKey}`]: Number(cotInputs[dist]),
       });
       showMsg("success", `COT ${dist} disimpan.`);
-    } catch (error) {}
+    } catch {}
   };
 
   const handleSaveIdentity = async (e: React.FormEvent) => {
@@ -641,7 +640,7 @@ export default function RaceManagementPage() {
         eventLogo: identityForm.eventLogo,
       });
       showMsg("success", "Identitas Event Berhasil Disimpan!");
-    } catch (error) {
+    } catch {
       showMsg("error", "Gagal menyimpan identitas event.");
     }
     setIsProcessing(false);
@@ -744,7 +743,7 @@ export default function RaceManagementPage() {
         "success",
         `BERHASIL FINISH: P peringkat ${rankKategori} [${peserta.jarak}] - BIB ${cleanBib}`,
       );
-    } catch (error) {
+    } catch {
       showMsg("error", "Gagal menyimpan detail waktu finish.");
     } finally {
       setBibInput("");
@@ -799,7 +798,7 @@ export default function RaceManagementPage() {
             "success",
             `Leaderboard berhasil dibersihkan! ${count} Catatan pelari direset.`,
           );
-        } catch (error) {
+        } catch {
           showMsg("error", "Gagal mereset database klasemen.");
         } finally {
           setIsProcessing(false);
@@ -913,7 +912,7 @@ export default function RaceManagementPage() {
           setSelectedPrizeId("");
         setIsSpinning(false);
       }
-    } catch (error) {
+    } catch {
       showMsg("error", "Gagal memproses undian.");
       setIsSpinning(false);
     }
@@ -956,7 +955,7 @@ export default function RaceManagementPage() {
             });
           }
           showMsg("success", "Kemenangan dibatalkan.");
-        } catch (error) {
+        } catch {
           showMsg("error", "Gagal membatalkan.");
         }
       },

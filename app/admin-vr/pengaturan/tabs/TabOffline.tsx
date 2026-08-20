@@ -156,7 +156,7 @@ export default function TabOffline({
                   <option value="auto">Otomatis — Ikuti tanggal buka/tutup</option>
                   <option value="preview">Preview — Halaman tampil, tombol daftar dikunci</option>
                   <option value="buka">Buka Paksa — Pendaftaran dibuka penuh (abaikan tanggal)</option>
-                  <option value="coming_soon">Coming Soon — Tampil layar "Segera Dibuka"</option>
+                  <option value="coming_soon">Coming Soon — Tampil layar &quot;Segera Dibuka&quot;</option>
                   <option value="tutup">Tutup Total — Halaman ditutup sepenuhnya</option>
                 </select>
               </div>
@@ -179,7 +179,7 @@ export default function TabOffline({
                   <div>
                     <p className="text-xs font-bold text-amber-700">Mode Preview (Tampil Tanpa Daftar)</p>
                     <p className="text-[11px] text-amber-600 mt-0.5 leading-relaxed">
-                      Halaman /run <strong>bisa dilihat publik</strong> lengkap dengan info event, paket, dan race pack — tapi <strong>tombol "Daftar" dikunci</strong> dan tidak bisa diklik. Ideal untuk promosi sebelum pendaftaran resmi dibuka.
+                      Halaman /run <strong>bisa dilihat publik</strong> lengkap dengan info event, paket, dan race pack — tapi <strong>tombol &quot;Daftar&quot; dikunci</strong> dan tidak bisa diklik. Ideal untuk promosi sebelum pendaftaran resmi dibuka.
                     </p>
                   </div>
                 </div>
@@ -201,7 +201,7 @@ export default function TabOffline({
                   <div>
                     <p className="text-xs font-bold text-purple-700">Mode Coming Soon</p>
                     <p className="text-[11px] text-purple-600 mt-0.5 leading-relaxed">
-                      Pengunjung akan melihat <strong>layar "Segera Dibuka"</strong> dengan countdown timer. Halaman utama event tidak bisa diakses.
+                      Pengunjung akan melihat <strong>layar &quot;Segera Dibuka&quot;</strong> dengan countdown timer. Halaman utama event tidak bisa diakses.
                     </p>
                   </div>
                 </div>
@@ -212,7 +212,7 @@ export default function TabOffline({
                   <div>
                     <p className="text-xs font-bold text-rose-700">Mode Tutup Total</p>
                     <p className="text-[11px] text-rose-600 mt-0.5 leading-relaxed">
-                      Halaman /run menampilkan layar <strong>"Pendaftaran Ditutup"</strong>. Tidak ada yang bisa dilihat atau didaftarkan.
+                      Halaman /run menampilkan layar <strong>&quot;Pendaftaran Ditutup&quot;</strong>. Tidak ada yang bisa dilihat atau didaftarkan.
                     </p>
                   </div>
                 </div>
@@ -270,7 +270,7 @@ export default function TabOffline({
                     👕 URL Foto Jersey Offline
                   </label>
                   <p className="text-[10px] text-emerald-600 mb-2">
-                    Ditampilkan di card "Runner Dry-Fit Jersey" halaman /run
+                    Ditampilkan di card &quot;Runner Dry-Fit Jersey&quot; halaman /run
                   </p>
                   <input
                     type="url"
@@ -296,7 +296,7 @@ export default function TabOffline({
                     🏅 URL Foto Medali Offline
                   </label>
                   <p className="text-[10px] text-yellow-600 mb-2">
-                    Ditampilkan di card "Finisher Medal" halaman /run
+                    Ditampilkan di card &quot;Finisher Medal&quot; halaman /run
                   </p>
                   <input
                     type="url"

@@ -9,7 +9,6 @@ import {
   doc,
   getDoc,
   setDoc,
-  updateDoc,
   arrayUnion,
   serverTimestamp,
 } from "firebase/firestore";
@@ -25,7 +24,7 @@ export default function ExamPage() {
 
   // Data Ujian
   const [moduleData, setModuleData] = useState<any>(null);
-  const [courseData, setCourseData] = useState<any>(null);
+  const [, setCourseData] = useState<any>(null);
 
   // State Ujian
   const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -47,7 +46,7 @@ export default function ExamPage() {
     return () => unsubscribe();
   }, [courseId, moduleId, router]);
 
-  const fetchExamData = async (user: any) => {
+  const fetchExamData = async (_user: any) => {
     setIsLoading(true);
     try {
       // 1. Ambil Info Kelas

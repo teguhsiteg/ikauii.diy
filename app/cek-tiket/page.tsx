@@ -59,7 +59,7 @@ export default function CekTiketPage() {
           "Tiket tidak ditemukan. Pastikan Nomor WhatsApp sama persis dengan saat mendaftar.",
         );
       }
-    } catch (error) {
+    } catch {
       setErrorMsg("Terjadi kesalahan jaringan. Silakan coba lagi.");
     } finally {
       setIsSearching(false);

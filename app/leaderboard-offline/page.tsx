@@ -43,7 +43,7 @@ export default function LeaderboardRacePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
 
-  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [, setLastUpdate] = useState(new Date());
 
   useEffect(() => {
     const fetchSettings = async () => {

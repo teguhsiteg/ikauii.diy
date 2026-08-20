@@ -6,7 +6,6 @@ import { useParams, useRouter } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, addDoc, collection } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
-import Link from "next/link";
 
 export default function VerifyTicketPage() {
   const params = useParams();

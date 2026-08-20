@@ -41,7 +41,7 @@ export default function LengkapiProfilPage() {
     const fetchData = async () => {
       try {
         let foundData: any = null;
-        let sources = [];
+        const sources = [];
         let isP = false;
 
         // Cek pengurus

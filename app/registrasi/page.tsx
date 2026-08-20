@@ -116,7 +116,7 @@ export default function MejaRegistrasiPage() {
         if (storedAgenda) {
           try {
             setSelectedAgenda(JSON.parse(storedAgenda));
-          } catch (e) {}
+          } catch {}
         }
       } else {
         setUser(null);
@@ -165,7 +165,7 @@ export default function MejaRegistrasiPage() {
         osc.start();
         osc.stop(ctx.currentTime + 0.5);
       }
-    } catch (e) {
+    } catch {
       console.log("Audio tidak didukung.");
     }
   };
@@ -188,7 +188,7 @@ export default function MejaRegistrasiPage() {
     setIsLoggingIn(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-    } catch (error: any) {
+    } catch {
       setLoginError("Email atau Password salah.");
     } finally {
       setIsLoggingIn(false);
@@ -235,7 +235,7 @@ export default function MejaRegistrasiPage() {
 
         const docSnap = await getDoc(doc(db, "settings", "virtual_run"));
         if (docSnap.exists()) setVrSettings(docSnap.data());
-      } catch (error) {
+      } catch {
       } finally {
         setIsLoading(false);
       }
@@ -312,7 +312,7 @@ export default function MejaRegistrasiPage() {
             (decodedText: string) => processCheckIn(decodedText),
             () => {},
           );
-        } catch (error) {
+        } catch {
           console.error("Gagal inisiasi kamera");
         }
       }
@@ -472,7 +472,7 @@ export default function MejaRegistrasiPage() {
         type: "success",
         text: `Berhasil Hadir: ${peserta.nama}`,
       });
-    } catch (err) {
+    } catch {
       playBeep("error");
       setScanMessage({
         type: "error",
@@ -536,7 +536,7 @@ export default function MejaRegistrasiPage() {
       });
 
       setTimeout(() => window.print(), 300);
-    } catch (err) {
+    } catch {
       playBeep("error");
       setScanMessage({
         type: "error",
@@ -601,7 +601,7 @@ export default function MejaRegistrasiPage() {
       });
 
       setTimeout(() => window.print(), 300);
-    } catch (err) {
+    } catch {
       playBeep("error");
       setScanMessage({
         type: "error",
@@ -640,7 +640,7 @@ export default function MejaRegistrasiPage() {
       });
 
       playBeep("success");
-    } catch (error) {
+    } catch {
       toast.error("Gagal mengupdate data anggota rombongan.");
     }
   };
@@ -690,7 +690,7 @@ export default function MejaRegistrasiPage() {
           anggotaHadir: [],
         });
       }
-    } catch (error) {
+    } catch {
       toast.error("Gagal membatalkan. Cek koneksi internet.");
     }
   };

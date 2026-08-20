@@ -379,7 +379,7 @@ export default function CertificatePage() {
             <p className="text-slate-600 text-lg max-w-3xl leading-relaxed mb-16">
               Atas keberhasilannya menyelesaikan seluruh materi kurikulum dan
               lulus evaluasi pada program Masterclass{" "}
-              <strong>"{course?.judul}"</strong>.
+              <strong>&quot;{course?.judul}&quot;</strong>.
             </p>
 
             <div className="flex justify-between items-end w-full px-12 mt-auto">

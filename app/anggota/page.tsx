@@ -129,7 +129,7 @@ const IconPlus = () => (
 
 export default function DashboardAnggotaPage() {
   const router = useRouter();
-  const [userAuth, setUserAuth] = useState<any>(null);
+  const [, setUserAuth] = useState<any>(null);
   const [userData, setUserData] = useState<any>(null);
 
   const [userKoleksi, setUserKoleksi] = useState<"pengurus" | "pendaftar">(
@@ -1021,7 +1021,7 @@ export default function DashboardAnggotaPage() {
                       Program Sosial Rutin
                     </div>
                     <h3 className="text-xl sm:text-2xl font-black mb-2 tracking-tight">
-                      Jum'at Berkah
+                      Jum&apos;at Berkah
                     </h3>
                     <p className="text-sm text-white/90 leading-relaxed font-medium">
                       Mari salurkan infaq dan sedekah terbaik Anda untuk
@@ -1281,7 +1281,7 @@ export default function DashboardAnggotaPage() {
                         });
                         toast.success("Terima kasih! Usulan Anda telah terkirim.");
                         setSaranMerch("");
-                      } catch (error) {
+                      } catch {
                         toast.error("Gagal mengirim usulan.");
                       } finally {
                         setIsSubmittingSaran(false);

@@ -46,7 +46,7 @@ export default function AdminLegalPage() {
         type: "success",
         text: "Data legal dan asuransi berhasil disimpan.",
       });
-    } catch (error) {
+    } catch {
       setPopup({ type: "error", text: "Gagal menyimpan perubahan." });
     } finally {
       setIsSaving(false);

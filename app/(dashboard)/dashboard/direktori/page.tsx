@@ -163,7 +163,7 @@ export default function AdminDirektoriPage() {
           isPendingCol: true,
           ...d.data(),
         }));
-      } catch (e) {
+      } catch {
         console.warn("Koleksi pendaftaran_iklan belum tersedia.");
       }
 
@@ -186,7 +186,7 @@ export default function AdminDirektoriPage() {
         setUsulanMerchList(
           snapMerch.docs.map((d) => ({ id: d.id, ...d.data() })),
         );
-      } catch (e) {
+      } catch {
         console.warn("Koleksi usulan_merch belum tersedia.");
       }
     } catch (error) {
@@ -254,7 +254,7 @@ export default function AdminDirektoriPage() {
         setIklanData({ ...iklanData, fotoUrl: json.secure_url });
       setUploadProgress("Unggah sukses!");
       setTimeout(() => setUploadProgress(""), 3000);
-    } catch (error) {
+    } catch {
       setUploadProgress("Gagal mengunggah.");
     }
   };
@@ -269,7 +269,7 @@ export default function AdminDirektoriPage() {
       const res = await sendEmailAction({ type, email, nama, detail });
       if (!res.success) return false;
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   };
@@ -394,7 +394,7 @@ export default function AdminDirektoriPage() {
       }
       setIsBisnisModalOpen(false);
       fetchData();
-    } catch (error) {
+    } catch {
       showAlert("Gagal", "Terjadi kesalahan saat menyimpan data.");
     } finally {
       setIsSaving(false);
@@ -453,7 +453,7 @@ export default function AdminDirektoriPage() {
                 "Pendaftaran ditolak, NAMUN gagal mengirim email penolakan.",
               );
           }, 300);
-        } catch (error) {
+        } catch {
           showAlert("Gagal", "Terjadi kesalahan sistem.");
         } finally {
           setIsSaving(false);
@@ -509,7 +509,7 @@ export default function AdminDirektoriPage() {
               "Sistem server menolak pengiriman email.",
             );
           }
-        } catch (error) {
+        } catch {
           showAlert(
             "Kesalahan",
             "Terjadi kesalahan sistem saat mengirim email.",
@@ -539,7 +539,7 @@ export default function AdminDirektoriPage() {
             ),
           );
           fetchData();
-        } catch (error) {
+        } catch {
           showAlert("Gagal", "Terjadi kesalahan saat menghapus data.");
         }
       },
@@ -575,7 +575,7 @@ export default function AdminDirektoriPage() {
               showAlert("Berhasil", "Data bisnis terpilih berhasil dihapus."),
             300,
           );
-        } catch (error) {
+        } catch {
           showAlert("Gagal", "Terjadi kesalahan saat menghapus data massal.");
         } finally {
           setIsSaving(false);
@@ -678,7 +678,7 @@ export default function AdminDirektoriPage() {
       }
       setIsIklanModalOpen(false);
       fetchData();
-    } catch (error) {
+    } catch {
       showAlert("Gagal", "Terjadi kesalahan saat menyimpan banner.");
     } finally {
       setIsSaving(false);
@@ -720,7 +720,7 @@ export default function AdminDirektoriPage() {
               ),
             300,
           );
-        } catch (error) {
+        } catch {
           showAlert("Gagal", "Terjadi kesalahan sistem.");
         } finally {
           setIsSaving(false);
@@ -762,7 +762,7 @@ export default function AdminDirektoriPage() {
               "Sistem server menolak pengiriman email. Cek kredensial SMTP Anda.",
             );
           }
-        } catch (error) {
+        } catch {
           showAlert(
             "Gagal",
             "Sistem gagal mengeksekusi proses pengiriman email.",
@@ -796,32 +796,6 @@ export default function AdminDirektoriPage() {
           ),
         );
         fetchData();
-      },
-    );
-  };
-
-  // --- LOGIKA MERCHANDISE ---
-  const handleUpdateStatusMerch = async (id: string, newStatus: string) => {
-    try {
-      await updateDoc(doc(db, "usulan_merch", id), { status: newStatus });
-      fetchData();
-    } catch (error) {
-      showAlert("Gagal", "Terjadi kesalahan saat mengupdate status usulan.");
-    }
-  };
-
-  const handleDeleteMerch = (id: string) => {
-    showConfirm(
-      "Hapus Usulan",
-      "Yakin ingin menghapus usulan merchandise ini?",
-      async () => {
-        closeDialog();
-        try {
-          await deleteDoc(doc(db, "usulan_merch", id));
-          fetchData();
-        } catch (error) {
-          showAlert("Gagal", "Gagal menghapus data usulan.");
-        }
       },
     );
   };
@@ -1643,7 +1617,7 @@ export default function AdminDirektoriPage() {
                                     { status: e.target.value },
                                   );
                                   fetchData();
-                                } catch (error) {
+                                } catch {
                                   showAlert(
                                     "Gagal",
                                     "Tidak dapat mengupdate status.",

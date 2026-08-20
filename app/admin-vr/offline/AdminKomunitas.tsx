@@ -159,9 +159,6 @@ export default function AdminKomunitasPage() {
   const totalLunas = groups.filter(
     (g) => g.statusPembayaran === "Lunas",
   ).length;
-  const totalPending = groups.filter(
-    (g) => g.statusPembayaran !== "Lunas",
-  ).length;
   const totalUangLunas = groups
     .filter((g) => g.statusPembayaran === "Lunas")
     .reduce((acc, curr) => acc + (Number(curr.totalBiaya) || 0), 0);
@@ -305,7 +302,7 @@ export default function AdminKomunitasPage() {
 
         if (res.success) successCount++;
         else failCount++;
-      } catch (error) {
+      } catch {
         failCount++;
       }
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -511,7 +508,7 @@ export default function AdminKomunitasPage() {
         title: "Racepack Diserahkan",
         message: `Sukses! Racepack Komunitas ${groupName} berhasil diserahkan kepada ${namaPengambil}.`,
       });
-    } catch (e) {
+    } catch {
       setAlertModal({
         isOpen: true,
         type: "error",

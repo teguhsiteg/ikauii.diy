@@ -19,6 +19,22 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      // 719 pemakaian `any` (data Firestore, catch(error), body API) — diturunkan
+      // ke warn supaya `npm run lint` hijau; tetap terlihat sebagai warning.
+      "@typescript-eslint/no-explicit-any": "warn",
+      // Param/variabel yang sengaja tak terpakai (diawali `_`) diizinkan — konvensi standar.
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

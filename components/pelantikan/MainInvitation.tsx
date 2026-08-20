@@ -1,76 +1,40 @@
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { QrCode, Calendar, MapPin, ChevronRight, ShieldCheck, Mail, Globe, Phone, ExternalLink } from 'lucide-react';
+import { Calendar, MapPin, ShieldCheck } from 'lucide-react';
 import { GuestInfo } from '@/data/eventData';
 import { EVENT_DETAILS } from '@/data/eventData';
-import { UiiLogoBadge, IslamicCorner, JogloSilhouette } from './HeaderDecorations';
+import { UiiLogoBadge, BatikCorner, GununganWayang, JogloSilhouette } from './HeaderDecorations';
 import { CountdownTimer } from './CountdownTimer';
 import { RundownSection } from './RundownSection';
 import { LocationSection } from './LocationSection';
 import { RsvpSection } from './RsvpSection';
-import { GuestTicketModal } from './GuestTicketModal';
+
+import { InvitationSettings } from '@/lib/invitation-settings';
 
 interface MainInvitationProps {
   guest: GuestInfo;
   onBackToCover: () => void;
   onUpdateGuest?: (name: string, role: string, category: string) => void;
+  dynamicSettings: InvitationSettings;
 }
 
-export const MainInvitation: React.FC<MainInvitationProps> = ({ guest, onBackToCover }) => {
-  const [isTicketOpen, setIsTicketOpen] = useState<boolean>(false);
-
-  return (
-    <div className="min-h-screen bg-slate-950 bg-pattern-jogja text-slate-100 pb-20 relative overflow-x-hidden selection:bg-amber-500 selection:text-slate-950">
+export const MainInvitation: React.FC<MainInvitationProps> = ({ guest, onBackToCover, dynamicSettings }) => {  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 pb-20 relative overflow-x-hidden selection:bg-amber-500 selection:text-slate-950">
       {/* Background Decorative Ambient */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-96 bg-amber-500/5 blur-[120px] pointer-events-none -z-10" />
 
-      {/* Top Floating Control Bar */}
-      <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-slate-950/85 border-b border-amber-400/20 px-3 sm:px-6 py-2.5">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-2">
-          {/* Logo & Org Brief */}
-          <div className="flex items-center gap-2.5">
-            <UiiLogoBadge size={36} />
-            <div className="text-left hidden xs:block">
-              <span className="text-xs font-bold text-amber-300 block tracking-wider uppercase">
-                DPW IKA UII DIY
-              </span>
-              <span className="text-[10px] text-slate-400 block">
-                Periode 2026 – 2031
-              </span>
-            </div>
-          </div>
-
-          {/* Quick Action Buttons */}
-          <div className="flex items-center gap-2">
-            <button
-              id="btn-nav-ticket"
-              onClick={() => setIsTicketOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-semibold border border-amber-400/40 cursor-pointer transition-colors"
-            >
-              <QrCode className="w-3.5 h-3.5" />
-              <span>E-Pass Undangan</span>
-            </button>
-
-            <button
-              id="btn-nav-cover"
-              onClick={onBackToCover}
-              className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-xs transition-colors cursor-pointer"
-              title="Lihat Tampilan Cover Depan"
-            >
-              Cover
-            </button>
-          </div>
-        </div>
-      </header>
+      {/* Javanese Top Silhouette */}
+      <div className="absolute top-0 left-0 w-full h-48 sm:h-64 opacity-20 pointer-events-none -z-10 overflow-hidden">
+        <JogloSilhouette className="w-full h-full object-cover scale-110" />
+      </div>
 
       {/* Main Container */}
       <main className="max-w-4xl mx-auto px-4 pt-6 sm:pt-10">
         {/* Hero Card Section */}
         <section className="relative rounded-3xl bg-gradient-to-b from-[#0e2142] via-[#091730] to-[#050e1e] border-2 border-amber-400/40 p-6 sm:p-10 shadow-2xl text-center overflow-hidden mb-8">
-          <IslamicCorner position="tl" className="absolute top-2 left-2" />
-          <IslamicCorner position="tr" className="absolute top-2 right-2" />
-          <IslamicCorner position="bl" className="absolute bottom-2 left-2" />
-          <IslamicCorner position="br" className="absolute bottom-2 right-2" />
+          <BatikCorner position="tl" className="absolute top-0 left-0" />
+          <BatikCorner position="tr" className="absolute top-0 right-0" />
+          <BatikCorner position="bl" className="absolute bottom-0 left-0" />
+          <BatikCorner position="br" className="absolute bottom-0 right-0" />
 
           {/* Center Insignia */}
           <div className="flex justify-center mb-4">
@@ -79,10 +43,10 @@ export const MainInvitation: React.FC<MainInvitationProps> = ({ guest, onBackToC
 
           <div className="space-y-1 mb-5">
             <p className="text-xs sm:text-sm font-bold tracking-widest text-amber-300 uppercase">
-              {EVENT_DETAILS.orgName}
+              {dynamicSettings.orgName}
             </p>
             <p className="text-[11px] sm:text-xs font-semibold tracking-wider text-slate-300 uppercase">
-              {EVENT_DETAILS.subOrgName}
+              {dynamicSettings.subOrgName}
             </p>
           </div>
 
@@ -97,25 +61,25 @@ export const MainInvitation: React.FC<MainInvitationProps> = ({ guest, onBackToC
           </div>
 
           <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto leading-relaxed mb-6">
-            Dengan memohon rahmat dan ridho Allah SWT, Kami mengundang Bapak/Ibu/Saudara/i untuk hadir pada acara:
+            {dynamicSettings.openingGreeting || 'Dengan memohon rahmat dan ridho Allah SWT, Kami mengundang Bapak/Ibu/Saudara/i untuk hadir pada acara:'}
           </p>
 
           {/* Event Title Banner */}
           <div className="py-4 border-y border-amber-400/30 max-w-2xl mx-auto my-6">
             <h1 className="font-cinzel text-3xl sm:text-4xl md:text-5xl font-black tracking-wide text-white mb-2">
-              PELANTIKAN PENGURUS
+              {dynamicSettings.title.toUpperCase()}
             </h1>
             <h2 className="font-cinzel text-2xl sm:text-3xl md:text-4xl font-extrabold gold-gradient-text tracking-wider mb-2">
-              DPW IKA UII DIY
+              {dynamicSettings.subOrgName.toUpperCase()}
             </h2>
             <div className="inline-block px-4 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs sm:text-sm font-bold tracking-widest">
-              {EVENT_DETAILS.period}
+              {dynamicSettings.period}
             </div>
           </div>
 
           {/* Theme */}
           <p className="text-xs sm:text-sm font-serif-playfair text-amber-100/90 italic max-w-lg mx-auto mb-8">
-            {EVENT_DETAILS.theme}
+            "{dynamicSettings.theme}"
           </p>
 
           {/* Dedicated Recipient Showcase Card */}
@@ -157,10 +121,10 @@ export const MainInvitation: React.FC<MainInvitationProps> = ({ guest, onBackToC
                   Waktu Pelaksanaan
                 </div>
                 <div className="font-semibold text-sm text-slate-100 mt-0.5">
-                  {EVENT_DETAILS.day}, {EVENT_DETAILS.dateFormatted}
+                  {dynamicSettings.day}, {dynamicSettings.dateFormatted}
                 </div>
                 <div className="text-xs text-amber-300 font-medium">
-                  {EVENT_DETAILS.timeFormatted}
+                  {dynamicSettings.timeFormatted}
                 </div>
               </div>
             </div>
@@ -174,33 +138,97 @@ export const MainInvitation: React.FC<MainInvitationProps> = ({ guest, onBackToC
                   Tempat / Venue
                 </div>
                 <div className="font-semibold text-sm text-slate-100 mt-0.5">
-                  {EVENT_DETAILS.venue}
+                  {dynamicSettings.venue}
                 </div>
                 <div className="text-xs text-slate-300">
-                  {EVENT_DETAILS.address}
+                  {dynamicSettings.address}
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Live Streaming Button (if available) */}
+          {dynamicSettings.liveStreamUrl && dynamicSettings.liveStreamUrl.trim() !== '' && (
+            <div className="mb-6">
+              <a 
+                href={dynamicSettings.liveStreamUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-red-600/20 border border-red-500/50 text-red-200 font-semibold text-sm hover:bg-red-600/30 transition-colors"
+              >
+                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                Tonton Live Streaming
+              </a>
+            </div>
+          )}
+
           {/* Dresscode Notice */}
-          <div className="inline-block p-3 rounded-xl bg-amber-500/10 border border-amber-400/30 text-xs text-amber-200">
+          <div className="inline-block p-3 rounded-xl bg-amber-500/10 border border-amber-400/30 text-xs text-amber-200 relative z-10">
             <span className="font-bold uppercase tracking-wider">Ketentuan Busana:</span>{' '}
-            {EVENT_DETAILS.dresscode}
+            {dynamicSettings.dresscode}
+          </div>
+
+          <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-48 h-48 opacity-20 pointer-events-none flex justify-center z-0">
+             <GununganWayang className="w-full h-full" />
           </div>
         </section>
 
         {/* Section 1: Countdown Timer */}
-        <CountdownTimer />
+        {dynamicSettings.targetDateTime && dynamicSettings.targetDateTime.trim() !== '' && (
+          <CountdownTimer targetDateTime={dynamicSettings.targetDateTime} />
+        )}
 
         {/* Section 2: Susunan Acara (Rundown) */}
-        <RundownSection />
+        {dynamicSettings.rundown && dynamicSettings.rundown.length > 0 && (
+          <RundownSection rundown={dynamicSettings.rundown} />
+        )}
 
         {/* Section 3: Lokasi & Peta */}
-        <LocationSection />
+        <LocationSection dynamicSettings={dynamicSettings} />
 
         {/* Section 4: RSVP & Guestbook */}
-        <RsvpSection guest={guest} />
+        <RsvpSection guest={guest} dynamicSettings={dynamicSettings} />
+
+        {/* Section 5: Gallery / Media */}
+        {dynamicSettings.mediaUrls && dynamicSettings.mediaUrls.length > 0 && (
+          <section className="w-full max-w-3xl mx-auto my-8 px-4">
+            <div className="relative rounded-2xl bg-gradient-to-b from-[#0e2142]/90 to-[#081326]/95 border border-amber-400/50 p-5 sm:p-8 shadow-xl backdrop-blur-md">
+              <div className="text-center mb-6">
+                <h2 className="font-cinzel text-xl sm:text-2xl font-bold gold-gradient-text tracking-wide">
+                  Galeri Ucapan
+                </h2>
+                <p className="text-xs text-slate-300 mt-1 max-w-md mx-auto">
+                  Video atau momen spesial persembahan untuk pelantikan pengurus.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {dynamicSettings.mediaUrls.filter(url => url.trim() !== '').map((url, idx) => {
+                  const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
+                  const isRawVideo = url.match(/\.(mp4|webm|ogg)$/i) || url.includes('/video/upload/');
+
+                  return (
+                    <div key={idx} className={`rounded-xl overflow-hidden border-2 border-amber-400/40 shadow-2xl relative bg-slate-900/50 flex items-center justify-center ${isYoutube ? 'aspect-video' : 'w-full'}`}>
+                      {isYoutube ? (
+                        <iframe
+                          className="w-full h-full absolute inset-0"
+                          src={url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+                          title={`Video Ucapan ${idx+1}`}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        ></iframe>
+                      ) : isRawVideo ? (
+                        <video src={url} controls playsInline className="w-full h-auto object-contain max-h-[80vh]" />
+                      ) : (
+                        <img src={url} alt={`Galeri Ucapan ${idx+1}`} className="w-full h-auto object-contain max-h-[80vh]" loading="lazy" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Official Closing Statement */}
         <section className="my-10 text-center space-y-4 max-w-2xl mx-auto px-4">
@@ -211,7 +239,7 @@ export const MainInvitation: React.FC<MainInvitationProps> = ({ guest, onBackToC
             جَزَاكُمُ اللهُ خَيْرًا كَثِيْرًا
           </div>
           <p className="text-xs sm:text-sm font-semibold text-amber-300">
-            Wassalamu'alaikum Warahmatullahi Wabarakatuh
+            Wassalamu&apos;alaikum Warahmatullahi Wabarakatuh
           </p>
 
           <div className="pt-6 border-t border-slate-800 text-center">
@@ -221,19 +249,12 @@ export const MainInvitation: React.FC<MainInvitationProps> = ({ guest, onBackToC
             <p className="font-cinzel text-sm sm:text-base font-bold text-slate-200">
               Panitia Pelantikan Pengurus DPW IKA UII DIY
             </p>
-            <p className="text-xs text-amber-400 mt-0.5">
-              Masa Khidmah 2026 – 2031
-            </p>
+            
           </div>
         </section>
       </main>
 
-      {/* E-Pass Ticket Modal */}
-      <GuestTicketModal
-        isOpen={isTicketOpen}
-        onClose={() => setIsTicketOpen(false)}
-        guest={guest}
-      />
+
     </div>
   );
 };

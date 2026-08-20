@@ -106,7 +106,7 @@ export default function TabMentors() {
         ttdUrl: "", // Reset field TTD
       });
       setEditId(null);
-    } catch (error) {
+    } catch {
       toast.error("Gagal menyimpan data");
     } finally {
       setIsProcessing(false);
@@ -158,7 +158,7 @@ export default function TabMentors() {
 
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-4 text-left">
                 <p className="text-xs text-slate-600 leading-relaxed italic line-clamp-4">
-                  "{previewMentor.bio}"
+                  &quot;{previewMentor.bio}&quot;
                 </p>
               </div>
 

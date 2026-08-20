@@ -153,7 +153,7 @@ export default function MyCoursesPage() {
       toast.success("Profil berhasil diperbarui!");
       // Refresh state lokal
       setCurrentUser({ ...currentUser, displayName: profileForm.nama });
-    } catch (error) {
+    } catch {
       toast.error("Gagal menyimpan profil.");
     } finally {
       setIsSavingProfile(false);

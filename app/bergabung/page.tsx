@@ -79,7 +79,7 @@ export default function BergabungPage() {
       ]);
 
       if (!snapPendaftar.empty || !snapPengurus.empty) {
-        let label =
+        const label =
           field === "email"
             ? "Email"
             : field === "noWA"
@@ -244,6 +244,7 @@ export default function BergabungPage() {
       const userUid = userCredential.user.uid;
 
       // 4. PENYIMPANAN DATA KE FIRESTORE
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, confirmPassword, ...dataToSave } = formData;
 
       await setDoc(doc(db, "pendaftar", userUid), {

@@ -64,3 +64,40 @@ export const IslamicCorner: React.FC<{ position: 'tl' | 'tr' | 'bl' | 'br'; clas
     </div>
   );
 };
+
+export const GununganWayang: React.FC<{ className?: string }> = ({ className = '' }) => {
+  return (
+    <div className={`pointer-events-none ${className}`}>
+      <svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full text-amber-400/20">
+        <path d="M50 5 C30 40 10 70 5 110 L95 110 C90 70 70 40 50 5 Z" stroke="currentColor" strokeWidth="2" fill="currentColor" fillOpacity="0.1" />
+        <path d="M50 15 C35 45 20 75 15 110 L85 110 C80 75 65 45 50 15 Z" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
+        <circle cx="50" cy="50" r="10" stroke="currentColor" strokeWidth="1" />
+        <path d="M40 70 Q50 60 60 70 Q50 80 40 70 Z" fill="currentColor" fillOpacity="0.3" />
+        <line x1="50" y1="15" x2="50" y2="110" stroke="currentColor" strokeWidth="1" />
+        <line x1="15" y1="110" x2="85" y2="110" stroke="currentColor" strokeWidth="2" />
+      </svg>
+    </div>
+  );
+};
+
+export const BatikCorner: React.FC<{ position: 'tl' | 'tr' | 'bl' | 'br'; className?: string }> = ({ position, className = '' }) => {
+  const rotation = {
+    tl: 'rotate-0',
+    tr: 'rotate-90',
+    br: 'rotate-180',
+    bl: '-rotate-90',
+  }[position];
+
+  return (
+    <div className={`pointer-events-none w-16 h-16 sm:w-20 sm:h-20 ${rotation} ${className}`}>
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full text-amber-400/40">
+        <path d="M5 5 L95 5 L95 15 C60 15 40 30 15 95 L5 95 Z" fill="currentColor" fillOpacity="0.15" />
+        <path d="M10 10 L80 10 L80 18 C55 18 35 35 18 80 L10 80 Z" stroke="currentColor" strokeWidth="1.5" />
+        {/* Parang Motif curves */}
+        <path d="M25 25 Q40 15 50 25 Q35 40 25 25 Z" fill="currentColor" />
+        <path d="M45 45 Q60 35 70 45 Q55 60 45 45 Z" fill="currentColor" />
+        <path d="M15 60 Q30 50 40 60 Q25 75 15 60 Z" fill="currentColor" />
+      </svg>
+    </div>
+  );
+};

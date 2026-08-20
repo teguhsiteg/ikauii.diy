@@ -80,7 +80,7 @@ export default function KarirPage() {
       await deleteDoc(doc(db, "loker", id));
       showToast("Lowongan berhasil dihapus", "success");
       fetchLoker();
-    } catch (error) {
+    } catch {
       showToast("Gagal menghapus lowongan", "error");
     }
   };

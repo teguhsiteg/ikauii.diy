@@ -138,21 +138,6 @@ const IconLink = () => (
     />
   </svg>
 );
-const IconVideo = () => (
-  <svg
-    className="w-4 h-4"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-    />
-  </svg>
-);
 const IconNews = () => (
   <svg
     className="w-4 h-4"
@@ -214,61 +199,6 @@ const getYoutubeId = (url: string) => {
   return match ? match[1] : null;
 };
 
-// Countdown Timer Komponen
-const PreviewCountdown = ({
-  expiresAt,
-  theme,
-}: {
-  expiresAt: string;
-  theme: string;
-}) => {
-  const [timeLeft, setTimeLeft] = useState("");
-
-  useEffect(() => {
-    if (!expiresAt) return;
-    const interval = setInterval(() => {
-      const distance = new Date(expiresAt).getTime() - new Date().getTime();
-      if (distance < 0) {
-        setTimeLeft("EXPIRED");
-        clearInterval(interval);
-        return;
-      }
-      const d = Math.floor(distance / (1000 * 60 * 60 * 24));
-      const h = Math.floor(
-        (distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
-      );
-      const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-      const s = Math.floor((distance % (1000 * 60)) / 1000);
-      setTimeLeft(`${d}d ${h}h ${m}m ${s}s`);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [expiresAt]);
-
-  if (!expiresAt || !timeLeft) return null;
-  if (timeLeft === "EXPIRED") return null;
-
-  return (
-    <div
-      className={`text-[8px] font-mono font-bold mb-1.5 px-2 py-0.5 rounded-sm inline-flex items-center gap-1 ${theme === "dark" ? "bg-rose-500/20 text-rose-400" : "bg-rose-100 text-rose-600"}`}
-    >
-      <svg
-        className="w-3 h-3"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-        />
-      </svg>
-      ENDS IN: {timeLeft}
-    </div>
-  );
-};
-
 export default function DashboardBioPage() {
   const defaultSocials = {
     instagram: "",
@@ -325,7 +255,9 @@ export default function DashboardBioPage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const linksToSave = links.map(({ isExpanded, ...rest }) => rest);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const newsToSave = news.map(({ isExpanded, ...rest }) => rest);
       await setDoc(
         doc(db, "settings", "bio_engine"),
@@ -334,7 +266,7 @@ export default function DashboardBioPage() {
       );
       setMessage("Konfigurasi Bio berhasil diperbarui");
       setTimeout(() => setMessage(""), 3000);
-    } catch (e) {
+    } catch {
       setMessage("Gagal menyimpan data");
     } finally {
       setIsSaving(false);
@@ -381,7 +313,7 @@ export default function DashboardBioPage() {
 
   const handleSort = () => {
     if (dragItem.current === null || dragOverItem.current === null) return;
-    let _links = [...links];
+    const _links = [...links];
     const draggedItemContent = _links.splice(dragItem.current, 1)[0];
     _links.splice(dragOverItem.current, 0, draggedItemContent);
     dragItem.current = null;
@@ -1112,13 +1044,13 @@ export default function DashboardBioPage() {
                       </span>
                       &nbsp;
                       <span className="text-[var(--theme-highlight)]">
-                        "{profile.name}"
+                        &quot;{profile.name}&quot;
                       </span>
                       <VerifiedBadge />
                     </h1>
                     {profile.description && (
                       <div className="font-mono text-[9px] mt-2 leading-relaxed text-left inline-block">
-                        <span className="text-slate-400">/**</span>
+                        <span className="text-slate-400">{"/**"}</span>
                         <br />
                         <span className="text-slate-500">
                           {" "}

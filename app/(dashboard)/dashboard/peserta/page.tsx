@@ -133,7 +133,7 @@ export default function PesertaAgendaPage() {
   };
 
   const sortedPesertaList = useMemo(() => {
-    let sortableItems = [...pesertaList];
+    const sortableItems = [...pesertaList];
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
         let aValue = a[sortConfig.key];
@@ -236,7 +236,7 @@ export default function PesertaAgendaPage() {
         );
         setPesertaList(pesertaList.filter((p) => !selectedIds.includes(p.id)));
         setSelectedIds([]);
-      } catch (error) {
+      } catch {
         toast.error("Gagal menghapus beberapa data.");
       }
     }
@@ -639,7 +639,7 @@ export default function PesertaAgendaPage() {
                       className="w-4 h-4 rounded border-gray-300 text-blue-600"
                     />
                     <span className="text-sm font-bold text-slate-700">
-                      Otomatis tandai semua data baru sebagai "Hadir"
+                      Otomatis tandai semua data baru sebagai &quot;Hadir&quot;
                     </span>
                   </label>
                   <div className="flex gap-3 w-full sm:w-auto">

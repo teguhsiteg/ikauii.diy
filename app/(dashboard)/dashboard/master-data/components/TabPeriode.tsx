@@ -67,7 +67,7 @@ export default function TabPeriode() {
       const q = query(collection(db, "periode"), orderBy("tglMulai", "desc"));
       const snap = await getDocs(q);
       setDataList(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    } catch (error) {
+    } catch {
       showToast("Gagal load data periode.", "error");
     } finally {
       setIsLoading(false);
@@ -138,7 +138,7 @@ export default function TabPeriode() {
       setEditId(null);
       await fetchData();
       setView("list");
-    } catch (error) {
+    } catch {
       showToast(`Gagal menyimpan data.`, "error");
     } finally {
       setIsProcessing(false);
@@ -157,7 +157,7 @@ export default function TabPeriode() {
       }
       showToast(`Data berhasil dihapus permanen.`, "success");
       await fetchData();
-    } catch (error) {
+    } catch {
       showToast("Gagal menghapus data.", "error");
     } finally {
       setIsProcessing(false);
@@ -223,7 +223,7 @@ export default function TabPeriode() {
         }
         showToast(`${count} Data berhasil di-import!`, "success");
         await fetchData();
-      } catch (error) {
+      } catch {
         showToast("Gagal membaca Excel.", "error");
       } finally {
         setIsProcessing(false);
@@ -267,7 +267,7 @@ export default function TabPeriode() {
               Hapus Permanen?
             </h3>
             <p className="text-sm text-[#5F6368] mb-6">
-              Anda yakin ingin menghapus <strong>"{deleteModal.title}"</strong>?
+              Anda yakin ingin menghapus <strong>&quot;{deleteModal.title}&quot;</strong>?
             </p>
             <div className="flex gap-3 justify-center">
               <button

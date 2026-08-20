@@ -164,7 +164,7 @@ export default function NavbarPublic() {
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
               </span>
               <p className="text-slate-200 font-medium text-[10px] sm:text-xs">
-                Donasi Jum'at Berkah:{" "}
+                Donasi Jum&apos;at Berkah:{" "}
                 <span className="text-yellow-400 font-bold tracking-wider">
                   BSI 7335717788
                 </span>{" "}

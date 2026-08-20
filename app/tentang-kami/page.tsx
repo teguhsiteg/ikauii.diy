@@ -99,8 +99,8 @@ export default function TentangKamiPage() {
             Visi
           </h4>
           <p className="text-xl md:text-2xl font-bold mb-10 leading-snug">
-            "Menjadi wadah alumni yang integratif, solutif, dan bermanfaat bagi
-            masyarakat luas dengan berlandaskan nilai-nilai keislaman."
+            &quot;Menjadi wadah alumni yang integratif, solutif, dan bermanfaat bagi
+            masyarakat luas dengan berlandaskan nilai-nilai keislaman.&quot;
           </p>
           <h4 className="text-yellow-400 font-bold uppercase tracking-widest text-xs mb-4">
             Misi

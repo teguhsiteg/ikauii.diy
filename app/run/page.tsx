@@ -68,7 +68,7 @@ function OfflineRunLandingPageContent() {
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isBypassed, setIsBypassed] = useState(false);
-  const [isForceOpen, setIsForceOpen] = useState(false);
+  const [isForceOpen] = useState(false);
 
   const [packageCounts, setPackageCounts] = useState<Record<string, number>>(
     {},
@@ -155,12 +155,11 @@ function OfflineRunLandingPageContent() {
   let showComingSoon = false;
   let showTutup = false;
   let showCountdown = false;
-  let showNormal = false;
   let isPreviewMode = false; // 🔥 MODE BARU: halaman tampil, tombol daftar dikunci
 
   // --- LOGIKA STATUS ---
   if (isBypassed || isForceOpen) {
-    showNormal = true;
+    // status normal (tidak ada flag khusus)
   } else if (!isOfflineEnabled) {
     showTutup = true;
   } else if (adminStatus === "tutup") {
@@ -169,18 +168,15 @@ function OfflineRunLandingPageContent() {
     showComingSoon = true;
   } else if (adminStatus === "preview") {
     // Halaman tampil penuh, tapi tombol daftar dikunci
-    showNormal = true;
     isPreviewMode = true;
   } else if (adminStatus === "buka") {
-    showNormal = true;
+    // status normal
   } else {
     // adminStatus === "auto" atau tidak terdefinisi
     if (openDate && currentTime < openDate) {
       showCountdown = true;
     } else if (closeDate && currentTime > closeDate) {
       showTutup = true;
-    } else {
-      showNormal = true;
     }
   }
   // --- AKHIR LOGIKA STATUS ---
@@ -703,9 +699,6 @@ function OfflineRunLandingPageContent() {
                 ? "Tak Terbatas"
                 : Math.max(0, batasKuota - terisi);
               const isSoldOut = !isUnlimited && Number(sisaKuota) <= 0;
-              const persentase = isUnlimited
-                ? 0
-                : Math.min(100, (terisi / batasKuota) * 100);
 
               // --- EARLY BIRD LOGIC ---
               let activePrice = Number(pkg.harga);

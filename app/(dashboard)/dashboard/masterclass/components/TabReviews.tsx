@@ -72,7 +72,7 @@ export default function TabReviews() {
         updatedAt: new Date().toISOString(),
       });
       fetchData();
-    } catch (error) {
+    } catch {
       toast.error("Gagal memperbarui status ulasan.");
     }
   };
@@ -82,7 +82,7 @@ export default function TabReviews() {
     try {
       await deleteDoc(doc(db, "masterclass_reviews", reviewId));
       fetchData();
-    } catch (error) {
+    } catch {
       toast.error("Gagal menghapus data.");
     }
   };
@@ -269,7 +269,7 @@ export default function TabReviews() {
                         className="text-sm text-slate-600 leading-relaxed italic line-clamp-3"
                         title={r.ulasan}
                       >
-                        "{r.ulasan}"
+                        &quot;{r.ulasan}&quot;
                       </p>
                     </td>
 

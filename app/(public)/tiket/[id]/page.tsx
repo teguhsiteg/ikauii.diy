@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
@@ -54,9 +55,9 @@ export default function TiketDigitalPage({
         <p className="text-slate-500">
           ID Tiket tidak valid atau telah dihapus.
         </p>
-        <a href="/" className="text-blue-600 font-bold hover:underline mt-4">
+        <Link href="/" className="text-blue-600 font-bold hover:underline mt-4">
           &larr; Beranda
-        </a>
+        </Link>
       </div>
     );
   }

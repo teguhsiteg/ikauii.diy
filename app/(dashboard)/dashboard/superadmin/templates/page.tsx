@@ -116,7 +116,7 @@ export default function TemplateManager() {
         updatedAt: new Date().toISOString(),
       });
       setMessage({ type: "success", text: "Template HTML berhasil disimpan!" });
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "Gagal menyimpan template." });
     } finally {
       setIsSaving(false);

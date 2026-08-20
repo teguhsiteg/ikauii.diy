@@ -11,7 +11,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 import Link from "next/link";
-import { MapPin, Calendar, Clock, Shirt, Medal, Activity, Building2, Mountain, Home, Package, Trophy, Mail, PartyPopper, Check, Menu, X, ArrowRight, User, Info, Map } from "lucide-react";
+import { MapPin, Calendar, Clock, Shirt, Medal, Activity, Building2, Mountain, Home, Package, Trophy, Mail, PartyPopper, Menu, X, User } from "lucide-react";
 
 export default function VirtualRunLandingPage() {
   const [settings, setSettings] = useState<any>(null);
@@ -47,7 +47,7 @@ export default function VirtualRunLandingPage() {
         );
         const snapPart = await getDocs(qPart);
         let tDonasi = 0;
-        let counts: { [key: string]: number } = {};
+        const counts: { [key: string]: number } = {};
         setTotalPeserta(snapPart.size);
         snapPart.forEach((doc) => {
           tDonasi += doc.data().nominalDonasi || 0;

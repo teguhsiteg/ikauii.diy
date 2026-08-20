@@ -641,7 +641,7 @@ const SuratTugasTemplate = ({ printData }: { printData: ProkerPayload }) => {
 };
 
 // --- MAIN COMPONENT ---
-export default function RuangKerjaProkerDinamic({ id, slug }: { id?: string; slug?: string }) {
+export default function RuangKerjaProkerDinamic({ id: _id, slug: _slug }: { id?: string; slug?: string }) {
   const params = useParams();
   const router = useRouter();
   const rawSlug = params.slug as string;
@@ -947,7 +947,7 @@ export default function RuangKerjaProkerDinamic({ id, slug }: { id?: string; slu
       }
       setView("list");
       fetchData();
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "Gagal menyimpan proker." });
     } finally {
       setIsSaving(false);

@@ -31,7 +31,7 @@ export default function KuisPage() {
       const snapshot = await getDocs(q);
       const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setQuizzes(data);
-    } catch (e) {
+    } catch {
       toast.error("Gagal mengambil data kuis");
     } finally {
       setLoading(false);
@@ -50,7 +50,7 @@ export default function KuisPage() {
       toast.success("Kuis berhasil ditambahkan");
       setQuizForm({ judul: "", deskripsi: "", kategori: "Umum", jmlSoal: 10, durasi: 15, reward: 100, status: "Draft" });
       fetchQuizzes();
-    } catch (e) {
+    } catch {
       toast.error("Gagal menambah kuis");
     } finally {
       setIsSaving(false);
@@ -63,7 +63,7 @@ export default function KuisPage() {
       await deleteDoc(doc(db, "kuis", id));
       toast.success("Kuis berhasil dihapus");
       fetchQuizzes();
-    } catch (e) {
+    } catch {
       toast.error("Gagal menghapus kuis");
     }
   };

@@ -193,15 +193,6 @@ export default function KTAPage() {
     return () => window.removeEventListener("resize", handleResize);
   }, [userData]);
 
-  const getTanggalDaftar = () => {
-    if (!userData || !userData.createdAt) return "-";
-    return new Date(userData.createdAt).toLocaleDateString("id-ID", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
   const getNIA = () => {
     if (!userData) return "";
     if (userData.nia) return userData.nia;

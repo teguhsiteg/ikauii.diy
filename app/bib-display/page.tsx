@@ -80,7 +80,7 @@ export default function BibDisplayPage() {
 
       if (foundData) setParticipantData(foundData);
       else setNotFound(true);
-    } catch (error) {
+    } catch {
       setNotFound(true);
     }
   };

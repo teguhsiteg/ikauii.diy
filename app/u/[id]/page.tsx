@@ -249,7 +249,7 @@ export default function PublicRunnerProfile() {
             {/* Motto / Bio Tambahan */}
             {participant.motto && (
               <p className="text-blue-100 italic mb-3 max-w-lg text-sm md:text-base border-l-4 border-yellow-400 pl-3">
-                "{participant.motto}"
+                &quot;{participant.motto}&quot;
               </p>
             )}
 

@@ -128,7 +128,7 @@ export default function ManajemenNomorSuratPage() {
       setFormCepat({ ...formCepat, perihal: "", tujuan: "", pembuat: "", jabatanPembuat: "" });
       setIsModalOpen(false);
       fetchData();
-    } catch (error) {
+    } catch {
       toast.error("Gagal mengambil nomor surat.");
     } finally {
       setIsSaving(false);

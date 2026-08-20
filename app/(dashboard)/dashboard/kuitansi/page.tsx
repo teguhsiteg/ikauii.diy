@@ -142,7 +142,7 @@ export default function AdminKuitansiPage() {
     if (confirm("Yakin ingin menghapus kuitansi ini? Aksi ini permanen.")) {
       try {
         await deleteDoc(doc(db, "kuitansi_organisasi", id));
-      } catch (error) {
+      } catch {
         toast.error("Gagal menghapus kuitansi.");
       }
     }
@@ -174,7 +174,7 @@ export default function AdminKuitansiPage() {
       setTimeout(() => {
         executeCanvasGeneration(newDoc.id, formData);
       }, 1000);
-    } catch (error) {
+    } catch {
       toast.error("Gagal membuat kuitansi.");
       setIsGenerating(false);
     }
@@ -417,8 +417,8 @@ export default function AdminKuitansiPage() {
     let line = "";
     let currentY = y;
     for (let n = 0; n < words.length; n++) {
-      let testLine = line + words[n] + " ";
-      let metrics = context.measureText(testLine);
+      const testLine = line + words[n] + " ";
+      const metrics = context.measureText(testLine);
       if (metrics.width > maxWidth && n > 0) {
         context.fillText(line.trim(), x, currentY);
         line = words[n] + " ";

@@ -51,7 +51,7 @@ export default function LeaderboardPage() {
           minute: "2-digit",
         }).format(date) + " WIB"
       );
-    } catch (error) {
+    } catch {
       return "-";
     }
   };

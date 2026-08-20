@@ -33,7 +33,7 @@ const extractYouTubeId = (url: string) => {
     } else if (url.includes("youtube.com/embed/")) {
       videoId = url.split("youtube.com/embed/")[1]?.split("?")[0];
     }
-  } catch (e) {
+  } catch {
     return "";
   }
   return videoId;
@@ -64,7 +64,7 @@ export default function MasterclassLearnPage() {
   const [activeTab, setActiveTab] = useState<"overview" | "downloads" | "qa">(
     "overview",
   );
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen] = useState(true);
 
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -264,7 +264,7 @@ export default function MasterclassLearnPage() {
       });
       setNewComment("");
       fetchDiscussions();
-    } catch (error) {
+    } catch {
       toast.error("Gagal mengirim pesan.");
     } finally {
       setIsPosting(false);
@@ -308,7 +308,7 @@ export default function MasterclassLearnPage() {
       }
       setIsReviewModalOpen(false);
       toast.success("Terima kasih! Ulasan Anda berhasil disimpan.");
-    } catch (err) {
+    } catch {
       toast.error("Gagal mengirim ulasan.");
     } finally {
       setIsSubmittingReview(false);
@@ -343,7 +343,7 @@ export default function MasterclassLearnPage() {
           .querySelector("main")
           ?.scrollTo({ top: 0, behavior: "smooth" });
       }
-    } catch (error) {
+    } catch {
       toast.error("Terjadi kesalahan saat menyimpan progres belajar Anda.");
     } finally {
       setIsSavingProgress(false);

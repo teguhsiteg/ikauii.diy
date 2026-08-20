@@ -63,7 +63,7 @@ export default function AdminOfflineRunPage() {
   }>({ isOpen: false, participant: null, step: "confirm", message: "" });
 
   // --- STATE PAGINATION, SORTING & LIMIT ---
-  const [sortConfig, setSortConfig] = useState<{
+  const [sortConfig] = useState<{
     key: string;
     direction: "asc" | "desc";
   }>({ key: "waktuDaftar", direction: "desc" });
@@ -176,14 +176,6 @@ export default function AdminOfflineRunPage() {
   // --- FITUR EKSPOR EXCEL ---
   const handleExportExcel = () => {
     const excelData = sortedData.map((p) => {
-      let durasi = "-";
-      if (p.netTimeMs) {
-        const hrs = Math.floor(p.netTimeMs / 3600000);
-        const mins = Math.floor((p.netTimeMs % 3600000) / 60000);
-        const secs = Math.floor((p.netTimeMs % 60000) / 1000);
-        durasi = `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-      }
-
       return {
         "Waktu Daftar": p.waktuDaftar
           ? new Date(p.waktuDaftar).toLocaleString("id-ID")
@@ -277,7 +269,7 @@ export default function AdminOfflineRunPage() {
 
         if (res.success) successCount++;
         else failCount++;
-      } catch (error) {
+      } catch {
         failCount++;
       }
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -477,7 +469,7 @@ export default function AdminOfflineRunPage() {
         title: "Racepack Diserahkan",
         message: `Berhasil mencatat penyerahan racepack untuk ${participantName}.`,
       });
-    } catch (e) {
+    } catch {
       setAlertModal({
         isOpen: true,
         type: "error",

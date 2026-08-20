@@ -1,45 +1,37 @@
 "use client";
 import Swal from "sweetalert2";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, } from "react";
 import { db } from "@/lib/firebase";
-import { sendWaAction } from "@/app/actions/wa";
 import {
   collection,
-  addDoc,
   getDocs,
   getDoc,
   setDoc,
-  deleteDoc,
   doc,
   updateDoc,
   query,
   orderBy,
 } from "firebase/firestore";
 import * as XLSX from "xlsx";
-import QRCode from "react-qr-code";
 import {
-  IconPlus,
   IconDownload,
   IconSearch,
   IconCheck,
   IconAlert,
-  IconEmpty,
   IconRefresh,
 } from "./Icons";
 
 export default function TabAnggotaSah() {
   const [pengurusList, setPengurusList] = useState<any[]>([]);
-  const [periodeList, setPeriodeList] = useState<any[]>([]);
-  const [dpdList, setDpdList] = useState<any[]>([]);
+  const [, setPeriodeList] = useState<any[]>([]);
+  const [, setDpdList] = useState<any[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isSendingWA, setIsSendingWA] = useState(false);
 
-  const [view, setView] = useState<"list" | "form">("list");
-  const [editId, setEditId] = useState<string | null>(null);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]); // Untuk centang massal
+  const [view] = useState<"list" | "form">("list");
+  const [, setSelectedIds] = useState<string[]>([]); // Untuk centang massal
 
   // Filter States
   const [search, setSearch] = useState("");
@@ -55,12 +47,6 @@ export default function TabAnggotaSah() {
     message: "",
     type: "success",
   });
-  const [deleteModal, setDeleteModal] = useState({
-    isOpen: false,
-    id: "",
-    title: "",
-    type: "single",
-  });
   const [bypassModal, setBypassModal] = useState({
     isOpen: false,
     user: null as any,
@@ -70,61 +56,12 @@ export default function TabAnggotaSah() {
     isOpen: false,
     data: null as any,
   });
-  const [isFlipped, setIsFlipped] = useState(false);
-
-  // Form State
-  const [form, setForm] = useState({
-    nama: "",
-    wa: "",
-    email: "",
-    jabatan: "Anggota",
-    bidang: "",
-    linkTTD: "",
-    isInti: false,
-    fotoUrl: "",
-    fotoPosition: "center",
-    linkedinUrl: "",
-    instagramUrl: "",
-    isTampilBeranda: false,
-    noUrut: "",
-    isPengurus: true,
-    status_pengurus: "Aktif",
-    nia: "",
-    periodeId: "",
-    fakultas: "",
-    programStudi: "",
-    angkatan: "",
-    domisili: "",
-    role: "anggota",
-  });
-
   const showToast = (
     message: string,
     type: "success" | "error" = "success",
   ) => {
     setToast({ isOpen: true, message, type });
     setTimeout(() => setToast((prev) => ({ ...prev, isOpen: false })), 4000);
-  };
-
-  // 🔥 FUNGSI KIRIM WHATSAPP 🔥
-  const triggerWaApi = async (
-    type: string,
-    phone: string,
-    nama: string,
-    detailData: any = {},
-  ) => {
-    if (!phone || phone.length < 9) return false;
-    try {
-      const data = await sendWaAction({
-        type,
-        phone,
-        nama,
-        detail: detailData,
-      });
-      return data.success;
-    } catch (error) {
-      return false;
-    }
   };
 
   const submitBypassNIA = async () => {
@@ -215,7 +152,7 @@ export default function TabAnggotaSah() {
       );
 
       setPengurusList(sah);
-    } catch (error) {
+    } catch {
       showToast("Gagal memuat data personalia.", "error");
     } finally {
       setIsLoading(false);
@@ -267,44 +204,6 @@ export default function TabAnggotaSah() {
     setCurrentPage(1);
   }, [search, filterPeriode, sortMode]);
 
-  const handleFormChange = (e: any) => {
-    const value =
-      e.target.type === "checkbox" ? e.target.checked : e.target.value;
-    setForm({ ...form, [e.target.name]: value });
-  };
-
-  const saveData = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsProcessing(true);
-    try {
-      const finalData = {
-        ...form,
-        noUrut: form.noUrut ? Number(form.noUrut) : 99,
-        role: "anggota",
-      };
-      if (editId) {
-        await updateDoc(doc(db, "pengurus", editId), {
-          ...finalData,
-          updatedAt: new Date().toISOString(),
-        });
-        showToast("Data Anggota diperbarui.", "success");
-      } else {
-        await addDoc(collection(db, "pengurus"), {
-          ...finalData,
-          createdAt: new Date().toISOString(),
-        });
-        showToast("Data Anggota baru ditambahkan.", "success");
-      }
-      setEditId(null);
-      await fetchData();
-      setView("list");
-    } catch (error) {
-      showToast("Gagal menyimpan data.", "error");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const cabutPengurus = async (id: string, nama: string) => {
     const _swalRes = await Swal.fire({
       title: 'Konfirmasi',
@@ -325,7 +224,7 @@ export default function TabAnggotaSah() {
       });
       showToast(`Status Anggota ${nama} dicabut.`, "success");
       await fetchData();
-    } catch (error) {
+    } catch {
       showToast("Gagal merubah status.", "error");
     } finally {
       setIsProcessing(false);
@@ -352,30 +251,10 @@ export default function TabAnggotaSah() {
       });
       showToast(`${nama} berhasil dipindahkan ke Antrean Daftar.`, "success");
       await fetchData();
-    } catch (error) {
+    } catch {
       showToast("Gagal merubah status.", "error");
     } finally {
       setIsProcessing(false);
-    }
-  };
-
-  const executeDelete = async () => {
-    setIsProcessing(true);
-    try {
-      if (deleteModal.type === "single" && deleteModal.id) {
-        await deleteDoc(doc(db, "pengurus", deleteModal.id));
-      } else if (deleteModal.type === "bulk" && selectedIds.length > 0) {
-        await Promise.all(
-          selectedIds.map((id) => deleteDoc(doc(db, "pengurus", id))),
-        );
-      }
-      showToast("Data dihapus permanen.", "success");
-      await fetchData();
-    } catch (error) {
-      showToast("Gagal menghapus data.", "error");
-    } finally {
-      setIsProcessing(false);
-      setDeleteModal({ isOpen: false, id: "", title: "", type: "single" });
     }
   };
 
@@ -398,25 +277,6 @@ export default function TabAnggotaSah() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Anggota");
     XLSX.writeFile(wb, `Data_ANGGOTA_SAH.xlsx`);
-  };
-
-  const openDetail = (user: any) => {
-    setDetailModal({ isOpen: true, data: user });
-    setIsFlipped(false);
-  };
-
-  const toggleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-      setSelectedIds(filteredData.map((d) => d.id));
-    } else {
-      setSelectedIds([]);
-    }
-  };
-
-  const toggleSelect = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
-    );
   };
 
   return (

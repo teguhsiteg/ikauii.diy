@@ -31,7 +31,7 @@ const SidebarDonationWidget = ({ donasiData }: { donasiData: any }) => (
 
     <div className="relative z-10">
       <h3 className="text-xl font-black mb-2 text-yellow-400 border-b border-green-600/50 pb-3">
-        Program Jum'at Berkah
+        Program Jum&apos;at Berkah
       </h3>
 
       <div className="mt-4 bg-black/20 rounded-xl p-4 border border-white/10 text-center">

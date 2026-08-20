@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { X, Music, Volume2, Upload, Link as LinkIcon, Play, Pause, Check, Disc } from 'lucide-react';
+import { X, Music, Volume2, Upload, Link as LinkIcon, Play, Pause, Check } from 'lucide-react';
 import { MusicTrack } from '@/data/eventData';
 import { MUSIC_PRESETS } from '@/data/eventData';
 import { invitationAudio } from '@/utils/audioHelper';

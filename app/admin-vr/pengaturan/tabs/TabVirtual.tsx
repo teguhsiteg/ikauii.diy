@@ -472,7 +472,7 @@ export default function TabVirtual({
                   👕 URL Foto Jersey Virtual
                 </label>
                 <p className="text-[10px] text-blue-500 mb-2">
-                  Ditampilkan di card "Premium Dry-Fit Jersey" halaman /virtual-run
+                  Ditampilkan di card &quot;Premium Dry-Fit Jersey&quot; halaman /virtual-run
                 </p>
                 <input
                   type="url"
@@ -498,7 +498,7 @@ export default function TabVirtual({
                   🏅 URL Foto Medali Virtual
                 </label>
                 <p className="text-[10px] text-yellow-600 mb-2">
-                  Ditampilkan di card "Finisher Medal" halaman /virtual-run
+                  Ditampilkan di card &quot;Finisher Medal&quot; halaman /virtual-run
                 </p>
                 <input
                   type="url"

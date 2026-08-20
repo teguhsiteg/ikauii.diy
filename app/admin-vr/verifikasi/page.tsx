@@ -124,7 +124,7 @@ export default function VerifikasiLariPage() {
       );
       await batch.commit();
       setSelectedSubmissions([]);
-    } catch (e) {
+    } catch {
       toast.error("Gagal menghapus data.");
     } finally {
       setLoadingAction(null);

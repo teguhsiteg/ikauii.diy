@@ -2,20 +2,22 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { MailOpen, MapPin, Calendar, ShieldCheck } from 'lucide-react';
 import { GuestInfo } from '@/data/eventData';
-import { EVENT_DETAILS } from '@/data/eventData';
 import { UiiLogoBadge, IslamicCorner, JogloSilhouette } from './HeaderDecorations';
 import { invitationAudio } from '@/utils/audioHelper';
+import { InvitationSettings } from '@/lib/invitation-settings';
 
 interface CoverScreenProps {
   guest: GuestInfo;
   onOpen: () => void;
   isEmbed?: boolean;
+  dynamicSettings: InvitationSettings;
 }
 
 export const CoverScreen: React.FC<CoverScreenProps> = ({
   guest,
   onOpen,
   isEmbed = false,
+  dynamicSettings,
 }) => {
   const handleOpenInvitation = () => {
     invitationAudio.play();
@@ -44,10 +46,10 @@ export const CoverScreen: React.FC<CoverScreenProps> = ({
         </div>
 
         <p className="text-[11px] sm:text-xs font-semibold tracking-wider text-amber-300 uppercase">
-          {EVENT_DETAILS.orgName}
+          {dynamicSettings.orgName}
         </p>
         <p className="text-[10px] sm:text-[11px] font-medium tracking-wide text-slate-300 uppercase">
-          {EVENT_DETAILS.subOrgName}
+          {dynamicSettings.subOrgName}
         </p>
       </div>
 
@@ -71,13 +73,13 @@ export const CoverScreen: React.FC<CoverScreenProps> = ({
           </div>
 
           <h1 className="font-cinzel text-xl sm:text-2xl font-bold tracking-wide text-white leading-snug mb-1">
-            PELANTIKAN PENGURUS
+            {dynamicSettings.title.toUpperCase()}
           </h1>
           <h2 className="font-cinzel text-lg sm:text-xl font-bold gold-gradient-text tracking-wider mb-2">
-            DPW IKA UII DIY
+            {dynamicSettings.subOrgName.toUpperCase()}
           </h2>
           <div className="inline-block px-2.5 py-0.5 rounded bg-amber-500/15 text-amber-200 text-[11px] font-semibold tracking-wider mb-5 border border-amber-400/25">
-            {EVENT_DETAILS.period}
+            {dynamicSettings.period}
           </div>
 
           {/* Recipient Frame */}
@@ -121,11 +123,11 @@ export const CoverScreen: React.FC<CoverScreenProps> = ({
           <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-slate-300 my-4">
             <div className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-amber-400" />
-              <span>{EVENT_DETAILS.day}, {EVENT_DETAILS.dateFormatted}</span>
+              <span>{dynamicSettings.day}, {dynamicSettings.dateFormatted}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <MapPin className="w-3.5 h-3.5 text-amber-400" />
-              <span>{EVENT_DETAILS.venue}</span>
+              <span>{dynamicSettings.venue}</span>
             </div>
           </div>
 
@@ -133,17 +135,17 @@ export const CoverScreen: React.FC<CoverScreenProps> = ({
           <button
             id="btn-open-invitation"
             onClick={handleOpenInvitation}
-            className="w-full mt-2 py-3 px-5 rounded-xl gold-gradient-bg text-slate-950 font-bold text-sm shadow-md flex items-center justify-center gap-2 hover:brightness-105 cursor-pointer transition-all"
+            className="w-full mt-4 py-3.5 px-6 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-sm sm:text-base shadow-[0_0_15px_rgba(251,191,36,0.6)] flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95 animate-pulse"
           >
-            <MailOpen className="w-4 h-4 text-slate-950" />
-            <span>Buka Undangan Digital</span>
+            <MailOpen className="w-5 h-5 text-slate-950" />
+            <span>BUKA UNDANGAN DIGITAL</span>
           </button>
         </div>
       </motion.div>
 
       {/* Clean, Official Footer */}
       <div className="w-full max-w-md flex items-center justify-center text-center text-[11px] text-slate-400 pb-2 z-10 px-2">
-        <span>© 2026 DPW IKA UII DIY • Pelantikan Pengurus 2026 – 2031</span>
+        <span>© {new Date().getFullYear()} {dynamicSettings.orgName} • {dynamicSettings.title} {dynamicSettings.period}</span>
       </div>
     </motion.div>
   );

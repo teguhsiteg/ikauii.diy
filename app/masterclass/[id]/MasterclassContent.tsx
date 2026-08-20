@@ -229,7 +229,7 @@ export default function MasterclassPublicDetailPage() {
           actionLink: "/masterclass/my-courses",
         });
       }
-    } catch (error) {
+    } catch {
       setModalConfig({
         isOpen: true,
         type: "error",
@@ -356,7 +356,7 @@ export default function MasterclassPublicDetailPage() {
         } else {
           toast.error(`Gagal memuat pembayaran Midtrans: ${data.error}`);
         }
-      } catch (error) {
+      } catch {
         toast.error("Terjadi kesalahan sistem saat menghubungi Midtrans.");
       } finally {
         setIsProcessingCheckout(false);
@@ -873,7 +873,7 @@ export default function MasterclassPublicDetailPage() {
 
                     {expandedBabs.includes(babName) && (
                       <div className="divide-y divide-slate-100 border-t border-slate-100">
-                        {groupedModules[babName].map((mod, mIdx) => (
+                        {groupedModules[babName].map((mod, _mIdx) => (
                           <div
                             key={mod.id}
                             className="p-5 flex items-start gap-4 hover:bg-slate-50/50 transition-colors pl-8 sm:pl-16"
@@ -1018,7 +1018,7 @@ export default function MasterclassPublicDetailPage() {
                       ))}
                     </div>
                     <p className="text-slate-700 text-sm italic mb-4 leading-relaxed line-clamp-4">
-                      "{r.ulasan}"
+                      &quot;{r.ulasan}&quot;
                     </p>
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-500 text-xs">

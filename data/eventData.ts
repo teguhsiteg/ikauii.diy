@@ -70,7 +70,7 @@ export const RUNDOWN_LIST = [
 ];
 
 export const INITIAL_WISHES: GuestWish[] = [
-  { name: 'Alumni Angkatan 90', message: 'Selamat atas pelantikan pengurus baru, semoga amanah dan sukses selalu.', timestamp: '2026-10-01T10:00:00' }
+  { id: 'initial-1', name: 'Alumni Angkatan 90', message: 'Selamat atas pelantikan pengurus baru, semoga amanah dan sukses selalu.', timestamp: '2026-10-01T10:00:00' }
 ];
 
 export const GALLERY_ITEMS: GalleryItem[] = [

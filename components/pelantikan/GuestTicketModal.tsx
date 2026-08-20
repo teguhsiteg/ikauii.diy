@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { X, QrCode, Sparkles, MapPin, Calendar, CheckCircle, ShieldCheck } from 'lucide-react';
+import { X, MapPin, Calendar, ShieldCheck } from 'lucide-react';
 import { GuestInfo } from '@/data/eventData';
 import { EVENT_DETAILS } from '@/data/eventData';
 import { UiiLogoBadge } from './HeaderDecorations';

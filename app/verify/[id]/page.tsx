@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
 import {
   doc,
@@ -15,7 +15,6 @@ import Link from "next/link";
 
 export default function VerifyCertificatePage() {
   const params = useParams();
-  const router = useRouter();
   const certId = params.id as string; // Contoh: MC-IKA-ABCDE-12345
 
   const [isLoading, setIsLoading] = useState(true);

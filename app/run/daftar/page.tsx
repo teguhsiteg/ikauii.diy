@@ -10,9 +10,6 @@ import {
   getDocs,
   query,
   where,
-  orderBy,
-  limit,
-  getCountFromServer, // 🔥 TAMBAHKAN INI
 } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -338,7 +335,7 @@ function FormPendaftaranOffline() {
           message: "NIK belum terdaftar di sistem. Anda dapat melanjutkan pendaftaran.",
         });
       }
-    } catch (error) {
+    } catch {
       setModal({
         isOpen: true,
         type: "error",
@@ -405,7 +402,7 @@ function FormPendaftaranOffline() {
         text: `Promo diterapkan! Diskon: ${promoData.jenisDiskon === "persen" ? promoData.nilaiDiskon + "%" : "Rp " + promoData.nilaiDiskon.toLocaleString("id-ID")}`,
         type: "success",
       });
-    } catch (error) {
+    } catch {
       setPromoMessage({
         text: "Gagal mengecek promo. Coba lagi.",
         type: "error",
@@ -634,7 +631,7 @@ function FormPendaftaranOffline() {
         }).catch((err) => console.error("Background Email Error:", err));
 
       router.push(`/run/checkout/${docRef.id}`);
-    } catch (error) {
+    } catch {
       setModal({
         isOpen: true,
         type: "error",

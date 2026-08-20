@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 import { invitationAudio } from '@/utils/audioHelper';
 
@@ -8,6 +8,7 @@ interface AudioToggleProps {
 
 export const AudioToggle: React.FC<AudioToggleProps> = () => {
   const [isPlaying, setIsPlaying] = useState<boolean>(invitationAudio.getStatus());
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
     const unsub = invitationAudio.subscribe(() => {
@@ -16,13 +17,25 @@ export const AudioToggle: React.FC<AudioToggleProps> = () => {
     return unsub;
   }, []);
 
+  useEffect(() => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.play().catch(e => console.warn('Audio autoplay prevented:', e));
+      } else {
+        audioRef.current.pause();
+      }
+    }
+  }, [isPlaying]);
+
   const handleToggle = () => {
     const status = invitationAudio.toggle();
     setIsPlaying(status);
   };
 
   return (
-    <div className="fixed bottom-5 right-5 z-40">
+    <>
+      <audio ref={audioRef} src={invitationAudio.getCurrentTrack().url} loop preload="auto" />
+      <div className="fixed bottom-5 right-5 z-40">
       <button
         id="btn-audio-toggle"
         onClick={handleToggle}
@@ -36,5 +49,6 @@ export const AudioToggle: React.FC<AudioToggleProps> = () => {
         {isPlaying ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
       </button>
     </div>
+    </>
   );
 };

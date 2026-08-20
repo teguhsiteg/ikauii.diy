@@ -772,9 +772,9 @@ export default function DashboardLayout({
               <div className="space-y-1 px-4">
                 {visibleBottomMenu.map((item) => {
                   const isActive = pathname.startsWith(item.path);
-                  let baseStyle =
+                  const baseStyle =
                     "flex items-center gap-3.5 px-4 py-3 rounded-xl transition-all font-medium text-sm group border ";
-                  let specificStyle = item.isHighlight
+                  const specificStyle = item.isHighlight
                     ? isActive
                       ? "bg-emerald-50 text-emerald-700 shadow-sm border-emerald-100"
                       : "bg-emerald-50/50 text-emerald-600 hover:bg-emerald-50 border-transparent hover:border-emerald-100"

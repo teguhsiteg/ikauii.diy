@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
-import { EVENT_DETAILS } from '@/data/eventData';
 
 interface TimeLeft {
   days: number;
@@ -10,7 +9,7 @@ interface TimeLeft {
   isPast: boolean;
 }
 
-export const CountdownTimer: React.FC = () => {
+export const CountdownTimer: React.FC<{ targetDateTime?: string }> = ({ targetDateTime = '' }) => {
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({
     days: 0,
     hours: 0,
@@ -21,7 +20,7 @@ export const CountdownTimer: React.FC = () => {
 
   useEffect(() => {
     const calculateTimeLeft = () => {
-      const target = new Date(EVENT_DETAILS.targetDateTime).getTime();
+      const target = new Date(targetDateTime).getTime();
       const now = new Date().getTime();
       const difference = target - now;
 
@@ -47,7 +46,7 @@ export const CountdownTimer: React.FC = () => {
     calculateTimeLeft();
     const interval = setInterval(calculateTimeLeft, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [targetDateTime]);
 
   const timeUnits = [
     { label: 'Hari', value: timeLeft.days },

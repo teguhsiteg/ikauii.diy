@@ -66,7 +66,7 @@ export default function TabDPD() {
         query(collection(db, "dpd"), orderBy("nama", "asc")),
       );
       setDataList(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    } catch (error) {
+    } catch {
       showToast("Gagal memuat data DPD.", "error");
     } finally {
       setIsLoading(false);
@@ -108,7 +108,7 @@ export default function TabDPD() {
       setEditId(null);
       await fetchData();
       setView("list");
-    } catch (error) {
+    } catch {
       showToast("Gagal menyimpan data.", "error");
     } finally {
       setIsProcessing(false);
@@ -127,7 +127,7 @@ export default function TabDPD() {
       }
       showToast("Data berhasil dihapus.", "success");
       await fetchData();
-    } catch (error) {
+    } catch {
       showToast("Gagal menghapus data.", "error");
     } finally {
       setIsProcessing(false);
@@ -190,7 +190,7 @@ export default function TabDPD() {
         }
         showToast(`${count} Data DPD di-import!`, "success");
         await fetchData();
-      } catch (error) {
+      } catch {
         showToast("Gagal import Excel.", "error");
       } finally {
         setIsProcessing(false);
@@ -232,7 +232,7 @@ export default function TabDPD() {
             </div>
             <h3 className="text-lg font-medium mb-1">Hapus Permanen?</h3>
             <p className="text-sm text-[#5F6368] mb-6">
-              Yakin menghapus data <strong>"{deleteModal.title}"</strong>?
+              Yakin menghapus data <strong>&quot;{deleteModal.title}&quot;</strong>?
             </p>
             <div className="flex gap-3 justify-center">
               <button

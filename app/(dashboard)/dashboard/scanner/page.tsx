@@ -107,7 +107,7 @@ export default function ScannerGatePage() {
             (decodedText: string) => {
               processCheckIn(decodedText);
             },
-            (error: any) => {},
+            () => {},
           );
         } catch (error) {
           console.error("Gagal inisiasi kamera:", error);
@@ -172,7 +172,7 @@ export default function ScannerGatePage() {
           title: "BERHASIL MASUK",
           text: `Selamat datang, ${peserta.nama}!${rombonganText}`,
         });
-      } catch (err) {
+      } catch {
         setFeedback({
           type: "error",
           title: "KONEKSI GAGAL",

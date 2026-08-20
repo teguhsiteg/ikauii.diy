@@ -8,7 +8,6 @@ import {
   query,
   where,
   getDocs,
-  addDoc,
   onSnapshot,
   orderBy,
   doc,
@@ -17,7 +16,7 @@ import {
 } from "firebase/firestore";
 import Link from "next/link";
 import { QRCodeCanvas } from "qrcode.react";
-import { Activity, Mail, KeyRound, ArrowRight, ShieldCheck, User, MapPin, Calendar, CreditCard, UploadCloud, ChevronDown, Trophy, Medal, CheckCircle2, Clock, History, Edit3, Camera, FileText, Info, LogOut, Check, X, Eye, Search, Image as ImageIcon, Share2, Copy, Shield } from "lucide-react";
+import { Activity, Mail, KeyRound, ArrowRight, ShieldCheck, User, MapPin, Calendar, CreditCard, UploadCloud, ChevronDown, Trophy, Medal, CheckCircle2, Clock, History, Camera, FileText, Info, LogOut, Check, X, Search, Image as ImageIcon, Share2, Copy, Shield } from "lucide-react";
 import { sendEmailAction } from "@/app/actions/email";
 
 
@@ -49,9 +48,7 @@ export default function ParticipantDashboard() {
   const [selectedPaymentFile, setSelectedPaymentFile] = useState<File | null>(
     null,
   );
-  const [previewPaymentUrl, setPreviewPaymentUrl] = useState<string | null>(
-    null,
-  );
+  const [, setPreviewPaymentUrl] = useState<string | null>(null);
   const [isUploadingPayment, setIsUploadingPayment] = useState(false);
 
   // --- STATE EDIT PROFIL ---
@@ -240,7 +237,7 @@ export default function ParticipantDashboard() {
         await signInWithCustomToken(auth, data.token);
         await fetchParticipantData(emailLogin);
       }
-    } catch (error) {
+    } catch {
       setPopup({ type: "error", title: "Error", text: "Gagal memverifikasi OTP." });
     } finally {
       setIsVerifyingOtp(false);
@@ -298,14 +295,6 @@ export default function ParticipantDashboard() {
     setLoginStep("email");
     setSubmissions([]);
     setIsDropdownOpen(false);
-  };
-
-  const handleLupaEmail = () => {
-    setPopup({
-      type: "info",
-      title: "Lupa Email Pendaftaran?",
-      text: "Silakan hubungi WhatsApp/Instagram Admin IKA UII DIY beserta Nama Lengkap Anda.",
-    });
   };
 
   const handleSwitchEvent = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -474,7 +463,7 @@ export default function ParticipantDashboard() {
         });
       }
 
-      // @ts-ignore
+      // @ts-expect-error - see below
       window.snap.pay(tokenToUse, {
         onSuccess: async function () {
           try {
@@ -509,7 +498,7 @@ export default function ParticipantDashboard() {
                 text: "Pembayaran sedang diverifikasi sistem. Status akan otomatis ter-update beberapa saat lagi.",
               });
             }
-          } catch (err) {
+          } catch {
             setPopup({
               type: "info",
               title: "Pembayaran Berhasil",
@@ -847,8 +836,8 @@ export default function ParticipantDashboard() {
     let currentY = y;
 
     for (let n = 0; n < words.length; n++) {
-      let testLine = line + words[n] + " ";
-      let metrics = context.measureText(testLine);
+      const testLine = line + words[n] + " ";
+      const metrics = context.measureText(testLine);
       if (metrics.width > maxWidth && n > 0) {
         context.fillText(line.trim(), x, currentY);
         line = words[n] + " ";
@@ -1087,8 +1076,8 @@ export default function ParticipantDashboard() {
             textX = 580,
             maxTextW = 640;
 
-          let startY = 70,
-            gapY = 35;
+          let startY = 70;
+          const gapY = 35;
 
           const drawRow = (
             label: string,

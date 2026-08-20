@@ -123,7 +123,7 @@ export default function TabSuratLegal({
         }
 
         const snap = await getDocs(q);
-        let data = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const data = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
         // Pengurutan manual di sisi Frontend
         if (filterPeriodeId !== "Semua" && filterPeriodeId) {
@@ -196,7 +196,7 @@ export default function TabSuratLegal({
       }
 
       const snap = await getDocs(q);
-      let newData = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      const newData = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
       if (filterPeriodeId !== "Semua" && filterPeriodeId) {
         newData.sort(
@@ -209,7 +209,7 @@ export default function TabSuratLegal({
 
       setViewMode("list");
       setEditId(null);
-    } catch (error) {
+    } catch {
       showToast("Gagal menyimpan dokumen.", "error");
     } finally {
       setIsProcessing(false);
@@ -222,7 +222,7 @@ export default function TabSuratLegal({
       await deleteDoc(doc(db, "surat_edaran", deleteModal.id));
       setDocsList(docsList.filter((d) => d.id !== deleteModal.id));
       showToast("Dokumen berhasil dihapus permanen.", "success");
-    } catch (error) {
+    } catch {
       showToast("Gagal menghapus dokumen.", "error");
     } finally {
       setIsProcessing(false);
@@ -296,7 +296,7 @@ export default function TabSuratLegal({
             </h3>
             <p className="text-sm text-slate-500 mb-8 font-medium px-2 leading-relaxed">
               Anda yakin ingin menghapus dokumen{" "}
-              <strong className="text-slate-800">"{deleteModal.title}"</strong>?
+              <strong className="text-slate-800">&quot;{deleteModal.title}&quot;</strong>?
               Arsip tidak dapat dikembalikan.
             </p>
             <div className="flex gap-3 justify-center">

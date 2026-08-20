@@ -318,7 +318,7 @@ export default function PublicBioPage() {
                 </span>
                 <span className="flex items-center gap-1.5 min-w-0">
                   <span className="text-[var(--theme-highlight)] break-words text-center">
-                    "{profile.name}"
+                    &quot;{profile.name}&quot;
                   </span>
                   <VerifiedBadge />
                 </span>
@@ -328,7 +328,7 @@ export default function PublicBioPage() {
                 <div
                   className={`w-full font-mono text-[10px] sm:text-xs md:text-sm leading-relaxed text-left inline-block p-4 rounded-xl border break-words ${isDark ? "bg-[#060913] border-white/5 text-slate-400" : "bg-slate-50 border-slate-200 text-slate-600"}`}
                 >
-                  <span className="text-slate-400/50 select-none">/**</span>
+                  <span className="text-slate-400/50 select-none">{"/**"}</span>
                   <br />
                   <span
                     className={isDark ? "text-slate-300" : "text-slate-700"}

@@ -33,7 +33,7 @@ interface Participant {
 }
 
 export default function PendaftaranKomunitasPage() {
-  const [adminSettings, setAdminSettings] = useState<any>(null);
+  const [, setAdminSettings] = useState<any>(null);
   const [harga5K, setHarga5K] = useState(150000);
   const [harga10K, setHarga10K] = useState(200000);
   const router = useRouter();
@@ -191,13 +191,13 @@ export default function PendaftaranKomunitasPage() {
         const sheet = workbook.Sheets[sheetName];
         const jsonData: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-        let tempParticipants: Participant[] = [];
+        const tempParticipants: Participant[] = [];
         for (let i = 1; i < jsonData.length; i++) {
           const row = jsonData[i];
           if (!row || row.length === 0 || !row[0]) continue;
 
           const pKategori = (row[3] || "").toString().toUpperCase().trim();
-          let harga = pKategori === "10K" ? harga10K : harga5K;
+          const harga = pKategori === "10K" ? harga10K : harga5K;
 
           tempParticipants.push({
             id: `usr_${Date.now()}_${i}`,
@@ -226,7 +226,7 @@ export default function PendaftaranKomunitasPage() {
           setParticipants(tempParticipants);
           kalkulasiTiketGratis(tempParticipants);
         }
-      } catch (err) {
+      } catch {
         triggerAlert(
           "Gagal Membaca File",
           "Pastikan Anda menggunakan template Excel yang disediakan.",

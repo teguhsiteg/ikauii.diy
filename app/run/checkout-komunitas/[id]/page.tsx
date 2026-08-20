@@ -140,7 +140,7 @@ export default function CheckoutKomunitasPage() {
         message:
           "Bukti pembayaran terkirim. Admin akan segera memverifikasi data tim Anda.",
       });
-    } catch (error) {
+    } catch {
       setModal({
         isOpen: true,
         type: "error",

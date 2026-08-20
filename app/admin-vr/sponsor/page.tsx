@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 export default function SponsorManagementPage() {
   const [sponsorGroups, setSponsorGroups] = useState<any[]>([]);
@@ -520,7 +520,7 @@ export default function SponsorManagementPage() {
                   <div className="p-5 bg-slate-50/50">
                     {(!group.logos || group.logos.length === 0) && (
                       <div className="text-center text-slate-400 text-[11px] font-medium py-8 bg-white rounded-xl border border-dashed border-slate-300">
-                        Belum ada logo di kategori ini. <br/> Klik tombol <span className="text-[#1A73E8] font-bold">"+ LOGO"</span> di kanan atas untuk menambahkan.
+                        Belum ada logo di kategori ini. <br/> Klik tombol <span className="text-[#1A73E8] font-bold">&quot;+ LOGO&quot;</span> di kanan atas untuk menambahkan.
                       </div>
                     )}
 

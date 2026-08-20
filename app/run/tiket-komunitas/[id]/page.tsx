@@ -94,7 +94,7 @@ export default function ETicketKomunitasPage() {
       link.download = `E-Ticket-${groupData.kapten?.komunitas || "Komunitas"}.png`;
       link.href = dataUrl;
       link.click();
-    } catch (error) {
+    } catch {
       toast.error("Gagal mengunduh tiket. Coba gunakan perangkat lain.");
     }
   };

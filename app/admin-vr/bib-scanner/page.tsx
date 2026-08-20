@@ -136,7 +136,7 @@ export default function BibScannerPage() {
           ...prev,
         ].slice(0, 30),
       );
-    } catch (error) {
+    } catch {
       toast.error("Koneksi terputus!");
     } finally {
       setBibInput("");

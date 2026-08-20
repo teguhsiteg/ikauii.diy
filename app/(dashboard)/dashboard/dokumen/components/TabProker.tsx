@@ -32,7 +32,7 @@ export default function TabProker({
         }
 
         const snap = await getDocs(q);
-        let data = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const data = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
         // Pengurutan manual di sisi Frontend jika difilter per periode
         if (filterPeriodeId !== "Semua" && filterPeriodeId) {

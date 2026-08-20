@@ -131,7 +131,7 @@ const IconTrash = () => (
 
 export default function AdminEventPage() {
   const [activeTab, setActiveTab] = useState("hero");
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [, setIsAdmin] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [popup, setPopup] = useState("");

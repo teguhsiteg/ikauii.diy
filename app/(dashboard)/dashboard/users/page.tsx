@@ -90,7 +90,7 @@ export default function ManajemenPenggunaPage() {
             } else {
               setHasAccess(false);
             }
-          } catch (error) {
+          } catch {
             setHasAccess(false);
           }
         } else {
@@ -196,7 +196,7 @@ export default function ManajemenPenggunaPage() {
           ),
         300,
       );
-    } catch (error) {
+    } catch {
       showAlert(
         "Gagal Menyimpan",
         "Terjadi kesalahan sistem saat memperbarui data pengguna.",
@@ -235,7 +235,7 @@ export default function ManajemenPenggunaPage() {
           ),
         300,
       );
-    } catch (error) {
+    } catch {
       showAlert(
         "Gagal Menambahkan",
         "Terjadi kesalahan sistem saat menambahkan pengguna baru.",
@@ -259,7 +259,7 @@ export default function ManajemenPenggunaPage() {
             () => showAlert("Berhasil", `Akses untuk ${name} telah dicabut.`),
             300,
           );
-        } catch (error) {
+        } catch {
           showAlert("Gagal", "Sistem gagal mencabut akses pengguna tersebut.");
         }
       },
@@ -308,7 +308,7 @@ export default function ManajemenPenggunaPage() {
               300,
             );
           }
-        } catch (error) {
+        } catch {
           setTimeout(
             () =>
               showAlert(

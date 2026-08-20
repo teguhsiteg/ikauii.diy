@@ -3,7 +3,7 @@
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { getFirestore } from "firebase-admin/firestore";
 
 const envPath = resolve(process.cwd(), ".env.local");
 const envRaw = readFileSync(envPath, "utf-8");

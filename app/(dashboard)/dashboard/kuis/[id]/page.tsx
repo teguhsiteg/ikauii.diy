@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy, getDoc } from "firebase/firestore";
 import { toast } from "@/lib/toast";
@@ -47,7 +47,7 @@ export default function ManajemenSoalKuis({ params }: { params: Promise<{ id: st
         toast.error("Kuis tidak ditemukan!");
         router.push("/dashboard/kuis");
       }
-    } catch (e) {
+    } catch {
       toast.error("Gagal memuat detail kuis.");
     }
   };
@@ -60,7 +60,7 @@ export default function ManajemenSoalKuis({ params }: { params: Promise<{ id: st
       const snapshot = await getDocs(q);
       const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setQuestions(data);
-    } catch (e) {
+    } catch {
       toast.error("Gagal mengambil daftar soal.");
     } finally {
       setLoading(false);
@@ -83,7 +83,7 @@ export default function ManajemenSoalKuis({ params }: { params: Promise<{ id: st
       toast.success("Soal berhasil ditambahkan!");
       setForm({ pertanyaan: "", pilihanA: "", pilihanB: "", pilihanC: "", pilihanD: "", jawabanBenar: "A" });
       fetchQuestions();
-    } catch (e) {
+    } catch {
       toast.error("Gagal menyimpan soal.");
     } finally {
       setIsSaving(false);
@@ -96,7 +96,7 @@ export default function ManajemenSoalKuis({ params }: { params: Promise<{ id: st
       await deleteDoc(doc(db, `kuis/${quizId}/soal`, soalId));
       toast.success("Soal berhasil dihapus!");
       fetchQuestions();
-    } catch (e) {
+    } catch {
       toast.error("Gagal menghapus soal.");
     }
   };

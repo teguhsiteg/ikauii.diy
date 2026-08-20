@@ -105,7 +105,7 @@ function ResetPasswordForm() {
       <div className="bg-red-50 border border-red-100 text-red-600 text-sm font-medium p-6 rounded-xl text-center">
         Tautan tidak valid, rusak, atau kode keamanan tidak ditemukan. <br />
         Silakan kembali ke halaman Login dan ulangi proses{" "}
-        <b>"Lupa Kata Sandi"</b>.
+        <b>&quot;Lupa Kata Sandi&quot;</b>.
       </div>
     );
   }

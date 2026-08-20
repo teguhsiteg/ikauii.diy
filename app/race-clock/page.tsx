@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
-import { Maximize, Minimize, RotateCw } from "lucide-react";
+import { Maximize, Minimize } from "lucide-react";
 
 export default function RaceClockPage() {
   const [gunTimes, setGunTimes] = useState<Record<string, number>>({});

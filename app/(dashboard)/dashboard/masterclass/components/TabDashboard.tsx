@@ -292,7 +292,7 @@ export default function TabDashboard() {
                       </div>
                     </div>
                     <p className="text-[11px] text-slate-500 italic line-clamp-2">
-                      "{r.ulasan}"
+                      &quot;{r.ulasan}&quot;
                     </p>
                   </div>
                 ))}

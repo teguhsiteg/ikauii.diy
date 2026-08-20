@@ -7,7 +7,6 @@ import {
   collection,
   getDocs,
   doc,
-  updateDoc,
   deleteDoc,
   writeBatch,
   query,
@@ -111,7 +110,7 @@ export default function TabParticipants() {
       await batch.commit();
       setSelectedIds([]);
       await fetchAllData();
-    } catch (err) {
+    } catch {
       toast.error("Gagal approve massal");
     }
     setIsProcessing(false);
@@ -133,7 +132,7 @@ export default function TabParticipants() {
       await batch.commit();
       setSelectedIds([]);
       await fetchAllData();
-    } catch (err) {
+    } catch {
       toast.error("Gagal hapus massal");
     }
     setIsProcessing(false);

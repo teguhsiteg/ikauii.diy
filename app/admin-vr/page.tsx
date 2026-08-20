@@ -10,8 +10,6 @@ import {
   limit,
   where,
   getDocs,
-  deleteDoc,
-  doc,
   writeBatch,
 } from "firebase/firestore";
 import Link from "next/link";
@@ -66,7 +64,7 @@ export default function OverviewAdminPage() {
 
     // 2. REAL-TIME VR STATS
     const unsubVR = onSnapshot(collection(db, "vr_participants"), (snap) => {
-      let stats = { peserta: 0, tiket: 0, ongkir: 0, charity: 0 };
+      const stats = { peserta: 0, tiket: 0, ongkir: 0, charity: 0 };
       snap.forEach((doc) => {
         const data = doc.data();
         stats.peserta++;
@@ -90,7 +88,7 @@ export default function OverviewAdminPage() {
     const unsubOffline = onSnapshot(
       collection(db, "offline_participants"),
       (snap) => {
-        let stats = { peserta: 0, tiket: 0, charity: 0 };
+        const stats = { peserta: 0, tiket: 0, charity: 0 };
         snap.forEach((doc) => {
           const data = doc.data();
           stats.peserta++;

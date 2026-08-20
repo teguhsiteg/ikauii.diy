@@ -384,7 +384,7 @@ function RegistrationForm() {
         if (!response.ok)
           throw new Error(resData.error || "Gagal server Midtrans.");
 
-        // @ts-ignore
+        // @ts-expect-error - see below
         window.snap.pay(resData.token, {
           onSuccess: function () {
             router.push("/virtual-run/dashboard");

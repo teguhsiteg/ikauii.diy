@@ -522,7 +522,7 @@ const SuratTugasTemplate = ({ printData }: { printData: ProkerPayload }) => {
 };
 
 // --- MAIN COMPONENT ---
-export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
+export default function RuangKerjaProkerDinamic({ slug: _slug }: { slug: string }) {
   const params = useParams();
   const router = useRouter();
   const rawSlug = params.slug as string;
@@ -843,7 +843,7 @@ export default function RuangKerjaProkerDinamic({ slug }: { slug: string }) {
       }
       setView("list");
       fetchData();
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "Gagal menyimpan." });
     } finally {
       setIsSaving(false);

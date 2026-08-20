@@ -119,7 +119,7 @@ export default function ETicketPage() {
       a.href = url;
       a.download = `E-Ticket-${participant.namaLengkap.replace(/\s+/g, "-")}.png`;
       a.click();
-    } catch (err) {
+    } catch {
       toast.error("Gagal mengunduh tiket. Coba gunakan perangkat lain.");
     } finally {
       setIsDownloading(false);

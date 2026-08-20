@@ -177,7 +177,7 @@ export default function OfflineRunCheckoutPage() {
         title: "Berhasil!",
         message: "Bukti terkirim, tunggu verifikasi admin.",
       });
-    } catch (error) {
+    } catch {
       setModal({
         isOpen: true,
         type: "error",
@@ -230,7 +230,7 @@ export default function OfflineRunCheckoutPage() {
           },
         });
       }
-    } catch (error: any) {
+    } catch {
       setModal({
         isOpen: true,
         type: "error",

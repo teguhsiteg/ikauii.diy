@@ -365,7 +365,7 @@ export default function OprecRegistrationPage() {
       setFormData({ ...formData, fotoIdCard: json.secure_url });
       setUploadProgress("Selesai!");
       setTimeout(() => setUploadProgress(""), 2000);
-    } catch (error) {
+    } catch {
       setUploadProgress("Gagal mengunggah foto.");
     }
   };
@@ -386,7 +386,7 @@ export default function OprecRegistrationPage() {
         if (field === "email") setEmailErr("");
         if (field === "whatsapp") setWaErr("");
       }
-    } catch (e) {}
+    } catch {}
   };
 
   const scrollToForm = () => {
@@ -537,7 +537,7 @@ export default function OprecRegistrationPage() {
       });
 
       setSuccessModal(true);
-    } catch (error) {
+    } catch {
       showNotif("error", "Terjadi kesalahan sistem server.");
     } finally {
       setIsSubmitting(false);
@@ -1139,7 +1139,7 @@ export default function OprecRegistrationPage() {
 
                       <div className="pt-4 border-t border-slate-100">
                         <label className="block text-xs font-bold text-slate-500 mb-2">
-                          Riwayat Penyakit (Tulis "Tidak ada" jika sehat){" "}
+                          Riwayat Penyakit (Tulis &quot;Tidak ada&quot; jika sehat){" "}
                           <span className="text-[#D93025]">*</span>
                         </label>
                         <input

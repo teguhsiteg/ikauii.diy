@@ -1,29 +1,14 @@
-import React, { useState } from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect } from 'react';
 import {
-  Copy,
-  Check,
-  Share2,
-  Code2,
-  Music,
-  User,
-  Building,
-  Users,
-  ExternalLink,
-  Eye,
-  Volume2,
-  Play,
-  Pause,
-  ArrowRight,
-  ShieldCheck,
-  CheckCircle2,
-  Sparkles,
+  Copy, Check, Share2, Code2, Music, User, Building, Users, ExternalLink, Eye, Play, Pause, Save, Loader2, Plus, Trash2, Calendar, MapPin, Edit3
 } from 'lucide-react';
-import { PRESET_VIP_GUESTS, MUSIC_PRESETS, EVENT_DETAILS, GuestWish, GalleryItem, MusicTrack } from '@/data/eventData';
+import { PRESET_VIP_GUESTS } from '@/data/eventData';
 import { generateInvitationUrl, generateWhatsAppShareText, generateEmbedIframeCode, GuestInfo } from '@/utils/urlHelper';
 import { MainInvitation } from '@/components/pelantikan/MainInvitation';
 import { UiiLogoBadge } from './HeaderDecorations';
 import { invitationAudio } from '@/utils/audioHelper';
+import { getInvitationSettings, updateInvitationSettings, InvitationSettings, RundownItem } from '@/lib/invitation-settings';
+import Swal from 'sweetalert2';
 
 interface AdminGeneratorPageProps {
   onGoToLiveInvitation: (guest: GuestInfo) => void;
@@ -32,133 +17,105 @@ interface AdminGeneratorPageProps {
 export const AdminGeneratorPage: React.FC<AdminGeneratorPageProps> = ({
   onGoToLiveInvitation,
 }) => {
+  const [settings, setSettings] = useState<InvitationSettings | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Guest generator states
   const [name, setName] = useState<string>('');
   const [role, setRole] = useState<string>('');
   const [category, setCategory] = useState<string>('VIP');
-  const [selectedMusic, setSelectedMusic] = useState<MusicTrack>(MUSIC_PRESETS[0]);
-  const [customAudioUrl, setCustomAudioUrl] = useState<string>('');
 
   // Copy status indicators
   const [copiedUrl, setCopiedUrl] = useState<boolean>(false);
   const [copiedWa, setCopiedWa] = useState<boolean>(false);
   const [copiedIframe, setCopiedIframe] = useState<boolean>(false);
-
-  // Audio testing
+  
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(invitationAudio.getStatus());
+
+  useEffect(() => {
+    getInvitationSettings().then(data => {
+      setSettings(data);
+      setIsLoading(false);
+    });
+  }, []);
+
+  if (isLoading || !settings) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="w-8 h-8 animate-spin text-[#0e2142]" />
+        <p className="text-[#0e2142] font-semibold">Memuat Pengaturan Admin...</p>
+      </div>
+    );
+  }
 
   const currentGuest: GuestInfo = {
     name: name.trim() || 'Tamu Undangan',
     role: role.trim(),
     category: category as GuestInfo['category'],
-    code:
-      'IKAUII-' +
-      Math.abs(
-        (name.trim() || 'Tamu')
-          .split('')
-          .reduce((a, b) => (a << 5) - a + b.charCodeAt(0), 0)
-      )
-        .toString(36)
-        .toUpperCase()
-        .slice(0, 6),
+    code: 'IKAUII-' + Math.abs((name.trim() || 'Tamu').split('').reduce((a, b) => (a << 5) - a + b.charCodeAt(0), 0)).toString(36).toUpperCase().slice(0, 6),
   };
 
-  const musicUrlParam =
-    selectedMusic.type === 'url' && selectedMusic.url
-      ? selectedMusic.url
-      : customAudioUrl.trim()
-      ? customAudioUrl.trim()
-      : undefined;
-
-  // The live URLs
-  const canonicalGuestUrl = generateInvitationUrl(
-    name,
-    role,
-    category,
-    musicUrlParam,
-    false,
-    'canonical'
-  );
-
-  const localTestUrl = generateInvitationUrl(
-    name,
-    role,
-    category,
-    musicUrlParam,
-    false,
-    'current'
-  );
-
-  const embedCode = generateEmbedIframeCode(
-    name,
-    role,
-    category,
-    musicUrlParam
-  );
-
+  const canonicalGuestUrl = generateInvitationUrl(name, role, category, false, 'canonical');
+  const embedCode = generateEmbedIframeCode(name, role, category);
   const waShareText = generateWhatsAppShareText(name, role, canonicalGuestUrl);
 
   const handleCopy = (type: 'url' | 'wa' | 'iframe', text: string) => {
     navigator.clipboard.writeText(text);
-    if (type === 'url') {
-      setCopiedUrl(true);
-      setTimeout(() => setCopiedUrl(false), 2000);
-    } else if (type === 'wa') {
-      setCopiedWa(true);
-      setTimeout(() => setCopiedWa(false), 2000);
-    } else if (type === 'iframe') {
-      setCopiedIframe(true);
-      setTimeout(() => setCopiedIframe(false), 2000);
+    if (type === 'url') { setCopiedUrl(true); setTimeout(() => setCopiedUrl(false), 2000); }
+    else if (type === 'wa') { setCopiedWa(true); setTimeout(() => setCopiedWa(false), 2000); }
+    else if (type === 'iframe') { setCopiedIframe(true); setTimeout(() => setCopiedIframe(false), 2000); }
+  };
+
+  const handleSaveSettings = async () => {
+    setIsSaving(true);
+    try {
+      await updateInvitationSettings(settings);
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: 'Pengaturan undangan berhasil disimpan!',
+        confirmButtonColor: '#0e2142'
+      });
+    } catch (e) {
+      Swal.fire('Error', 'Gagal menyimpan pengaturan.', 'error');
     }
+    setIsSaving(false);
   };
 
-  const handleSelectPreset = (preset: (typeof PRESET_VIP_GUESTS)[0]) => {
-    setName(preset.name);
-    setRole(preset.role);
-    setCategory(preset.category);
-  };
-
-  const handleSelectMusicPreset = (preset: (typeof MUSIC_PRESETS)[0]) => {
-    setSelectedMusic(preset);
-    setCustomAudioUrl(preset.url || '');
-    invitationAudio.setTrack(preset);
-    invitationAudio.play();
-    setIsPlayingAudio(true);
-  };
-
-  const handleToggleAudio = () => {
-    const nextStatus = invitationAudio.toggle();
-    setIsPlayingAudio(nextStatus);
+  const updateSetting = (key: keyof InvitationSettings, value: any) => {
+    setSettings(prev => prev ? { ...prev, [key]: value } : prev);
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 pb-16">
-      {/* Top Banner */}
-      <header className="sticky top-0 z-30 w-full bg-[#0a1832] border-b border-amber-400/30 px-4 sm:px-8 py-3.5 backdrop-blur-md shadow-lg">
+    <div className="min-h-screen bg-slate-50 text-slate-900 pb-16 font-sans">
+      {/* Top Banner (UII Blue) */}
+      <header className="sticky top-0 z-30 w-full bg-[#0e2142] border-b border-amber-400 px-4 sm:px-8 py-3.5 shadow-lg">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <UiiLogoBadge size={44} />
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="font-cinzel text-base sm:text-lg font-bold text-white tracking-wide">
-                  Panel Pengaturan Undangan IKA UII DIY
+                  Panel Admin & CMS Undangan IKA UII DIY
                 </h1>
-                <span className="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 text-[11px] font-mono border border-amber-400/30">
-                  ikadiy.uii.ac.id/undangankirim
+                <span className="px-2 py-0.5 rounded bg-amber-400 text-[#0e2142] text-[11px] font-bold">
+                  ADMIN MODE
                 </span>
               </div>
               <p className="text-xs text-slate-300">
-                Atur nama tamu, musik pengiring, dan dapatkan tautan resmi untuk disematkan ke web utama (<code>ikadiy.uii.ac.id/pelantikan</code>).
+                Atur seluruh detail acara, galeri, musik, dan buat tautan undangan untuk tamu.
               </p>
             </div>
           </div>
-
           <div className="flex items-center gap-2">
             <button
-              onClick={() => onGoToLiveInvitation(currentGuest)}
-              className="px-3.5 py-1.5 rounded-lg gold-gradient-bg text-slate-950 text-xs font-bold shadow hover:brightness-105 transition-all flex items-center gap-1.5 cursor-pointer"
+              onClick={handleSaveSettings}
+              disabled={isSaving}
+              className="px-4 py-2 rounded-lg bg-amber-400 text-[#0e2142] text-xs font-bold shadow hover:bg-amber-300 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
-              <Eye className="w-3.5 h-3.5" />
-              <span>Buka Pratinjau Layar Penuh</span>
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              <span>Simpan Perubahan</span>
             </button>
           </div>
         </div>
@@ -166,318 +123,252 @@ export const AdminGeneratorPage: React.FC<AdminGeneratorPageProps> = ({
 
       {/* Main Grid Workspace */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* LEFT COLUMN: Controls & Generation Settings (7 cols) */}
+        
+        {/* LEFT COLUMN: Settings & CMS (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
-          {/* Card 1: Guest Personalization Form */}
-          <div className="p-5 sm:p-6 rounded-2xl bg-[#0e2142]/90 border border-amber-400/30 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <User className="w-4 h-4 text-amber-400" />
-                <h2 className="font-cinzel text-base font-bold text-amber-200">
-                  1. Data Personalisasi Tamu
-                </h2>
-              </div>
-              <span className="text-[11px] text-slate-400">
-                Otomatis tampil pada amplop & e-Pass QR
-              </span>
+          
+          {/* CMS: Detail Acara */}
+          <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+              <Edit3 className="w-5 h-5 text-[#0e2142]" />
+              <h2 className="font-cinzel text-base font-bold text-[#0e2142]">Informasi Acara</h2>
             </div>
-
-            {/* Quick VIP Presets */}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-                Preset Tokoh Cepat:
-              </label>
-              <div className="flex flex-wrap gap-1.5">
-                {PRESET_VIP_GUESTS.map((preset, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleSelectPreset(preset)}
-                    className={`px-2.5 py-1 rounded-lg text-xs transition-all cursor-pointer ${
-                      name === preset.name
-                        ? 'bg-amber-400 text-slate-950 font-bold shadow'
-                        : 'bg-slate-900/90 text-slate-300 border border-slate-700 hover:border-amber-400/50'
-                    }`}
-                  >
-                    {preset.name.split(',')[0]}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Input Name */}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
-                Nama Lengkap & Gelar Tamu *
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-2.5 w-4 h-4 text-amber-400/70" />
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Contoh: Prof. Dr. Ir. Hari Purnomo, M.T., IPU., ASEAN Eng."
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-950/90 border border-slate-700 focus:border-amber-400 text-slate-100 text-xs sm:text-sm outline-none"
-                />
-              </div>
-            </div>
-
-            {/* Role & Category */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
-                  Jabatan / Instansi
-                </label>
-                <div className="relative">
-                  <Building className="absolute left-3 top-2.5 w-4 h-4 text-amber-400/70" />
-                  <input
-                    type="text"
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    placeholder="Contoh: Rektor Universitas Islam Indonesia"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-950/90 border border-slate-700 focus:border-amber-400 text-slate-100 text-xs sm:text-sm outline-none"
-                  />
-                </div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Nama Organisasi</label>
+                <input type="text" value={settings.orgName} onChange={e => updateSetting('orgName', e.target.value)} className="w-full px-3 py-2 rounded-lg border focus:border-[#0e2142] text-sm outline-none" />
               </div>
-
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
-                  Kategori VIP
-                </label>
-                <div className="relative">
-                  <Users className="absolute left-3 top-2.5 w-4 h-4 text-amber-400/70" />
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-950/90 border border-slate-700 focus:border-amber-400 text-slate-100 text-xs sm:text-sm outline-none"
-                  >
-                    <option value="VVIP">VVIP (Rektor & Pejabat Tinggi)</option>
-                    <option value="VIP">VIP (Tamu Utama)</option>
-                    <option value="Tamu Kehormatan">Tamu Kehormatan</option>
-                    <option value="Pengurus">Pengurus DPW IKA UII DIY</option>
-                    <option value="Alumni">Alumni Lintas Angkatan</option>
-                    <option value="Undangan Umum">Undangan Umum</option>
-                  </select>
-                </div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Sub Organisasi</label>
+                <input type="text" value={settings.subOrgName} onChange={e => updateSetting('subOrgName', e.target.value)} className="w-full px-3 py-2 rounded-lg border focus:border-[#0e2142] text-sm outline-none" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Salam Pembuka (Opening Greeting)</label>
+                <textarea value={settings.openingGreeting || ''} onChange={e => updateSetting('openingGreeting', e.target.value)} className="w-full px-3 py-2 rounded-lg border focus:border-[#0e2142] text-sm outline-none" rows={2} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Judul Acara (Title)</label>
+                <input type="text" value={settings.title} onChange={e => updateSetting('title', e.target.value)} className="w-full px-3 py-2 rounded-lg border focus:border-[#0e2142] text-sm outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Periode (Tahun Kepengurusan)</label>
+                <input type="text" value={settings.period} onChange={e => updateSetting('period', e.target.value)} placeholder="Contoh: Periode 2026 - 2031" className="w-full px-3 py-2 rounded-lg border focus:border-[#0e2142] text-sm outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Tema / Slogan</label>
+                <input type="text" value={settings.theme} onChange={e => updateSetting('theme', e.target.value)} className="w-full px-3 py-2 rounded-lg border focus:border-[#0e2142] text-sm outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Pakaian / Dresscode</label>
+                <input type="text" value={settings.dresscode} onChange={e => updateSetting('dresscode', e.target.value)} className="w-full px-3 py-2 rounded-lg border focus:border-[#0e2142] text-sm outline-none" />
               </div>
             </div>
           </div>
 
-          {/* Card 2: Music Customization */}
-          <div className="p-5 sm:p-6 rounded-2xl bg-[#0e2142]/90 border border-amber-400/30 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <Music className="w-4 h-4 text-amber-400" />
-                <h2 className="font-cinzel text-base font-bold text-amber-200">
-                  2. Pilihan Musik Pengiring
-                </h2>
+          {/* CMS: Waktu & Lokasi */}
+          <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+              <Calendar className="w-5 h-5 text-[#0e2142]" />
+              <h2 className="font-cinzel text-base font-bold text-[#0e2142]">Waktu & Lokasi</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Hari</label>
+                <input type="text" value={settings.day} onChange={e => updateSetting('day', e.target.value)} placeholder="Contoh: Minggu" className="w-full px-3 py-2 rounded-lg border focus:border-[#0e2142] text-sm outline-none" />
               </div>
-              <button
-                onClick={handleToggleAudio}
-                className="flex items-center gap-1.5 text-xs text-amber-300 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-700 hover:border-amber-400/50 cursor-pointer"
-              >
-                {isPlayingAudio ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-                <span>{isPlayingAudio ? 'Jeda Audio' : 'Tes Putar Audio'}</span>
-              </button>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Tanggal</label>
+                <input type="text" value={settings.dateFormatted} onChange={e => updateSetting('dateFormatted', e.target.value)} placeholder="Contoh: 10 November 2026" className="w-full px-3 py-2 rounded-lg border focus:border-[#0e2142] text-sm outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Jam Pelaksanaan</label>
+                <input type="text" value={settings.timeFormatted} onChange={e => updateSetting('timeFormatted', e.target.value)} placeholder="Contoh: 18.00 WIB - Selesai" className="w-full px-3 py-2 rounded-lg border focus:border-[#0e2142] text-sm outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Waktu Countdown Timer (ISO)</label>
+                <input type="text" value={settings.targetDateTime} onChange={e => updateSetting('targetDateTime', e.target.value)} placeholder="Contoh: 2026-11-10T18:00:00+07:00" className="w-full px-3 py-2 rounded-lg border focus:border-[#0e2142] text-sm outline-none" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Nama Tempat / Gedung</label>
+                <input type="text" value={settings.venue} onChange={e => updateSetting('venue', e.target.value)} className="w-full px-3 py-2 rounded-lg border focus:border-[#0e2142] text-sm outline-none" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Alamat Lengkap</label>
+                <textarea value={settings.address} onChange={e => updateSetting('address', e.target.value)} className="w-full px-3 py-2 rounded-lg border focus:border-[#0e2142] text-sm outline-none" rows={2} />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Tautan Google Maps</label>
+                <input type="url" value={settings.googleMapsUrl} onChange={e => updateSetting('googleMapsUrl', e.target.value)} placeholder="https://maps.app.goo.gl/..." className="w-full px-3 py-2 rounded-lg border focus:border-[#0e2142] text-sm outline-none" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Link Live Streaming (YouTube/Instagram)</label>
+                <input type="url" value={settings.liveStreamUrl || ''} onChange={e => updateSetting('liveStreamUrl', e.target.value)} placeholder="https://youtube.com/live/..." className="w-full px-3 py-2 rounded-lg border focus:border-[#0e2142] text-sm outline-none" />
+              </div>
             </div>
+          </div>
 
-            <div className="space-y-2">
-              {MUSIC_PRESETS.map((preset) => {
-                const isSelected = selectedMusic.id === preset.id;
-                return (
-                  <button
-                    key={preset.id}
-                    onClick={() => handleSelectMusicPreset(preset)}
-                    className={`w-full text-left p-3 rounded-xl border transition-all cursor-pointer flex items-start justify-between gap-3 ${
-                      isSelected
-                        ? 'bg-amber-500/15 border-amber-400/60 shadow-sm'
-                        : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
-                    }`}
-                  >
-                    <div>
-                      <div className={`text-xs sm:text-sm font-semibold ${isSelected ? 'text-amber-200' : 'text-slate-200'}`}>
-                        {preset.title}
-                      </div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">
-                        {preset.description}
-                      </div>
-                    </div>
-                    {isSelected && (
-                      <div className="shrink-0 p-1 rounded-full bg-amber-400 text-slate-950">
-                        <Check className="w-3 h-3" />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
+          {/* CMS: Narahubung & Kontak */}
+          <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+              <User className="w-5 h-5 text-[#0e2142]" />
+              <h2 className="font-cinzel text-base font-bold text-[#0e2142]">Kontak & Narahubung</h2>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Nama Narahubung</label>
+                <input type="text" value={settings.contactPerson} onChange={e => updateSetting('contactPerson', e.target.value)} placeholder="Contoh: Panitia Acara" className="w-full px-3 py-2 rounded-lg border focus:border-[#0e2142] text-sm outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">No WA Asli (Tanpa +)</label>
+                <input type="text" value={settings.contactPhone} onChange={e => updateSetting('contactPhone', e.target.value)} placeholder="Contoh: 6281234567890" className="w-full px-3 py-2 rounded-lg border focus:border-[#0e2142] text-sm outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Tampilan No WA</label>
+                <input type="text" value={settings.contactPhoneDisplay} onChange={e => updateSetting('contactPhoneDisplay', e.target.value)} placeholder="Contoh: 0812-3456-7890" className="w-full px-3 py-2 rounded-lg border focus:border-[#0e2142] text-sm outline-none" />
+              </div>
+            </div>
+          </div>
 
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
-                Atau Tautkan URL Audio MP3 Eksternal:
-              </label>
-              <input
-                type="url"
-                value={customAudioUrl}
-                onChange={(e) => {
-                  setCustomAudioUrl(e.target.value);
-                  if (e.target.value.trim()) {
-                    const customTrack: MusicTrack = {
-                      id: 'custom-' + Date.now(),
-                      title: 'Audio Kustom',
-                      description: e.target.value,
-                      type: 'url',
-                      url: e.target.value.trim(),
-                    };
-                    setSelectedMusic(customTrack);
-                    invitationAudio.setTrack(customTrack);
-                    invitationAudio.play();
-                    setIsPlayingAudio(true);
-                  }
+          {/* CMS: Susunan Acara (Rundown) */}
+          <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Check className="w-5 h-5 text-[#0e2142]" />
+                <h2 className="font-cinzel text-base font-bold text-[#0e2142]">Susunan Acara (Rundown)</h2>
+              </div>
+              <button 
+                onClick={() => {
+                  const newRundown: RundownItem = { id: Date.now().toString(), time: '00:00', title: 'Acara Baru', speaker: '', highlight: false };
+                  updateSetting('rundown', [...settings.rundown, newRundown]);
                 }}
-                placeholder="https://ikadiy.uii.ac.id/audio/hymne-uii.mp3"
-                className="w-full px-3 py-2 rounded-xl bg-slate-950/90 border border-slate-700 focus:border-amber-400 text-slate-100 text-xs outline-none"
-              />
-              <p className="text-[10px] text-slate-400 mt-1">
-                Jika diisi, parameter audio (<code>?audio=...</code>) otomatis disematkan sehingga tamu memutar lagu ini.
-              </p>
-            </div>
-          </div>
-
-          {/* Card 3: Output & Integration Codes */}
-          <div className="p-5 sm:p-6 rounded-2xl bg-[#0e2142]/90 border border-amber-400/30 shadow-xl space-y-4">
-            <div className="border-b border-slate-800 pb-3">
-              <h2 className="font-cinzel text-base font-bold text-amber-200">
-                3. Tautan Undangan & Kode Embed
-              </h2>
-              <p className="text-xs text-slate-300">
-                Hasil parameter siap kirim dan siap dipasang pada website utama.
-              </p>
-            </div>
-
-            {/* Tautan URL Resmi */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-amber-300">
-                  A. Tautan Undangan Resmi untuk Tamu (ikadiy.uii.ac.id/pelantikan):
-                </span>
-                <span className="text-[10px] text-slate-400 font-mono">
-                  GET Parameter
-                </span>
-              </div>
-              <div className="p-2.5 rounded-xl bg-slate-950 border border-amber-400/25 font-mono text-xs text-amber-200 break-all select-all flex items-center justify-between gap-2">
-                <span>{canonicalGuestUrl}</span>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleCopy('url', canonicalGuestUrl)}
-                  className="flex-1 py-2 px-3 rounded-lg gold-gradient-bg text-slate-950 font-bold text-xs hover:brightness-105 cursor-pointer flex items-center justify-center gap-1.5 transition-all"
-                >
-                  {copiedUrl ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedUrl ? 'Tautan Berhasil Disalin!' : 'Salin Tautan Resmi'}</span>
-                </button>
-
-                <button
-                  onClick={() => handleCopy('wa', waShareText)}
-                  className="py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer flex items-center justify-center gap-1.5 transition-all"
-                >
-                  {copiedWa ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
-                  <span>{copiedWa ? 'Pesan Disalin!' : 'Salin Draf WhatsApp'}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Kode Embed Iframe */}
-            <div className="space-y-1.5 pt-2 border-t border-slate-800">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-amber-300">
-                  B. Kode Iframe untuk Disematkan ke Website Utama (Embed):
-                </span>
-                <span className="text-[10px] text-slate-400 font-mono">
-                  Murni Tanpa Tombol Setting
-                </span>
-              </div>
-              <textarea
-                readOnly
-                rows={3}
-                value={embedCode}
-                className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 font-mono text-[11px] text-slate-200 outline-none select-all"
-              />
-              <button
-                onClick={() => handleCopy('iframe', embedCode)}
-                className="w-full py-2 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                className="text-xs bg-[#0e2142] text-white px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-[#1a386b]"
               >
-                {copiedIframe ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Code2 className="w-3.5 h-3.5 text-amber-400" />}
-                <span>{copiedIframe ? 'Kode Embed Disalin!' : 'Salin Kode Iframe Embed'}</span>
+                <Plus className="w-3.5 h-3.5" /> Tambah
               </button>
-            </div>
-          </div>
-
-          {/* Card 4: Guest List Table */}
-          <div className="p-5 sm:p-6 rounded-2xl bg-[#0e2142]/90 border border-amber-400/30 shadow-xl space-y-4">
-            <div className="border-b border-slate-800 pb-3">
-              <h2 className="font-cinzel text-base font-bold text-amber-200 flex items-center gap-2">
-                <Users className="w-4 h-4 text-amber-400" />
-                4. Daftar Preset Tamu & Tautan Cepat
-              </h2>
-              <p className="text-xs text-slate-300 mt-1">
-                Tabel untuk generate URL unik dari daftar tokoh (VIP/VVIP) yang telah dikonfigurasi.
-              </p>
             </div>
             
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-slate-700 text-slate-400 uppercase tracking-wider">
-                    <th className="py-2.5 px-3 font-semibold">Nama</th>
-                    <th className="py-2.5 px-3 font-semibold">Jabatan</th>
-                    <th className="py-2.5 px-3 font-semibold">Kategori</th>
-                    <th className="py-2.5 px-3 font-semibold text-center">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {PRESET_VIP_GUESTS.map((preset, idx) => {
-                    const presetUrl = generateInvitationUrl(
-                      preset.name,
-                      preset.role || '',
-                      preset.category || '',
-                      musicUrlParam,
-                      false,
-                      'canonical'
-                    );
-                    const presetWa = generateWhatsAppShareText(preset.name, preset.role || '', presetUrl);
-                    
-                    return (
-                      <tr key={idx} className="hover:bg-slate-900/40 transition-colors">
-                        <td className="py-3 px-3 text-amber-100 font-medium">{preset.name}</td>
-                        <td className="py-3 px-3 text-slate-300">{preset.role || '-'}</td>
-                        <td className="py-3 px-3">
-                          <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[10px] border border-slate-700">
-                            {preset.category || 'Umum'}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              onClick={() => handleCopy('url', presetUrl)}
-                              className="p-1.5 rounded-md bg-amber-400/10 text-amber-400 hover:bg-amber-400/20 border border-amber-400/30 transition-colors cursor-pointer"
-                              title="Salin Tautan"
-                            >
-                              <Copy className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleCopy('wa', presetWa)}
-                              className="p-1.5 rounded-md bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 transition-colors cursor-pointer"
-                              title="Salin Pesan WA"
-                            >
-                              <Share2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <div className="space-y-3">
+              {settings.rundown.map((item, idx) => (
+                <div key={item.id || idx} className="flex flex-col sm:flex-row gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200 relative">
+                  <input type="text" value={item.time} onChange={(e) => {
+                    const newR = [...settings.rundown];
+                    newR[idx].time = e.target.value;
+                    updateSetting('rundown', newR);
+                  }} className="w-20 px-2 py-1 text-sm border rounded" placeholder="Jam" />
+                  
+                  <input type="text" value={item.title} onChange={(e) => {
+                    const newR = [...settings.rundown];
+                    newR[idx].title = e.target.value;
+                    updateSetting('rundown', newR);
+                  }} className="flex-1 px-2 py-1 text-sm border rounded" placeholder="Judul Acara" />
+                  
+                  <input type="text" value={item.speaker} onChange={(e) => {
+                    const newR = [...settings.rundown];
+                    newR[idx].speaker = e.target.value;
+                    updateSetting('rundown', newR);
+                  }} className="flex-1 px-2 py-1 text-sm border rounded" placeholder="Pengisi / Keterangan" />
+
+                  <button 
+                    onClick={() => {
+                      const newR = settings.rundown.filter((_, i) => i !== idx);
+                      updateSetting('rundown', newR);
+                    }}
+                    className="p-1.5 text-red-500 hover:bg-red-50 rounded"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* CMS: Galeri & Musik */}
+          <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+              <Music className="w-5 h-5 text-[#0e2142]" />
+              <h2 className="font-cinzel text-base font-bold text-[#0e2142]">Media & Musik</h2>
+            </div>
+            
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Tautan Musik (MP3)</label>
+              <input type="url" value={settings.musicUrl} onChange={e => updateSetting('musicUrl', e.target.value)} className="w-full px-3 py-2 rounded-lg border focus:border-[#0e2142] text-sm outline-none" />
+              <div className="flex items-center gap-2 mt-2">
+                <input type="checkbox" id="autoPlay" checked={settings.autoPlayMusic} onChange={e => updateSetting('autoPlayMusic', e.target.checked)} className="rounded text-[#0e2142]" />
+                <label htmlFor="autoPlay" className="text-xs text-slate-600">Putar otomatis saat undangan dibuka (Auto-play)</label>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-semibold text-slate-600">Galeri Foto / Video Ucapan (Link YouTube / Gambar)</label>
+                <button onClick={() => updateSetting('mediaUrls', [...settings.mediaUrls, ''])} className="text-xs text-amber-600 font-bold hover:underline">
+                  + Tambah Media
+                </button>
+              </div>
+              <div className="space-y-2">
+                {settings.mediaUrls.map((url, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <input 
+                      type="url" 
+                      value={url} 
+                      onChange={(e) => {
+                        const newM = [...settings.mediaUrls];
+                        newM[idx] = e.target.value;
+                        updateSetting('mediaUrls', newM);
+                      }} 
+                      placeholder="https://youtube.com/..." 
+                      className="w-full px-3 py-2 rounded-lg border focus:border-[#0e2142] text-sm outline-none" 
+                    />
+                    <button onClick={() => {
+                      const newM = settings.mediaUrls.filter((_, i) => i !== idx);
+                      updateSetting('mediaUrls', newM);
+                    }} className="p-2 text-red-500 hover:bg-red-50 rounded">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                {settings.mediaUrls.length === 0 && (
+                  <p className="text-xs text-slate-400 italic">Belum ada media. Klik "Tambah Media" untuk menambahkan.</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Generator Tautan Tamu */}
+          <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+              <User className="w-5 h-5 text-[#0e2142]" />
+              <h2 className="font-cinzel text-base font-bold text-[#0e2142]">Buat Tautan Tamu Khusus</h2>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap & Gelar</label>
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border focus:border-[#0e2142] text-sm outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Jabatan / Instansi</label>
+                <input type="text" value={role} onChange={(e) => setRole(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border focus:border-[#0e2142] text-sm outline-none" />
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-[#0e2142]">Tautan Bagikan:</span>
+              </div>
+              <div className="p-2 bg-white border border-slate-300 font-mono text-xs text-slate-700 break-all select-all rounded-lg">
+                {canonicalGuestUrl}
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => handleCopy('url', canonicalGuestUrl)} className="flex-1 py-2 px-3 rounded-lg bg-[#0e2142] text-white font-bold text-xs hover:bg-[#1a386b] cursor-pointer flex items-center justify-center gap-1.5">
+                  {copiedUrl ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>Salin Tautan</span>
+                </button>
+                <button onClick={() => handleCopy('wa', waShareText)} className="flex-1 py-2 px-3 rounded-lg bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-500 cursor-pointer flex items-center justify-center gap-1.5">
+                  {copiedWa ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
+                  <span>Salin Pesan WA</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -485,55 +376,33 @@ export const AdminGeneratorPage: React.FC<AdminGeneratorPageProps> = ({
         {/* RIGHT COLUMN: Live Pure Guest Preview (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
           <div className="sticky top-20">
-            <div className="p-4 rounded-2xl bg-[#091730] border border-amber-400/30 shadow-2xl space-y-3">
-              {/* Preview Header */}
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xl space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="font-cinzel text-xs font-bold text-amber-200 uppercase tracking-wide">
-                    Pratinjau Murni Tamu
+                  <span className="font-cinzel text-sm font-bold text-[#0e2142]">
+                    Pratinjau Undangan
                   </span>
                 </div>
-
-                {/* Switcher Removed for Admin */}
               </div>
 
-              <p className="text-[11px] text-slate-400">
-                Ini adalah tampilan persis yang dilihat tamu di web <code>ikadiy.uii.ac.id/pelantikan</code> (bebas tombol pengaturan & generator).
-              </p>
-
               {/* Mock Screen Bezel */}
-              <div className="relative w-full h-[620px] rounded-xl border-2 border-slate-800 bg-slate-950 overflow-hidden shadow-inner flex flex-col">
-                {/* Browser address bar mockup */}
-                <div className="bg-slate-900/90 px-3 py-1.5 border-b border-slate-800 flex items-center gap-2 text-[10px] text-slate-400 shrink-0">
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 rounded-full bg-rose-500/80" />
-                    <div className="w-2 h-2 rounded-full bg-amber-500/80" />
-                    <div className="w-2 h-2 rounded-full bg-emerald-500/80" />
-                  </div>
-                  <div className="flex-1 bg-slate-950 px-2 py-0.5 rounded text-slate-300 font-mono truncate text-[9px]">
-                    ikadiy.uii.ac.id/pelantikan?to={encodeURIComponent(currentGuest.name)}
-                  </div>
+              <div className="relative w-full h-[620px] rounded-xl border-4 border-slate-800 bg-slate-950 overflow-hidden shadow-inner flex flex-col">
+                <div className="bg-slate-900 px-3 py-1.5 flex items-center gap-2 text-[10px] text-slate-400 shrink-0">
+                  <div className="flex gap-1"><div className="w-2 h-2 rounded-full bg-rose-500"/><div className="w-2 h-2 rounded-full bg-amber-500"/><div className="w-2 h-2 rounded-full bg-emerald-500"/></div>
+                  <div className="flex-1 bg-slate-950 px-2 py-0.5 rounded text-slate-300 font-mono truncate text-[9px]">ikadiy.uii.ac.id/pelantikan?to={encodeURIComponent(currentGuest.name)}</div>
                 </div>
-
-                {/* Inner Content Component */}
                 <div className="flex-1 overflow-y-auto relative">
-                  <div className="relative min-h-full">
-                    <MainInvitation
-                      guest={currentGuest}
-                      onBackToCover={() => {}}
-                      onUpdateGuest={() => {}}
-                    />
-                  </div>
+                  <MainInvitation guest={currentGuest} onBackToCover={() => {}} dynamicSettings={settings} />
                 </div>
               </div>
 
               <div className="pt-2 text-center">
                 <button
                   onClick={() => onGoToLiveInvitation(currentGuest)}
-                  className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  className="w-full py-2.5 rounded-xl bg-amber-400 text-[#0e2142] text-xs font-bold flex items-center justify-center gap-2 hover:bg-amber-300 transition-colors"
                 >
-                  <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
+                  <ExternalLink className="w-4 h-4" />
                   <span>Uji Interaksi Layar Penuh</span>
                 </button>
               </div>

@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React from "react";
 import { toast } from "@/lib/toast";
 
 // 🔥 MESIN RAHASIA: ENCODER KOORDINAT KE POLYLINE
@@ -8,11 +8,11 @@ const encodePolyline = (coordinates: [number, number][]) => {
   let prevLng = 0;
 
   for (let i = 0; i < coordinates.length; i++) {
-    let lat = Math.round(coordinates[i][0] * 1e5);
-    let lng = Math.round(coordinates[i][1] * 1e5);
+    const lat = Math.round(coordinates[i][0] * 1e5);
+    const lng = Math.round(coordinates[i][1] * 1e5);
 
-    let dLat = lat - prevLat;
-    let dLng = lng - prevLng;
+    const dLat = lat - prevLat;
+    const dLng = lng - prevLng;
 
     prevLat = lat;
     prevLng = lng;
@@ -158,7 +158,7 @@ export default function TabRoutes({ vrSettings, handlePackageChange }: any) {
               Belum Ada Kategori Tiket
             </h3>
             <p className="text-xs text-slate-500 mt-1">
-              Silakan buat opsi paket offline di tab "Setup Offline Run"
+              Silakan buat opsi paket offline di tab &quot;Setup Offline Run&quot;
               terlebih dahulu.
             </p>
           </div>
@@ -250,7 +250,7 @@ export default function TabRoutes({ vrSettings, handlePackageChange }: any) {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {pkg.waypoints.map((wp: any, idx: number) => (
+                      {pkg.waypoints.map((wp: any) => (
                         <div
                           key={wp.id}
                           className="flex flex-col sm:flex-row gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative group"

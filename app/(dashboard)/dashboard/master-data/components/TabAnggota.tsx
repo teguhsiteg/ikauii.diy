@@ -10,9 +10,8 @@ import {
   doc,
   updateDoc,
   writeBatch,
-  query,
-  orderBy,
-  limit,
+  getDoc,
+  setDoc,
 } from "firebase/firestore";
 import * as XLSX from "xlsx";
 import {
@@ -89,7 +88,7 @@ export default function TabAnggota() {
         detail: detailData,
       });
       return data.success;
-    } catch (error) {
+    } catch {
       return false;
     }
   };
@@ -180,7 +179,7 @@ export default function TabAnggota() {
       }
       showToast("Data pendaftar ditolak & dihapus.", "success");
       await fetchData();
-    } catch (error) {
+    } catch {
       showToast("Gagal menghapus data.", "error");
     } finally {
       setIsProcessing(false);
@@ -216,7 +215,6 @@ export default function TabAnggota() {
       // 🔥 Auto-generate NIA: Ambil dari counter_nia dan domisili
       let nia = "";
       try {
-        const { getDoc, setDoc, doc } = require("firebase/firestore");
         const counterRef = doc(db, "pengaturan", "counter_nia");
         const counterSnap = await getDoc(counterRef);
         let newNumber = 89;
@@ -342,7 +340,7 @@ export default function TabAnggota() {
             </h3>
             <p className="text-sm text-[#5F6368] mb-6">
               Yakin menolak dan menghapus pendaftaran{" "}
-              <strong>"{deleteModal.title}"</strong>?
+              <strong>&quot;{deleteModal.title}&quot;</strong>?
             </p>
             <div className="flex gap-3 justify-center">
               <button

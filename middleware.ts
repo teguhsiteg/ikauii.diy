@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
+export async function middleware() {
   // Middleware ini sengaja dibuat minimal untuk menghindari redirect loop
   // yang terjadi akibat ketidakcocokan antara Edge Runtime dan cookie
   // HttpOnly di lingkungan Firebase Hosting + Cloud Run.

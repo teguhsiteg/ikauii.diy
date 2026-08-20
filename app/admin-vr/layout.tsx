@@ -23,7 +23,7 @@ export default function AdminVRLayout({
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
-  const [isVerifiedAdmin, setIsVerifiedAdmin] = useState(false);
+  const [, setIsVerifiedAdmin] = useState(false);
 
   // 🔥 STATE KHUSUS UNTUK HAMBURGER MENU (MOBILE) 🔥
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -75,7 +75,7 @@ export default function AdminVRLayout({
     setErrorMsg("");
     try {
       await signInWithEmailAndPassword(auth, emailLogin, passwordLogin);
-    } catch (error: any) {
+    } catch {
       setErrorMsg("Email atau Password salah. Akses ditolak.");
     } finally {
       setIsLoggingIn(false);

@@ -230,7 +230,7 @@ export default function PengelolaanDonasiPage() {
         targetDana: Number(newPeriode.targetDana),
         status: "Aktif",
       });
-    } catch (error) {
+    } catch {
       toast.error("Gagal membuat periode baru.");
     } finally {
       setIsSubmitting(false);
@@ -283,7 +283,7 @@ export default function PengelolaanDonasiPage() {
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
       setTransaksiList(data);
-    } catch (error) {
+    } catch {
       toast.error("Gagal menginput donasi.");
     } finally {
       setIsSubmitting(false);
@@ -628,7 +628,7 @@ export default function PengelolaanDonasiPage() {
                         Belum ada transaksi
                       </h3>
                       <p className="text-sm text-slate-500 mt-1">
-                        Gunakan tombol "Input Manual" untuk mencatat dana.
+                        Gunakan tombol &quot;Input Manual&quot; untuk mencatat dana.
                       </p>
                     </div>
                   ) : (

@@ -161,8 +161,6 @@ export default function VerifikasiAnggotaPage() {
     });
 
     result.sort((a, b) => {
-      let valA, valB;
-
       if (sortOrder === "Terbaru") {
         return new Date(b.tanggalDaftar).getTime() - new Date(a.tanggalDaftar).getTime();
       }
@@ -1905,7 +1903,7 @@ export default function VerifikasiAnggotaPage() {
                       Pendaftar ini belum mengunggah foto profil resmi atau
                       belum melengkapi domisili. <br />
                       Jika disetujui, NIA akan berstatus <b>
-                        "Dalam Proses"
+                        &quot;Dalam Proses&quot;
                       </b>{" "}
                       dan E-KTA <b>tidak akan diterbitkan</b> sampai data
                       dilengkapi.
@@ -2098,7 +2096,7 @@ export default function VerifikasiAnggotaPage() {
                     Motivasi & Harapan
                   </h4>
                   <p className="font-medium text-slate-700 bg-[#E8F0FE] p-3.5 rounded-lg border border-[#1A73E8]/20 text-sm leading-relaxed italic">
-                    "{selectedUser.motto}"
+                    &quot;{selectedUser.motto}&quot;
                   </p>
                 </div>
               </div>
@@ -2201,7 +2199,7 @@ export default function VerifikasiAnggotaPage() {
                 ⚠️ Pendaftar ini belum melengkapi foto/domisili. <br />
                 <br />
                 Data akan disetujui dan masuk tab Disetujui, namun NIA akan
-                berstatus <b>"Dalam Proses"</b> dan E-KTA tidak akan dikirim
+                berstatus <b>&quot;Dalam Proses&quot;</b> dan E-KTA tidak akan dikirim
                 otomatis.
               </div>
             )}

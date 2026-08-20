@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Clock, Star, ChevronDown, ChevronUp, CalendarCheck } from 'lucide-react';
-import { RUNDOWN_LIST } from '@/data/eventData';
+import { RundownItem } from '@/lib/invitation-settings';
 
-export const RundownSection: React.FC = () => {
+export const RundownSection: React.FC<{ rundown: RundownItem[] }> = ({ rundown }) => {
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
 
   return (
@@ -24,7 +24,7 @@ export const RundownSection: React.FC = () => {
 
         {/* Timeline Table / Cards */}
         <div className="space-y-2.5">
-          {RUNDOWN_LIST.slice(0, isExpanded ? RUNDOWN_LIST.length : 6).map((item, index) => (
+          {rundown.slice(0, isExpanded ? rundown.length : 6).map((item, index) => (
             <div
               key={index}
               className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-xl border transition-all ${
@@ -69,7 +69,7 @@ export const RundownSection: React.FC = () => {
             onClick={() => setIsExpanded(!isExpanded)}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-amber-400/30 text-xs text-amber-300 font-semibold cursor-pointer transition-colors"
           >
-            <span>{isExpanded ? 'Tampilkan Lebih Ringkas' : `Lihat Semua Acara (${RUNDOWN_LIST.length} Agenda)`}</span>
+            <span>{isExpanded ? 'Tampilkan Lebih Ringkas' : `Lihat Semua Acara (${rundown.length} Agenda)`}</span>
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
         </div>

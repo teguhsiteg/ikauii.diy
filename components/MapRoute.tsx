@@ -79,7 +79,6 @@ const WaypointIcons: Record<string, string> = {
 
 export default function EventMap({
   coords,
-  theme,
   polyline,
   waypoints = [],
 }: {

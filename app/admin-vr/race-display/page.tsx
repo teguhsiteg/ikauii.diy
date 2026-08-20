@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import { db, auth } from "@/lib/firebase";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
-import { useRouter } from "next/navigation";
-import { Tv, Image as ImageIcon, Video, Play, Pause, RefreshCw, XCircle, LogOut, RotateCw, LayoutDashboard } from "lucide-react";
+import { Tv, Image as ImageIcon, Video, Play, Pause, RefreshCw, XCircle, LogOut, RotateCw } from "lucide-react";
 
 export default function RaceDisplayControlPage() {
   const [settings, setSettings] = useState<any>({});
@@ -16,8 +15,6 @@ export default function RaceDisplayControlPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState("");
   const [isRotated, setIsRotated] = useState(false);
-  
-  const router = useRouter();
 
   const handleLogout = async () => {
     try {

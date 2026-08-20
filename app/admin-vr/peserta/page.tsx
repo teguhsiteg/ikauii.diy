@@ -305,7 +305,7 @@ export default function DataPesertaPage() {
       await batch.commit();
       setSelectedParticipants([]);
       setPopup({ type: "success", text: "Data peserta berhasil dihapus." });
-    } catch (e) {
+    } catch {
       setPopup({ type: "error", text: "Gagal menghapus data." });
     } finally {
       setLoadingAction(null);

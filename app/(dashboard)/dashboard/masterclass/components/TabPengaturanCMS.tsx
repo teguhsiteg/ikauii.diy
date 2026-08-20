@@ -59,7 +59,7 @@ export default function TabPengaturanCMS() {
 
       await setDoc(doc(db, "settings", "masterclass_cms"), payload);
       setPopup({ type: "success", text: "Konfigurasi CMS Berhasil Disimpan!" });
-    } catch (err) {
+    } catch {
       setPopup({ type: "error", text: "Gagal menyimpan perubahan." });
     } finally {
       setIsSaving(false);

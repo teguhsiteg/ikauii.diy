@@ -13,14 +13,14 @@ const MapRoute = dynamic(() => import("@/components/MapRoute"), { ssr: false });
 const decodePolyline = (str: string, precision = 5) => {
   let index = 0,
     lat = 0,
-    lng = 0,
-    coordinates: [number, number][] = [];
+    lng = 0;
+  const coordinates: [number, number][] = [];
   let shift = 0,
     result = 0,
     byte = null,
     latitude_change,
-    longitude_change,
-    factor = Math.pow(10, precision);
+    longitude_change;
+  const factor = Math.pow(10, precision);
   while (index < str.length) {
     byte = null;
     shift = 0;

@@ -19,7 +19,7 @@ export default function EventMobilePage() {
       const snapshot = await getDocs(q);
       const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setEvents(data);
-    } catch (e) {
+    } catch {
       toast.error("Gagal mengambil data event");
     }
   };
@@ -35,7 +35,7 @@ export default function EventMobilePage() {
       toast.success("Event berhasil ditambahkan");
       setEventForm({ judul: "", deskripsi: "", lokasi: "", tanggal: "", koordinat: "", imageUrl: "", isActive: true });
       fetchEvents();
-    } catch (e) {
+    } catch {
       toast.error("Gagal menambah event");
     }
   };
@@ -46,7 +46,7 @@ export default function EventMobilePage() {
       await deleteDoc(doc(db, "events", id));
       toast.success("Event dihapus");
       fetchEvents();
-    } catch (e) {
+    } catch {
       toast.error("Gagal menghapus event");
     }
   };

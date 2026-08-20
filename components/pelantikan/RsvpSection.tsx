@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Send, CheckCircle2, MessageSquare, Heart, UserCheck } from 'lucide-react';
-import { GuestInfo, GuestWish } from '@/data/eventData';
-import { EVENT_DETAILS, INITIAL_WISHES } from '@/data/eventData';
+import { GuestInfo, GuestWish, INITIAL_WISHES } from '@/data/eventData';
+import { InvitationSettings } from '@/lib/invitation-settings';
 
 interface RsvpSectionProps {
   guest: GuestInfo;
+  dynamicSettings: InvitationSettings;
 }
 
-export const RsvpSection: React.FC<RsvpSectionProps> = ({ guest }) => {
+export const RsvpSection: React.FC<RsvpSectionProps> = ({ guest, dynamicSettings }) => {
   const [wishes, setWishes] = useState<GuestWish[]>(() => {
     try {
       const saved = localStorage.getItem('ika_uii_guest_wishes');
@@ -22,8 +23,6 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ guest }) => {
 
   const [name, setName] = useState<string>(guest.name || '');
   const [role, setRole] = useState<string>(guest.role || '');
-  const [status, setStatus] = useState<'hadir' | 'ragu' | 'tidak_hadir'>('hadir');
-  const [pax, setPax] = useState<number>(1);
   const [message, setMessage] = useState<string>('');
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
 
@@ -35,13 +34,9 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ guest }) => {
       id: 'wish-' + Date.now(),
       name: name.trim(),
       role: role.trim() || undefined,
-      status: status,
-      pax: status === 'hadir' ? pax : 0,
       message:
         message.trim() ||
-        (status === 'hadir'
-          ? 'InsyaAllah hadir. Sukses untuk Pelantikan DPW IKA UII DIY!'
-          : 'Mohon maaf belum dapat hadir, salam sukses untuk seluruh pengurus.'),
+        'Selamat atas pelantikan pengurus baru, semoga amanah dan sukses selalu.',
       timestamp: 'Baru saja',
     };
 
@@ -54,25 +49,13 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ guest }) => {
     }
 
     setIsSubmitted(true);
-
-    const statusText =
-      status === 'hadir'
-        ? `Hadir (${pax} Orang)`
-        : status === 'ragu'
-        ? 'Masih Ragu / Menyesuaikan Jadwal'
-        : 'Tidak Dapat Hadir';
-
-    const waText = encodeURIComponent(
-      `*KONFIRMASI KEHADIRAN (RSVP) PELANTIKAN DPW IKA UII DIY 2026-2031*\n\n` +
-        `Nama: ${name}\n` +
-        `Jabatan/Instansi: ${role || '-'}\n` +
-        `Status Kehadiran: ${statusText}\n` +
-        `Ucapan & Doa: ${message || '-'}\n\n` +
-        `_Terkonfirmasi melalui Undangan Digital Resmi_`
-    );
-
-    const waUrl = `https://wa.me/${EVENT_DETAILS.contactPhone}?text=${waText}`;
-    window.open(waUrl, '_blank');
+    // Reset form after 3 seconds
+    setTimeout(() => {
+      setName(guest.name || '');
+      setRole(guest.role || '');
+      setMessage('');
+      setIsSubmitted(false);
+    }, 3000);
   };
 
   return (
@@ -82,13 +65,13 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ guest }) => {
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/10 text-amber-300 text-xs font-semibold uppercase tracking-widest border border-amber-400/25 mb-2">
             <UserCheck className="w-3.5 h-3.5 text-amber-400" />
-            <span>Buku Tamu & RSVP</span>
+            <span>Buku Tamu</span>
           </div>
           <h2 className="font-cinzel text-xl sm:text-2xl font-bold gold-gradient-text tracking-wide">
-            KONFIRMASI KEHADIRAN
+            Ucapan dan Do'a
           </h2>
           <p className="text-xs text-slate-300 mt-1 max-w-md mx-auto">
-            Mohon konfirmasi kehadiran Bapak/Ibu/Saudara/i untuk kenyamanan penataan tempat & jamuan.
+            Sampaikan ucapan selamat dan doa restu untuk kepengurusan DPW IKA UII DIY periode 2026-2031.
           </p>
         </div>
 
@@ -126,40 +109,7 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ guest }) => {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
-                Konfirmasi Kehadiran *
-              </label>
-              <select
-                id="rsvp-select-status"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as 'hadir' | 'ragu' | 'tidak_hadir')}
-                className="w-full px-3.5 py-2 rounded-lg bg-slate-950/90 border border-slate-700 focus:border-amber-400 text-slate-100 text-xs sm:text-sm outline-none"
-              >
-                <option value="hadir">InsyaAllah Hadir</option>
-                <option value="ragu">Masih Ragu / Menyesuaikan Jadwal</option>
-                <option value="tidak_hadir">Mohon Maaf Belum Bisa Hadir</option>
-              </select>
-            </div>
 
-            {status === 'hadir' && (
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
-                  Jumlah Tamu Hadir
-                </label>
-                <select
-                  id="rsvp-select-pax"
-                  value={pax}
-                  onChange={(e) => setPax(Number(e.target.value))}
-                  className="w-full px-3.5 py-2 rounded-lg bg-slate-950/90 border border-slate-700 focus:border-amber-400 text-slate-100 text-xs sm:text-sm outline-none"
-                >
-                  <option value={1}>1 Orang (Tamu Undangan)</option>
-                  <option value={2}>2 Orang (Bersama Pendamping)</option>
-                </select>
-              </div>
-            )}
-          </div>
 
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
@@ -178,17 +128,17 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ guest }) => {
           <button
             id="btn-submit-rsvp"
             type="submit"
-            className="w-full py-2.5 px-4 rounded-xl gold-gradient-bg text-slate-950 font-bold text-xs sm:text-sm shadow flex items-center justify-center gap-2 hover:brightness-105 cursor-pointer transition-all"
+            className="w-full py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#0e2142] border-2 border-amber-500 font-extrabold text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 cursor-pointer transition-colors"
           >
-            <Send className="w-4 h-4 text-slate-950" />
-            <span>Kirim Konfirmasi & Teruskan ke WhatsApp Panitia</span>
+            <Send className="w-4 h-4 text-[#0e2142]" />
+            <span>Kirim Ucapan & Doa</span>
           </button>
 
           {isSubmitted && (
             <div className="p-3 rounded-lg bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
               <span>
-                Konfirmasi Anda telah tersimpan dan dialihkan ke WhatsApp Panitia ({EVENT_DETAILS.contactPerson}).
+                Ucapan dan doa Anda telah tersimpan dan masuk ke daftar buku tamu.
               </span>
             </div>
           )}
@@ -211,7 +161,7 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ guest }) => {
                   Belum ada ucapan & doa restu.
                 </p>
                 <p className="text-[11px] text-slate-500">
-                  Jadilah yang pertama menyampaikan ucapan & konfirmasi kehadiran.
+                  Jadilah yang pertama menyampaikan ucapan dan doa restu.
                 </p>
               </div>
             ) : (
@@ -227,25 +177,10 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ guest }) => {
                         <span className="text-[11px] text-amber-300/80">({w.role})</span>
                       )}
                     </div>
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                        w.status === 'hadir'
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                          : w.status === 'ragu'
-                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                          : 'bg-slate-700/30 text-slate-400'
-                      }`}
-                    >
-                      {w.status === 'hadir'
-                        ? 'Hadir'
-                        : w.status === 'ragu'
-                        ? 'Ragu'
-                        : 'Tidak Hadir'}
-                    </span>
                   </div>
 
                   <p className="text-xs text-slate-300 leading-relaxed italic">
-                    "{w.message}"
+                    &quot;{w.message}&quot;
                   </p>
 
                   <div className="text-[10px] text-slate-500 flex items-center justify-between pt-1">
@@ -263,12 +198,12 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ guest }) => {
           <p>
             Narahubung Panitia:{' '}
             <a
-              href={`https://wa.me/${EVENT_DETAILS.contactPhone}`}
+              href={`https://wa.me/${dynamicSettings.contactPhone}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-amber-300 hover:underline font-semibold"
             >
-              {EVENT_DETAILS.contactPerson} ({EVENT_DETAILS.contactPhoneDisplay})
+              {dynamicSettings.contactPerson} ({dynamicSettings.contactPhoneDisplay})
             </a>
           </p>
         </div>

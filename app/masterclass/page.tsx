@@ -13,7 +13,6 @@ import {
   getDoc,
 } from "firebase/firestore";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 // Data Statis Marketing
 const VALUE_PROPS = [
@@ -59,8 +58,6 @@ const FAQS = [
 ];
 
 export default function MasterclassPublicPage() {
-  const router = useRouter();
-
   const [courses, setCourses] = useState<any[]>([]);
   const [mentors, setMentors] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
@@ -212,7 +209,7 @@ export default function MasterclassPublicPage() {
 
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-4 text-left">
                 <p className="text-xs text-slate-600 leading-relaxed italic">
-                  "{selectedMentor.bio}"
+                  &quot;{selectedMentor.bio}&quot;
                 </p>
               </div>
 
@@ -569,7 +566,7 @@ export default function MasterclassPublicPage() {
                         ))}
                       </div>
                       <p className="text-slate-700 text-sm leading-relaxed mb-2 font-medium">
-                        "{r.ulasan}"
+                        &quot;{r.ulasan}&quot;
                       </p>
                       <h4 className="font-bold text-[#1F2432] text-xs uppercase tracking-widest">
                         {r.namaPeserta}

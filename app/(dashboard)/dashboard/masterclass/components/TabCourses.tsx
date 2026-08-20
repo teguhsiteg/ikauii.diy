@@ -130,7 +130,7 @@ export default function TabCourses() {
         thumbnailUrl: "",
         status: "Draft",
       });
-    } catch (error) {
+    } catch {
       toast.error("Gagal menyimpan data kelas");
     } finally {
       setIsProcessing(false);

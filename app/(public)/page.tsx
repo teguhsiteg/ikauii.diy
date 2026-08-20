@@ -36,7 +36,7 @@ export default function LandingPage() {
 
   // --- STATE & REF UNTUK SLIDER ULASAN 🔥 ---
   const feedbackCarouselRef = useRef<HTMLDivElement>(null);
-  const [isFeedbackHovered, setIsFeedbackHovered] = useState(false);
+  const [isFeedbackHovered] = useState(false);
 
   // --- FUNGSI YOUTUBE EXTRACTOR ---
   const getYouTubeEmbedUrl = (url: string) => {
@@ -91,7 +91,7 @@ export default function LandingPage() {
             setFeedbackList(parsedData.feedbackList || []); // Ambil cache ulasan
             setIsLoading(false);
             return; // EXIT FUNGSI, JANGAN FETCH KE FIREBASE LAGI!
-          } catch (e) {
+          } catch {
             console.log("Cache corrupted, re-fetching...");
           }
         }
@@ -1253,7 +1253,7 @@ export default function LandingPage() {
 
                       {/* Isi Ulasan */}
                       <p className="text-slate-600 text-sm md:text-base leading-relaxed mb-6 italic font-medium line-clamp-6">
-                        "{f.ulasan}"
+                        &quot;{f.ulasan}&quot;
                       </p>
                     </div>
 
@@ -1297,7 +1297,7 @@ export default function LandingPage() {
 
                       {/* Isi Ulasan */}
                       <p className="text-slate-600 text-sm md:text-base leading-relaxed mb-6 italic font-medium line-clamp-6">
-                        "{f.ulasan}"
+                        &quot;{f.ulasan}&quot;
                       </p>
                     </div>
 
