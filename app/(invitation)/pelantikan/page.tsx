@@ -9,7 +9,7 @@ import { AudioToggle } from '@/components/pelantikan/AudioToggle';
 import { AdminGeneratorPage } from '@/components/pelantikan/AdminGeneratorPage';
 import { CoverScreen } from '@/components/pelantikan/CoverScreen';
 import { invitationAudio } from '@/utils/audioHelper';
-import { getInvitationSettings, InvitationSettings } from '@/lib/invitation-settings';
+import { getInvitationSettings, subscribeToInvitationSettings, InvitationSettings } from '@/lib/invitation-settings';
 import { AnimatePresence, motion } from 'motion/react';
 import 'lenis/dist/lenis.css';
 import Lenis from 'lenis';
@@ -29,7 +29,7 @@ function PelantikanContent() {
   const isAdmin = searchParams.get('admin') === '1';
 
   useEffect(() => {
-    getInvitationSettings().then((data) => {
+    const unsubscribe = subscribeToInvitationSettings((data) => {
       setSettings(data);
       // Inisialisasi musik pengiring
       invitationAudio.setTrack({
@@ -38,9 +38,9 @@ function PelantikanContent() {
         type: 'url',
         url: data.musicUrl,
       });
-      // Optionally handle auto-play based on data.autoPlayMusic if user interacts
-      // Browsers block autoplay without interaction, but if there's a play trigger, we respect it.
     });
+
+    return () => unsubscribe();
   }, []);
 
   // Initialize smooth scrolling with Lenis when invitation is opened

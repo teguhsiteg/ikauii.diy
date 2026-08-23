@@ -877,6 +877,28 @@ function OfflineRunLandingPageContent() {
                         </button>
                         <p className="text-[10px] text-slate-400 mt-1.5 font-medium">Pantau terus untuk info pembukaan pendaftaran</p>
                       </div>
+                    ) : settings?.registrationPlatform === "third_party" ? (
+                      <a
+                        href={settings?.thirdPartyUrl || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`w-full text-center font-bold py-3.5 md:py-4 rounded-xl transition-all shadow-md text-sm flex items-center justify-center gap-2 ${isHighlight ? "bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239]" : "bg-[#0B2239] hover:bg-blue-900 text-white"}`}
+                      >
+                        Daftar Kategori {pkg.jarak}{" "}
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M14 5l7 7m0 0l-7 7m7-7H3"
+                          />
+                        </svg>
+                      </a>
                     ) : (
                       <Link
                         href={`/run/daftar?paket=${pkg.id}${isWaitingRoom ? "&queue=true" : ""}`}

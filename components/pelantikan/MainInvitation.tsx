@@ -8,6 +8,7 @@ import { CountdownTimer } from './CountdownTimer';
 import { RundownSection } from './RundownSection';
 import { LocationSection } from './LocationSection';
 import { RsvpSection } from './RsvpSection';
+import { GalleryMedia } from './GalleryMedia';
 
 import { InvitationSettings } from '@/lib/invitation-settings';
 
@@ -16,7 +17,7 @@ const fadeUpVariant = {
   visible: { 
     opacity: 1, 
     y: 0, 
-    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } 
+    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } 
   }
 };
 
@@ -225,30 +226,10 @@ export const MainInvitation: React.FC<MainInvitationProps> = ({ guest, onBackToC
                   Video atau momen spesial persembahan untuk pelantikan pengurus.
                 </p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {dynamicSettings.mediaUrls.filter(url => url.trim() !== '').map((url, idx) => {
-                  const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
-                  const isRawVideo = url.match(/\.(mp4|webm|ogg)$/i) || url.includes('/video/upload/');
-
-                  return (
-                    <div key={idx} className={`rounded-xl overflow-hidden border-2 border-amber-400/40 shadow-2xl relative bg-slate-900/50 flex items-center justify-center ${isYoutube ? 'aspect-video' : 'w-full'}`}>
-                      {isYoutube ? (
-                        <iframe
-                          className="w-full h-full absolute inset-0"
-                          src={url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
-                          title={`Video Ucapan ${idx+1}`}
-                          frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        ></iframe>
-                      ) : isRawVideo ? (
-                        <video src={url} controls playsInline className="w-full h-auto object-contain max-h-[80vh]" />
-                      ) : (
-                        <img src={url} alt={`Galeri Ucapan ${idx+1}`} className="w-full h-auto object-contain max-h-[80vh]" loading="lazy" />
-                      )}
-                    </div>
-                  );
-                })}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                {dynamicSettings.mediaUrls.filter(url => url.trim() !== '').map((url, idx) => (
+                  <GalleryMedia key={idx} url={url} index={idx} />
+                ))}
               </div>
             </div>
           </motion.section>

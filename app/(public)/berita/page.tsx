@@ -199,7 +199,7 @@ export default function BeritaPage() {
                 >
                   <div className="relative aspect-video overflow-hidden bg-slate-200">
                     <img
-                      src={berita.thumbnail || "/logo-dpp-ika.png"}
+                      src={berita.thumbnail || berita.imgUrl || "/logo-dpp-ika.png"}
                       alt={berita.judul}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />

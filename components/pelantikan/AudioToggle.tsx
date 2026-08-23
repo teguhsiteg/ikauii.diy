@@ -52,6 +52,7 @@ export const AudioToggle: React.FC<AudioToggleProps> = () => {
           playsinline
           config={{
             youtube: {
+              // @ts-expect-error - react-player types might be incorrect
               playerVars: {
                 origin: typeof window !== 'undefined' ? window.location.origin : '',
                 autoplay: 1,

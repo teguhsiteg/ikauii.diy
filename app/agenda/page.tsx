@@ -241,7 +241,7 @@ export default function AgendaPage() {
                       <div className="md:w-1/2 aspect-[4/3] md:aspect-auto relative overflow-hidden bg-slate-100">
                         {featuredAgenda.imgUrl || featuredAgenda.posterUrl ? (
                           (() => {
-                            const url = featuredAgenda.imgUrl || featuredAgenda.posterUrl;
+                            const url = featuredAgenda.imgUrl || featuredAgenda.posterUrl || "";
                             const isRawVideo = url.match(/\.(mp4|webm|ogg)$/i) || url.includes('/video/upload/');
                             return isRawVideo ? (
                               <video
@@ -376,7 +376,7 @@ export default function AgendaPage() {
               {gridAgendas.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 animate-in fade-in duration-700">
                   {gridAgendas.map((agenda) => {
-                    const hasImage = agenda.imgUrl || agenda.posterUrl;
+                    const hasImage = agenda.imgUrl || agenda.posterUrl || "";
 
                     return (
                       <Link

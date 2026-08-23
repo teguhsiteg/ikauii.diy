@@ -34,7 +34,7 @@ export async function generateMetadata({
           description: plainTextDesc,
           images: [
             {
-              url: data?.posterUrl || "/api/og",
+              url: data?.posterUrl || data?.imgUrl || "https://ikadiy.uii.ac.id/api/og",
               width: 1200,
               height: 630,
             }
@@ -44,7 +44,7 @@ export async function generateMetadata({
           card: "summary_large_image",
           title: data?.judul,
           description: plainTextDesc,
-          images: [data?.posterUrl || "https://ikadiy.uii.ac.id/api/og"],
+          images: [data?.posterUrl || data?.imgUrl || "https://ikadiy.uii.ac.id/api/og"],
         }
       };
     }

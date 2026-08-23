@@ -77,25 +77,7 @@ export default function LandingPage() {
   // --- FETCH DATA FIREBASE (DENGAN SESSION STORAGE CACHE) 🔥 ---
   useEffect(() => {
     const fetchAllData = async () => {
-      // 1. CEK CACHE DI SESSION STORAGE DULU
-      if (typeof window !== "undefined") {
-        const cachedData = sessionStorage.getItem("ika_public_home_cache");
-        if (cachedData) {
-          try {
-            const parsedData = JSON.parse(cachedData);
-            setCms(parsedData.cms);
-            setBeritaList(parsedData.beritaList);
-            setAgendaList(parsedData.agendaList);
-            setPengurusList(parsedData.pengurusList);
-            setGaleriList(parsedData.galeriList);
-            setFeedbackList(parsedData.feedbackList || []); // Ambil cache ulasan
-            setIsLoading(false);
-            return; // EXIT FUNGSI, JANGAN FETCH KE FIREBASE LAGI!
-          } catch {
-            console.log("Cache corrupted, re-fetching...");
-          }
-        }
-      }
+
 
       // 2. JIKA TIDAK ADA CACHE, BARU FETCH KE FIREBASE
       try {
@@ -198,45 +180,7 @@ export default function LandingPage() {
           });
         setFeedbackList(finalFeedbackList);
 
-        // 3. SIMPAN SEMUA DATA KE SESSION CACHE
-        if (typeof window !== "undefined") {
-          try {
-            const getCircularReplacer = () => {
-              const seen = new WeakSet();
-              return (key: string, value: any) => {
-                if (typeof value === "object" && value !== null) {
-                  // Handle Firestore references (avoid circular structure)
-                  if (value.firestore || value.converter) return undefined;
-                  // Handle Firestore timestamps
-                  if (typeof value.toMillis === "function") return value.toMillis();
-                  
-                  if (seen.has(value)) {
-                    return;
-                  }
-                  seen.add(value);
-                }
-                return value;
-              };
-            };
 
-            sessionStorage.setItem(
-              "ika_public_home_cache",
-              JSON.stringify(
-                {
-                  cms: finalCms,
-                  beritaList: finalBeritaList,
-                  agendaList: finalAgendaList,
-                  pengurusList: pengurusBeranda,
-                  galeriList: finalGaleriList,
-                  feedbackList: finalFeedbackList,
-                },
-                getCircularReplacer()
-              )
-            );
-          } catch (cacheError) {
-            console.warn("Gagal menyimpan cache home:", cacheError);
-          }
-        }
       } catch (error) {
         console.error("Gagal mengambil data:", error);
       } finally {

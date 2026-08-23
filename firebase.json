@@ -7,7 +7,9 @@
     "source": ".",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "frameworksBackend": {
-      "region": "asia-southeast1"
+      "region": "asia-southeast1",
+      "maxInstances": 10,
+      "memory": "512MiB"
     }
   }
 }

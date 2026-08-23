@@ -16,7 +16,7 @@ import Link from "next/link";
 import NavbarPublic from "@/components/layout/NavbarPublic";
 import FooterPublic from "@/components/layout/FooterPublic";
 
-export const dynamic = "force-static";
+
 
 export default function DetailBeritaPage() {
   const { id } = useParams();
@@ -31,8 +31,9 @@ export default function DetailBeritaPage() {
       if (!id) return;
 
       try {
+        const safeId = decodeURIComponent(id as string || "");
         // 1. Ambil Berita Utama
-        const docRef = doc(db, "berita", id as string);
+        const docRef = doc(db, "berita", safeId);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {

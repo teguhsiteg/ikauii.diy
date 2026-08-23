@@ -139,6 +139,47 @@ export default function TabOffline({
 
             <div className="pt-6 border-t border-slate-100 mt-6 space-y-5">
               <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+                Platform Pendaftaran
+              </h4>
+              <div className="bg-[#F8F9FA] p-4 rounded-lg border border-slate-200 space-y-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                    Pilih Platform
+                  </label>
+                  <select
+                    name="registrationPlatform"
+                    value={vrSettings.registrationPlatform || "internal"}
+                    onChange={handleSettingChange}
+                    className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-md focus:border-[#1A73E8] outline-none text-sm font-bold text-[#0B2239]"
+                  >
+                    <option value="internal">Internal (Web sim-dpwikadiy)</option>
+                    <option value="third_party">Pihak Ketiga (Platform Tiket Eksternal)</option>
+                  </select>
+                </div>
+                
+                {vrSettings.registrationPlatform === "third_party" && (
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                      URL Pihak Ketiga
+                    </label>
+                    <p className="text-[10px] text-slate-500 mb-2">
+                      Peserta akan diarahkan ke link ini saat menekan tombol daftar.
+                    </p>
+                    <input
+                      type="url"
+                      name="thirdPartyUrl"
+                      value={vrSettings.thirdPartyUrl || ""}
+                      onChange={handleSettingChange}
+                      placeholder="https://..."
+                      className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-md focus:border-[#1A73E8] outline-none text-sm"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="pt-6 border-t border-slate-100 mt-6 space-y-5">
+              <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">
                 Status Pendaftaran (Manual Override)
               </h4>
 

@@ -73,6 +73,8 @@ export const DEFAULT_INVITATION_SETTINGS: InvitationSettings = {
 const SETTINGS_DOC_ID = 'default';
 const COLLECTION_NAME = 'invitation_settings';
 
+import { onSnapshot } from 'firebase/firestore';
+
 export async function getInvitationSettings(): Promise<InvitationSettings> {
   try {
     const docRef = doc(db, COLLECTION_NAME, SETTINGS_DOC_ID);
@@ -81,13 +83,29 @@ export async function getInvitationSettings(): Promise<InvitationSettings> {
     if (docSnap.exists()) {
       return { ...DEFAULT_INVITATION_SETTINGS, ...docSnap.data() } as InvitationSettings;
     } else {
-      // Document doesn't exist, return default
       return DEFAULT_INVITATION_SETTINGS;
     }
   } catch (error) {
     console.warn("Could not fetch invitation settings, using defaults. Error:", error);
     return DEFAULT_INVITATION_SETTINGS;
   }
+}
+
+export function subscribeToInvitationSettings(callback: (settings: InvitationSettings) => void): () => void {
+  const docRef = doc(db, COLLECTION_NAME, SETTINGS_DOC_ID);
+  
+  const unsubscribe = onSnapshot(docRef, (docSnap) => {
+    if (docSnap.exists()) {
+      callback({ ...DEFAULT_INVITATION_SETTINGS, ...docSnap.data() } as InvitationSettings);
+    } else {
+      callback(DEFAULT_INVITATION_SETTINGS);
+    }
+  }, (error) => {
+    console.warn("Could not subscribe to invitation settings, using defaults. Error:", error);
+    callback(DEFAULT_INVITATION_SETTINGS);
+  });
+
+  return unsubscribe;
 }
 
 export async function updateInvitationSettings(settings: Partial<InvitationSettings>): Promise<void> {

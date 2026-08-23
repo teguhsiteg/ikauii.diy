@@ -12,19 +12,36 @@ function initAdminApp() {
 
     if (rawPrivateKey) {
       console.log("✅ Firebase Admin SDK init dengan private key.");
-      // Hapus tanda kutip ganda/tunggal di awal & akhir jika ada (sering terjadi di Vercel env vars)
-      let formattedKey = rawPrivateKey.replace(/^["']|["']$/g, "");
-      // Ganti escaped \n menjadi newline sungguhan
+      let formattedKey = rawPrivateKey;
+      
+      // Hapus tanda kutip di awal dan akhir
+      if (formattedKey.startsWith('"') && formattedKey.endsWith('"')) {
+        formattedKey = formattedKey.slice(1, -1);
+      } else if (formattedKey.startsWith("'") && formattedKey.endsWith("'")) {
+        formattedKey = formattedKey.slice(1, -1);
+      }
+      
+      // Ganti literal \n dengan newline sesungguhnya
       formattedKey = formattedKey.replace(/\\n/g, "\n");
       
-      return admin.initializeApp({
-        credential: admin.credential.cert({
+      try {
+        return admin.initializeApp({
+          credential: admin.credential.cert({
+            projectId,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey: formattedKey,
+          }),
           projectId,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: formattedKey,
-        }),
-        projectId,
-      });
+        });
+      } catch (certError: any) {
+        console.error("❌ ERROR: FIREBASE_PRIVATE_KEY tidak valid formatnya! Pastikan copy-paste dari JSON tanpa spasi berlebih atau quote salah di Vercel/Env.", certError.message);
+        // Fallback to ADC if cert fails so the module doesn't crash Next.js completely
+        console.log("⚠️ Fallback ke ADC karena Private Key gagal di-parse.");
+        return admin.initializeApp({
+          credential: admin.credential.applicationDefault(),
+          projectId,
+        });
+      }
     } else {
       console.log("✅ Firebase Admin SDK init dengan ADC.");
       return admin.initializeApp({
