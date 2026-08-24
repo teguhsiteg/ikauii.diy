@@ -139,6 +139,41 @@ export default function TabOffline({
 
             <div className="pt-6 border-t border-slate-100 mt-6 space-y-5">
               <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+                Konten Landing Page
+              </h4>
+              <div className="grid grid-cols-1 gap-5 bg-[#F8F9FA] p-4 rounded-lg border border-slate-200">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                    Judul Utama Landing Page
+                  </label>
+                  <input
+                    type="text"
+                    name="offlineJudul"
+                    value={vrSettings.offlineJudul || ""}
+                    onChange={handleSettingChange}
+                    placeholder="Contoh: SIAP BERLARI? UII SEHAT MENUNGGUMU"
+                    className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-md focus:border-[#1A73E8] outline-none text-sm font-bold"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">Gunakan kata-kata singkat dan menarik (max 50 karakter).</p>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                    Deskripsi Singkat / Sub-judul
+                  </label>
+                  <textarea
+                    name="offlineDeskripsi"
+                    value={vrSettings.offlineDeskripsi || ""}
+                    onChange={handleSettingChange}
+                    placeholder="Contoh: Bergabunglah bersama ribuan peserta..."
+                    rows={3}
+                    className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-md focus:border-[#1A73E8] outline-none text-sm resize-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-6 border-t border-slate-100 mt-6 space-y-5">
+              <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">
                 Platform Pendaftaran
               </h4>
               <div className="bg-[#F8F9FA] p-4 rounded-lg border border-slate-200 space-y-4">
@@ -287,6 +322,45 @@ export default function TabOffline({
                     value={vrSettings.offlineTanggalPenutupan || ""}
                     onChange={handleSettingChange}
                     className="w-full px-4 py-2.5 bg-rose-50 border border-rose-200 rounded-lg focus:bg-white focus:border-rose-500 outline-none text-sm text-rose-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-amber-600 mb-1.5 uppercase">
+                    Periode Pengambilan Race Pack
+                  </label>
+                  <input
+                    type="text"
+                    name="offlinePeriodePengiriman"
+                    value={vrSettings.offlinePeriodePengiriman || ""}
+                    onChange={handleSettingChange}
+                    placeholder="Contoh: 10-12 Oktober 2026"
+                    className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:border-amber-500 outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-blue-600 mb-1.5 uppercase">
+                    Hari Pelaksanaan (Race Day)
+                  </label>
+                  <input
+                    type="text"
+                    name="offlinePeriodeLari"
+                    value={vrSettings.offlinePeriodeLari || ""}
+                    onChange={handleSettingChange}
+                    placeholder="Contoh: Minggu, 15 Oktober 2026"
+                    className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:border-blue-500 outline-none text-sm"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-[11px] font-bold text-rose-600 mb-1.5 uppercase">
+                    Jadwal Puncak Acara (Opsional)
+                  </label>
+                  <input
+                    type="text"
+                    name="offlineJadwalPuncakAcara"
+                    value={vrSettings.offlineJadwalPuncakAcara || ""}
+                    onChange={handleSettingChange}
+                    placeholder="Contoh: Flag off lari jam 06:00 WIB"
+                    className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:border-rose-500 outline-none text-sm"
                   />
                 </div>
               </div>

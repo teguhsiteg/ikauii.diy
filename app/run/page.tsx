@@ -288,13 +288,12 @@ function OfflineRunLandingPageContent() {
           </div>
         </div>
 
-        <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 max-w-4xl leading-tight relative z-10">
-          SIAP BERLARI? <br />
-          UII SEHAT MENUNGGUMU
+        <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 max-w-4xl leading-tight relative z-10 whitespace-pre-wrap">
+          {settings?.offlineJudul || "SIAP BERLARI?\nUII SEHAT MENUNGGUMU"}
         </h1>
 
-        <p className="text-slate-300 text-sm md:text-base font-medium mb-10 max-w-2xl relative z-10 leading-relaxed">
-          Bergabunglah bersama ribuan peserta dalam UII Sehat Fun Run & Charity. Setiap langkah membawa manfaat bagi diri sendiri dan sesama.
+        <p className="text-slate-300 text-sm md:text-base font-medium mb-10 max-w-2xl relative z-10 leading-relaxed whitespace-pre-wrap">
+          {settings?.offlineDeskripsi || "Bergabunglah bersama ribuan peserta dalam UII Sehat Fun Run & Charity. Setiap langkah membawa manfaat bagi diri sendiri dan sesama."}
         </p>
 
         <div className="flex flex-col sm:flex-row items-center gap-4 relative z-10">
@@ -310,7 +309,7 @@ function OfflineRunLandingPageContent() {
             @ikauii.diy
           </a>
           
-          {settings?.statusPendaftaran === "Buka" && (
+          {settings?.isVirtualRunEnabled && (
             <Link
               href="/virtual-run"
               className="bg-white hover:bg-slate-50 text-blue-900 px-6 py-3 rounded-full flex items-center justify-center gap-2.5 transition-all font-black text-sm shadow-lg border border-slate-200 w-full sm:w-auto"
