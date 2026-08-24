@@ -196,8 +196,7 @@ function OfflineRunLandingPageContent() {
         <div
           className="absolute inset-0 bg-cover bg-center grayscale-[30%]"
           style={{
-            backgroundImage:
-              "url('https://www.uii.ac.id/wp-content/uploads/2025/03/Gerbang-UII.jpg')",
+            backgroundImage: `url('${settings?.urlOfflineHeroBg || settings?.urlHeroBg || "https://www.uii.ac.id/wp-content/uploads/2025/03/Gerbang-UII.jpg"}')`,
           }}
         ></div>
         <div className="absolute inset-0 bg-[#0B2239]/90"></div>
@@ -213,10 +212,20 @@ function OfflineRunLandingPageContent() {
           </div>
         </div>
 
-        <h1 className="text-3xl md:text-5xl font-black text-white tracking-widest uppercase mb-4 text-center relative z-10 leading-tight">
-          IKA UII DIY RUN <br />
-          <span className="text-[#FCD116]">{showCountdown ? "SEGERA DIBUKA" : "COMING SOON"}</span>
+        <h1 className="text-3xl md:text-5xl font-black text-white tracking-widest uppercase mb-4 text-center relative z-10 leading-tight whitespace-pre-wrap">
+          {settings?.offlineJudul || (
+            <>
+              IKA UII DIY RUN <br />
+              <span className="text-[#FCD116]">{showCountdown ? "SEGERA DIBUKA" : "COMING SOON"}</span>
+            </>
+          )}
         </h1>
+
+        {settings?.offlineDeskripsi && (
+          <p className="text-slate-300 text-sm md:text-base font-medium mb-6 max-w-xl text-center relative z-10 leading-relaxed whitespace-pre-wrap">
+            {settings.offlineDeskripsi}
+          </p>
+        )}
 
         {settings?.offlineTanggalPembukaan && (
           <div className="mt-2 mb-10 relative z-10 flex flex-col items-center animate-in fade-in duration-1000 delay-300">
@@ -271,8 +280,7 @@ function OfflineRunLandingPageContent() {
         <div
           className="absolute inset-0 bg-cover bg-center grayscale-[30%]"
           style={{
-            backgroundImage:
-              "url('https://www.uii.ac.id/wp-content/uploads/2025/03/Gerbang-UII.jpg')",
+            backgroundImage: `url('${settings?.urlOfflineHeroBg || settings?.urlHeroBg || "https://www.uii.ac.id/wp-content/uploads/2025/03/Gerbang-UII.jpg"}')`,
           }}
         ></div>
         <div className="absolute inset-0 bg-[#0B2239]/90"></div>
@@ -289,11 +297,11 @@ function OfflineRunLandingPageContent() {
         </div>
 
         <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 max-w-4xl leading-tight relative z-10 whitespace-pre-wrap">
-          {settings?.offlineJudul || "SIAP BERLARI?\nUII SEHAT MENUNGGUMU"}
+          {settings?.offlineJudul || settings?.landingTitle || "SIAP BERLARI?\nUII SEHAT MENUNGGUMU"}
         </h1>
 
         <p className="text-slate-300 text-sm md:text-base font-medium mb-10 max-w-2xl relative z-10 leading-relaxed whitespace-pre-wrap">
-          {settings?.offlineDeskripsi || "Bergabunglah bersama ribuan peserta dalam UII Sehat Fun Run & Charity. Setiap langkah membawa manfaat bagi diri sendiri dan sesama."}
+          {settings?.offlineDeskripsi || settings?.landingDesc || "Bergabunglah bersama ribuan peserta dalam UII Sehat Fun Run & Charity. Setiap langkah membawa manfaat bagi diri sendiri dan sesama."}
         </p>
 
         <div className="flex flex-col sm:flex-row items-center gap-4 relative z-10">
@@ -340,8 +348,7 @@ function OfflineRunLandingPageContent() {
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat grayscale-[20%]"
           style={{
-            backgroundImage:
-              "url('https://www.uii.ac.id/wp-content/uploads/2025/03/Gerbang-UII.jpg')",
+            backgroundImage: `url('${settings?.urlOfflineHeroBg || settings?.urlHeroBg || "https://www.uii.ac.id/wp-content/uploads/2025/03/Gerbang-UII.jpg"}')`,
           }}
         ></div>
         <div className="absolute inset-0 bg-[#0B2239]/90"></div>
@@ -357,19 +364,27 @@ function OfflineRunLandingPageContent() {
           </ScrollReveal>
 
           <ScrollReveal delay={100}>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight mb-6 max-w-4xl leading-[1.1] drop-shadow-sm">
-              UII{" "}
-              <span className="text-[#FCD116] drop-shadow-md">Sehat</span>
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight mb-6 max-w-4xl leading-[1.1] drop-shadow-sm whitespace-pre-wrap">
+              {settings?.offlineJudul || settings?.landingTitle || (
+                <>
+                  UII{" "}
+                  <span className="text-[#FCD116] drop-shadow-md">Sehat</span>
+                </>
+              )}
             </h1>
           </ScrollReveal>
 
           <ScrollReveal delay={200}>
-            <p className="text-base md:text-xl text-slate-300 mb-8 max-w-2xl font-medium leading-relaxed mx-auto">
-              Langkah kecil hari ini membawa energi besar untuk hidup yang
-              lebih sehat, aktif, dan penuh semangat kebersamaan. Pilih
-              kategori dan jadilah bagian dari perayaan sehat{" "}
-              {settings?.offlineLocation || "Yogyakarta"} bersama keluarga
-              besar IKA UII Daerah Istimewa Yogyakarta!
+            <p className="text-base md:text-xl text-slate-300 mb-8 max-w-2xl font-medium leading-relaxed mx-auto whitespace-pre-wrap">
+              {settings?.offlineDeskripsi || settings?.landingDesc || (
+                <>
+                  Langkah kecil hari ini membawa energi besar untuk hidup yang
+                  lebih sehat, aktif, dan penuh semangat kebersamaan. Pilih
+                  kategori dan jadilah bagian dari perayaan sehat{" "}
+                  {settings?.offlineLocation || "Yogyakarta"} bersama keluarga
+                  besar IKA UII Daerah Istimewa Yogyakarta!
+                </>
+              )}
             </p>
           </ScrollReveal>
 

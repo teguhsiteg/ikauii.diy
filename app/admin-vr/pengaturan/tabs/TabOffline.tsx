@@ -169,6 +169,20 @@ export default function TabOffline({
                     className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-md focus:border-[#1A73E8] outline-none text-sm resize-none"
                   />
                 </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                    Background Image URL (Hero)
+                  </label>
+                  <input
+                    type="text"
+                    name="urlOfflineHeroBg"
+                    value={vrSettings.urlOfflineHeroBg || ""}
+                    onChange={handleSettingChange}
+                    placeholder="https://..."
+                    className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-md focus:border-[#1A73E8] outline-none text-sm font-mono"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">Kosongkan jika ingin memakai background default / Background VR.</p>
+                </div>
               </div>
             </div>
 

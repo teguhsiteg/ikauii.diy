@@ -7,8 +7,10 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, doc, getDoc, query, where, getCountFromServer } from "firebase/firestore";
 import Link from "next/link";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
-import { MapPin } from "lucide-react";
+import { MapPin, Lock, Heart, Sparkles } from "lucide-react";
 import { sendEmailAction } from "@/app/actions/email";
+import VirtualRunNavbar from "@/components/virtual-run/VirtualRunNavbar";
+import VirtualRunFooter from "@/components/virtual-run/VirtualRunFooter";
 
 
 // =========================================================================
@@ -423,8 +425,8 @@ function RegistrationForm() {
   if (settings?.statusPendaftaran === "Tutup") {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-center">
-        <div className="w-20 h-20 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-4xl mb-6">
-          🔒
+        <div className="w-20 h-20 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mb-6">
+          <Lock className="w-8 h-8" />
         </div>
         <h1 className="text-3xl font-black text-slate-900 mb-2">
           Pendaftaran Ditutup
@@ -447,14 +449,14 @@ function RegistrationForm() {
 
   return (
     <>
-      {/* 🔥 MODAL POPUP SUCCESS CUSTOM 🔥 */}
+      {/* MODAL POPUP SUCCESS CUSTOM */}
       {successCountdown !== null && (
         <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
           <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center animate-in zoom-in-95 duration-500 border border-slate-100 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-400 to-emerald-400"></div>
 
-            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-emerald-100 shadow-inner">
-              <span className="text-4xl filter drop-shadow-sm">🎉</span>
+            <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-emerald-100 shadow-inner">
+              <Sparkles className="w-8 h-8" />
             </div>
 
             <h2 className="text-2xl font-black text-slate-800 mb-2 tracking-tight">
@@ -813,8 +815,8 @@ function RegistrationForm() {
           {settings?.isCharityActive && (
             <div className="bg-gradient-to-br from-emerald-50 to-teal-50/30 rounded-3xl p-6 sm:p-8 shadow-sm border border-emerald-100">
               <div className="flex items-start gap-4 mb-5">
-                <div className="w-12 h-12 bg-white text-emerald-500 rounded-2xl flex items-center justify-center text-2xl shrink-0 shadow-sm border border-emerald-100">
-                  💖
+                <div className="w-12 h-12 bg-white text-emerald-600 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border border-emerald-100">
+                  <Heart className="w-6 h-6" />
                 </div>
                 <div>
                   <h3 className="text-base font-black text-emerald-900">
@@ -1008,8 +1010,8 @@ function RegistrationForm() {
               )}
               {settings?.isCharityActive && formData.isDonasi && donasi > 0 && (
                 <div className="flex justify-between items-center text-emerald-700 bg-emerald-50 p-2.5 -mx-2.5 rounded-lg border border-emerald-100/50">
-                  <span className="font-bold text-xs flex items-center gap-1">
-                    <span className="text-[10px]">💖</span> Donasi Amal
+                  <span className="font-bold text-xs flex items-center gap-1.5">
+                    <Heart className="w-3.5 h-3.5 text-emerald-600" /> Donasi Amal
                   </span>
                   <span className="font-black">
                     Rp {donasi.toLocaleString("id-ID")}
@@ -1086,13 +1088,15 @@ function RegistrationForm() {
 // =========================================================================
 export default function VirtualRunRegisterPage() {
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-sans selection:bg-blue-100 selection:text-blue-900 pb-20">
-      <div className="bg-blue-950 pt-10 pb-28 px-4 sm:px-6 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 font-sans selection:bg-yellow-400 selection:text-slate-950 flex flex-col relative antialiased">
+      <VirtualRunNavbar />
+
+      <div className="bg-[#071324] pt-32 pb-28 px-4 sm:px-6 relative overflow-hidden border-b border-slate-800">
         <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
         <div className="max-w-5xl mx-auto relative z-10">
           <Link
             href="/virtual-run"
-            className="text-blue-300 hover:text-white font-semibold text-xs sm:text-sm flex items-center gap-1.5 mb-6 transition-colors w-fit"
+            className="text-yellow-400 hover:text-yellow-300 font-bold text-xs sm:text-sm flex items-center gap-1.5 mb-6 transition-colors w-fit"
           >
             <svg
               className="w-4 h-4"
@@ -1107,23 +1111,23 @@ export default function VirtualRunRegisterPage() {
                 d="M10 19l-7-7m0 0l7-7m-7 7h18"
               />
             </svg>{" "}
-            Kembali
+            Kembali ke Virtual Run
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-2 tracking-tight">
+          <h1 className="text-3xl sm:text-4xl font-black text-white mb-2 tracking-tight">
             Registrasi Virtual Run
           </h1>
-          <p className="text-blue-200 text-sm max-w-xl leading-relaxed">
+          <p className="text-slate-300 text-sm max-w-xl leading-relaxed">
             Lengkapi identitas diri, pilih jarak lari, dan tentukan paket race
             pack pilihan Anda.
           </p>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-16 relative z-10">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-16 relative z-10 flex-grow pb-24 w-full">
         <Suspense
           fallback={
             <div className="w-full bg-white rounded-3xl p-12 text-center shadow-lg border border-slate-200 flex flex-col items-center justify-center">
-              <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+              <div className="w-10 h-10 border-4 border-slate-200 border-t-yellow-400 rounded-full animate-spin mb-4"></div>
               <p className="text-slate-500 font-bold">Memuat Formulir...</p>
             </div>
           }
@@ -1131,6 +1135,8 @@ export default function VirtualRunRegisterPage() {
           <RegistrationForm />
         </Suspense>
       </div>
+
+      <VirtualRunFooter />
     </div>
   );
 }

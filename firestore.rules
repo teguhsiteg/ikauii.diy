@@ -75,7 +75,7 @@ service cloud.firestore {
       allow update, delete: if isAdmin() || isOwner();
     }
     match /offline_participants/{docId} {
-      allow read: if isAdmin();
+      allow read: if true;
       allow create: if true;
       allow update, delete: if isAdmin() || isOwner();
     }
@@ -84,8 +84,8 @@ service cloud.firestore {
     // VIRTUAL RUN — paling sensitif (pembayaran & BIB)
     // ============================================================
     match /vr_participants/{docId} {
-      // FIX: ubah request.auth.uid menjadi request.auth.token.email saat komparasi dengan resource.data.email
-      allow read: if isAdmin() || (isLoggedIn() && request.auth.token.email == resource.data.email);
+      // Leaderboard dan statistik event membutuhkan akses baca publik (if true)
+      allow read: if true;
 
       allow create: if true
         && request.resource.data.statusPembayaran == "Pending"
@@ -107,7 +107,7 @@ service cloud.firestore {
     }
 
     match /vr_submissions/{docId} {
-      allow read: if isLoggedIn();
+      allow read: if true;
       allow create: if false;
       allow update, delete: if isAdmin();
     }

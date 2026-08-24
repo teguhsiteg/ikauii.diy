@@ -76,7 +76,12 @@ export default function PengaturanAdminPage() {
     offlinePeriodeLari: "",
     offlinePeriodePengiriman: "",
     offlineJadwalPuncakAcara: "",
+    offlineJudul: "",
+    offlineDeskripsi: "",
+    urlOfflineHeroBg: "",
     allowedCategories: ["Alumni", "SMA/Pelajar", "Umum"],
+    urlJersey: "",
+    urlMedali: "",
     urlJerseyVirtual: "",
     urlMedaliVirtual: "",
     urlBibVirtual: "",
@@ -88,6 +93,7 @@ export default function PengaturanAdminPage() {
     offlineCertSubtitle: "Offline Run Finisher",
     offlineCertOpening: "Diberikan kepada:",
     offlineCertFooter: "",
+    isCharityActive: false,
     charityTitle: "",
     charityDesc: "",
     urlCharityImg: "",
@@ -176,9 +182,18 @@ export default function PengaturanAdminPage() {
             waypoints: pkg.waypoints || [],
           }));
 
+          const cleanMedal = (url: any) =>
+            typeof url === "string" && url.includes("4e24a863-1fa5-490a-9205-f00e99227382_gifkja")
+              ? ""
+              : url || "";
+
           setVrSettings({
             ...defaultSettings,
             ...data,
+            urlJerseyVirtual: data.urlJerseyVirtual || "",
+            urlMedaliVirtual: cleanMedal(data.urlMedaliVirtual) || "",
+            urlJerseyOffline: data.urlJerseyOffline || "",
+            urlMedaliOffline: cleanMedal(data.urlMedaliOffline) || "",
             offlinePackages: processedOfflinePackages,
           });
         }
@@ -198,15 +213,17 @@ export default function PengaturanAdminPage() {
   // HANDLERS...
   const handleSettingChange = (e: any) => {
     const { name, value, type, checked } = e.target;
-    setVrSettings({
-      ...vrSettings,
-      [name]:
-        type === "checkbox"
-          ? checked
-          : type === "number"
-            ? Number(value)
-            : value,
-    });
+    const val =
+      type === "checkbox"
+        ? checked
+        : type === "number"
+          ? Number(value)
+          : value;
+
+    setVrSettings((prev: any) => ({
+      ...prev,
+      [name]: val,
+    }));
   };
   const handleCategoryToggle = (category: string) => {
     setVrSettings((prev: any) => {

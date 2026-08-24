@@ -476,16 +476,16 @@ export default function TabVirtual({
                 </p>
                 <input
                   type="url"
-                  name="urlJersey"
-                  value={vrSettings.urlJersey || ""}
+                  name="urlJerseyVirtual"
+                  value={vrSettings.urlJerseyVirtual || ""}
                   onChange={handleSettingChange}
                   placeholder="https://..."
                   className="w-full px-4 py-2.5 bg-white border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-mono text-slate-700"
                 />
-                {vrSettings.urlJersey && (
+                {vrSettings.urlJerseyVirtual && (
                   <img
-                    src={vrSettings.urlJersey}
-                    alt="Preview Jersey"
+                    src={vrSettings.urlJerseyVirtual}
+                    alt="Preview Jersey Virtual"
                     className="mt-3 w-full h-32 object-cover rounded-lg border border-blue-200"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                   />
@@ -502,16 +502,16 @@ export default function TabVirtual({
                 </p>
                 <input
                   type="url"
-                  name="urlMedali"
-                  value={vrSettings.urlMedali || ""}
+                  name="urlMedaliVirtual"
+                  value={vrSettings.urlMedaliVirtual || ""}
                   onChange={handleSettingChange}
                   placeholder="https://..."
                   className="w-full px-4 py-2.5 bg-white border border-yellow-200 rounded-lg focus:border-yellow-500 outline-none text-sm font-mono text-slate-700"
                 />
-                {vrSettings.urlMedali && (
+                {vrSettings.urlMedaliVirtual && (
                   <img
-                    src={vrSettings.urlMedali}
-                    alt="Preview Medali"
+                    src={vrSettings.urlMedaliVirtual}
+                    alt="Preview Medali Virtual"
                     className="mt-3 w-full h-32 object-cover rounded-lg border border-yellow-200"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                   />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { db, auth } from "@/lib/firebase";
 import {
   collection,
@@ -12,7 +12,19 @@ import {
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import * as XLSX from "xlsx";
-import { CircleDollarSign, CheckCircle2, XCircle, RotateCcw, Edit3, AlertTriangle, Bell } from "lucide-react";
+import {
+  CircleDollarSign,
+  CheckCircle2,
+  XCircle,
+  RotateCcw,
+  Edit3,
+  AlertTriangle,
+  Bell,
+  Search,
+  Users,
+  Clock,
+  X,
+} from "lucide-react";
 import { sendEmailAction } from "@/app/actions/email";
 
 
@@ -22,6 +34,10 @@ export default function DataPesertaPage() {
     [],
   );
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+
+  // --- 🔥 STATE TAB FILTER & SEARCH 🔥 ---
+  const [activeTab, setActiveTab] = useState<"all" | "lunas" | "belum_bayar" | "batal">("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // --- 🔥 STATE PAGINATION, SORTING & LIMIT 🔥 ---
   const [sortConfig, setSortConfig] = useState<{
@@ -101,18 +117,83 @@ export default function DataPesertaPage() {
     return () => unsubscribe();
   }, []);
 
+  // --- 🔥 STATISTIK HITUNGAN PER TAB 🔥 ---
+  const countLunas = useMemo(
+    () => participants.filter((p) => p.statusPembayaran === "Lunas").length,
+    [participants]
+  );
+  const countBelumBayar = useMemo(
+    () =>
+      participants.filter(
+        (p) =>
+          p.statusPembayaran !== "Lunas" && p.statusPembayaran !== "Batal"
+      ).length,
+    [participants]
+  );
+  const countBatal = useMemo(
+    () => participants.filter((p) => p.statusPembayaran === "Batal").length,
+    [participants]
+  );
+  const countSemua = participants.length;
+
+  // --- 🔥 FILTERING BERDASARKAN TAB & SEARCH QUERY 🔥 ---
+  const filteredParticipants = useMemo(() => {
+    return participants.filter((p) => {
+      // 1. Filter Tab
+      if (activeTab === "lunas" && p.statusPembayaran !== "Lunas") return false;
+      if (
+        activeTab === "belum_bayar" &&
+        (p.statusPembayaran === "Lunas" || p.statusPembayaran === "Batal")
+      )
+        return false;
+      if (activeTab === "batal" && p.statusPembayaran !== "Batal") return false;
+
+      // 2. Filter Search Query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchNama = p.nama?.toLowerCase()?.includes(q);
+        const matchEmail = p.email?.toLowerCase()?.includes(q);
+        const matchWa = p.whatsapp?.toLowerCase()?.includes(q);
+        const matchBib = p.nomorBibLengkap?.toLowerCase()?.includes(q);
+        const matchJarak = p.jarak?.toLowerCase()?.includes(q);
+        const matchPaket = p.paket?.toLowerCase()?.includes(q);
+        const matchResi = p.resiPengiriman?.toLowerCase()?.includes(q);
+        const matchAlumni =
+          p.fakultas?.toLowerCase()?.includes(q) ||
+          p.angkatan?.toLowerCase()?.includes(q);
+
+        if (
+          !matchNama &&
+          !matchEmail &&
+          !matchWa &&
+          !matchBib &&
+          !matchJarak &&
+          !matchPaket &&
+          !matchResi &&
+          !matchAlumni
+        ) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [participants, activeTab, searchQuery]);
+
   // --- 🔥 LOGIKA SORTING & PAGINATION 🔥 ---
-  const sortedParticipants = [...participants].sort((a, b) => {
-    let valA = a[sortConfig.key] || "";
-    let valB = b[sortConfig.key] || "";
+  const sortedParticipants = useMemo(() => {
+    return [...filteredParticipants].sort((a, b) => {
+      let valA = a[sortConfig.key] || "";
+      let valB = b[sortConfig.key] || "";
 
-    if (typeof valA === "string") valA = valA.toLowerCase();
-    if (typeof valB === "string") valB = valB.toLowerCase();
+      if (typeof valA === "string") valA = valA.toLowerCase();
+      if (typeof valB === "string") valB = valB.toLowerCase();
 
-    if (valA < valB) return sortConfig.direction === "asc" ? -1 : 1;
-    if (valA > valB) return sortConfig.direction === "asc" ? 1 : -1;
-    return 0;
-  });
+      if (valA < valB) return sortConfig.direction === "asc" ? -1 : 1;
+      if (valA > valB) return sortConfig.direction === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredParticipants, sortConfig]);
 
   const totalPages =
     itemsPerPage === "All"
@@ -131,6 +212,12 @@ export default function DataPesertaPage() {
     if (sortConfig.key === key && sortConfig.direction === "asc")
       direction = "desc";
     setSortConfig({ key, direction });
+  };
+
+  const handleTabChange = (tab: "all" | "lunas" | "belum_bayar" | "batal") => {
+    setActiveTab(tab);
+    setCurrentPage(1);
+    setSelectedParticipants([]);
   };
 
   // --- 🔒 HELPER: SEMUA AKSI TULIS ADMIN VIA ROUTE SERVER (dbAdmin) ---
@@ -314,8 +401,8 @@ export default function DataPesertaPage() {
 
   // --- EXPORT EXCEL ---
   const handleExportExcel = () => {
-    if (participants.length === 0)
-      return setPopup({ type: "error", text: "Belum ada data." });
+    if (sortedParticipants.length === 0)
+      return setPopup({ type: "error", text: "Belum ada data untuk diexport." });
     const exportData = sortedParticipants.map((p, index) => ({
       No: index + 1,
       "Tanggal Daftar": p.waktuDaftar
@@ -339,8 +426,19 @@ export default function DataPesertaPage() {
     }));
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Data VR");
-    XLSX.writeFile(workbook, `Data_Peserta_VR_${new Date().getTime()}.xlsx`);
+    const tabSuffix =
+      activeTab === "all"
+        ? "Semua"
+        : activeTab === "lunas"
+        ? "Lunas"
+        : activeTab === "belum_bayar"
+        ? "Belum_Bayar"
+        : "Batal";
+    XLSX.utils.book_append_sheet(workbook, worksheet, `Data VR ${tabSuffix}`);
+    XLSX.writeFile(
+      workbook,
+      `Data_Peserta_VR_${tabSuffix}_${new Date().getTime()}.xlsx`
+    );
   };
 
   return (
@@ -710,7 +808,7 @@ export default function DataPesertaPage() {
       )}
 
       {/* HEADER HALAMAN */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 shrink-0">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-3 shrink-0">
         <div>
           <h1 className="text-[26px] font-bold text-slate-800 tracking-tight flex items-center gap-3">
             Database Peserta VR
@@ -724,12 +822,126 @@ export default function DataPesertaPage() {
         </div>
       </div>
 
-      {/* 🔥 TOOLBAR: SORTING, LIMIT, & EXPORT 🔥 */}
+      {/* 🔥 TABS FILTER STATUS PEMBAYARAN 🔥 */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none shrink-0">
+        <button
+          onClick={() => handleTabChange("all")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border cursor-pointer ${
+            activeTab === "all"
+              ? "bg-slate-900 text-white border-slate-900 shadow-sm"
+              : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+          }`}
+        >
+          <Users className="w-3.5 h-3.5" />
+          <span>Semua Peserta</span>
+          <span
+            className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+              activeTab === "all"
+                ? "bg-slate-700 text-white"
+                : "bg-slate-100 text-slate-600"
+            }`}
+          >
+            {countSemua}
+          </span>
+        </button>
+
+        <button
+          onClick={() => handleTabChange("lunas")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border cursor-pointer ${
+            activeTab === "lunas"
+              ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+              : "bg-white text-slate-600 border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"
+          }`}
+        >
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Lunas</span>
+          <span
+            className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+              activeTab === "lunas"
+                ? "bg-emerald-700 text-white"
+                : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+            }`}
+          >
+            {countLunas}
+          </span>
+        </button>
+
+        <button
+          onClick={() => handleTabChange("belum_bayar")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border cursor-pointer ${
+            activeTab === "belum_bayar"
+              ? "bg-amber-500 text-white border-amber-500 shadow-sm"
+              : "bg-white text-slate-600 border-slate-200 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200"
+          }`}
+        >
+          <Clock className="w-3.5 h-3.5 text-amber-300" />
+          <span>Belum Bayar (Pending)</span>
+          <span
+            className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+              activeTab === "belum_bayar"
+                ? "bg-amber-600 text-white"
+                : "bg-amber-50 text-amber-700 border border-amber-200"
+            }`}
+          >
+            {countBelumBayar}
+          </span>
+        </button>
+
+        <button
+          onClick={() => handleTabChange("batal")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border cursor-pointer ${
+            activeTab === "batal"
+              ? "bg-rose-600 text-white border-rose-600 shadow-sm"
+              : "bg-white text-slate-600 border-slate-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200"
+          }`}
+        >
+          <XCircle className="w-3.5 h-3.5 text-rose-300" />
+          <span>Dibatalkan</span>
+          <span
+            className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+              activeTab === "batal"
+                ? "bg-rose-700 text-white"
+                : "bg-rose-50 text-rose-700 border border-rose-200"
+            }`}
+          >
+            {countBatal}
+          </span>
+        </button>
+      </div>
+
+      {/* 🔥 TOOLBAR: SEARCH, SORTING, LIMIT, & EXPORT 🔥 */}
       <div className="bg-white border border-slate-200 rounded-t-xl p-3 flex flex-wrap justify-between items-center gap-3 shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-bold text-slate-500 uppercase">
-              Tampilkan:
+        <div className="flex items-center gap-3 flex-grow max-w-lg">
+          {/* Search bar */}
+          <div className="relative w-full">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Cari nama, email, WA, BIB, paket, resi..."
+              className="w-full pl-9 pr-8 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg outline-none focus:bg-white focus:border-[#1A73E8] focus:ring-1 focus:ring-[#1A73E8] transition-all text-slate-800 placeholder:text-slate-400"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setCurrentPage(1);
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                title="Hapus pencarian"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <label className="text-[11px] font-bold text-slate-500 uppercase">
+              Limit:
             </label>
             <select
               value={itemsPerPage}
@@ -739,7 +951,7 @@ export default function DataPesertaPage() {
                 );
                 setCurrentPage(1);
               }}
-              className="bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-md px-2 py-1 outline-none focus:border-[#1A73E8]"
+              className="bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-md px-2 py-1.5 outline-none focus:border-[#1A73E8]"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -847,7 +1059,15 @@ export default function DataPesertaPage() {
                     >
                       <path d="M19 3H4.99c-1.11 0-1.98.89-1.98 2L3 19c0 1.1.88 2 1.99 2H19c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 12h-4c0 1.66-1.35 3-3 3s-3-1.34-3-3H4.99V5H19v10z" />
                     </svg>
-                    Belum ada data pada halaman ini.
+                    {searchQuery
+                      ? `Tidak ditemukan peserta dengan kata kunci "${searchQuery}".`
+                      : activeTab === "lunas"
+                      ? "Belum ada data peserta dengan status Lunas."
+                      : activeTab === "belum_bayar"
+                      ? "Belum ada data peserta yang berstatus Belum Bayar (Pending)."
+                      : activeTab === "batal"
+                      ? "Belum ada data peserta dengan status Dibatalkan."
+                      : "Belum ada data peserta terdaftar."}
                   </td>
                 </tr>
               ) : (

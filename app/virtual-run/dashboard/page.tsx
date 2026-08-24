@@ -18,7 +18,7 @@ import Link from "next/link";
 import { QRCodeCanvas } from "qrcode.react";
 import { Activity, Mail, KeyRound, ArrowRight, ShieldCheck, User, MapPin, Calendar, CreditCard, UploadCloud, ChevronDown, Trophy, Medal, CheckCircle2, Clock, History, Camera, FileText, Info, LogOut, Check, X, Search, Image as ImageIcon, Share2, Copy, Shield } from "lucide-react";
 import { sendEmailAction } from "@/app/actions/email";
-
+import VirtualRunFooter from "@/components/virtual-run/VirtualRunFooter";
 
 export default function ParticipantDashboard() {
   // --- STATE LOGIN ---
@@ -3195,6 +3195,7 @@ export default function ParticipantDashboard() {
               </div>
             )}
           </div>
+          <VirtualRunFooter />
         </>
       )}
     </div>
