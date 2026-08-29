@@ -25,6 +25,11 @@ function RegistrationForm() {
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [paketTerisi, setPaketTerisi] = useState(0);
 
+  const [inQueue, setInQueue] = useState(true);
+  const [queuePosition, setQueuePosition] = useState(0);
+  const [queueTotal, setQueueTotal] = useState(0);
+  const [queueProgress, setQueueProgress] = useState(0);
+
   const { executeRecaptcha } = useGoogleReCaptcha();
 
   const [formData, setFormData] = useState({
@@ -41,6 +46,7 @@ function RegistrationForm() {
     provinsi: "",
     kotaKabupaten: "",
     kecamatan: "",
+    kodePos: "",
     alamat: "",
     isDonasi: false,
     nominalDonasi: "",
@@ -91,6 +97,48 @@ function RegistrationForm() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [ongkirReal, setOngkirReal] = useState<number>(0);
+  const [isCheckingOngkir, setIsCheckingOngkir] = useState(false);
+  const [layananOngkir, setLayananOngkir] = useState<string>("");
+
+  useEffect(() => {
+    const fetchOngkir = async () => {
+      if (!settings?.isRpxActive) return;
+      if (formData.kodePos.length >= 5) {
+        setIsCheckingOngkir(true);
+        try {
+          const res = await fetch("/api/shipping/cost", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              destinationZip: formData.kodePos,
+            }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            setOngkirReal(data.cost);
+            setLayananOngkir(data.service || "RPX");
+          } else {
+            setOngkirReal(0);
+            toast.error(data.error || "Gagal cek tarif pengiriman RPX.");
+          }
+        } catch (error) {
+          console.error(error);
+          setOngkirReal(0);
+        } finally {
+          setIsCheckingOngkir(false);
+        }
+      } else {
+        setOngkirReal(0);
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      fetchOngkir();
+    }, 800);
+    return () => clearTimeout(timeoutId);
+  }, [formData.kodePos, settings?.isRpxActive]);
+
   // 🔥 STATE BARU UNTUK POPUP COUNTDOWN 🔥
   const [successCountdown, setSuccessCountdown] = useState<number | null>(null);
 
@@ -116,6 +164,28 @@ function RegistrationForm() {
         if (docSnap.exists()) {
           const data = docSnap.data();
           setSettings(data);
+
+          const isQueueUrl = searchParams.get("queue") === "true";
+          if (data.isWaitingRoomActive && isQueueUrl) {
+            let currentPosition = Math.floor(Math.random() * 15) + 15;
+            const totalQueue = currentPosition + Math.floor(Math.random() * 30) + 20;
+
+            setQueuePosition(currentPosition);
+            setQueueTotal(totalQueue);
+
+            let queueTimer = setInterval(() => {
+              currentPosition -= Math.floor(Math.random() * 2) + 1;
+              if (currentPosition <= 0) {
+                currentPosition = 0;
+                clearInterval(queueTimer);
+                setTimeout(() => setInQueue(false), 800);
+              }
+              setQueuePosition(currentPosition);
+              setQueueProgress(100 - (currentPosition / totalQueue) * 100);
+            }, 1500);
+          } else {
+            setInQueue(false);
+          }
 
           if (!data.urlGrupWa) setIsGrupChecked(true);
 
@@ -228,7 +298,9 @@ function RegistrationForm() {
 
   const perluOngkir =
     selectedPackage && !selectedPackage.nama.toLowerCase().includes("basic");
-  const totalOngkir = perluOngkir ? ongkirFlat : 0;
+  const totalOngkir = perluOngkir 
+    ? (settings?.isRpxActive ? ongkirReal : ongkirFlat) 
+    : 0;
 
   const donasi =
     settings?.isCharityActive && formData.isDonasi
@@ -294,9 +366,21 @@ function RegistrationForm() {
       toast.warning(`Minimal donasi Rp ${minCharity.toLocaleString("id-ID")}`);
       return;
     }
-    if (perluOngkir && (!formData.provinsi || !formData.kotaKabupaten || !formData.kecamatan || formData.alamat.trim().length < 10)) {
-      toast.warning("Mohon lengkapi Provinsi, Kota, Kecamatan dan isi detail alamat.");
-      return;
+    if (perluOngkir) {
+      if (!formData.provinsi || !formData.kotaKabupaten || !formData.kecamatan || formData.alamat.trim().length < 10) {
+        toast.warning("Mohon lengkapi Provinsi, Kota, Kecamatan dan isi detail alamat.");
+        return;
+      }
+      if (settings?.isRpxActive) {
+         if (!formData.kodePos || formData.kodePos.length < 5) {
+            toast.warning("Mohon isi Kode Pos dengan benar untuk menghitung tarif pengiriman.");
+            return;
+         }
+         if (ongkirReal === 0) {
+            toast.warning("Tarif pengiriman (Kode Pos) belum valid, atau layanan tidak tersedia.");
+            return;
+         }
+      }
     }
 
     setIsSubmitting(true);
@@ -344,6 +428,7 @@ function RegistrationForm() {
         waktuDaftar: new Date().toISOString(),
         approvedKm: 0,
         resiPengiriman: "",
+        kurir: settings?.isRpxActive ? layananOngkir : "Flat / Internal",
         buktiBayarUrl: "",
         slug: userSlug,
       };
@@ -447,8 +532,102 @@ function RegistrationForm() {
 
   const isMetodeMidtrans = settings?.metodePembayaran === "midtrans";
 
+  if (inQueue) {
+    return (
+      <div className="fixed inset-0 z-[999999] flex flex-col items-center justify-center p-4 font-sans overflow-hidden bg-[#0a152d]">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#152B5B] to-[#0a152d] z-0"></div>
+        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-blue-500/20 blur-[100px] rounded-full z-0 pointer-events-none"></div>
+        <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-[#D4AF37]/10 blur-[100px] rounded-full z-0 pointer-events-none"></div>
+
+        <div className="relative z-10 w-full max-w-md flex flex-col items-center animate-in fade-in zoom-in duration-700">
+          <div className="w-32 md:w-40 mb-8 relative">
+            <div className="absolute inset-0 bg-white/40 blur-2xl rounded-full animate-pulse"></div>
+            <img
+              src="/logo-dpp-ika.png"
+              alt="Logo IKA UII"
+              className="relative z-10 w-full h-auto object-contain drop-shadow-2xl"
+              crossOrigin="anonymous"
+            />
+          </div>
+
+          <h2 className="text-3xl font-black text-white mb-3 text-center tracking-tight">
+            Siap-siap Berlari!
+          </h2>
+          <p className="text-sm text-blue-200/80 mb-10 text-center font-medium px-4 leading-relaxed">
+            Sistem sedang mengalokasikan jalur pendaftaran untuk Anda. Mohon
+            jangan muat ulang halaman ini.
+          </p>
+
+          <div className="w-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] p-8 text-center mb-8 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent opacity-50"></div>
+            <p className="text-[10px] font-black text-blue-300 uppercase tracking-widest mb-3 opacity-80">
+              Antrean Anda
+            </p>
+            <div className="flex items-baseline justify-center gap-2 mb-6">
+              <span className="text-7xl font-black text-white drop-shadow-md">
+                {queuePosition}
+              </span>
+              <span className="text-xl font-bold text-blue-300/40">
+                / {queueTotal}
+              </span>
+            </div>
+
+            <div className="w-full h-2.5 bg-black/20 rounded-full overflow-hidden backdrop-blur-sm border border-white/5">
+              <div
+                className="h-full bg-gradient-to-r from-[#D4AF37] to-[#F3C94E] rounded-full transition-all duration-1000 ease-out relative"
+                style={{ width: `${queueProgress}%` }}
+              >
+                <div className="absolute inset-0 bg-white/30 w-full animate-[pulse_2s_infinite]"></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 text-xs text-blue-200 font-medium bg-white/5 px-6 py-3.5 rounded-full border border-white/5 backdrop-blur-sm">
+            <div className="w-4 h-4 border-2 border-blue-400 border-t-white rounded-full animate-spin"></div>
+            Menyinkronkan data pendaftaran...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <>
+    <div className="min-h-screen bg-slate-50 font-sans selection:bg-yellow-400 selection:text-slate-950 flex flex-col relative antialiased">
+      <VirtualRunNavbar />
+
+      <div className="bg-[#071324] pt-32 pb-28 px-4 sm:px-6 relative overflow-hidden border-b border-slate-800">
+        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+        <div className="max-w-5xl mx-auto relative z-10">
+          <Link
+            href="/virtual-run"
+            className="text-yellow-400 hover:text-yellow-300 font-bold text-xs sm:text-sm flex items-center gap-1.5 mb-6 transition-colors w-fit"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"
+              />
+            </svg>{" "}
+            Kembali ke Virtual Run
+          </Link>
+          <h1 className="text-3xl sm:text-4xl font-black text-white mb-2 tracking-tight">
+            Registrasi Virtual Run
+          </h1>
+          <p className="text-slate-300 text-sm max-w-xl leading-relaxed">
+            Lengkapi identitas diri, pilih jarak lari, dan tentukan paket race
+            pack pilihan Anda.
+          </p>
+        </div>
+      </div>
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-16 relative z-10 flex-grow pb-24 w-full">
       {/* MODAL POPUP SUCCESS CUSTOM */}
       {successCountdown !== null && (
         <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
@@ -792,9 +971,29 @@ function RegistrationForm() {
                         </select>
                       </div>
                     </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 mb-4">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                          <span>Kode Pos (Wajib)</span>
+                          {isCheckingOngkir && <span className="text-blue-500 text-[9px] animate-pulse font-bold">Mengecek tarif...</span>}
+                        </label>
+                        <input
+                          type="text"
+                          name="kodePos"
+                          value={formData.kodePos}
+                          onChange={handleChange}
+                          required={perluOngkir && settings?.isRpxActive}
+                          maxLength={5}
+                          placeholder="Misal: 55581"
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none text-sm transition-all text-slate-800 font-bold font-mono"
+                        />
+                      </div>
+                    </div>
+
                     <div>
                       <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                        Alamat Detail (Jalan, RT/RW, Kelurahan, Kode Pos)
+                        Alamat Detail (Jalan, RT/RW, Kelurahan)
                       </label>
                       <textarea
                         name="alamat"
@@ -1001,10 +1200,14 @@ function RegistrationForm() {
               {perluOngkir && (
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-slate-500">
-                    Ongkos Kirim (Flat)
+                    Ongkos Kirim {settings?.isRpxActive ? `(RPX ${layananOngkir})` : "(Flat)"}
                   </span>
                   <span className="font-bold text-slate-800">
-                    Rp {totalOngkir.toLocaleString("id-ID")}
+                    {isCheckingOngkir ? (
+                      <span className="text-[10px] text-blue-500 animate-pulse">Menghitung...</span>
+                    ) : (
+                      `Rp ${totalOngkir.toLocaleString("id-ID")}`
+                    )}
                   </span>
                 </div>
               )}
@@ -1079,7 +1282,9 @@ function RegistrationForm() {
           </div>
         </div>
       </form>
-    </>
+      </div>
+      <VirtualRunFooter />
+    </div>
   );
 }
 
@@ -1088,55 +1293,14 @@ function RegistrationForm() {
 // =========================================================================
 export default function VirtualRunRegisterPage() {
   return (
-    <div className="min-h-screen bg-slate-50 font-sans selection:bg-yellow-400 selection:text-slate-950 flex flex-col relative antialiased">
-      <VirtualRunNavbar />
-
-      <div className="bg-[#071324] pt-32 pb-28 px-4 sm:px-6 relative overflow-hidden border-b border-slate-800">
-        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-        <div className="max-w-5xl mx-auto relative z-10">
-          <Link
-            href="/virtual-run"
-            className="text-yellow-400 hover:text-yellow-300 font-bold text-xs sm:text-sm flex items-center gap-1.5 mb-6 transition-colors w-fit"
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>{" "}
-            Kembali ke Virtual Run
-          </Link>
-          <h1 className="text-3xl sm:text-4xl font-black text-white mb-2 tracking-tight">
-            Registrasi Virtual Run
-          </h1>
-          <p className="text-slate-300 text-sm max-w-xl leading-relaxed">
-            Lengkapi identitas diri, pilih jarak lari, dan tentukan paket race
-            pack pilihan Anda.
-          </p>
+    <Suspense
+      fallback={
+        <div className="flex-grow flex items-center justify-center min-h-screen bg-[#071324]">
+          <div className="w-12 h-12 border-4 border-slate-700 border-t-yellow-400 rounded-full animate-spin"></div>
         </div>
-      </div>
-
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-16 relative z-10 flex-grow pb-24 w-full">
-        <Suspense
-          fallback={
-            <div className="w-full bg-white rounded-3xl p-12 text-center shadow-lg border border-slate-200 flex flex-col items-center justify-center">
-              <div className="w-10 h-10 border-4 border-slate-200 border-t-yellow-400 rounded-full animate-spin mb-4"></div>
-              <p className="text-slate-500 font-bold">Memuat Formulir...</p>
-            </div>
-          }
-        >
-          <RegistrationForm />
-        </Suspense>
-      </div>
-
-      <VirtualRunFooter />
-    </div>
+      }
+    >
+      <RegistrationForm />
+    </Suspense>
   );
 }

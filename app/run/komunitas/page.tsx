@@ -12,8 +12,8 @@ import {
 import { db } from "@/lib/firebase";
 import * as XLSX from "xlsx";
 import { useRouter } from "next/navigation";
-import NavbarPublic from "@/components/layout/NavbarPublic";
-import FooterPublic from "@/components/layout/FooterPublic";
+import RunNavbar from "@/components/run/RunNavbar";
+import RunFooter from "@/components/run/RunFooter";
 
 // INTERFACE PESERTA
 interface Participant {
@@ -379,7 +379,7 @@ export default function PendaftaranKomunitasPage() {
 
   return (
     <div className="min-h-screen bg-[#F4F7FB] font-sans selection:bg-[#FCD116] selection:text-[#0B2239]">
-      <NavbarPublic />
+      <RunNavbar eventName={settings?.offlineJudul} />
 
       <div className="pt-[120px] md:pt-[160px] pb-20 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
         <div className="text-center mb-10 animate-in slide-in-from-bottom-4 duration-700">
@@ -820,7 +820,7 @@ export default function PendaftaranKomunitasPage() {
         </div>
       </div>
 
-      <FooterPublic />
+      <RunFooter eventName={settings?.offlineJudul} waChannelUrl={settings?.waGroupUrl} />
 
       {/* POPUP MODAL ALERT UMUM */}
       {alertModal.isOpen && (

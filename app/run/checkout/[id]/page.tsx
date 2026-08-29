@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useParams, useRouter } from "next/navigation";
-import NavbarPublic from "@/components/layout/NavbarPublic";
-import FooterPublic from "@/components/layout/FooterPublic";
+import RunNavbar from "@/components/run/RunNavbar";
+import RunFooter from "@/components/run/RunFooter";
 
 export default function OfflineRunCheckoutPage() {
   const params = useParams();
@@ -143,7 +143,7 @@ export default function OfflineRunCheckoutPage() {
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFile) return;
+    if (!selectedFile || isUploading) return;
     setIsUploading(true);
     try {
       const formData = new FormData();
@@ -177,6 +177,9 @@ export default function OfflineRunCheckoutPage() {
         title: "Berhasil!",
         message: "Bukti terkirim, tunggu verifikasi admin.",
       });
+
+      setSelectedFile(null);
+      setPreviewUrl(null);
     } catch {
       setModal({
         isOpen: true,
@@ -256,7 +259,7 @@ export default function OfflineRunCheckoutPage() {
 
   return (
     <div className="min-h-screen bg-[#F4F7FB] font-sans flex flex-col relative selection:bg-[#1A73E8] selection:text-white">
-      <NavbarPublic />
+      <RunNavbar eventName={settings?.offlineJudul} />
 
       <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-[120px] md:pt-[160px] pb-20 w-full relative z-10">
         <div className="animate-in fade-in duration-700">
@@ -630,7 +633,7 @@ export default function OfflineRunCheckoutPage() {
           </div>
         </div>
       </main>
-      <FooterPublic />
+      <RunFooter eventName={settings?.offlineJudul} waChannelUrl={settings?.waGroupUrl} />
 
       {/* POPUP MODAL UMUM */}
       {modal.isOpen && (

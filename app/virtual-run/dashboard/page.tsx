@@ -550,12 +550,15 @@ export default function ParticipantDashboard() {
   const handleUploadPaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedPaymentFile)
+    if (!selectedPaymentFile) {
       return setPopup({
         type: "error",
         title: "Pilih Foto",
         text: "Anda belum memilih foto struk/bukti transfer.",
       });
+    }
+
+    if (isUploadingPayment) return;
 
     setIsUploadingPayment(true);
 

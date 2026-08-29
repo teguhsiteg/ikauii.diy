@@ -6,8 +6,8 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import NavbarPublic from "@/components/layout/NavbarPublic";
-import FooterPublic from "@/components/layout/FooterPublic";
+import RunNavbar from "@/components/run/RunNavbar";
+import RunFooter from "@/components/run/RunFooter";
 import { QRCodeSVG } from "qrcode.react";
 import html2canvas from "html2canvas";
 
@@ -136,7 +136,7 @@ export default function ETicketPage() {
 
   return (
     <div className="min-h-screen bg-[#F4F7FB] font-sans flex flex-col relative">
-      <NavbarPublic />
+      <RunNavbar eventName={settings?.offlineJudul} />
       <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-[120px] md:pt-[160px] pb-20 w-full relative z-10 flex flex-col items-center animate-in zoom-in-95 duration-500">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-[#0B2239] text-[#FCD116] rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg border-2 border-[#FCD116]">
@@ -484,7 +484,7 @@ export default function ETicketPage() {
           </Link>
         </div>
       </main>
-      <FooterPublic />
+      <RunFooter eventName={settings?.offlineJudul} waChannelUrl={settings?.waGroupUrl} />
     </div>
   );
 }

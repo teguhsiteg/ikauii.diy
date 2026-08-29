@@ -11,8 +11,8 @@ import {
   where,
 } from "firebase/firestore";
 import Link from "next/link";
-import NavbarPublic from "@/components/layout/NavbarPublic";
-import FooterPublic from "@/components/layout/FooterPublic";
+import RunNavbar from "@/components/run/RunNavbar";
+import RunFooter from "@/components/run/RunFooter";
 
 export default function DownloadSertifikatPage() {
   const [settings, setSettings] = useState<any>(null);
@@ -223,7 +223,7 @@ export default function DownloadSertifikatPage() {
 
   return (
     <div className="min-h-screen bg-[#F4F7FB] font-sans flex flex-col selection:bg-[#FCD116] selection:text-[#0B2239]">
-      <NavbarPublic />
+      <RunNavbar eventName={settings?.offlineJudul} />
 
       <main className="flex-grow w-full relative z-20 pt-45 pb-20">
         {/* Latar Belakang UII */}
@@ -421,7 +421,7 @@ export default function DownloadSertifikatPage() {
         </div>
       </main>
 
-      <FooterPublic />
+      <RunFooter eventName={settings?.offlineJudul} waChannelUrl={settings?.waGroupUrl} />
     </div>
   );
 }

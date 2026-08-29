@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useParams, useRouter } from "next/navigation";
-import NavbarPublic from "@/components/layout/NavbarPublic";
-import FooterPublic from "@/components/layout/FooterPublic";
+import RunNavbar from "@/components/run/RunNavbar";
+import RunFooter from "@/components/run/RunFooter";
 
 export default function CheckoutKomunitasPage() {
   const params = useParams();
@@ -105,7 +105,7 @@ export default function CheckoutKomunitasPage() {
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFile) return;
+    if (!selectedFile || isUploading) return;
     setIsUploading(true);
     try {
       const formData = new FormData();
@@ -140,6 +140,9 @@ export default function CheckoutKomunitasPage() {
         message:
           "Bukti pembayaran terkirim. Admin akan segera memverifikasi data tim Anda.",
       });
+
+      setSelectedFile(null);
+      setPreviewUrl(null);
     } catch {
       setModal({
         isOpen: true,
@@ -169,7 +172,7 @@ export default function CheckoutKomunitasPage() {
 
   return (
     <div className="min-h-screen bg-[#F4F7FB] font-sans flex flex-col relative selection:bg-[#FCD116] selection:text-[#0B2239]">
-      <NavbarPublic />
+      <RunNavbar eventName={settings?.offlineJudul} />
 
       <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-[120px] md:pt-[160px] pb-20 w-full relative z-10">
         <div className="animate-in fade-in duration-700">
@@ -306,7 +309,7 @@ export default function CheckoutKomunitasPage() {
         </div>
       </main>
 
-      <FooterPublic />
+      <RunFooter eventName={settings?.offlineJudul} waChannelUrl={settings?.waGroupUrl} />
 
       {modal.isOpen && (
         <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">

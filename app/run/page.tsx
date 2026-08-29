@@ -9,11 +9,12 @@ import {
   query,
   where,
   getCountFromServer,
+  onSnapshot,
 } from "firebase/firestore";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import NavbarPublic from "@/components/layout/NavbarPublic";
-import FooterPublic from "@/components/layout/FooterPublic";
+import RunNavbar from "@/components/run/RunNavbar";
+import RunFooter from "@/components/run/RunFooter";
 import CountdownTimer from "@/components/CountdownTimer";
 import dynamic from "next/dynamic";
 
@@ -82,41 +83,38 @@ function OfflineRunLandingPageContent() {
   }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const docRef = doc(db, "settings", "virtual_run");
-        const docSnap = await getDoc(docRef);
-        let settingsData = null;
-
+    const unsubSettings = onSnapshot(
+      doc(db, "settings", "virtual_run"),
+      async (docSnap) => {
         if (docSnap.exists()) {
-          settingsData = docSnap.data();
+          const settingsData = docSnap.data();
           setSettings(settingsData);
+
+          if (settingsData && settingsData.offlinePackages) {
+            const counts: Record<string, number> = {};
+            await Promise.all(
+              settingsData.offlinePackages.map(async (pkg: any) => {
+                const q = query(
+                  collection(db, "offline_participants"),
+                  where("paketId", "==", pkg.id),
+                  where("statusPembayaran", "==", "Lunas")
+                );
+                const snapshot = await getCountFromServer(q);
+                counts[pkg.id] = snapshot.data().count;
+              }),
+            );
+            setPackageCounts(counts);
+          }
         }
-
-        const counts: Record<string, number> = {};
-
-        if (settingsData && settingsData.offlinePackages) {
-          await Promise.all(
-            settingsData.offlinePackages.map(async (pkg: any) => {
-              const q = query(
-                collection(db, "offline_participants"),
-                where("paketId", "==", pkg.id),
-                where("statusPembayaran", "==", "Lunas")
-              );
-              const snapshot = await getCountFromServer(q);
-              counts[pkg.id] = snapshot.data().count;
-            }),
-          );
-        }
-
-        setPackageCounts(counts);
-      } catch (error) {
+        setIsLoading(false);
+      },
+      (error) => {
         console.error("Gagal memuat pengaturan:", error);
-      } finally {
         setIsLoading(false);
       }
-    };
-    fetchData();
+    );
+
+    return () => unsubSettings();
   }, []);
 
   const scrollToTiket = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -201,8 +199,8 @@ function OfflineRunLandingPageContent() {
         ></div>
         <div className="absolute inset-0 bg-[#0B2239]/90"></div>
 
-        <div className="mb-6 flex flex-col items-center justify-center animate-in zoom-in-95 duration-700 relative z-10">
-          <div className="w-28 h-28 bg-white rounded-full p-5 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden border-4 border-[#FCD116]">
+        <div className="mb-6 flex flex-row items-center justify-center gap-6 animate-in zoom-in-95 duration-700 relative z-10">
+          <div className="w-24 h-24 md:w-28 md:h-28 bg-white rounded-full p-4 md:p-5 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden border-4 border-[#FCD116]">
             <img
               src="/logo-dpp-ika.png"
               alt="Logo IKA UII"
@@ -210,6 +208,13 @@ function OfflineRunLandingPageContent() {
               crossOrigin="anonymous"
             />
           </div>
+          <div className="h-16 md:h-20 w-px bg-white/20"></div>
+          <img
+            src="https://res.cloudinary.com/dp8hmxuix/image/upload/v1788008083/ikadiy.uii.ac.idrun_kg66ut.png"
+            alt="Logo Sembada Run"
+            className="h-16 md:h-24 object-contain drop-shadow-2xl"
+            crossOrigin="anonymous"
+          />
         </div>
 
         <h1 className="text-3xl md:text-5xl font-black text-white tracking-widest uppercase mb-4 text-center relative z-10 leading-tight whitespace-pre-wrap">
@@ -285,8 +290,8 @@ function OfflineRunLandingPageContent() {
         ></div>
         <div className="absolute inset-0 bg-[#0B2239]/90"></div>
 
-        <div className="mb-6 flex flex-col items-center justify-center relative z-10">
-          <div className="w-28 h-28 bg-white rounded-full p-5 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden border-4 border-[#FCD116]">
+        <div className="mb-6 flex flex-row items-center justify-center gap-6 relative z-10">
+          <div className="w-24 h-24 md:w-28 md:h-28 bg-white rounded-full p-4 md:p-5 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden border-4 border-[#FCD116]">
             <img
               src="/logo-dpp-ika.png"
               alt="Logo"
@@ -294,6 +299,13 @@ function OfflineRunLandingPageContent() {
               crossOrigin="anonymous"
             />
           </div>
+          <div className="h-16 md:h-20 w-px bg-white/20"></div>
+          <img
+            src="https://res.cloudinary.com/dp8hmxuix/image/upload/v1788008083/ikadiy.uii.ac.idrun_kg66ut.png"
+            alt="Logo Sembada Run"
+            className="h-16 md:h-24 object-contain drop-shadow-2xl"
+            crossOrigin="anonymous"
+          />
         </div>
 
         <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 max-w-4xl leading-tight relative z-10 whitespace-pre-wrap">
@@ -333,7 +345,7 @@ function OfflineRunLandingPageContent() {
   // 3. TAMPILAN NORMAL
   return (
     <div className="min-h-screen bg-slate-50 font-sans selection:bg-[#FCD116] selection:text-[#0B2239] flex flex-col scroll-smooth relative">
-      <NavbarPublic />
+      <RunNavbar eventName={settings?.offlineJudul || "SEMBADA RUN"} />
 
       {isBypassed && (
         <button
@@ -364,14 +376,24 @@ function OfflineRunLandingPageContent() {
           </ScrollReveal>
 
           <ScrollReveal delay={100}>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight mb-6 max-w-4xl leading-[1.1] drop-shadow-sm whitespace-pre-wrap">
-              {settings?.offlineJudul || settings?.landingTitle || (
-                <>
-                  UII{" "}
-                  <span className="text-[#FCD116] drop-shadow-md">Sehat</span>
-                </>
-              )}
-            </h1>
+            <div className="mb-6">
+              <img
+                src="https://res.cloudinary.com/dp8hmxuix/image/upload/v1788008083/ikadiy.uii.ac.idrun_kg66ut.png"
+                alt="Logo Sembada Run"
+                className="h-28 md:h-40 object-contain drop-shadow-2xl mx-auto"
+                crossOrigin="anonymous"
+              />
+            </div>
+            {(!settings?.offlineJudul || settings.offlineJudul !== "SEMBADA RUN") && (
+              <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight mb-6 max-w-4xl leading-[1.1] drop-shadow-sm whitespace-pre-wrap">
+                {settings?.offlineJudul || settings?.landingTitle || (
+                  <>
+                    UII{" "}
+                    <span className="text-[#FCD116] drop-shadow-md">Sehat</span>
+                  </>
+                )}
+              </h1>
+            )}
           </ScrollReveal>
 
           <ScrollReveal delay={200}>
@@ -916,43 +938,24 @@ function OfflineRunLandingPageContent() {
                     ) : (
                       <Link
                         href={`/run/daftar?paket=${pkg.id}${isWaitingRoom ? "&queue=true" : ""}`}
-                        className={`w-full text-center font-bold py-3.5 md:py-4 rounded-xl transition-all shadow-md text-sm flex items-center justify-center gap-2 ${isWaitingRoom ? "bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239]" : isHighlight ? "bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239]" : "bg-[#0B2239] hover:bg-blue-900 text-white"}`}
+                        className={`w-full text-center font-bold py-3.5 md:py-4 rounded-xl transition-all shadow-md text-sm flex items-center justify-center gap-2 ${isHighlight ? "bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239]" : "bg-[#0B2239] hover:bg-blue-900 text-white"}`}
                       >
-                        {isWaitingRoom ? (
-                          <>
-                            <svg
-                              className="w-5 h-5 animate-pulse"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                              />
-                            </svg>{" "}
-                            Masuk Ruang Tunggu
-                          </>
-                        ) : (
-                          <>
-                            Daftar Kategori {pkg.jarak}{" "}
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M14 5l7 7m0 0l-7 7m7-7H3"
-                              />
-                            </svg>
-                          </>
-                        )}
+                        <>
+                          Daftar Kategori {pkg.jarak}{" "}
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M14 5l7 7m0 0l-7 7m7-7H3"
+                            />
+                          </svg>
+                        </>
                       </Link>
                     )}
                   </div>
@@ -966,6 +969,43 @@ function OfflineRunLandingPageContent() {
           )}
         </div>
       </section>
+
+      {/* SECTION CHARITY (Jika Aktif) */}
+      {settings?.isCharityActive && (
+        <section className="py-16 md:py-24 bg-slate-50 border-t border-slate-200 relative overflow-hidden">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <ScrollReveal>
+              <div className="bg-gradient-to-br from-purple-50 to-white rounded-3xl p-8 md:p-12 border border-purple-100 shadow-xl shadow-purple-500/5 text-center flex flex-col items-center relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-purple-500 to-[#FCD116]"></div>
+                
+                <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mb-6">
+                  <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                  </svg>
+                </div>
+
+                <span className="text-xs font-bold text-purple-600 uppercase tracking-widest block mb-3">
+                  Sesi Spesial
+                </span>
+                <h3 className="text-2xl md:text-4xl font-black text-slate-900 mb-4 tracking-tight">
+                  {settings?.charityTitle || "Penyerahan Donasi Sosial"}
+                </h3>
+                <p className="text-sm md:text-base text-slate-600 mb-8 max-w-2xl leading-relaxed">
+                  {settings?.charityDesc ||
+                    "Sebagian dari biaya pendaftaran Anda akan didonasikan untuk kegiatan sosial dan kemanusiaan."}
+                </p>
+
+                {settings?.minCharity > 0 && (
+                  <div className="inline-flex items-center gap-2 bg-white px-5 py-3 rounded-full border border-slate-200 shadow-sm text-sm font-bold text-slate-700">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Donasi Terkumpul mulai dari: <span className="text-[#1A73E8] font-mono">Rp {settings.minCharity.toLocaleString("id-ID")}</span>
+                  </div>
+                )}
+              </div>
+            </ScrollReveal>
+          </div>
+        </section>
+      )}
 
       {/* SECTION SPONSOR */}
       {settings?.sponsorGroups && settings.sponsorGroups.length > 0 && (
@@ -1124,26 +1164,18 @@ function OfflineRunLandingPageContent() {
                     Hari Pelaksanaan (Race Day)
                   </p>
                   <p className="text-xs text-slate-500 mt-1">
-                    {settings?.offlinePeriodeLari || "Akan Diumumkan"}
+                    {settings?.offlineDate
+                      ? new Date(settings.offlineDate).toLocaleDateString(
+                          "id-ID",
+                          {
+                            weekday: "long",
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          },
+                        ) + ` Pukul ${settings?.offlineTime || "06:00"} WIB`
+                      : "Akan Diumumkan"}
                   </p>
-                  {settings?.offlineJadwalPuncakAcara && (
-                    <p className="text-[10px] text-rose-500 font-bold mt-2 bg-rose-50 p-2 rounded-lg border border-rose-100 flex items-center gap-1">
-                      <svg
-                        className="w-3 h-3 shrink-0"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
-                        />
-                      </svg>
-                      {settings.offlineJadwalPuncakAcara}
-                    </p>
-                  )}
                 </div>
               </div>
 
@@ -1158,7 +1190,10 @@ function OfflineRunLandingPageContent() {
         </div>
       )}
 
-      <FooterPublic />
+      <RunFooter
+        eventName={settings?.offlineJudul || "Sembada Run"}
+        waChannelUrl={settings?.waGroupUrl}
+      />
     </div>
   );
 }

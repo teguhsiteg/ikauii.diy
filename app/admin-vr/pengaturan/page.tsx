@@ -13,7 +13,6 @@ import { onAuthStateChanged, getIdToken } from "firebase/auth";
 // IMPORT SEMUA TAB KOMPONEN
 import TabVirtual from "./tabs/TabVirtual";
 import TabOffline from "./tabs/TabOffline";
-import TabRoutes from "./tabs/TabRoutes"; // 🔥 IMPORT TAB BARU
 import TabCharity from "./tabs/TabCharity";
 import TabPembayaran from "./tabs/TabPembayaran";
 
@@ -404,15 +403,46 @@ export default function PengaturanAdminPage() {
         </button>
       </div>
 
+      {/* GLOBAL SETTINGS - WAITING ROOM */}
+      <div className="mb-8 p-6 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-base font-black text-slate-800 flex items-center gap-2">
+            <span className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </span>
+            Mode Ruang Tunggu Global (Waiting Room)
+          </h3>
+          <p className="text-sm text-slate-500 mt-1 max-w-2xl">
+            Aktifkan fitur antrean virtual ini untuk mencegah server down saat terjadi lonjakan pengunjung (Ticket War) di awal pendaftaran dibuka.
+          </p>
+        </div>
+        <label className="relative inline-flex items-center cursor-pointer shrink-0">
+          <input
+            type="checkbox"
+            name="isWaitingRoomActive"
+            checked={vrSettings.isWaitingRoomActive || false}
+            onChange={handleSettingChange}
+            className="sr-only peer"
+          />
+          <div className="w-14 h-7 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#1A73E8]"></div>
+        </label>
+      </div>
+
       <div className="flex overflow-x-auto gap-1 mb-8 border-b border-slate-200">
-        {/* 🔥 TAMBAH TAB "RUTE" DISINI 🔥 */}
-        {["virtual", "offline", "rute", "charity", "pembayaran"].map((tab) => (
+        {[
+          { id: "virtual", label: "Virtual" },
+          { id: "offline", label: "Offline" },
+          { id: "charity", label: "Charity (Global)" },
+          { id: "pembayaran", label: "Pembayaran (Global)" },
+        ].map((tab) => (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-6 py-3 text-sm font-bold uppercase ${activeTab === tab ? "border-b-2 border-blue-600 text-blue-600" : "text-slate-500"}`}
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-6 py-3 text-sm font-bold whitespace-nowrap uppercase ${activeTab === tab.id ? "border-b-2 border-blue-600 text-blue-600" : "text-slate-500 hover:text-slate-700"}`}
           >
-            {tab}
+            {tab.label}
           </button>
         ))}
       </div>
@@ -438,13 +468,7 @@ export default function PengaturanAdminPage() {
           />
         )}
 
-        {/* 🔥 RENDER TAB BARU KITA DISINI 🔥 */}
-        {activeTab === "rute" && (
-          <TabRoutes
-            vrSettings={vrSettings}
-            handlePackageChange={handlePackageChange}
-          />
-        )}
+
 
         {activeTab === "charity" && (
           <TabCharity

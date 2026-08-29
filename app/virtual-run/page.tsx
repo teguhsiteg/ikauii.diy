@@ -894,8 +894,8 @@ export default function VirtualRunLandingPage() {
                         {/* Button */}
                         {isBuka && timeLeft ? (
                           <Link
-                            href={`/virtual-run/register?paket=${pkg.id}`}
-                            className={`w-full text-center font-black py-3.5 rounded-full transition-all shadow-md text-sm ${
+                            href={`/virtual-run/register?paket=${pkg.id}${settings?.isWaitingRoomActive ? "&queue=true" : ""}`}
+                            className={`w-full text-center font-black py-3.5 rounded-full transition-all shadow-md text-sm flex items-center justify-center gap-2 ${
                               isPopuler
                                 ? "bg-[#FCD116] hover:bg-yellow-400 text-[#0B2239] shadow-yellow-500/20"
                                 : "bg-[#0B2239] hover:bg-blue-900 text-white"

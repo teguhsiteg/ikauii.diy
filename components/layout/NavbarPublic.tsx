@@ -188,14 +188,27 @@ export default function NavbarPublic() {
                 alt="Logo DPW IKA UII DIY"
                 className="w-10 h-10 sm:w-14 sm:h-14 object-contain group-hover:scale-105 transition-transform"
               />
-              <div className="flex flex-col">
-                <p className="font-extrabold text-blue-950 text-sm sm:text-lg leading-tight tracking-tight">
-                  DPW IKA UII
-                </p>
-                <p className="text-[8px] sm:text-[10px] uppercase tracking-widest text-slate-500 font-bold">
-                  Daerah Istimewa Yogyakarta
-                </p>
-              </div>
+              
+              {pathname.startsWith("/run") ? (
+                <>
+                  <div className="hidden sm:block h-10 w-px bg-slate-200 mx-1"></div>
+                  <img
+                    src="https://res.cloudinary.com/dp8hmxuix/image/upload/v1788008083/ikadiy.uii.ac.idrun_kg66ut.png"
+                    alt="Logo Sembada Run"
+                    className="w-auto h-8 sm:h-12 object-contain group-hover:scale-105 transition-transform"
+                    crossOrigin="anonymous"
+                  />
+                </>
+              ) : (
+                <div className="flex flex-col">
+                  <p className="font-extrabold text-blue-950 text-sm sm:text-lg leading-tight tracking-tight">
+                    DPW IKA UII
+                  </p>
+                  <p className="text-[8px] sm:text-[10px] uppercase tracking-widest text-slate-500 font-bold">
+                    Daerah Istimewa Yogyakarta
+                  </p>
+                </div>
+              )}
             </Link>
 
             {/* MENU LINKS (HANYA TAMPIL DI LAYAR BESAR / LAPTOP) */}

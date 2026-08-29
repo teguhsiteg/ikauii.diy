@@ -13,8 +13,8 @@ import {
 } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import NavbarPublic from "@/components/layout/NavbarPublic";
-import FooterPublic from "@/components/layout/FooterPublic";
+import RunNavbar from "@/components/run/RunNavbar";
+import RunFooter from "@/components/run/RunFooter";
 
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import { sendEmailAction } from "@/app/actions/email";
@@ -757,7 +757,7 @@ function FormPendaftaranOffline() {
   // --- MAIN LAYOUT (DIBUNGKUS NAVBAR & FOOTER) ---
   return (
     <div className="min-h-screen bg-[#F4F7FB] font-sans flex flex-col">
-      <NavbarPublic />
+      <RunNavbar eventName={settings?.offlineJudul} />
 
       <main className="flex-grow w-full relative z-20">
         <div className="max-w-4xl mx-auto px-5 sm:px-6 lg:px-8 py-32 transition-all duration-300">
@@ -1926,7 +1926,7 @@ function FormPendaftaranOffline() {
         </div>
       </main>
 
-      <FooterPublic />
+      <RunFooter eventName={settings?.offlineJudul} waChannelUrl={settings?.waGroupUrl} />
 
       {/* ALERT ERROR MURNI (CUSTOM MODAL) */}
       {modal.isOpen && (
