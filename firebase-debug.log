@@ -1,0 +1,36 @@
+[debug] [2026-08-29T13:47:21.409Z] ----------------------------------------------------------------------
+[debug] [2026-08-29T13:47:21.412Z] Command:       D:\Program Files\nodejs\node.exe C:\Users\Hii Masteg\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2026-08-29T13:47:21.412Z] CLI Version:   15.28.1
+[debug] [2026-08-29T13:47:21.412Z] Platform:      win32
+[debug] [2026-08-29T13:47:21.412Z] Node Version:  v24.19.0
+[debug] [2026-08-29T13:47:21.413Z] Detected Agent: unknown
+[debug] [2026-08-29T13:47:21.413Z] Time:          Sat Aug 29 2026 20:47:21 GMT+0700 (Western Indonesia Time)
+[debug] [2026-08-29T13:47:21.413Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-08-29T13:47:21.427Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-08-29T13:47:23.837Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-29T13:47:23.837Z] > authorizing via signed-in user (teguhsiteg95@gmail.com)
+[debug] [2026-08-29T13:47:23.837Z] [iam] checking project suratdigitalv2 for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-08-29T13:47:23.838Z] Checked if tokens are valid: false, expires at: 1787616011825
+[debug] [2026-08-29T13:47:23.839Z] Checked if tokens are valid: false, expires at: 1787616011825
+[debug] [2026-08-29T13:47:23.839Z] > refreshing access token with scopes: []
+[debug] [2026-08-29T13:47:23.840Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-08-29T13:47:23.841Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-08-29T13:47:24.035Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-08-29T13:47:24.035Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-08-29T13:47:24.045Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions [none]
+[debug] [2026-08-29T13:47:24.045Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions  x-goog-user-project=suratdigitalv2
+[debug] [2026-08-29T13:47:24.045Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-08-29T13:47:24.367Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-08-29T13:47:24.368Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-08-29T13:47:24.408Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions 200
+[debug] [2026-08-29T13:47:24.408Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-08-29T13:47:24.409Z] Checked if tokens are valid: true, expires at: 1788014843035
+[debug] [2026-08-29T13:47:24.409Z] Checked if tokens are valid: true, expires at: 1788014843035
+[debug] [2026-08-29T13:47:24.409Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/suratdigitalv2 [none]
+[debug] [2026-08-29T13:47:26.259Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/suratdigitalv2 200
+[debug] [2026-08-29T13:47:26.259Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/suratdigitalv2 {"projectId":"suratdigitalv2","projectNumber":"46792735306","displayName":"IKA UII DIY","name":"projects/suratdigitalv2","resources":{"hostingSite":"suratdigitalv2"},"state":"ACTIVE","labels":{"firebase":"enabled","firebaseworkflows/environment":"production","firebase/storage-default-bucket":"created"},"etag":"1_233e471b-cd93-479a-850a-c736fb026b61"}
+[debug] [2026-08-29T13:47:29.870Z] defaultcredentials: writing to file C:\Users\Hii Masteg\AppData\Roaming\firebase\teguhsiteg95_gmail_com_application_default_credentials.json
+[debug] [2026-08-29T13:47:29.875Z] Checked if tokens are valid: true, expires at: 1788014843035
+[debug] [2026-08-29T13:47:29.876Z] Checked if tokens are valid: true, expires at: 1788014843035
+[debug] [2026-08-29T13:47:29.876Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/suratdigitalv2/sites pageToken=&pageSize=10
