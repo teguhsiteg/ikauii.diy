@@ -33,7 +33,7 @@ interface Participant {
 }
 
 export default function PendaftaranKomunitasPage() {
-  const [, setAdminSettings] = useState<any>(null);
+  const [settings, setAdminSettings] = useState<any>(null);
   const [harga5K, setHarga5K] = useState(150000);
   const [harga10K, setHarga10K] = useState(200000);
   const router = useRouter();
