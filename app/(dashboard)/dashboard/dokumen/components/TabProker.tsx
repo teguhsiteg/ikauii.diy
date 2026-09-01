@@ -99,43 +99,43 @@ export default function TabProker({
     <div className="animate-in fade-in duration-300">
       {/* KARTU STATISTIK */}
       {!isLoading && (
-        <div className="flex gap-4 overflow-x-auto w-full pb-6 no-scrollbar">
-          <div className="bg-white border border-slate-200 rounded-[1.5rem] p-5 md:p-6 min-w-[200px] flex-1 shadow-sm">
-            <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-widest mb-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm">
+            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">
               Total Arsip Proker
             </p>
-            <p className="text-3xl md:text-4xl font-black text-blue-950">
-              {totalKegiatan}
+            <p className="text-2xl font-extrabold text-slate-800">
+              {totalKegiatan} <span className="text-xs text-slate-400 font-normal">berkas</span>
             </p>
           </div>
-          <div className="bg-blue-50 border border-blue-100 rounded-[1.5rem] p-5 md:p-6 min-w-[200px] flex-1 shadow-sm">
-            <p className="text-[10px] md:text-xs text-blue-600 font-bold uppercase tracking-widest mb-2">
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm">
+            <p className="text-xs text-blue-700 font-bold uppercase tracking-wider mb-1">
               Sedang Berjalan
             </p>
-            <p className="text-3xl md:text-4xl font-black text-blue-700">
-              {totalBerjalan}
+            <p className="text-2xl font-extrabold text-blue-700">
+              {totalBerjalan} <span className="text-xs text-blue-400 font-normal">projek</span>
             </p>
           </div>
-          <div className="bg-green-50 border border-green-100 rounded-[1.5rem] p-5 md:p-6 min-w-[200px] flex-1 shadow-sm">
-            <p className="text-[10px] md:text-xs text-green-600 font-bold uppercase tracking-widest mb-2">
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm">
+            <p className="text-xs text-emerald-700 font-bold uppercase tracking-wider mb-1">
               Tuntas (LPJ)
             </p>
-            <p className="text-3xl md:text-4xl font-black text-green-700">
-              {totalSelesai}
+            <p className="text-2xl font-extrabold text-emerald-700">
+              {totalSelesai} <span className="text-xs text-emerald-400 font-normal">selesai</span>
             </p>
           </div>
         </div>
       )}
 
       {/* FILTER & PENCARIAN */}
-      <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 mb-8 flex flex-col md:flex-row gap-5 items-end">
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 mb-6 flex flex-col md:flex-row gap-4 items-end">
         <div className="flex-1 w-full relative">
-          <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-0.5">
             Pencarian Spesifik
           </label>
           <div className="relative">
             <svg
-              className="absolute left-4 top-3.5 w-5 h-5 text-slate-400"
+              className="absolute left-3.5 top-3 w-4 h-4 text-slate-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -143,7 +143,7 @@ export default function TabProker({
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2.5}
+                strokeWidth={2}
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
@@ -152,24 +152,18 @@ export default function TabProker({
               placeholder="Ketik nama kegiatan atau nomor surat..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 py-3 pl-12 pr-4 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
+              className="w-full bg-slate-50 border border-slate-200 py-2.5 pl-10 pr-4 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-500 focus:bg-white outline-none transition-all"
             />
           </div>
         </div>
-        <div className="md:w-80 shrink-0 w-full">
-          <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">
+        <div className="md:w-72 shrink-0 w-full">
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-0.5">
             Saring Berdasarkan Bidang
           </label>
           <select
             value={filterBidang}
             onChange={(e) => setFilterBidang(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl text-sm font-bold text-blue-900 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all cursor-pointer appearance-none"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748B'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-              backgroundPosition: "right 1rem center",
-              backgroundRepeat: "no-repeat",
-              backgroundSize: "1.2em",
-            }}
+            className="w-full bg-slate-50 border border-slate-200 py-2.5 px-3 rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 focus:bg-white outline-none transition-all cursor-pointer"
           >
             <option value="">Semua Bidang Organisasi</option>
             {bidangOptions.map((bidang: any, idx) => (
@@ -182,23 +176,25 @@ export default function TabProker({
       </div>
 
       {/* TABEL DATA ARSIP */}
-      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
         {isLoading ? (
-          <div className="p-24 flex flex-col items-center justify-center text-slate-400">
-            <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin mb-4"></div>
-            <p className="font-bold tracking-widest uppercase text-xs animate-pulse">
-              Menyelaraskan Brankas...
+          <div className="p-16 flex flex-col items-center justify-center text-slate-400">
+            <div className="w-8 h-8 border-2 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-3"></div>
+            <p className="font-bold tracking-widest uppercase text-[10px]">
+              Memuat Data Arsip...
             </p>
           </div>
         ) : filteredList.length === 0 ? (
-          <div className="p-24 text-center flex flex-col items-center">
-            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100 shadow-inner">
-              <span className="text-4xl">📭</span>
+          <div className="p-16 text-center flex flex-col items-center">
+            <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mb-3 border border-slate-200 text-slate-400">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
             </div>
-            <h3 className="font-extrabold text-blue-950 text-xl mb-1">
+            <h3 className="font-bold text-slate-800 text-base mb-1">
               Arsip Tidak Ditemukan
             </h3>
-            <p className="text-sm text-slate-500 max-w-sm">
+            <p className="text-xs text-slate-500 max-w-sm">
               Belum ada dokumen program kerja di periode kepengurusan ini.
             </p>
           </div>
@@ -206,90 +202,77 @@ export default function TabProker({
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse whitespace-nowrap">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[10px] uppercase tracking-widest">
-                  <th className="px-6 py-5 font-black">Informasi Kegiatan</th>
-                  <th className="px-6 py-5 font-black text-center">
+                <tr className="bg-slate-50 border-b border-slate-200/80 text-slate-500 text-[10px] uppercase tracking-wider">
+                  <th className="px-6 py-4 font-bold">Informasi Kegiatan</th>
+                  <th className="px-6 py-4 font-bold text-center">
                     Status Progres
                   </th>
-                  <th className="px-6 py-5 font-black text-center border-x border-slate-100 bg-blue-50/30">
+                  <th className="px-6 py-4 font-bold text-center">
                     File Proposal / Anggaran
                   </th>
-                  <th className="px-6 py-5 font-black text-center bg-red-50/20">
+                  <th className="px-6 py-4 font-bold text-center">
                     File Laporan (LPJ)
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-sm">
+              <tbody className="divide-y divide-slate-100 text-xs">
                 {filteredList.map((p) => (
                   <tr
                     key={p.id}
-                    className="hover:bg-slate-50/50 transition-colors group"
+                    className="hover:bg-slate-50/60 transition-colors"
                   >
-                    <td className="px-6 py-5 align-top">
-                      <div className="font-extrabold text-blue-950 text-base mb-1.5 whitespace-normal max-w-md">
+                    <td className="px-6 py-4 align-top">
+                      <div className="font-bold text-slate-800 text-sm mb-1 whitespace-normal max-w-md">
                         {p.namaKegiatan}
                       </div>
-                      <div className="flex items-center gap-3 text-[11px] mb-1">
-                        <span className="text-slate-600 font-bold bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                      <div className="flex items-center gap-2 text-[11px]">
+                        <span className="text-slate-600 font-semibold bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                           {p.bidang}
                         </span>
-                        <span className="text-slate-400 font-mono flex items-center gap-1">
-                          <svg
-                            className="w-3.5 h-3.5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                            />
-                          </svg>
+                        <span className="text-slate-400 font-mono">
                           {p.nomorSurat || "Draft"}
                         </span>
                       </div>
                     </td>
 
-                    <td className="px-6 py-5 text-center align-middle">
+                    <td className="px-6 py-4 text-center align-middle">
                       <span
-                        className={`text-[10px] font-black px-4 py-1.5 rounded-full border ${getStatusStyle(p.status)} uppercase tracking-widest inline-block`}
+                        className={`text-[10px] font-bold px-3 py-1 rounded-full border ${getStatusStyle(p.status)} uppercase tracking-wider inline-block`}
                       >
                         {p.status}
                       </span>
                     </td>
 
-                    <td className="px-6 py-5 text-center border-x border-slate-100 align-middle">
+                    <td className="px-6 py-4 text-center align-middle">
                       {p.fileProposal || p.fileAnggaran ? (
                         <a
                           href={p.fileProposal || p.fileAnggaran}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center gap-2 bg-white text-blue-600 border border-blue-200 hover:bg-blue-600 hover:text-white px-5 py-2 rounded-xl font-bold transition-all shadow-sm hover:shadow-md group-hover:border-blue-400 text-xs"
+                          className="inline-flex items-center justify-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-600 hover:text-white px-3.5 py-1.5 rounded-lg font-bold transition-all text-xs"
                         >
                           Lihat Dokumen
                         </a>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] text-slate-400 font-bold uppercase tracking-widest bg-slate-50 px-4 py-2 rounded-xl border border-dashed border-slate-200">
-                          Menunggu
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          —
                         </span>
                       )}
                     </td>
 
-                    <td className="px-6 py-5 text-center align-middle">
+                    <td className="px-6 py-4 text-center align-middle">
                       {p.fileLaporan ? (
                         <a
                           href={p.fileLaporan}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center gap-2 bg-white text-green-600 border border-green-200 hover:bg-green-600 hover:text-white px-5 py-2 rounded-xl font-bold transition-all shadow-sm hover:shadow-md group-hover:border-green-400 text-xs"
+                          className="inline-flex items-center justify-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-600 hover:text-white px-3.5 py-1.5 rounded-lg font-bold transition-all text-xs"
                         >
                           Dokumen LPJ
                         </a>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] text-red-400 font-bold uppercase tracking-widest bg-red-50 px-4 py-2 rounded-xl border border-dashed border-red-200">
-                          Belum Ada
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          —
                         </span>
                       )}
                     </td>

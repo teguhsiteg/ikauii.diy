@@ -141,38 +141,33 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-12 font-sans relative overflow-hidden">
-      {/* Background Decorators */}
-      <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-blue-600/10 via-indigo-600/5 to-transparent pointer-events-none"></div>
-      <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/20 rounded-full blur-[100px] pointer-events-none"></div>
-      <div className="absolute top-20 -left-20 w-72 h-72 bg-purple-500/20 rounded-full blur-[80px] pointer-events-none"></div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700 pt-8 relative z-10">
+    <div className="min-h-screen bg-slate-50/60 pb-12 font-sans relative">
+      <div className="max-w-7xl mx-auto space-y-6 pt-4 relative z-0">
         
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 backdrop-blur-sm bg-white/40 p-6 rounded-3xl border border-white/60 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-600/20">
-                <Globe className="w-5 h-5" />
+            <div className="flex items-center gap-2.5 mb-1">
+              <div className="w-8 h-8 bg-blue-50 text-blue-700 rounded-xl flex items-center justify-center font-bold">
+                <Globe className="w-4 h-4" />
               </div>
-              <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
-                Overview
+              <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
+                Ringkasan Eksekutif
               </h1>
             </div>
-            <p className="text-slate-600 text-sm md:text-base max-w-2xl leading-relaxed">
-              Selamat datang, <span className="font-bold text-slate-900">{userProfile.name}</span>.{" "}
+            <p className="text-slate-500 text-sm max-w-2xl">
+              Selamat datang, <span className="font-bold text-slate-800">{userProfile.name}</span>.{" "}
               {isSuperAdmin
-                ? "Anda memiliki akses Super Admin untuk mengelola seluruh ekosistem."
-                : "Anda login sebagai Koordinator Bidang."}
+                ? "Anda memiliki akses Super Admin untuk mengelola seluruh sistem SIM DPW IKA UII DIY."
+                : "Anda terautentikasi sebagai Koordinator Bidang."}
             </p>
           </div>
 
-          <div className="flex items-center gap-3 bg-white/80 backdrop-blur-md border border-slate-200/60 px-5 py-3 rounded-2xl shadow-sm hover:shadow-md transition-all">
-            <Calendar className="w-5 h-5 text-blue-600" />
+          <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/80 px-4 py-2.5 rounded-xl shrink-0">
+            <Calendar className="w-4 h-4 text-blue-700" />
             <div className="flex flex-col">
-              <span className="text-xs text-slate-500 font-medium">Hari ini</span>
-              <span className="text-sm font-bold text-slate-800">
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tanggal Hari Ini</span>
+              <span className="text-xs font-bold text-slate-700">
                 {new Date().toLocaleDateString("id-ID", {
                   weekday: "long", day: "numeric", month: "long", year: "numeric",
                 })}
@@ -182,131 +177,122 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* Card 1 */}
-          <div className="bg-white/80 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-500">
-              <FileText className="w-24 h-24" />
-            </div>
-            <div className="flex justify-between items-start mb-6">
-              <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Publikasi Berita</p>
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30">
-                <FileText className="w-6 h-6" />
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm transition-all">
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Publikasi Berita</p>
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
+                <FileText className="w-4 h-4" />
               </div>
             </div>
-            <div className="flex items-baseline gap-3">
-              <h3 className="text-5xl font-extrabold text-slate-900 tracking-tighter">
+            <div className="flex items-baseline justify-between">
+              <h3 className="text-3xl font-extrabold text-slate-800 tracking-tight">
                 {isLoading ? "..." : stats.berita}
               </h3>
-              <span className="flex items-center text-xs font-bold text-blue-700 bg-blue-100/80 px-2.5 py-1 rounded-lg">
-                Artikel
+              <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">
+                Artikel Terbit
               </span>
             </div>
           </div>
 
           {/* Card 2 */}
-          <div className="bg-white/80 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-500">
-              <Calendar className="w-24 h-24" />
-            </div>
-            <div className="flex justify-between items-start mb-6">
-              <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Agenda Aktif</p>
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-red-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/30">
-                <Calendar className="w-6 h-6" />
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm transition-all">
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Agenda Aktif</p>
+              <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
+                <Calendar className="w-4 h-4" />
               </div>
             </div>
-            <div className="flex items-baseline gap-3">
-              <h3 className="text-5xl font-extrabold text-slate-900 tracking-tighter">
+            <div className="flex items-baseline justify-between">
+              <h3 className="text-3xl font-extrabold text-slate-800 tracking-tight">
                 {isLoading ? "..." : stats.agenda}
               </h3>
-              <span className="flex items-center text-xs font-bold text-orange-700 bg-orange-100/80 px-2.5 py-1 rounded-lg">
-                Kegiatan
+              <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100">
+                Kegiatan Terdaftar
               </span>
             </div>
           </div>
 
           {/* Card 3 */}
-          <div className="bg-white/80 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-500">
-              <Users className="w-24 h-24" />
-            </div>
-            <div className="flex justify-between items-start mb-6">
-              <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Departemen</p>
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 text-white flex items-center justify-center shadow-lg shadow-purple-500/30">
-                <Users className="w-6 h-6" />
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm transition-all">
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Departemen / Bidang</p>
+              <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold">
+                <Users className="w-4 h-4" />
               </div>
             </div>
-            <div className="flex items-baseline gap-3">
-              <h3 className="text-5xl font-extrabold text-slate-900 tracking-tighter">
+            <div className="flex items-baseline justify-between">
+              <h3 className="text-3xl font-extrabold text-slate-800 tracking-tight">
                 {isLoading ? "..." : stats.bidang}
               </h3>
-              <span className="flex items-center text-xs font-bold text-purple-700 bg-purple-100/80 px-2.5 py-1 rounded-lg">
-                Bidang
+              <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-100">
+                Otoritas Bidang
               </span>
             </div>
           </div>
         </div>
 
         {/* Main Content Area */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           
           {/* Left Column: Charts / Distribution */}
           <div className="xl:col-span-2 space-y-6">
-            <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-slate-200/60 shadow-sm p-8">
-              <div className="flex justify-between items-center mb-8 pb-4 border-b border-slate-100">
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6">
+              <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
-                    <TrendingUp className="w-5 h-5" />
+                  <div className="w-8 h-8 bg-emerald-50 text-emerald-700 rounded-xl flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900">Distribusi Publikasi</h3>
-                    <p className="text-sm text-slate-500 mt-1">Perbandingan berita vs agenda</p>
+                    <h3 className="text-base font-bold text-slate-800">Distribusi Publikasi Konten</h3>
+                    <p className="text-xs text-slate-400">Rasio perbandingan jumlah berita publik dan agenda</p>
                   </div>
                 </div>
               </div>
 
               {isLoading ? (
-                <div className="h-40 flex items-center justify-center">
-                  <div className="w-8 h-8 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin"></div>
+                <div className="h-32 flex items-center justify-center">
+                  <div className="w-6 h-6 border-2 border-slate-200 border-t-emerald-600 rounded-full animate-spin"></div>
                 </div>
               ) : stats.total === 0 ? (
-                <div className="h-40 flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200">
-                  <Activity className="w-8 h-8 text-slate-400 mb-2" />
-                  <p className="text-sm font-bold text-slate-500">Belum ada data metrik</p>
+                <div className="h-32 flex flex-col items-center justify-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                  <Activity className="w-6 h-6 text-slate-300 mb-1" />
+                  <p className="text-xs font-bold text-slate-400">Belum ada metrik publikasi</p>
                 </div>
               ) : (
-                <div className="space-y-8 max-w-xl">
-                  <div className="group">
-                    <div className="flex justify-between items-end mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 rounded-full bg-blue-500 shadow-sm shadow-blue-500/50"></div>
-                        <span className="text-sm font-bold text-slate-700">Berita & Artikel</span>
+                <div className="space-y-6 max-w-xl">
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-blue-600"></div>
+                        <span className="text-xs font-bold text-slate-700">Berita & Artikel Publik</span>
                       </div>
-                      <span className="text-sm font-black text-slate-900">
-                        {getPercentage(stats.berita)}% <span className="text-slate-400 font-medium text-xs ml-1">({stats.berita})</span>
+                      <span className="text-xs font-bold text-slate-800">
+                        {getPercentage(stats.berita)}% <span className="text-slate-400 font-medium">({stats.berita})</span>
                       </span>
                     </div>
-                    <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden shadow-inner">
+                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                       <div
-                        className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full transition-all duration-1000 ease-out group-hover:brightness-110"
+                        className="bg-blue-600 h-full rounded-full transition-all duration-500"
                         style={{ width: `${getPercentage(stats.berita)}%` }}
                       ></div>
                     </div>
                   </div>
 
-                  <div className="group">
-                    <div className="flex justify-between items-end mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 rounded-full bg-orange-400 shadow-sm shadow-orange-400/50"></div>
-                        <span className="text-sm font-bold text-slate-700">Agenda Kegiatan</span>
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
+                        <span className="text-xs font-bold text-slate-700">Agenda Kegiatan</span>
                       </div>
-                      <span className="text-sm font-black text-slate-900">
-                        {getPercentage(stats.agenda)}% <span className="text-slate-400 font-medium text-xs ml-1">({stats.agenda})</span>
+                      <span className="text-xs font-bold text-slate-800">
+                        {getPercentage(stats.agenda)}% <span className="text-slate-400 font-medium">({stats.agenda})</span>
                       </span>
                     </div>
-                    <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden shadow-inner">
+                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                       <div
-                        className="bg-gradient-to-r from-orange-400 to-red-500 h-full rounded-full transition-all duration-1000 ease-out group-hover:brightness-110"
+                        className="bg-amber-500 h-full rounded-full transition-all duration-500"
                         style={{ width: `${getPercentage(stats.agenda)}%` }}
                       ></div>
                     </div>
@@ -317,37 +303,41 @@ export default function DashboardPage() {
 
             {/* Quick Actions for Super Admin */}
             {isSuperAdmin && (
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl shadow-xl p-8 relative overflow-hidden">
-                <div className="absolute -right-10 -top-10 w-40 h-40 bg-blue-500/20 blur-3xl rounded-full"></div>
-                
-                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                  <Zap className="w-5 h-5 text-yellow-400" />
-                  Manajemen Master Data
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6">
+                <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+                  <Settings className="w-4 h-4 text-blue-700" />
+                  Navigasi Pintar Master System
                 </h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <Link href="/dashboard/pengaturan" className="flex flex-col p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group">
-                    <div className="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                      <Settings className="w-6 h-6" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <Link href="/dashboard/pengaturan" className="flex items-center gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 hover:bg-blue-50/50 hover:border-blue-200 transition-all">
+                    <div className="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                      <Settings className="w-4 h-4" />
                     </div>
-                    <h4 className="text-base font-bold text-white mb-1">Web Info</h4>
-                    <p className="text-xs text-slate-400">Atur deskripsi & kontak utama.</p>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-800">CMS Web</h4>
+                      <p className="text-[11px] text-slate-400">Pengaturan profil web</p>
+                    </div>
                   </Link>
 
-                  <Link href="/dashboard/master-data" className="flex flex-col p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group">
-                    <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                      <Users className="w-6 h-6" />
+                  <Link href="/dashboard/master-data" className="flex items-center gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 hover:bg-blue-50/50 hover:border-blue-200 transition-all">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                      <Users className="w-4 h-4" />
                     </div>
-                    <h4 className="text-base font-bold text-white mb-1">Organisasi</h4>
-                    <p className="text-xs text-slate-400">Kelola kepengurusan struktural.</p>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-800">Organisasi</h4>
+                      <p className="text-[11px] text-slate-400">Struktur & pengurus</p>
+                    </div>
                   </Link>
 
-                  <Link href="/dashboard/users" className="flex flex-col p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group">
-                    <div className="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                      <Award className="w-6 h-6" />
+                  <Link href="/dashboard/users" className="flex items-center gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 hover:bg-blue-50/50 hover:border-blue-200 transition-all">
+                    <div className="w-9 h-9 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
+                      <Award className="w-4 h-4" />
                     </div>
-                    <h4 className="text-base font-bold text-white mb-1">Akses RBAC</h4>
-                    <p className="text-xs text-slate-400">Atur kewenangan hak akses.</p>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-800">Akses Pengguna</h4>
+                      <p className="text-[11px] text-slate-400">Pengaturan RBAC</p>
+                    </div>
                   </Link>
                 </div>
               </div>
@@ -355,70 +345,63 @@ export default function DashboardPage() {
           </div>
 
           {/* Right Column: Recent Activity */}
-          <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-slate-200/60 shadow-sm p-8 h-full">
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
-                  <Activity className="w-5 h-5" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900">Aktivitas Terkini</h3>
-              </div>
-            </div>
-
-            <div className="space-y-5">
-              {isLoading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="flex gap-4 p-4 rounded-2xl bg-slate-50 animate-pulse">
-                    <div className="w-10 h-10 rounded-full bg-slate-200 shrink-0"></div>
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-slate-200 rounded w-3/4"></div>
-                      <div className="h-3 bg-slate-200 rounded w-1/2"></div>
-                    </div>
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 flex flex-col justify-between">
+            <div>
+              <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 bg-blue-50 text-blue-700 rounded-xl flex items-center justify-center">
+                    <Activity className="w-4 h-4" />
                   </div>
-                ))
-              ) : recentLogs.length === 0 ? (
-                <div className="py-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                  <Activity className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-                  <p className="text-sm font-medium text-slate-500">Belum ada aktivitas publikasi</p>
+                  <h3 className="text-base font-bold text-slate-800">Aktivitas Terkini</h3>
                 </div>
-              ) : (
-                recentLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="flex gap-4 p-4 rounded-2xl border border-transparent hover:border-slate-200 hover:bg-slate-50 transition-all group cursor-pointer"
-                  >
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
-                      log.type === "Berita" ? "bg-blue-100 text-blue-600" : "bg-orange-100 text-orange-600"
-                    }`}>
-                      {log.type === "Berita" ? <FileText className="w-5 h-5" /> : <Calendar className="w-5 h-5" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
-                        {log.title}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-500 font-medium">
-                        <span className={`px-2 py-0.5 rounded-md ${
-                          log.type === "Berita" ? "bg-blue-50 text-blue-700" : "bg-orange-50 text-orange-700"
-                        }`}>
-                          {log.type}
-                        </span>
-                        <span>•</span>
-                        <span>{new Date(log.date).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}</span>
-                        <span>•</span>
-                        <span className="truncate">{log.author}</span>
+              </div>
+
+              <div className="space-y-3">
+                {isLoading ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="flex gap-3 p-3 rounded-xl bg-slate-50 animate-pulse">
+                      <div className="w-8 h-8 rounded-lg bg-slate-200 shrink-0"></div>
+                      <div className="flex-1 space-y-1.5">
+                        <div className="h-3 bg-slate-200 rounded w-3/4"></div>
+                        <div className="h-2.5 bg-slate-200 rounded w-1/2"></div>
                       </div>
                     </div>
-                    <div className="hidden group-hover:flex items-center text-slate-400">
-                      <ChevronRight className="w-5 h-5" />
-                    </div>
+                  ))
+                ) : recentLogs.length === 0 ? (
+                  <div className="py-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    <Activity className="w-6 h-6 text-slate-300 mx-auto mb-1" />
+                    <p className="text-xs font-medium text-slate-400">Belum ada aktivitas publikasi</p>
                   </div>
-                ))
-              )}
+                ) : (
+                  recentLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="flex gap-3 p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-all group"
+                    >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold ${
+                        log.type === "Berita" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"
+                      }`}>
+                        {log.type === "Berita" ? <FileText className="w-4 h-4" /> : <Calendar className="w-4 h-4" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-slate-800 truncate group-hover:text-blue-700 transition-colors">
+                          {log.title}
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-1 text-[11px] text-slate-400">
+                          <span className="font-semibold text-slate-600">{log.type}</span>
+                          <span>•</span>
+                          <span>{new Date(log.date).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
             
-            <div className="mt-6 pt-6 border-t border-slate-100 text-center">
-              <Link href="/dashboard/berita" className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center justify-center gap-1">
-                Lihat Semua Data <ChevronRight className="w-4 h-4" />
+            <div className="mt-4 pt-3 border-t border-slate-100 text-center">
+              <Link href="/dashboard/dokumen" className="text-xs font-bold text-blue-700 hover:text-blue-800 flex items-center justify-center gap-1">
+                Lihat Seluruh Berkas <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
           </div>

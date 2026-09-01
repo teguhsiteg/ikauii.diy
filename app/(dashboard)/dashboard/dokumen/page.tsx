@@ -39,48 +39,30 @@ export default function GudangDokumenPage() {
   return (
     <div className="max-w-7xl mx-auto pb-12 animate-in fade-in duration-500 font-sans">
       {/* --- HEADER & GLOBAL FILTER --- */}
-      <div className="mb-8 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
         <div>
-          <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 text-[11px] font-black px-3.5 py-1.5 rounded-full mb-3 uppercase tracking-widest shadow-sm">
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-              />
-            </svg>
-            Pusat Arsip Digital
-          </div>
-          <h2 className="text-3xl lg:text-4xl font-extrabold text-blue-950 mb-2 tracking-tight">
+          <h1 className="text-2xl font-bold text-slate-800 tracking-tight mb-1">
             Gudang Dokumen Terpadu
-          </h2>
-          <p className="text-slate-500 text-sm max-w-xl leading-relaxed">
-            Sistem pengarsipan terpusat. Pantau dan kelola seluruh dokumen
-            Proposal, LPJ, serta Regulasi Organisasi berdasarkan masa
-            kepengurusan.
+          </h1>
+          <p className="text-slate-500 text-sm max-w-xl">
+            Sistem pengarsipan terpusat. Pantau dan kelola seluruh dokumen Proposal, LPJ, serta Regulasi Organisasi.
           </p>
         </div>
 
         {/* DROPDOWN PERIODE GLOBAL */}
-        <div className="bg-white border border-slate-200 p-2.5 rounded-2xl shadow-sm flex items-center gap-3 w-full lg:w-auto shrink-0">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-3 shrink-0">
+        <div className="bg-slate-50 border border-slate-200/80 p-2 rounded-xl flex items-center gap-3 w-full sm:w-auto shrink-0">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider pl-2 shrink-0">
             Arsip Periode:
           </span>
           {isLoadingPeriode ? (
-            <span className="text-sm font-bold text-slate-400 px-3 py-1">
+            <span className="text-xs font-medium text-slate-400 px-3 py-1">
               Memuat...
             </span>
           ) : (
             <select
               value={selectedPeriode}
               onChange={(e) => setSelectedPeriode(e.target.value)}
-              className="bg-slate-50 border border-slate-100 font-bold text-blue-800 text-sm rounded-xl py-2 px-3 cursor-pointer outline-none focus:ring-2 focus:ring-blue-500 w-full lg:w-auto"
+              className="bg-white border border-slate-200 font-bold text-blue-900 text-xs rounded-lg py-1.5 px-3 cursor-pointer outline-none focus:border-blue-500 w-full sm:w-auto"
             >
               <option value="Semua">Tampilkan Semua Periode</option>
               {periodeList.map((p) => (
@@ -95,18 +77,18 @@ export default function GudangDokumenPage() {
       </div>
 
       {/* --- TAB NAVIGASI --- */}
-      <div className="flex gap-2 border-b border-slate-200 mb-8 overflow-x-auto no-scrollbar">
+      <div className="flex gap-2 border-b border-slate-200 mb-6 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setActiveTab("proker")}
-          className={`py-3 px-6 text-sm font-black whitespace-nowrap transition-colors border-b-[3px] ${activeTab === "proker" ? "border-blue-600 text-blue-700 bg-blue-50/50 rounded-t-xl" : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl"}`}
+          className={`py-2.5 px-5 text-xs font-bold whitespace-nowrap transition-colors border-b-2 ${activeTab === "proker" ? "border-blue-600 text-blue-700 bg-blue-50/50 rounded-t-xl" : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl"}`}
         >
-          📁 Program Kerja & LPJ
+          Program Kerja & LPJ
         </button>
         <button
           onClick={() => setActiveTab("surat")}
-          className={`py-3 px-6 text-sm font-black whitespace-nowrap transition-colors border-b-[3px] ${activeTab === "surat" ? "border-blue-600 text-blue-700 bg-blue-50/50 rounded-t-xl" : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl"}`}
+          className={`py-2.5 px-5 text-xs font-bold whitespace-nowrap transition-colors border-b-2 ${activeTab === "surat" ? "border-blue-600 text-blue-700 bg-blue-50/50 rounded-t-xl" : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl"}`}
         >
-          📜 Surat Resmi & Legalitas
+          Surat Resmi & Legalitas
         </button>
       </div>
 

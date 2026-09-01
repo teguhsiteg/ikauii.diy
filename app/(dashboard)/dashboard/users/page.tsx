@@ -20,12 +20,13 @@ import {
 // 🔥 DAFTAR SELURUH MODUL BERDASARKAN SIDEBAR & KEBUTUHAN WEB 🔥
 const DAFTAR_MODUL_SISTEM = [
   { id: "ringkasan", label: "Ringkasan / Dashboard" },
-  { id: "registri_surat", label: "Registri Surat" },
+  { id: "registri_surat", label: "Registri Surat (E-Office)" },
   { id: "master_organisasi", label: "Master Organisasi" },
   { id: "verifikasi_anggota", label: "Verifikasi Anggota" },
   { id: "gudang_dokumen", label: "Gudang Dokumen" },
-  { id: "qr_tanda_tangan", label: "QR Tanda Tangan" },
-  { id: "cetak_kuitansi", label: "Cetak Kuitansi" },
+  { id: "qr_tanda_tangan", label: "QR Tanda Tangan (Validasi)" },
+  { id: "cetak_kuitansi", label: "Cetak Kuitansi Organisasi" },
+  { id: "cetak_invoice", label: "Cetak Invoice Organisasi" },
   { id: "data_pendaftar", label: "Data Pendaftar" },
   { id: "kelola_direktori", label: "Kelola Direktori" },
   { id: "program_kerja", label: "Program Kerja Bidang" },
@@ -33,6 +34,13 @@ const DAFTAR_MODUL_SISTEM = [
   { id: "pengaturan_web", label: "Pengaturan Web (CMS)" },
   { id: "manajemen_event_run", label: "Manajemen Event Run" },
   { id: "broadcast_sistem", label: "Broadcast Email" },
+  { id: "masterclass_lms", label: "LMS Masterclass" },
+  { id: "bio_engine", label: "Bio Engine (Shortlink)" },
+  { id: "manajemen_ulasan", label: "Manajemen Ulasan" },
+  { id: "kelola_karir", label: "Karir & Loker" },
+  { id: "manajemen_kuis", label: "Manajemen Kuis" },
+  { id: "manajemen_event_mobile", label: "Manajemen Event Mobile" },
+  { id: "manajemen_mobile_app", label: "Manajemen Mobile App" },
 ];
 
 export default function ManajemenPenggunaPage() {

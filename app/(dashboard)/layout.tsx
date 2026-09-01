@@ -313,14 +313,12 @@ export default function DashboardLayout({
       icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6",
       group: "Utama",
     },
-    // 🔥 MENU BARU: LMS MASTERCLASS (DITAMBAHKAN KEMBALI) 🔥
+    // MENU BARU: LMS MASTERCLASS
     {
       id: "masterclass_lms",
       name: "LMS Masterclass",
       path: "/dashboard/masterclass",
       icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253",
-      badge: "PRO",
-      theme: "indigo", // Tema warna khusus
       group: "Event & Program",
     },
     {
@@ -328,8 +326,6 @@ export default function DashboardLayout({
       name: "Bio Engine",
       path: "/dashboard/bio",
       icon: "M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1",
-      badge: "Shortlink",
-      theme: "amber",
       group: "Utama",
     },
     {
@@ -429,8 +425,6 @@ export default function DashboardLayout({
       name: "Karir & Loker",
       path: "/dashboard/karir",
       icon: "M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z",
-      badge: "NEW",
-      theme: "emerald",
       group: "Aplikasi Mobile",
     },
     {
@@ -452,8 +446,6 @@ export default function DashboardLayout({
       name: "Manajemen Mobile App",
       path: "/dashboard/admin-mobile",
       icon: "M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z",
-      badge: "NEW",
-      theme: "indigo",
       group: "Aplikasi Mobile",
     },
   ];
@@ -508,20 +500,33 @@ export default function DashboardLayout({
     return b.namaBidang === userProfile.bidang;
   });
 
+  // 🔥 Check if active route is forbidden for non-superadmin users 🔥
+  const allNavItems = [...allTopMenuItems, ...allBottomMenuItems];
+  const activeNavItem = allNavItems.find((item) => {
+    if (item.path === "/dashboard") return pathname === "/dashboard";
+    return pathname.startsWith(item.path);
+  });
+
+  const isRouteForbidden =
+    !isSuperAdmin &&
+    activeNavItem &&
+    ((activeNavItem as any).requireSuperAdmin ||
+      !userProfile.aksesModul.includes(activeNavItem.id));
+
   // --- RENDER SIDEBAR & MAIN CONTENT ---
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex relative overflow-hidden font-sans print:bg-white selection:bg-blue-100 selection:text-blue-900">
       {/* Mobile Overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-20 lg:hidden transition-opacity print:hidden"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden transition-opacity print:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       {/* SIDEBAR (Clean Light) */}
       <aside
-        className={`w-[280px] bg-white text-slate-600 flex flex-col fixed h-full z-30 shadow-[4px_0_24px_rgba(0,0,0,0.02)] border-r border-slate-200 transition-transform duration-300 ease-in-out lg:translate-x-0 print:hidden ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`w-[280px] bg-white text-slate-600 flex flex-col fixed h-full z-50 shadow-[4px_0_24px_rgba(0,0,0,0.02)] border-r border-slate-200 transition-transform duration-300 ease-in-out lg:translate-x-0 print:hidden ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         {/* Brand Area */}
         <div className="h-20 flex items-center justify-between gap-4 px-6 border-b border-slate-100 shrink-0 bg-white">
@@ -814,7 +819,7 @@ export default function DashboardLayout({
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 lg:ml-[280px] flex flex-col min-h-screen transition-all duration-300 w-full print:ml-0">
         {/* Glassmorphism Header */}
-        <header className="h-20 bg-white/70 backdrop-blur-xl border-b border-slate-200 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-10 print:hidden">
+        <header className="h-20 bg-white/70 backdrop-blur-xl border-b border-slate-200 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-30 print:hidden">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsSidebarOpen(true)}
@@ -970,7 +975,27 @@ export default function DashboardLayout({
         </header>
 
         <main className="flex-grow p-4 sm:p-8 overflow-x-hidden print:p-0 print:overflow-visible">
-          {children}
+          {isRouteForbidden ? (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6 bg-white rounded-3xl border border-slate-200 shadow-sm animate-in fade-in duration-300 my-auto">
+              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mb-4 border border-red-100 shadow-sm">
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-1.5">Akses Modul Dibatasi</h3>
+              <p className="text-sm text-slate-500 max-w-md mb-6 leading-relaxed">
+                Anda tidak memiliki hak akses untuk membuka modul <strong>"{activeNavItem?.name}"</strong>. Silakan hubungi Super Admin untuk mengaktifkan modul ini pada akun Anda.
+              </p>
+              <Link
+                href="/dashboard"
+                className="px-5 py-2.5 bg-blue-900 hover:bg-blue-950 text-white rounded-xl font-bold text-xs transition-all shadow-md"
+              >
+                Kembali ke Dashboard Utama
+              </Link>
+            </div>
+          ) : (
+            children
+          )}
         </main>
       </div>
     </div>

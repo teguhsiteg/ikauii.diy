@@ -494,325 +494,297 @@ export default function ValidasiAdminPage() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto animate-in fade-in duration-500">
-        {/* --- HEADER PREMIUM --- */}
-        <div className="mb-6 mt-4 border-b border-slate-200 pb-5">
-          <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1 rounded-full mb-3 uppercase tracking-widest border border-blue-200 shadow-sm">
-            <IconQR /> Tanda Tangan Elektronik
+      <div className="max-w-7xl mx-auto animate-in fade-in duration-500 space-y-6">
+        {/* --- HEADER --- */}
+        <div className="border-b border-slate-200 pb-4">
+          <div className="flex items-center gap-2 text-blue-700 text-xs font-bold uppercase tracking-widest mb-1">
+            <IconQR /> Tanda Tangan Elektronik (TTE)
           </div>
-          <h2 className="text-2xl font-medium text-slate-900 mb-1 tracking-tight">
-            Validasi & Otorisasi
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+            Validasi & Otorisasi Dokumen
           </h2>
-          <p className="text-slate-500 text-sm max-w-2xl">
-            Buat, bubuhkan, dan kelola QR Code validasi keaslian dokumen untuk
-            surat-surat dari sistem E-Office.
+          <p className="text-slate-500 text-sm mt-1">
+            Buat, bubuhkan, dan kelola QR Code validasi keaslian dokumen untuk surat-surat dari sistem E-Office.
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-12 gap-6 items-start">
-          {/* KOLOM KIRI (Form) */}
-          <div className="lg:col-span-4 space-y-6">
-            <div className="bg-white/90 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-slate-200">
-              <h3 className="font-semibold text-slate-800 mb-5 flex items-center gap-2">
-                Buat Segel QR Baru
-              </h3>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    Pilih Surat dari E-Office{" "}
-                    <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    required
-                    value={formData.nomorSurat}
-                    onChange={handlePilihSurat}
-                    className="w-full bg-white border border-slate-200 px-3 py-2.5 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 text-slate-800 transition-all"
-                  >
-                    <option value="">-- Pilih dari database E-Office --</option>
-                    {suratList.map((s) => (
-                      <option key={s.id} value={s.nomor}>
-                        {s.nomor} ({s.perihal.substring(0, 20)}...)
-                      </option>
-                    ))}
-                    {suratList.length === 0 && !isLoading && (
-                      <option value="" disabled>
-                        Semua surat telah diotentikasi
-                      </option>
-                    )}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    Subjek / Perihal Surat
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    value={formData.perihal}
-                    readOnly
-                    className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl text-sm outline-none text-slate-500 cursor-not-allowed"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    Otoritas Penandatangan{" "}
-                    <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    required
-                    value={formData.penandatangan}
-                    onChange={handlePilihPengurus}
-                    className="w-full bg-white border border-slate-200 px-3 py-2.5 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 text-slate-800 transition-all"
-                  >
-                    <option value="">-- Pilih Pengurus Berwenang --</option>
-                    {/* Fallback jika ada dari E-Office tapi tidak ada di list */}
-                    {formData.penandatangan && !pengurusList.some(p => p.nama === formData.penandatangan) && (
-                      <option value={formData.penandatangan}>{formData.penandatangan}</option>
-                    )}
-                    {pengurusList
-                      .filter((p) => p.nama)
-                      .map((p) => (
-                        <option key={p.id} value={p.nama}>
-                          {p.nama}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">
-                      Jabatan
-                    </label>
-                    <input
-                      required
-                      type="text"
-                      value={formData.jabatan}
-                      readOnly
-                      className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl text-sm outline-none text-slate-500 cursor-not-allowed"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">
-                      Tanggal Sah <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      required
-                      type="date"
-                      value={formData.tanggal}
-                      onChange={(e) =>
-                        setFormData({ ...formData, tanggal: e.target.value })
-                      }
-                      className="w-full bg-white border border-slate-200 px-3 py-2.5 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  disabled={isSubmitting || suratList.length === 0}
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-2.5 rounded-xl transition-all mt-4 shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
-                >
-                  {isSubmitting ? (
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  ) : (
-                    <>
-                      <IconPlus /> Generate TTE System
-                    </>
-                  )}
-                </button>
-              </form>
-            </div>
+        {/* --- FORM PANEL (TOP) --- */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80">
+          <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+            <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <IconPlus /> Buat Segel QR Validasi Baru
+            </h3>
+            <span className="text-xs text-slate-400 font-medium hidden sm:inline">
+              Pilih surat E-Office untuk diotentikasi secara elektronik
+            </span>
           </div>
 
-          {/* KOLOM KANAN (Daftar Dokumen QR) */}
-          <div className="lg:col-span-8">
-            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[500px]">
-              {/* Toolbar & Pagination */}
-              <div className="flex flex-col sm:flex-row justify-between items-center bg-slate-50/50 px-5 py-4 border-b border-slate-200 gap-3">
-                <div className="flex items-center gap-2 text-sm text-slate-500 font-medium">
-                  <span>Tampilkan:</span>
-                  <select
-                    value={itemsPerPage}
-                    onChange={(e) => {
-                      setItemsPerPage(
-                        e.target.value === "all"
-                          ? "all"
-                          : Number(e.target.value),
-                      );
-                    }}
-                    className="border border-slate-200 rounded-lg px-3 py-1.5 outline-none focus:border-blue-500 bg-white cursor-pointer"
-                  >
-                    <option value={5}>5 Baris</option>
-                    <option value={10}>10 Baris</option>
-                    <option value="all">Semua Data</option>
-                  </select>
-                </div>
-
-                {dokumenList.length > 0 && (
-                  <div className="flex items-center gap-4 text-sm text-slate-500 font-medium">
-                    <span>
-                      {itemsPerPage === "all"
-                        ? `1-${totalItems}`
-                        : `${(currentPage - 1) * (itemsPerPage as number) + 1}-${Math.min(currentPage * (itemsPerPage as number), totalItems)}`}{" "}
-                      dari {totalItems} Dokumen
-                    </span>
-                    {itemsPerPage !== "all" && (
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() =>
-                            setCurrentPage((p) => Math.max(1, p - 1))
-                          }
-                          disabled={currentPage === 1}
-                          className="p-1 hover:bg-slate-200 disabled:opacity-30 rounded text-slate-500 transition-colors"
-                        >
-                          <IconPrev />
-                        </button>
-                        <button
-                          onClick={() =>
-                            setCurrentPage((p) => Math.min(totalPages, p + 1))
-                          }
-                          disabled={currentPage === totalPages}
-                          className="p-1 hover:bg-slate-200 disabled:opacity-30 rounded text-slate-500 transition-colors"
-                        >
-                          <IconNext />
-                        </button>
-                      </div>
-                    )}
-                  </div>
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+            <div className="lg:col-span-2">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Pilih Surat E-Office <span className="text-red-500">*</span>
+              </label>
+              <select
+                required
+                value={formData.nomorSurat}
+                onChange={handlePilihSurat}
+                className="w-full bg-slate-50 border border-slate-200 px-3.5 py-2.5 rounded-xl text-sm outline-none focus:bg-white focus:border-blue-500 text-slate-800 transition-all cursor-pointer"
+              >
+                <option value="">-- Pilih dari database E-Office --</option>
+                {suratList.map((s) => (
+                  <option key={s.id} value={s.nomor}>
+                    {s.nomor} - {s.perihal}
+                  </option>
+                ))}
+                {suratList.length === 0 && !isLoading && (
+                  <option value="" disabled>
+                    Semua surat telah diotentikasi
+                  </option>
                 )}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Penandatangan <span className="text-red-500">*</span>
+              </label>
+              <select
+                required
+                value={formData.penandatangan}
+                onChange={handlePilihPengurus}
+                className="w-full bg-slate-50 border border-slate-200 px-3.5 py-2.5 rounded-xl text-sm outline-none focus:bg-white focus:border-blue-500 text-slate-800 transition-all cursor-pointer"
+              >
+                <option value="">-- Pilih Pengurus --</option>
+                {formData.penandatangan && !pengurusList.some((p) => p.nama === formData.penandatangan) && (
+                  <option value={formData.penandatangan}>{formData.penandatangan}</option>
+                )}
+                {pengurusList
+                  .filter((p) => p.nama)
+                  .map((p) => (
+                    <option key={p.id} value={p.nama}>
+                      {p.nama}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Tanggal Sah <span className="text-red-500">*</span>
+              </label>
+              <input
+                required
+                type="date"
+                value={formData.tanggal}
+                onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-200 px-3.5 py-2.5 rounded-xl text-sm outline-none focus:bg-white focus:border-blue-500 transition-all cursor-pointer"
+              />
+            </div>
+
+            <div>
+              <button
+                disabled={isSubmitting || suratList.length === 0}
+                type="submit"
+                className="w-full bg-blue-900 hover:bg-blue-950 text-white font-bold py-2.5 px-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm shadow-sm"
+              >
+                {isSubmitting ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                ) : (
+                  <>
+                    <IconPlus /> Generate QR
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+
+          {formData.perihal && (
+            <div className="mt-3 pt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-500 border-t border-slate-100">
+              <span>
+                <strong className="text-slate-700">Perihal:</strong> {formData.perihal}
+              </span>
+              {formData.jabatan && (
+                <span>
+                  <strong className="text-slate-700">Jabatan:</strong> {formData.jabatan}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* --- DAFTAR DOKUMEN (FULL WIDTH TABLE) --- */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden">
+          {/* Toolbar & Pagination Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-center bg-slate-50/70 px-6 py-3.5 border-b border-slate-200 gap-3">
+            <h3 className="font-bold text-slate-800 text-sm">Repositori QR Validasi TTE</h3>
+
+            <div className="flex items-center gap-4 text-xs text-slate-600 font-medium">
+              <div className="flex items-center gap-2">
+                <span>Tampilkan:</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) =>
+                    setItemsPerPage(e.target.value === "all" ? "all" : Number(e.target.value))
+                  }
+                  className="border border-slate-200 rounded-lg px-2.5 py-1 outline-none bg-white cursor-pointer"
+                >
+                  <option value={5}>5 Baris</option>
+                  <option value={10}>10 Baris</option>
+                  <option value="all">Semua Data</option>
+                </select>
               </div>
 
-              {isLoading ? (
-                <div className="flex-1 flex justify-center items-center p-20">
-                  <div className="w-8 h-8 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
-                </div>
-              ) : dokumenList.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center p-20 opacity-60">
-                  <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-4">
-                    <IconQR />
-                  </div>
-                  <h3 className="font-medium text-slate-800 text-lg">
-                    Repositori Kosong
-                  </h3>
-                  <p className="text-sm text-slate-500 mt-1 text-center max-w-xs">
-                    Gunakan formulir untuk membuat QR pertama Anda.
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto flex-1 bg-white">
-                  <table className="w-full text-left border-collapse whitespace-nowrap">
-                    <thead>
-                      <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 text-xs font-semibold uppercase tracking-wider">
-                        <th className="px-6 py-4 w-28">Visual QR</th>
-                        <th className="px-6 py-4">Informasi Dokumen</th>
-                        <th className="px-6 py-4 text-center">Status</th>
-                        <th className="px-6 py-4 text-right">Tindakan</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {displayedDokumen.map((doc) => {
-                        const validationUrl = `${baseUrl}/verifttd/${doc.id}`;
-                        return (
-                          <tr
-                            key={doc.id}
-                            className="hover:bg-slate-50 transition-colors group"
-                          >
-                            <td className="px-6 py-5 align-top">
-                              <div className="bg-white p-2 border border-slate-200 rounded-xl inline-block shadow-sm group-hover:shadow-md transition-all">
-                                <QRCodeCanvas
-                                  id={`qr-${doc.id}`}
-                                  value={validationUrl}
-                                  size={64}
-                                  level={"H"}
-                                  includeMargin={true}
-                                />
-                              </div>
-                            </td>
-                            <td className="px-6 py-5 align-top">
-                              <div className="font-semibold text-blue-700 text-sm mb-1">
-                                {doc.nomorSurat}
-                              </div>
-                              <div className="text-sm text-slate-800 mb-2 truncate max-w-xs md:max-w-sm">
-                                {doc.perihal}
-                              </div>
-                              <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100">
-                                <span className="font-semibold text-slate-700">Otoritas:</span>{" "}
-                                {doc.penandatangan} <br />
-                                <span className="font-semibold text-slate-700 mt-1 inline-block">
-                                  Disahkan:
-                                </span>{" "}
-                                {doc.tanggal}
-                              </div>
-                            </td>
-                            <td className="px-6 py-5 align-top text-center">
-                              {doc.isAttached ? (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold uppercase tracking-widest shadow-sm">
-                                  Telah Dibubuhkan
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold uppercase tracking-widest shadow-sm">
-                                  Belum Dibubuhkan
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-6 py-5 align-top text-right">
-                              <div className="flex flex-col gap-2 items-end">
-                                <div className="flex gap-2">
-                                  {!doc.isAttached ? (
-                                    <button
-                                      onClick={() => handleBubuhkanQR(doc)}
-                                      title="Bubuhkan ke Surat E-Office"
-                                      className="p-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-100 flex items-center gap-2 text-xs font-semibold shadow-sm"
-                                    >
-                                      <IconAttach /> Pasang
-                                    </button>
-                                  ) : (
-                                    <button
-                                      onClick={() => handleCabutValidasi(doc)}
-                                      title="Cabut Validasi"
-                                      className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors border border-amber-100 flex items-center gap-2 text-xs font-semibold shadow-sm"
-                                    >
-                                      <IconDetach /> Cabut
-                                    </button>
-                                  )}
-                                </div>
-                                <div className="flex gap-2 mt-1">
-                                  <button
-                                    onClick={() =>
-                                      downloadQR(doc.id, doc.nomorSurat)
-                                    }
-                                    title="Download Gambar QR"
-                                    className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-lg transition-colors flex items-center gap-2 text-xs font-semibold shadow-sm"
-                                  >
-                                    <IconDownload /> Unduh
-                                  </button>
-                                  {!doc.isAttached && (
-                                    <button
-                                      onClick={() =>
-                                        handleDeleteQR(doc.id, doc.nomorSurat)
-                                      }
-                                      title="Hapus Permanen QR"
-                                      className="p-2 text-red-500 bg-red-50 hover:bg-red-100 border border-red-100 rounded-lg transition-colors flex items-center gap-2 text-xs font-semibold shadow-sm"
-                                    >
-                                      <IconTrash /> Hapus
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+              {dokumenList.length > 0 && (
+                <div className="flex items-center gap-3">
+                  <span>
+                    {itemsPerPage === "all"
+                      ? `1-${totalItems}`
+                      : `${(currentPage - 1) * (itemsPerPage as number) + 1}-${Math.min(currentPage * (itemsPerPage as number), totalItems)}`}{" "}
+                    dari {totalItems} Dokumen
+                  </span>
+                  {itemsPerPage !== "all" && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="p-1 hover:bg-slate-200 disabled:opacity-30 rounded text-slate-600 transition-colors"
+                      >
+                        <IconPrev />
+                      </button>
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="p-1 hover:bg-slate-200 disabled:opacity-30 rounded text-slate-600 transition-colors"
+                      >
+                        <IconNext />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </div>
+
+          {/* Table Container */}
+          {isLoading ? (
+            <div className="flex justify-center items-center p-16">
+              <div className="w-8 h-8 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
+            </div>
+          ) : dokumenList.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-16 opacity-60">
+              <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-3">
+                <IconQR />
+              </div>
+              <h3 className="font-bold text-slate-800 text-base">Repositori Kosong</h3>
+              <p className="text-xs text-slate-500 mt-1 text-center max-w-xs">
+                Gunakan formulir di atas untuk membuat QR Validasi TTE pertama Anda.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                    <th className="px-6 py-3.5 w-24">QR</th>
+                    <th className="px-6 py-3.5">Nomor & Perihal Surat</th>
+                    <th className="px-6 py-3.5">Penandatangan</th>
+                    <th className="px-6 py-3.5">Disahkan</th>
+                    <th className="px-6 py-3.5 text-center">Status</th>
+                    <th className="px-6 py-3.5 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-sm">
+                  {displayedDokumen.map((doc) => {
+                    const validationUrl = `${baseUrl}/verifttd/${doc.id}`;
+                    return (
+                      <tr key={doc.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="px-6 py-4 align-middle">
+                          <QRCodeCanvas
+                            id={`qr-${doc.id}`}
+                            value={validationUrl}
+                            size={56}
+                            level={"H"}
+                            includeMargin={false}
+                          />
+                        </td>
+                        <td className="px-6 py-4 align-middle">
+                          <div className="font-bold text-blue-900 text-sm">
+                            {doc.nomorSurat}
+                          </div>
+                          <div className="text-xs text-slate-600 mt-0.5 line-clamp-1 max-w-md">
+                            {doc.perihal}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 align-middle">
+                          <div className="font-semibold text-slate-800 text-xs">
+                            {doc.penandatangan}
+                          </div>
+                          {doc.jabatan && (
+                            <div className="text-[11px] text-slate-400">
+                              {doc.jabatan}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 align-middle whitespace-nowrap text-xs text-slate-600">
+                          {doc.tanggal}
+                        </td>
+                        <td className="px-6 py-4 align-middle text-center whitespace-nowrap">
+                          {doc.isAttached ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              Telah Dibubuhkan
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-bold">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                              Belum Dibubuhkan
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 align-middle text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-2">
+                            {!doc.isAttached ? (
+                              <button
+                                onClick={() => handleBubuhkanQR(doc)}
+                                title="Bubuhkan ke Surat E-Office"
+                                className="px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200 flex items-center gap-1.5"
+                              >
+                                <IconAttach /> Pasang
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleCabutValidasi(doc)}
+                                title="Cabut Validasi"
+                                className="px-3 py-1.5 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors border border-amber-200 flex items-center gap-1.5"
+                              >
+                                <IconDetach /> Cabut
+                              </button>
+                            )}
+                            <button
+                              onClick={() => downloadQR(doc.id, doc.nomorSurat)}
+                              title="Download Gambar QR"
+                              className="px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200 flex items-center gap-1.5"
+                            >
+                              <IconDownload /> Unduh
+                            </button>
+                            {!doc.isAttached && (
+                              <button
+                                onClick={() => handleDeleteQR(doc.id, doc.nomorSurat)}
+                                title="Hapus Permanen QR"
+                                className="px-2.5 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-1"
+                              >
+                                <IconTrash />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>

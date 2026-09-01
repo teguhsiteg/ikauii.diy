@@ -466,14 +466,12 @@ export default function AdminInvoicePage() {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-12 gap-8 items-start">
-        {/* ======================================================== */}
-        {/* KOLOM KIRI: FORM GENERATOR (WORKSPACE STYLE) */}
-        {/* ======================================================== */}
-        <div className="lg:col-span-5">
-          <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-[#DADCE0] sticky top-24">
-            <div className="flex items-center gap-3 mb-6 border-b border-[#DADCE0] pb-4">
-              <div className="w-10 h-10 bg-[#E8F0FE] text-[#1A73E8] rounded-full flex items-center justify-center shrink-0">
+      <div className="grid grid-cols-1 gap-6 items-start">
+        {/* FORM PANEL (TOP) */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div className="flex items-center justify-between pb-3 mb-5 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-blue-50 text-blue-700 rounded-xl flex items-center justify-center font-bold text-sm">
                 <svg
                   className="w-5 h-5"
                   fill="none"
@@ -488,16 +486,21 @@ export default function AdminInvoicePage() {
                   />
                 </svg>
               </div>
-              <h2 className="font-medium text-[#202124] text-lg">
+              <h2 className="font-bold text-slate-800 text-base">
                 Buat Invoice Baru
               </h2>
             </div>
+            <span className="text-xs text-slate-400 font-medium hidden sm:inline">
+              Cetak invoice penagihan resmi ber-QR Code
+            </span>
+          </div>
 
-            <form onSubmit={handleGenerate} className="space-y-5">
+          <form onSubmit={handleGenerate} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* SMART SEARCH EVENT/KATEGORI */}
-              <div className="sm:col-span-2 relative">
-                <label className="block text-[11px] font-bold text-[#5F6368] uppercase tracking-widest mb-1.5">
-                  Kategori / Event Invoice
+              <div className="relative">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Kategori / Event Invoice <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <input
@@ -512,11 +515,11 @@ export default function AdminInvoicePage() {
                     onBlur={() =>
                       setTimeout(() => setShowEventDropdown(false), 200)
                     }
-                    placeholder="Ketik untuk mencari atau input manual..."
-                    className="w-full pl-4 pr-10 py-2.5 bg-[#F8F9FA] border border-[#DADCE0] focus:border-[#1A73E8] focus:bg-white rounded-lg outline-none font-medium text-[#202124] transition-colors placeholder:text-[#9AA0A6] placeholder:font-normal text-sm"
+                    placeholder="Ketik untuk mencari..."
+                    className="w-full pl-3.5 pr-9 py-2.5 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-xl outline-none font-medium text-slate-800 transition-colors text-sm"
                   />
                   <svg
-                    className={`w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-[#5F6368] transition-transform ${showEventDropdown ? "rotate-180" : ""}`}
+                    className={`w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-transform ${showEventDropdown ? "rotate-180" : ""}`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -531,7 +534,7 @@ export default function AdminInvoicePage() {
                 </div>
 
                 {showEventDropdown && (
-                  <div className="absolute z-20 w-full mt-1 bg-white border border-[#DADCE0] rounded-lg shadow-lg max-h-48 overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-1 py-1">
+                  <div className="absolute z-30 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar py-1">
                     {prokerList
                       .filter((p) =>
                         p.namaKegiatan
@@ -548,12 +551,12 @@ export default function AdminInvoicePage() {
                             });
                             setShowEventDropdown(false);
                           }}
-                          className="px-4 py-2 hover:bg-[#F8F9FA] cursor-pointer text-sm font-medium text-[#202124]"
+                          className="px-4 py-2 hover:bg-slate-50 cursor-pointer text-sm font-medium text-slate-800"
                         >
                           {p.namaKegiatan}
                         </div>
                       ))}
-                    <div className="px-4 py-1.5 mt-1 bg-[#F8F9FA] text-[10px] font-bold text-[#5F6368] uppercase tracking-widest sticky top-0 border-y border-[#DADCE0]">
+                    <div className="px-4 py-1.5 mt-1 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-widest sticky top-0 border-y border-slate-200">
                       Kategori Umum
                     </div>
                     {[
@@ -574,7 +577,7 @@ export default function AdminInvoicePage() {
                             setFormData({ ...formData, jenisEvent: e });
                             setShowEventDropdown(false);
                           }}
-                          className="px-4 py-2 hover:bg-[#F8F9FA] cursor-pointer text-sm font-medium text-[#202124]"
+                          className="px-4 py-2 hover:bg-slate-50 cursor-pointer text-sm font-medium text-slate-800"
                         >
                           {e}
                         </div>
@@ -584,8 +587,8 @@ export default function AdminInvoicePage() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#5F6368] uppercase tracking-widest mb-1.5">
-                  Telah Terima Dari
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Ditagihkan Kepada <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -595,49 +598,50 @@ export default function AdminInvoicePage() {
                     setFormData({ ...formData, tagihanKepada: e.target.value })
                   }
                   placeholder="Nama Lengkap / Instansi"
-                  className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-[#DADCE0] focus:border-[#1A73E8] focus:bg-white rounded-lg outline-none font-medium text-[#202124] transition-colors placeholder:text-[#9AA0A6] placeholder:font-normal text-sm"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-xl outline-none font-medium text-slate-800 transition-colors text-sm"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[11px] font-bold text-[#5F6368] uppercase tracking-widest mb-1.5">
-                    Nominal Uang (Rp)
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={formData.nominal}
-                    onChange={(e) =>
-                      setFormData({ ...formData, nominal: e.target.value })
-                    }
-                    placeholder="Contoh: 1500000"
-                    className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-[#DADCE0] focus:border-[#1A73E8] focus:bg-white rounded-lg outline-none font-mono font-bold text-[#1A73E8] transition-colors placeholder:text-[#9AA0A6] placeholder:font-normal text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-[#5F6368] uppercase tracking-widest mb-1.5">
-                    Tanggal Terima
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.tanggalPenerimaan}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        tanggalPenerimaan: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-[#DADCE0] focus:border-[#1A73E8] focus:bg-white rounded-lg outline-none font-medium text-[#202124] transition-colors text-sm"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Nominal Tagihan (Rp) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={formData.nominal}
+                  onChange={(e) =>
+                    setFormData({ ...formData, nominal: e.target.value })
+                  }
+                  placeholder="Contoh: 1500000"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-xl outline-none font-mono font-bold text-blue-700 transition-colors text-sm"
+                />
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Tanggal Tagihan <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={formData.tanggalPenerimaan}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      tanggalPenerimaan: e.target.value,
+                    })
+                  }
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-xl outline-none font-medium text-slate-800 transition-colors text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
               {/* SMART SEARCH PENANDATANGAN */}
-              <div className="relative">
-                <label className="block text-[11px] font-bold text-[#5F6368] uppercase tracking-widest mb-1.5">
-                  Otoritas Penandatangan
+              <div className="relative md:col-span-1">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Otoritas Penandatangan <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <input
@@ -656,10 +660,10 @@ export default function AdminInvoicePage() {
                       setTimeout(() => setShowSignerDropdown(false), 200)
                     }
                     placeholder="Ketik untuk mencari nama..."
-                    className="w-full pl-4 pr-10 py-2.5 bg-[#F8F9FA] border border-[#DADCE0] focus:border-[#1A73E8] focus:bg-white rounded-lg outline-none font-medium text-[#202124] transition-colors placeholder:text-[#9AA0A6] placeholder:font-normal text-sm"
+                    className="w-full pl-3.5 pr-9 py-2.5 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-xl outline-none font-medium text-slate-800 transition-colors text-sm"
                   />
                   <svg
-                    className={`w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-[#5F6368] transition-transform ${showSignerDropdown ? "rotate-180" : ""}`}
+                    className={`w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-transform ${showSignerDropdown ? "rotate-180" : ""}`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -674,7 +678,7 @@ export default function AdminInvoicePage() {
                 </div>
 
                 {showSignerDropdown && (
-                  <div className="absolute z-20 w-full mt-1 bg-white border border-[#DADCE0] rounded-lg shadow-lg max-h-48 overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-1 py-1">
+                  <div className="absolute z-30 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar py-1">
                     {pengurusList
                       .filter(
                         (p) =>
@@ -693,53 +697,41 @@ export default function AdminInvoicePage() {
                             });
                             setShowSignerDropdown(false);
                           }}
-                          className="px-4 py-2 hover:bg-[#F8F9FA] cursor-pointer flex flex-col"
+                          className="px-4 py-2 hover:bg-slate-50 cursor-pointer flex flex-col"
                         >
-                          <span className="text-sm font-medium text-[#202124]">
+                          <span className="text-sm font-medium text-slate-800">
                             {p.nama}
                           </span>
-                          <span className="text-[10px] text-[#5F6368]">
+                          <span className="text-[10px] text-slate-500">
                             {p.jabatan || "Pengurus"}
                           </span>
                         </div>
                       ))}
-                    {pengurusList.filter(
-                      (p) =>
-                        p.nama &&
-                        p.nama
-                          .toLowerCase()
-                          .includes(formData.penandatangan.toLowerCase()),
-                    ).length === 0 && (
-                      <div className="px-4 py-2 text-xs text-[#9AA0A6] italic">
-                        Pencarian tidak ditemukan. Anda tetap bisa menggunakan
-                        ketikan ini.
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-[#5F6368] uppercase tracking-widest mb-1.5">
-                  Guna Pembayaran
+              <div className="md:col-span-1">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Rincian Invoice <span className="text-red-500">*</span>
                 </label>
-                <textarea
+                <input
+                  type="text"
                   required
                   value={formData.keterangan}
                   onChange={(e) =>
                     setFormData({ ...formData, keterangan: e.target.value })
                   }
-                  rows={3}
-                  placeholder="Jelaskan rincian pembayaran..."
-                  className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-[#DADCE0] focus:border-[#1A73E8] focus:bg-white rounded-lg outline-none font-medium text-[#202124] transition-colors resize-none custom-scrollbar placeholder:text-[#9AA0A6] placeholder:font-normal text-sm"
-                ></textarea>
+                  placeholder="Jelaskan rincian tagihan..."
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-xl outline-none font-medium text-slate-800 transition-colors text-sm"
+                />
               </div>
 
-              <div className="pt-2">
+              <div className="md:col-span-1">
                 <button
                   type="submit"
                   disabled={isGenerating}
-                  className="w-full bg-[#1A73E8] hover:bg-[#1557B0] text-white font-medium py-3 rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full bg-blue-900 hover:bg-blue-950 text-white font-bold py-2.5 px-4 rounded-xl transition-all shadow-sm disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
                 >
                   {isGenerating ? (
                     <>
@@ -762,93 +754,97 @@ export default function AdminInvoicePage() {
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                         ></path>
                       </svg>{" "}
-                      Memproses HD Canvas...
+                      Memproses...
                     </>
                   ) : (
                     <>Cetak Invoice Resmi</>
                   )}
                 </button>
               </div>
-            </form>
-          </div>
+            </div>
+          </form>
         </div>
 
-        {/* ======================================================== */}
-        {/* KOLOM KANAN: RIWAYAT INVOICE (WORKSPACE STYLE) */}
-        {/* ======================================================== */}
-        <div className="lg:col-span-7">
-          <div className="bg-white rounded-2xl shadow-sm border border-[#DADCE0] overflow-hidden flex flex-col h-full">
-            {/* HEADER & CONTROLS */}
-            <div className="p-5 border-b border-[#DADCE0] bg-[#F8F9FA] flex flex-col gap-4 relative z-10">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="font-medium text-[#202124] text-lg">
-                    Riwayat Invoice
-                  </h2>
-                </div>
-                <div className="text-xs font-medium text-[#1A73E8] bg-[#E8F0FE] px-3 py-1 rounded border border-[#1A73E8]/20">
-                  Total: {filteredInvoice.length} Dokumen
-                </div>
-              </div>
-
-              {/* PENCARIAN & PAGINASI FILTER */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <svg
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5F6368]"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                  <input
-                    type="text"
-                    placeholder="Cari nama, event, atau nominal..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 border border-[#DADCE0] rounded-lg text-sm bg-white focus:outline-none focus:border-[#1A73E8] transition-colors"
-                  />
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[11px] font-bold text-[#5F6368] uppercase tracking-widest">
-                    Tampilkan:
-                  </span>
-                  <select
-                    value={itemsPerPage}
-                    onChange={(e) =>
-                      setItemsPerPage(
-                        e.target.value === "Semua"
-                          ? "Semua"
-                          : Number(e.target.value),
-                      )
-                    }
-                    className="bg-white border border-[#DADCE0] py-2 px-2 rounded-lg text-xs font-medium text-[#202124] focus:border-[#1A73E8] outline-none cursor-pointer"
-                  >
-                    <option value={5}>5</option>
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value="Semua">Semua</option>
-                  </select>
-                </div>
-              </div>
+        {/* FULL WIDTH TABLE */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm">
+          {/* HEADER & CONTROLS */}
+          <div className="p-4 border-b border-slate-200 bg-slate-50/70 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-3">
+              <h2 className="font-bold text-slate-800 text-sm">
+                Riwayat Invoice Organisasi
+              </h2>
+              <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
+                {filteredInvoice.length} Dokumen
+              </span>
             </div>
 
-            {/* LIST INVOICE */}
-            <div className="p-5 flex-grow overflow-y-auto custom-scrollbar bg-white">
-              {currentData.length === 0 ? (
-                <div className="text-center py-20 bg-[#F8F9FA] rounded-xl border border-[#DADCE0] text-[#5F6368] text-sm">
-                  {searchQuery
-                    ? "Tidak ditemukan invoice dengan kata kunci tersebut."
-                    : "Belum ada riwayat pembuatan invoice."}
-                </div>
-              ) : (
-                <div className="space-y-4">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-64">
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Cari nama, event, nominal..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:border-blue-500 transition-colors"
+                />
+              </div>
+              <div className="flex items-center gap-2 shrink-0 text-xs text-slate-600">
+                <span>Tampilkan:</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) =>
+                    setItemsPerPage(
+                      e.target.value === "Semua"
+                        ? "Semua"
+                        : Number(e.target.value),
+                    )
+                  }
+                  className="bg-white border border-slate-200 py-1 px-2 rounded-lg text-xs font-medium focus:border-blue-500 outline-none cursor-pointer"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value="Semua">Semua</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* LIST TABLE */}
+          {currentData.length === 0 ? (
+            <div className="text-center py-16 text-slate-500 text-sm">
+              {searchQuery
+                ? "Tidak ditemukan invoice dengan kata kunci tersebut."
+                : "Belum ada riwayat pembuatan invoice."}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                    <th className="px-5 py-3.5 w-12 text-center">#</th>
+                    <th className="px-5 py-3.5">Kode Invoice</th>
+                    <th className="px-5 py-3.5">Ditagihkan Kepada & Event</th>
+                    <th className="px-5 py-3.5">Nominal Tagihan</th>
+                    <th className="px-5 py-3.5">Rincian Tagihan</th>
+                    <th className="px-5 py-3.5">Tanggal</th>
+                    <th className="px-5 py-3.5 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-sm">
                   {currentData.map((invoice, index) => {
                     const noUrut =
                       itemsPerPage === "Semua"
@@ -858,172 +854,86 @@ export default function AdminInvoicePage() {
                           1;
 
                     return (
-                      <div
-                        key={invoice.id}
-                        className="bg-white p-5 rounded-xl border border-[#DADCE0] hover:bg-[#F8F9FA] transition-colors group relative animate-in fade-in slide-in-from-top-1"
-                      >
-                        {/* BADGES KANAN ATAS (NO URUT & KODE INVOICE) */}
-                        <div className="absolute top-4 right-4 flex items-center gap-1.5">
-                          <div className="bg-[#E8F0FE] text-[#1A73E8] font-mono text-[10px] font-bold px-2 py-1 rounded border border-[#1A73E8]/20">
-                            #{noUrut}
-                          </div>
-                          <div className="bg-[#F8F9FA] text-[#5F6368] font-mono text-[10px] font-bold px-2.5 py-1 rounded border border-[#DADCE0]">
-                            KUIT-{invoice.id.substring(0, 6).toUpperCase()}
-                          </div>
-                        </div>
-
-                        <div className="pr-36">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="w-2 h-2 bg-[#1E8E3E] rounded-full"></span>
-                            <p className="text-[10px] font-bold text-[#1A73E8] uppercase tracking-widest">
-                              {invoice.jenisEvent}
-                            </p>
-                          </div>
-                          <h3 className="font-medium text-[#202124] text-lg mb-1 leading-tight">
+                      <tr key={invoice.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="px-5 py-4 text-center font-mono text-xs font-bold text-slate-400">
+                          {noUrut}
+                        </td>
+                        <td className="px-5 py-4 font-mono font-bold text-xs text-blue-900 whitespace-nowrap">
+                          INV-{invoice.id.substring(0, 6).toUpperCase()}
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="font-bold text-slate-800 text-sm">
                             {invoice.tagihanKepada}
-                          </h3>
-                          <p className="text-xl font-bold text-[#202124] mb-4">
-                            Rp {invoice.nominal.toLocaleString("id-ID")}
-                          </p>
-
-                          <div className="flex flex-wrap gap-x-6 gap-y-3 text-[11px] mb-5 bg-[#F8F9FA] p-3 rounded-lg border border-[#DADCE0]">
-                            <div>
-                              <span className="block font-bold text-[#5F6368] uppercase mb-0.5 tracking-wider text-[9px]">
-                                Tgl Terima Uang
-                              </span>
-                              <span className="font-medium text-[#202124] flex items-center gap-1.5">
-                                <svg
-                                  className="w-3 h-3 text-[#5F6368]"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                  />
-                                </svg>
-                                {new Date(
-                                  invoice.tanggalPenerimaan,
-                                ).toLocaleDateString("id-ID", {
-                                  day: "numeric",
-                                  month: "short",
-                                  year: "numeric",
-                                })}
-                              </span>
-                            </div>
-                            <div className="border-l border-[#DADCE0] pl-6">
-                              <span className="block font-bold text-[#5F6368] uppercase mb-0.5 tracking-wider text-[9px]">
-                                Bendahara Umum (TTD)
-                              </span>
-                              <span className="font-medium text-[#202124] flex items-center gap-1.5">
-                                <svg
-                                  className="w-3 h-3 text-[#5F6368]"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                  />
-                                </svg>
-                                {invoice.penandatangan.split(" (")[0]}
-                              </span>
-                            </div>
                           </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 pt-4 border-t border-[#DADCE0]">
-                          <button
-                            onClick={() => handleRedownload(invoice)}
-                            className="flex-1 bg-white border border-[#DADCE0] text-[#5F6368] hover:bg-[#F8F9FA] hover:text-[#1A73E8] font-medium py-2 px-3 rounded text-[11px] transition-colors flex items-center justify-center gap-1.5"
-                          >
-                            <svg
-                              className="w-3.5 h-3.5"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
+                          <div className="text-xs text-blue-600 font-medium">
+                            {invoice.jenisEvent}
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 font-mono font-bold text-slate-900 whitespace-nowrap">
+                          Rp {invoice.nominal.toLocaleString("id-ID")}
+                        </td>
+                        <td className="px-5 py-4 text-xs text-slate-600 max-w-xs truncate">
+                          {invoice.keterangan}
+                        </td>
+                        <td className="px-5 py-4 text-xs text-slate-600 whitespace-nowrap">
+                          {invoice.tanggalPenerimaan}
+                        </td>
+                        <td className="px-5 py-4 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleRedownload(invoice)}
+                              className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-bold transition-colors border border-blue-200"
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                              />
-                            </svg>
-                            Download HD
-                          </button>
-                          <button
-                            onClick={() => handleKirimWA(invoice)}
-                            className="flex-1 bg-[#1E8E3E] hover:bg-[#137333] text-white font-medium py-2 px-3 rounded text-[11px] transition-colors flex items-center justify-center gap-1.5"
-                          >
-                            <svg
-                              className="w-3.5 h-3.5"
-                              fill="currentColor"
-                              viewBox="0 0 24 24"
+                              Unduh HD
+                            </button>
+                            <button
+                              onClick={() => handleKirimWA(invoice)}
+                              className="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-bold transition-colors border border-emerald-200"
                             >
-                              <path d="M12.031 21.031c-1.897 0-3.694-.482-5.263-1.341l-5.834 1.534 1.564-5.69c-.939-1.62-1.436-3.483-1.436-5.434C1.062 4.475 8.536-3 17.5-3S33.938 4.475 33.938 13.438 26.464 29.912 17.5 29.912c-1.921 0-3.76-.486-5.36-1.378l-5.856 1.54 1.57-5.712c-.958-1.644-1.464-3.535-1.464-5.524 0-8.963-7.474-16.438-16.438-16.438zM17.5 1.5C10.925 1.5 5.562 6.862 5.562 13.438c0 2.115.556 4.148 1.614 5.922l.169.284-1.026 3.733 3.821-1.004.292.173c1.727 1.023 3.693 1.565 5.768 1.565 6.575 0 11.938-5.362 11.938-11.938 0-6.575-5.362-11.938-11.938-11.938zm6.541 16.275c-.358-.18-2.122-1.047-2.45-1.168-.328-.12-.567-.18-.806.18-.239.36-.926 1.168-1.135 1.408-.209.24-.418.27-.776.09-.358-.18-1.515-.558-2.881-1.776-1.063-.948-1.782-2.122-1.991-2.482-.209-.36-.022-.555.157-.735.161-.162.358-.42.537-.63.18-.21.239-.36.358-.6.12-.24.06-.45-.03-.63-.09-.18-.806-1.944-1.104-2.66-.291-.698-.586-.603-.806-.615-.209-.012-.448-.012-.687-.012-.239 0-.627.09-.955.45-.328.36-1.254 1.23-1.254 3.003 0 1.773 1.284 3.486 1.463 3.726.18.24 2.54 3.882 6.155 5.433.861.37 1.533.592 2.057.758.865.275 1.651.236 2.274.143.698-.105 2.122-.87 2.42-1.713.299-.843.299-1.563.209-1.713-.09-.15-.328-.24-.686-.42z" />
-                            </svg>
-                            Kirim WA
-                          </button>
-                          <button
-                            onClick={() => handleDelete(invoice.id)}
-                            className="px-3 bg-white border border-[#DADCE0] text-[#D93025] hover:bg-[#FCE8E6] hover:border-[#FAD2CF] rounded transition-colors flex items-center justify-center"
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
+                              Kirim WA
+                            </button>
+                            <button
+                              onClick={() => handleDelete(invoice.id)}
+                              className="px-2 py-1.5 text-red-500 hover:bg-red-50 rounded-lg text-xs font-bold transition-colors"
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
+                              Hapus
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
                     );
                   })}
-                </div>
-              )}
+                </tbody>
+              </table>
             </div>
+          )}
 
-            {/* CONTROLS PAGINASI FOOTER */}
-            {itemsPerPage !== "Semua" && totalPages > 1 && (
-              <div className="flex items-center justify-between px-5 py-4 border-t border-[#DADCE0] bg-[#F8F9FA]">
-                <div className="text-xs font-medium text-[#5F6368]">
-                  Hal {currentPage} dari {totalPages}
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1.5 border border-[#DADCE0] rounded bg-white text-[#5F6368] hover:bg-[#F8F9FA] hover:text-[#1A73E8] disabled:opacity-50 transition-colors text-xs font-medium"
-                  >
-                    Prev
-                  </button>
-                  <button
-                    onClick={() =>
-                      setCurrentPage((p) => Math.min(totalPages, p + 1))
-                    }
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1.5 border border-[#DADCE0] rounded bg-white text-[#5F6368] hover:bg-[#F8F9FA] hover:text-[#1A73E8] disabled:opacity-50 transition-colors text-xs font-medium"
-                  >
-                    Next
-                  </button>
-                </div>
+          {/* CONTROLS PAGINASI FOOTER */}
+          {itemsPerPage !== "Semua" && totalPages > 1 && (
+            <div className="flex items-center justify-between px-5 py-3 border-t border-slate-200 bg-slate-50/70">
+              <div className="text-xs font-medium text-slate-500">
+                Hal {currentPage} dari {totalPages}
               </div>
-            )}
-          </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors text-xs font-medium"
+                >
+                  Prev
+                </button>
+                <button
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors text-xs font-medium"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
