@@ -34,3 +34,10 @@
 [debug] [2026-08-29T13:47:29.875Z] Checked if tokens are valid: true, expires at: 1788014843035
 [debug] [2026-08-29T13:47:29.876Z] Checked if tokens are valid: true, expires at: 1788014843035
 [debug] [2026-08-29T13:47:29.876Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/suratdigitalv2/sites pageToken=&pageSize=10
+[debug] [2026-08-29T13:47:31.056Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/suratdigitalv2/sites 200
+[debug] [2026-08-29T13:47:31.056Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/suratdigitalv2/sites {"sites":[{"name":"projects/suratdigitalv2/sites/dpw-ikadiy","defaultUrl":"https://dpw-ikadiy.web.app","appId":"1:46792735306:web:ababc2cec51a774cbe84b3","type":"USER_SITE"},{"name":"projects/suratdigitalv2/sites/suratdigitalv2","defaultUrl":"https://suratdigitalv2.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2026-08-29T13:47:31.057Z] Checked if tokens are valid: true, expires at: 1788014843035
+[debug] [2026-08-29T13:47:31.057Z] Checked if tokens are valid: true, expires at: 1788014843035
+[debug] [2026-08-29T13:47:31.057Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/-/webApps/1:46792735306:web:ababc2cec51a774cbe84b3/config [none]
+[debug] [2026-08-29T13:47:32.601Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/-/webApps/1:46792735306:web:ababc2cec51a774cbe84b3/config 200
+[debug] [2026-08-29T13:47:32.601Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/-/webApps/1:46792735306:web:ababc2cec51a774cbe84b3/config {"projectId":"suratdigitalv2","appId":"1:46792735306:web:ababc2cec51a774cbe84b3","storageBucket":"suratdigitalv2.firebasestorage.app","apiKey":"AIzaSyB_oBi8xCjwk0Tj__FhKjjVpBIDKT0aY3Y","authDomain":"suratdigitalv2.firebaseapp.com","messagingSenderId":"46792735306","measurementId":"G-0HFMKYDPM6","projectNumber":"46792735306","version":"2"}
