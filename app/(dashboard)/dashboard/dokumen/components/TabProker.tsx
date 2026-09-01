@@ -79,6 +79,8 @@ export default function TabProker({
         return "bg-yellow-50 text-yellow-600 border-yellow-200 animate-pulse";
       case "Selesai Lancar":
         return "bg-green-50 text-green-600 border-green-200";
+      case "Dibatalkan":
+        return "bg-red-50 text-red-600 border-red-200";
       default:
         return "bg-slate-50 text-slate-500 border-slate-200";
     }

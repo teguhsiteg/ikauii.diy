@@ -37,7 +37,13 @@ interface ProkerPayload {
   ketuaOC: string;
   wakilKetuaOC: string;
   sekretaris: string;
+  wakilSekretaris1?: string;
+  wakilSekretaris2?: string;
+  wakilSekretaris3?: string;
   bendahara: string;
+  wakilBendahara1?: string;
+  wakilBendahara2?: string;
+  wakilBendahara3?: string;
   divisi: Divisi[];
   fileProposal: string;
   fileLaporan: string;
@@ -376,6 +382,81 @@ const SuratTugasTemplate = ({ printData }: { printData: ProkerPayload }) => {
                     </td>
                   </tr>
                 )}
+                {printData.wakilSekretaris1 && (
+                  <tr style={{ pageBreakInside: "avoid" }}>
+                    <td style={{ verticalAlign: "top", paddingBottom: "8px" }}>
+                      Wakil Sekretaris 1
+                    </td>
+                    <td
+                      style={{
+                        verticalAlign: "top",
+                        textAlign: "center",
+                        paddingBottom: "8px",
+                      }}
+                    >
+                      :
+                    </td>
+                    <td
+                      style={{
+                        verticalAlign: "top",
+                        fontWeight: "bold",
+                        paddingBottom: "8px",
+                      }}
+                    >
+                      {printData.wakilSekretaris1}
+                    </td>
+                  </tr>
+                )}
+                {printData.wakilSekretaris2 && (
+                  <tr style={{ pageBreakInside: "avoid" }}>
+                    <td style={{ verticalAlign: "top", paddingBottom: "8px" }}>
+                      Wakil Sekretaris 2
+                    </td>
+                    <td
+                      style={{
+                        verticalAlign: "top",
+                        textAlign: "center",
+                        paddingBottom: "8px",
+                      }}
+                    >
+                      :
+                    </td>
+                    <td
+                      style={{
+                        verticalAlign: "top",
+                        fontWeight: "bold",
+                        paddingBottom: "8px",
+                      }}
+                    >
+                      {printData.wakilSekretaris2}
+                    </td>
+                  </tr>
+                )}
+                {printData.wakilSekretaris3 && (
+                  <tr style={{ pageBreakInside: "avoid" }}>
+                    <td style={{ verticalAlign: "top", paddingBottom: "8px" }}>
+                      Wakil Sekretaris 3
+                    </td>
+                    <td
+                      style={{
+                        verticalAlign: "top",
+                        textAlign: "center",
+                        paddingBottom: "8px",
+                      }}
+                    >
+                      :
+                    </td>
+                    <td
+                      style={{
+                        verticalAlign: "top",
+                        fontWeight: "bold",
+                        paddingBottom: "8px",
+                      }}
+                    >
+                      {printData.wakilSekretaris3}
+                    </td>
+                  </tr>
+                )}
                 {printData.bendahara && (
                   <tr style={{ pageBreakInside: "avoid" }}>
                     <td style={{ verticalAlign: "top", paddingBottom: "8px" }}>
@@ -398,6 +479,81 @@ const SuratTugasTemplate = ({ printData }: { printData: ProkerPayload }) => {
                       }}
                     >
                       {printData.bendahara}
+                    </td>
+                  </tr>
+                )}
+                {printData.wakilBendahara1 && (
+                  <tr style={{ pageBreakInside: "avoid" }}>
+                    <td style={{ verticalAlign: "top", paddingBottom: "8px" }}>
+                      Wakil Bendahara 1
+                    </td>
+                    <td
+                      style={{
+                        verticalAlign: "top",
+                        textAlign: "center",
+                        paddingBottom: "8px",
+                      }}
+                    >
+                      :
+                    </td>
+                    <td
+                      style={{
+                        verticalAlign: "top",
+                        fontWeight: "bold",
+                        paddingBottom: "8px",
+                      }}
+                    >
+                      {printData.wakilBendahara1}
+                    </td>
+                  </tr>
+                )}
+                {printData.wakilBendahara2 && (
+                  <tr style={{ pageBreakInside: "avoid" }}>
+                    <td style={{ verticalAlign: "top", paddingBottom: "8px" }}>
+                      Wakil Bendahara 2
+                    </td>
+                    <td
+                      style={{
+                        verticalAlign: "top",
+                        textAlign: "center",
+                        paddingBottom: "8px",
+                      }}
+                    >
+                      :
+                    </td>
+                    <td
+                      style={{
+                        verticalAlign: "top",
+                        fontWeight: "bold",
+                        paddingBottom: "8px",
+                      }}
+                    >
+                      {printData.wakilBendahara2}
+                    </td>
+                  </tr>
+                )}
+                {printData.wakilBendahara3 && (
+                  <tr style={{ pageBreakInside: "avoid" }}>
+                    <td style={{ verticalAlign: "top", paddingBottom: "8px" }}>
+                      Wakil Bendahara 3
+                    </td>
+                    <td
+                      style={{
+                        verticalAlign: "top",
+                        textAlign: "center",
+                        paddingBottom: "8px",
+                      }}
+                    >
+                      :
+                    </td>
+                    <td
+                      style={{
+                        verticalAlign: "top",
+                        fontWeight: "bold",
+                        paddingBottom: "8px",
+                      }}
+                    >
+                      {printData.wakilBendahara3}
                     </td>
                   </tr>
                 )}
@@ -670,7 +826,13 @@ export default function RuangKerjaProkerDinamic({ id: _id, slug: _slug }: { id?:
     ketuaOC: "",
     wakilKetuaOC: "",
     sekretaris: "",
+    wakilSekretaris1: "",
+    wakilSekretaris2: "",
+    wakilSekretaris3: "",
     bendahara: "",
+    wakilBendahara1: "",
+    wakilBendahara2: "",
+    wakilBendahara3: "",
     divisi: [],
     fileProposal: "",
     fileLaporan: "",
@@ -961,6 +1123,7 @@ export default function RuangKerjaProkerDinamic({ id: _id, slug: _slug }: { id?:
       Berjalan: "bg-blue-100 text-blue-700 border-blue-300",
       "LPJ Diajukan": "bg-yellow-100 text-yellow-800 border-yellow-300",
       "Selesai Lancar": "bg-green-100 text-green-800 border-green-300",
+      Dibatalkan: "bg-red-100 text-red-800 border-red-300",
     };
     return colors[status] || "bg-slate-100 text-slate-700";
   };
@@ -1026,7 +1189,7 @@ export default function RuangKerjaProkerDinamic({ id: _id, slug: _slug }: { id?:
                 {prokerList.map((p: any) => (
                   <div
                     key={p.id}
-                    className={`p-6 rounded-xl border-2 hover:shadow-md transition-all flex flex-col lg:flex-row justify-between gap-6 bg-white ${p.status === "Selesai Lancar" ? "border-green-200" : "border-slate-200"}`}
+                    className={`p-6 rounded-xl border-2 hover:shadow-md transition-all flex flex-col lg:flex-row justify-between gap-6 bg-white ${p.status === "Selesai Lancar" ? "border-green-200" : p.status === "Dibatalkan" ? "border-red-200 bg-red-50/20" : "border-slate-200"}`}
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
@@ -1225,6 +1388,7 @@ export default function RuangKerjaProkerDinamic({ id: _id, slug: _slug }: { id?:
                   <option value="Berjalan">Berjalan</option>
                   <option value="LPJ Diajukan">LPJ Diajukan</option>
                   <option value="Selesai Lancar">Selesai Lancar</option>
+                  <option value="Dibatalkan">Dibatalkan</option>
                 </select>
               </div>
             </div>
@@ -1366,12 +1530,90 @@ export default function RuangKerjaProkerDinamic({ id: _id, slug: _slug }: { id?:
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Wakil Sekretaris 1 <span className="text-slate-400 font-normal">(Opsional)</span>
+                </label>
+                <input
+                  list="pengurus-list"
+                  name="wakilSekretaris1"
+                  value={prokerForm.wakilSekretaris1 || ""}
+                  onChange={handleChange}
+                  placeholder="Pilih atau ketik nama..."
+                  className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Wakil Sekretaris 2 <span className="text-slate-400 font-normal">(Opsional)</span>
+                </label>
+                <input
+                  list="pengurus-list"
+                  name="wakilSekretaris2"
+                  value={prokerForm.wakilSekretaris2 || ""}
+                  onChange={handleChange}
+                  placeholder="Pilih atau ketik nama..."
+                  className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Wakil Sekretaris 3 <span className="text-slate-400 font-normal">(Opsional)</span>
+                </label>
+                <input
+                  list="pengurus-list"
+                  name="wakilSekretaris3"
+                  value={prokerForm.wakilSekretaris3 || ""}
+                  onChange={handleChange}
+                  placeholder="Pilih atau ketik nama..."
+                  className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   Bendahara
                 </label>
                 <input
                   list="pengurus-list"
                   name="bendahara"
                   value={prokerForm.bendahara}
+                  onChange={handleChange}
+                  placeholder="Pilih atau ketik nama..."
+                  className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Wakil Bendahara 1 <span className="text-slate-400 font-normal">(Opsional)</span>
+                </label>
+                <input
+                  list="pengurus-list"
+                  name="wakilBendahara1"
+                  value={prokerForm.wakilBendahara1 || ""}
+                  onChange={handleChange}
+                  placeholder="Pilih atau ketik nama..."
+                  className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Wakil Bendahara 2 <span className="text-slate-400 font-normal">(Opsional)</span>
+                </label>
+                <input
+                  list="pengurus-list"
+                  name="wakilBendahara2"
+                  value={prokerForm.wakilBendahara2 || ""}
+                  onChange={handleChange}
+                  placeholder="Pilih atau ketik nama..."
+                  className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Wakil Bendahara 3 <span className="text-slate-400 font-normal">(Opsional)</span>
+                </label>
+                <input
+                  list="pengurus-list"
+                  name="wakilBendahara3"
+                  value={prokerForm.wakilBendahara3 || ""}
                   onChange={handleChange}
                   placeholder="Pilih atau ketik nama..."
                   className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-lg text-sm"
