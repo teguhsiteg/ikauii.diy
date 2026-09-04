@@ -55,6 +55,11 @@ export default function ManajemenNomorSuratPage() {
     tipePelaksanaan: "Offline" as "Offline" | "Online",
     tempatPelaksanaan: "",
     linkZoom: "",
+    // Field Rekomendasi
+    namaRekomendasi: "",
+    nikRekomendasi: "",
+    jabatanRekomendasi: "",
+    tujuanRekomendasi: "",
   });
 
   // 🔥 TAMBAHAN STATE UNTUK MODE AMBIL NOMOR SAJA 🔥
@@ -110,14 +115,32 @@ export default function ManajemenNomorSuratPage() {
 
       const payload = {
         nomor: generatedNomor,
-        jenis: formCepat.jenisSurat,
-        perihal: formCepat.perihal,
-        penerima: formCepat.tujuan ? [formCepat.tujuan] : [],
-        tanggal: formCepat.tanggalSurat,
-        tipeForm: "Buku Agenda Manual",
-        status: "Sudah terpakai", // Langsung terpakai agar tidak diambil orang lain
-        pembuat: formCepat.pembuat,
-        jabatanPembuat: formCepat.jabatanPembuat,
+        jenis: genForm.jenis,
+        kategori: genForm.kategori,
+        perihal: genForm.perihal,
+        isiSurat: genForm.isiSurat,
+        penutupSurat: genForm.penutupSurat,
+        penerima: genForm.penerima,
+        tanggal: genForm.tglMasehi,
+        templateSurat: genForm.templateSurat,
+        tipeForm: "Web Template",
+        status: "Belum terpakai",
+        pembuat: genForm.pembuat,
+        jabatanPembuat: genForm.jabatanPembuat,
+        // Optional Fields
+        ...(genForm.jenis === "Surat Undangan" && {
+          tglPelaksanaan: genForm.tglPelaksanaan,
+          waktuPelaksanaan: genForm.waktuPelaksanaan,
+          tipePelaksanaan: genForm.tipePelaksanaan,
+          tempatPelaksanaan: genForm.tempatPelaksanaan,
+          linkZoom: genForm.linkZoom,
+        }),
+        ...(genForm.jenis === "Surat Rekomendasi" && {
+          namaRekomendasi: genForm.namaRekomendasi,
+          nikRekomendasi: genForm.nikRekomendasi,
+          jabatanRekomendasi: genForm.jabatanRekomendasi,
+          tujuanRekomendasi: genForm.tujuanRekomendasi,
+        }),
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -501,7 +524,7 @@ export default function ManajemenNomorSuratPage() {
               className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md transition-all flex items-center justify-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-              Buat Surat Undangan
+              Buat Surat
             </button>
           </div>
         </div>
@@ -836,9 +859,32 @@ export default function ManajemenNomorSuratPage() {
                         </label>
                         <select
                           value={genForm.jenis}
-                          onChange={(e) =>
-                            setGenForm({ ...genForm, jenis: e.target.value })
-                          }
+                          onChange={(e) => {
+                            const newJenis = e.target.value;
+                            let newIsi = genForm.isiSurat;
+                            let newPenutup = genForm.penutupSurat;
+                            let newTemplate = genForm.templateSurat;
+
+                            if (newJenis === "Surat Rekomendasi") {
+                              newIsi = "Yang bertanda tangan di bawah ini Pimpinan Wilayah Ikatan Keluarga Alumni (IKA) UII Daerah Istimewa Yogyakarta memberikan rekomendasi kepada:";
+                              newPenutup = "Demikian Surat Rekomendasi ini dibuat agar dapat dipergunakan sebagaimana mestinya.";
+                              newTemplate = "Surat Rekomendasi";
+                            } else if (newJenis === "Surat Undangan") {
+                              newIsi = "Assalamu’alaikum warahmatullahi wabarakaatuh.\n\nDengan hormat, sehubungan dengan akan dilaksanakannya [nama agenda], kami mengundang Bapak/Ibu untuk berkenan hadir pada rapat koordinasi yang akan dilaksanakan pada:";
+                              newPenutup = "Demikian surat undangan ini kami sampaikan. Atas perhatian dan kehadirannya, kami ucapkan terima kasih.";
+                              newTemplate = "Undangan Lipat 3";
+                            } else {
+                              newTemplate = "Standar A4";
+                            }
+
+                            setGenForm({ 
+                              ...genForm, 
+                              jenis: newJenis,
+                              isiSurat: newIsi,
+                              penutupSurat: newPenutup,
+                              templateSurat: newTemplate
+                            });
+                          }}
                           className="w-full border border-[#DADCE0] px-3 py-2 rounded text-sm outline-none focus:border-[#1A73E8] focus:ring-1 focus:ring-[#1A73E8]"
                         >
                           <option value="Surat Undangan">Surat Undangan</option>
@@ -936,7 +982,7 @@ export default function ManajemenNomorSuratPage() {
                   {/* KOLOM KANAN */}
                   <div className="space-y-5">
                     <h3 className="text-sm font-medium text-[#1E8E3E] border-b border-[#E8EAED] pb-2">
-                      Konten & Target Undangan
+                      Konten & Target {genForm.jenis === "Surat Rekomendasi" ? "Rekomendasi" : (genForm.jenis === "Surat Undangan" ? "Undangan" : "Surat")}
                     </h3>
                     <div>
                       <label className="block text-xs font-medium text-[#5F6368] mb-1">
@@ -950,10 +996,14 @@ export default function ManajemenNomorSuratPage() {
                             templateSurat: e.target.value,
                           })
                         }
-                        className="w-full border border-[#DADCE0] px-3 py-2 rounded text-sm outline-none focus:border-[#1E8E3E] focus:ring-1 focus:ring-[#1E8E3E] font-medium text-[#1E8E3E] bg-[#E6F4EA]/30"
+                        disabled={genForm.jenis === "Surat Rekomendasi"}
+                        className="w-full border border-[#DADCE0] px-3 py-2 rounded text-sm outline-none focus:border-[#1E8E3E] focus:ring-1 focus:ring-[#1E8E3E] font-medium text-[#1E8E3E] bg-[#E6F4EA]/30 disabled:opacity-70"
                       >
                         <option value="Undangan Lipat 3">
                           Undangan Rapat/Acara (Landscape Lipat 3)
+                        </option>
+                        <option value="Surat Rekomendasi">
+                          Surat Rekomendasi Khusus
                         </option>
                         <option value="Standar A4">
                           Surat Resmi Standar (A4)
@@ -962,7 +1012,7 @@ export default function ManajemenNomorSuratPage() {
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-[#5F6368] mb-1">
-                        Perihal / Topik Kegiatan
+                        Perihal {genForm.jenis === "Surat Rekomendasi" ? "/ Topik Rekomendasi" : "/ Topik Kegiatan"}
                       </label>
                       <input
                         type="text"
@@ -970,10 +1020,36 @@ export default function ManajemenNomorSuratPage() {
                         onChange={(e) =>
                           setGenForm({ ...genForm, perihal: e.target.value })
                         }
-                        placeholder="Cth: Rapat Koordinasi Pengurus..."
+                        placeholder={genForm.jenis === "Surat Rekomendasi" ? "Cth: Rekomendasi Beasiswa..." : "Cth: Rapat Koordinasi Pengurus..."}
                         className="w-full border border-[#DADCE0] px-3 py-2 rounded text-sm outline-none focus:border-[#1E8E3E] focus:ring-1 focus:ring-[#1E8E3E]"
                       />
                     </div>
+                    
+                    {genForm.jenis === "Surat Rekomendasi" && (
+                      <div className="bg-[#F8F9FA] p-4 rounded border border-[#DADCE0] space-y-4">
+                        <label className="block text-[10px] font-bold text-[#5F6368] uppercase tracking-widest mb-2">
+                          Data Pihak yang Direkomendasikan
+                        </label>
+                        <div>
+                          <label className="block text-xs font-medium text-[#5F6368] mb-1">Nama Lengkap</label>
+                          <input type="text" value={genForm.namaRekomendasi} onChange={(e) => setGenForm({ ...genForm, namaRekomendasi: e.target.value })} placeholder="Cth: Budi Santoso" className="w-full border border-[#DADCE0] px-2 py-1.5 rounded text-xs outline-none focus:border-[#1E8E3E]" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-[#5F6368] mb-1">NIK / NPA / Identitas Lain</label>
+                          <input type="text" value={genForm.nikRekomendasi} onChange={(e) => setGenForm({ ...genForm, nikRekomendasi: e.target.value })} placeholder="Cth: 3404XXXXXXXXXXXX" className="w-full border border-[#DADCE0] px-2 py-1.5 rounded text-xs outline-none focus:border-[#1E8E3E]" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-[#5F6368] mb-1">Pekerjaan / Jabatan</label>
+                          <input type="text" value={genForm.jabatanRekomendasi} onChange={(e) => setGenForm({ ...genForm, jabatanRekomendasi: e.target.value })} placeholder="Cth: Mahasiswa / Karyawan" className="w-full border border-[#DADCE0] px-2 py-1.5 rounded text-xs outline-none focus:border-[#1E8E3E]" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-[#5F6368] mb-1">Tujuan Rekomendasi</label>
+                          <textarea value={genForm.tujuanRekomendasi} onChange={(e) => setGenForm({ ...genForm, tujuanRekomendasi: e.target.value })} placeholder="Cth: Pencalonan Beasiswa LPDP" className="w-full border border-[#DADCE0] px-2 py-1.5 rounded text-xs outline-none focus:border-[#1E8E3E] resize-none h-16" />
+                        </div>
+                      </div>
+                    )}
+
+                    {genForm.jenis === "Surat Undangan" && (
                     <div className="bg-[#F8F9FA] p-4 rounded border border-[#DADCE0] space-y-4">
                       <div>
                         <label className="block text-[10px] font-bold text-[#5F6368] uppercase tracking-widest mb-2">
@@ -1059,6 +1135,7 @@ export default function ManajemenNomorSuratPage() {
                         )}
                       </div>
                     </div>
+                    )}
                     <div>
                       <label className="block text-xs font-medium text-[#5F6368] mb-1">
                         Isi / Pesan Pembuka

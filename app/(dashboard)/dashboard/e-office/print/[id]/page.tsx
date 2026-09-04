@@ -578,6 +578,137 @@ export default function PrintSuratPage() {
   // =================================================================
   // TEMPLATE 2 : SURAT RESMI STANDAR (A4 PORTRAIT)
   // =================================================================
+  // TEMPLATE 3 : SURAT REKOMENDASI KHUSUS (A4 PORTRAIT)
+  // =================================================================
+  if (surat.templateSurat === "Surat Rekomendasi") {
+    return (
+      <>
+        <PrintStyles />
+        <div className="bg-slate-100 min-h-screen font-serif flex flex-col items-center py-10 print:py-0 print:bg-white text-black">
+          <button
+            onClick={() => window.print()}
+            className="mb-8 bg-blue-600 text-white px-6 py-2 rounded-lg font-bold shadow-lg print:hidden hover:bg-blue-700"
+          >
+            Cetak Surat Rekomendasi (A4)
+          </button>
+
+          <div
+            id="printable-area"
+            className="w-[210mm] min-h-[297mm] bg-white shadow-2xl print:shadow-none p-[20mm] relative border border-slate-200 print:border-none flex flex-col bg-white"
+          >
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none z-0">
+              <img
+                src="/logo-dpp-ika.png"
+                className="w-96 h-96 object-contain"
+                alt="Watermark"
+              />
+            </div>
+
+            <div className="flex items-center border-b-4 border-double border-black pb-4 mb-8 relative z-10">
+              <img
+                src="/logo-dpp-ika.png"
+                alt="Logo"
+                className="w-24 h-24 object-contain mr-6"
+              />
+              <div className="text-center flex-grow">
+                <h1 className="text-xl font-bold uppercase text-[#152B5B]">
+                  DEWAN PIMPINAN WILAYAH
+                </h1>
+                <h2 className="text-2xl font-black uppercase text-[#152B5B]">
+                  IKATAN KELUARGA ALUMNI (IKA) UII
+                </h2>
+                <h3 className="text-lg font-bold text-[#152B5B] mb-1">
+                  DAERAH ISTIMEWA YOGYAKARTA
+                </h3>
+                <p className="text-[11px] text-gray-600 leading-tight">
+                  Sekretariat: Jl. Cik Di Tiro No.1, Terban, Kec. Gondokusuman,
+                  Kota Yogyakarta, DIY 55223
+                </p>
+              </div>
+            </div>
+
+            <div className="text-center mb-8 relative z-10">
+              <h1 className="text-xl font-bold underline uppercase tracking-wider mb-1">
+                SURAT REKOMENDASI
+              </h1>
+              <p className="text-sm font-medium">Nomor: {surat.nomor}</p>
+            </div>
+
+            <div className="text-sm text-justify leading-relaxed whitespace-pre-wrap flex-grow relative z-10">
+              <div className="mb-6">{surat.isiSurat}</div>
+              
+              <div className="ml-10 mb-6">
+                <table className="text-sm w-full mb-4">
+                  <tbody>
+                    <tr>
+                      <td className="w-48 whitespace-nowrap align-top pb-2">Nama</td>
+                      <td className="w-4 align-top pb-2">:</td>
+                      <td className="font-bold align-top pb-2 uppercase">{surat.namaRekomendasi || "-"}</td>
+                    </tr>
+                    <tr>
+                      <td className="whitespace-nowrap align-top pb-2">NIK / NPA / Identitas</td>
+                      <td className="align-top pb-2">:</td>
+                      <td className="align-top pb-2">{surat.nikRekomendasi || "-"}</td>
+                    </tr>
+                    <tr>
+                      <td className="whitespace-nowrap align-top pb-2">Pekerjaan / Jabatan</td>
+                      <td className="align-top pb-2">:</td>
+                      <td className="align-top pb-2">{surat.jabatanRekomendasi || "-"}</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div className="text-justify leading-relaxed">
+                  Bahwa nama tersebut di atas benar kami rekomendasikan untuk keperluan <strong>{surat.tujuanRekomendasi || "..."}</strong>.
+                </div>
+              </div>
+
+              {surat.penutupSurat && (
+                <div className="mb-10">{surat.penutupSurat}</div>
+              )}
+            </div>
+
+            <div className="flex justify-end text-sm mt-4 relative z-10">
+              <div className="text-center w-72 flex flex-col items-center">
+                <p className="mb-1">Yogyakarta, {tglSurat}</p>
+                <p className="mb-1 font-bold">{jabatanTTD}</p>
+                <div className="h-24 flex flex-col items-center justify-center my-2 bg-white/80">
+                  {surat.qrValidationUrl ? (
+                    <>
+                      <QRCodeSVG
+                        value={surat.qrValidationUrl}
+                        size={80}
+                        level={"H"}
+                      />
+                      <p className="text-[7px] text-blue-800 mt-2 font-black uppercase tracking-wider">
+                        Otentikasi Digital TTE
+                      </p>
+                    </>
+                  ) : (
+                    <div className="w-20 h-20 border-2 border-dashed border-gray-300 flex items-center justify-center text-[10px] text-gray-400">
+                      Belum di-ACC
+                    </div>
+                  )}
+                </div>
+                <p className="font-bold underline uppercase underline-offset-4">
+                  {namaTTD}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-auto pt-4 border-t border-gray-200">
+              <p className="text-[8px] text-gray-500 leading-relaxed italic">
+                Otentikasi: Dokumen sah divalidasi elektronik menggunakan sistem
+                E-Office DPW IKA UII DIY.
+              </p>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // =================================================================
   return (
     <>
       <PrintStyles />
