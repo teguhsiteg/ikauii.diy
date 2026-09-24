@@ -1,5 +1,17 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+import {
+  Inbox,
+  Camera,
+  Keyboard,
+  ScanLine,
+  Ticket,
+  XCircle,
+  CheckCircle,
+  AlertTriangle,
+} from "lucide-react";
+
 import { useState, useEffect, useRef } from "react";
 import { toast } from "@/lib/toast";
 import { db } from "@/lib/firebase";
@@ -196,7 +208,7 @@ export default function ScannerGatePage() {
 
   // 5. FITUR BARU: BATALKAN KEHADIRAN (RESET TIKET)
   const handleBatalkanHadir = async (peserta: any) => {
-    const confirmReset = window.confirm(
+    const confirmReset = await confirmAlert(
       `Yakin ingin MEMBATALKAN presensi atas nama ${peserta.nama}?\nQR Code akan bisa digunakan kembali.`,
     );
     if (!confirmReset) return;
@@ -221,6 +233,9 @@ export default function ScannerGatePage() {
     .filter((p) => p.statusCheckIn)
     .reduce((acc, curr) => acc + (Number(curr.jumlahTiket) || 1), 0);
   const daftarHadirLive = pesertaList.filter((p) => p.statusCheckIn);
+  
+  // Limit to 50 items for performance
+  const recentHadirLive = daftarHadirLive.slice(0, 50);
 
   // TAMPILAN 1: PILIH AGENDA
   if (!selectedAgenda) {
@@ -241,7 +256,7 @@ export default function ScannerGatePage() {
           </div>
         ) : agendaList.length === 0 ? (
           <div className="bg-white p-10 rounded-2xl border border-slate-200 text-center shadow-sm">
-            <span className="text-4xl mb-4 block">📭</span>
+            <Inbox className="w-12 h-12 text-slate-400 mx-auto mb-4" />
             <h3 className="font-bold text-slate-700">Belum Ada Agenda</h3>
           </div>
         ) : (
@@ -325,12 +340,14 @@ export default function ScannerGatePage() {
                     : "bg-red-600/95 text-white"
               }`}
             >
-              <div className="text-5xl md:text-6xl mb-2 drop-shadow-md">
-                {feedback.type === "success"
-                  ? "✅"
-                  : feedback.type === "warning"
-                    ? "⚠️"
-                    : "❌"}
+              <div className="mb-4 drop-shadow-md">
+                {feedback.type === "success" ? (
+                  <CheckCircle className="w-16 h-16 mx-auto" />
+                ) : feedback.type === "warning" ? (
+                  <AlertTriangle className="w-16 h-16 mx-auto" />
+                ) : (
+                  <XCircle className="w-16 h-16 mx-auto" />
+                )}
               </div>
               <h2 className="text-2xl md:text-3xl font-black tracking-widest mb-1 drop-shadow-sm">
                 {feedback.title}
@@ -346,15 +363,15 @@ export default function ScannerGatePage() {
             <div className="flex w-full bg-slate-200 p-1 rounded-lg">
               <button
                 onClick={() => setScanMode("kamera")}
-                className={`flex-1 py-2 font-bold text-xs md:text-sm rounded-md transition-all ${scanMode === "kamera" ? "bg-white shadow-sm text-blue-900" : "text-slate-500"}`}
+                className={`flex-1 py-2 font-bold text-xs md:text-sm rounded-md transition-all flex items-center justify-center gap-2 ${scanMode === "kamera" ? "bg-white shadow-sm text-blue-900" : "text-slate-500"}`}
               >
-                📸 Kamera
+                <Camera className="w-4 h-4" /> Kamera
               </button>
               <button
                 onClick={() => setScanMode("manual")}
-                className={`flex-1 py-2 font-bold text-xs md:text-sm rounded-md transition-all ${scanMode === "manual" ? "bg-white shadow-sm text-blue-900" : "text-slate-500"}`}
+                className={`flex-1 py-2 font-bold text-xs md:text-sm rounded-md transition-all flex items-center justify-center gap-2 ${scanMode === "manual" ? "bg-white shadow-sm text-blue-900" : "text-slate-500"}`}
               >
-                ⌨️ Manual
+                <Keyboard className="w-4 h-4" /> Manual
               </button>
             </div>
           </div>
@@ -372,7 +389,7 @@ export default function ScannerGatePage() {
                   onSubmit={handleManualSubmit}
                   className="w-full max-w-sm mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-xl text-center"
                 >
-                  <div className="text-4xl mb-3">🔫</div>
+                  <ScanLine className="w-12 h-12 text-slate-400 mx-auto mb-4" />
                   <h3 className="text-lg font-black text-blue-950 mb-1">
                     Scanner Alat
                   </h3>
@@ -412,15 +429,15 @@ export default function ScannerGatePage() {
           </div>
 
           <div className="flex-grow overflow-y-auto p-3 space-y-2.5 bg-slate-50/50">
-            {daftarHadirLive.length === 0 ? (
+            {recentHadirLive.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-50 pb-10">
-                <span className="text-4xl mb-2">🎫</span>
+                <Ticket className="w-12 h-12 mb-3 text-slate-300" />
                 <p className="font-bold text-xs md:text-sm">
                   Belum ada yang Check-In
                 </p>
               </div>
             ) : (
-              daftarHadirLive.map((peserta, idx) => (
+              recentHadirLive.map((peserta, idx) => (
                 <div
                   key={peserta.id}
                   className={`bg-white border border-slate-100 p-3 md:p-4 rounded-xl flex flex-col md:flex-row md:items-center gap-3 transition-all ${idx === 0 ? "shadow-sm border-green-200 bg-green-50/20" : ""}`}

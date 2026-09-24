@@ -12,7 +12,8 @@ import { verifyVrAdmin } from "@/lib/vr-admin-auth";
 type AdminAction =
   | "update-status" // { id, status }
   | "update-resi" // { id, resi }
-  | "update-jarak"; // { id, jarak }
+  | "update-jarak" // { id, jarak }
+  | "update-data"; // { id, data }
 
 async function generateBibNumber(jarak: string): Promise<string> {
   const kodeJarak = (jarak || "5").replace(/\D/g, "");
@@ -129,6 +130,28 @@ export async function POST(request: Request) {
       await dbAdmin.collection("vr_logs").add({
         type: "edit_jarak",
         action: `mengubah kategori jarak menjadi [${jarak}] untuk`,
+        targetName: participantData.nama || "",
+        adminEmail,
+        timestamp: Date.now(),
+      });
+
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "update-data") {
+      const updateData: any = body.data;
+      if (!updateData || typeof updateData !== "object") {
+        return NextResponse.json(
+          { error: "Data update wajib diisi dan berupa object" },
+          { status: 400 },
+        );
+      }
+
+      await participantRef.update(updateData);
+
+      await dbAdmin.collection("vr_logs").add({
+        type: "edit_data",
+        action: `mengubah data pendaftaran untuk`,
         targetName: participantData.nama || "",
         adminEmail,
         timestamp: Date.now(),

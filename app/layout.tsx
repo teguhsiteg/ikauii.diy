@@ -9,6 +9,7 @@ import CookieBanner from "@/components/CookieBanner";
 import SessionGuard from "@/components/SessionGuard";
 import ToastContainer from "@/components/ui/Toast";
 import ThemeProvider from "@/components/layout/ThemeProvider";
+import MetaPixel from "@/components/MetaPixel";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -94,6 +95,7 @@ export default function RootLayout({
           <CookieBanner />
           <ToastContainer />
         </ClientReCaptchaProvider>
+        <MetaPixel />
       </body>
     </html>
   );

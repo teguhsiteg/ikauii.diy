@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "@/lib/toast";
 import { useParams, useRouter } from "next/navigation";
@@ -113,7 +118,7 @@ export default function ExamPage() {
     // Jika belum dijawab semua dan dikumpul manual, kasih peringatan
     if (!isAutoSubmit && timeLeft > 0 && answeredCount < totalSoal) {
       if (
-        !confirm(
+        !await confirmAlert(
           `Anda baru menjawab ${answeredCount} dari ${totalSoal} soal. Yakin ingin mengumpulkan sekarang?`,
         )
       ) {

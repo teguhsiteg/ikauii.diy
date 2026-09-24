@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "@/lib/toast";
 import { db } from "@/lib/firebase";
@@ -139,7 +144,7 @@ export default function AdminInvoicePage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Yakin ingin menghapus invoice ini? Aksi ini permanen.")) {
+    if (await confirmAlert("Yakin ingin menghapus invoice ini? Aksi ini permanen.")) {
       try {
         await deleteDoc(doc(db, "invoice_organisasi", id));
       } catch {

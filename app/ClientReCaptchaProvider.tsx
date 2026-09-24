@@ -18,6 +18,7 @@ export default function ClientReCaptchaProvider({
   return (
     <GoogleReCaptchaProvider
       reCaptchaKey={siteKey}
+      useEnterprise={true}
       scriptProps={{
         async: true,
         defer: true,

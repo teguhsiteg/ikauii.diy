@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect, useRef } from "react";
 import { toast } from "@/lib/toast";
 import { db } from "@/lib/firebase";
@@ -470,7 +475,7 @@ export default function CrewManagementPage() {
   };
 
   const handleRemoveEvent = async (id: string) => {
-    if (!confirm("Hapus event kepanitiaan ini secara permanen?")) return;
+    if (!await confirmAlert("Hapus event kepanitiaan ini secara permanen?")) return;
     try {
       await deleteDoc(doc(db, "oprec_master", id));
       setEvents(events.filter((e) => e.id !== id));
@@ -522,7 +527,7 @@ export default function CrewManagementPage() {
   };
 
   const handleRemoveGroup = async (eventId: string, groupId: string) => {
-    if (!confirm("Hapus kelompok divisi ini?")) return;
+    if (!await confirmAlert("Hapus kelompok divisi ini?")) return;
     setEvents(
       events.map((e) =>
         e.id === eventId
@@ -875,7 +880,7 @@ export default function CrewManagementPage() {
     ids: string[],
     tabSource: "pending" | "accepted" | "rejected",
   ) => {
-    if (!confirm(`Hapus permanen ${ids.length} data terpilih dari sistem?`))
+    if (!await confirmAlert(`Hapus permanen ${ids.length} data terpilih dari sistem?`))
       return;
     try {
       const batch = writeBatch(db);
@@ -906,7 +911,7 @@ export default function CrewManagementPage() {
     const targetLinkBesar = parentEvent?.linkGrupBesar || "";
     if (!targetLinkBesar && !roleLink)
       if (
-        !confirm(
+        !await confirmAlert(
           "Belum ada Link WA yang diatur di event ini. Tetap kirim email?",
         )
       )

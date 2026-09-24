@@ -7,10 +7,16 @@ import { usePathname } from "next/navigation";
 
 interface RunNavbarProps {
   eventName?: string;
+  solid?: boolean;
+  logoKiri?: string;
+  logoKanan?: string;
 }
 
 export default function RunNavbar({
   eventName = "SEMBADA RUN",
+  solid = false,
+  logoKiri,
+  logoKanan,
 }: RunNavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -25,7 +31,7 @@ export default function RunNavbar({
   return (
     <header
       className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
-        isScrolled || isMobileMenuOpen
+        isScrolled || isMobileMenuOpen || solid
           ? "bg-[#0B2239]/95 backdrop-blur-md shadow-md border-b border-white/10"
           : "bg-transparent"
       }`}
@@ -35,15 +41,15 @@ export default function RunNavbar({
         <Link href="/run" className="flex items-center gap-3 group shrink-0">
           <div className="bg-white p-2 rounded-xl group-hover:bg-slate-100 transition-colors shrink-0 shadow-md">
             <img
-              src="/logo-dpp-ika.png"
-              alt="Logo IKA UII"
+              src={logoKiri || "/logo-dpp-ika.png"}
+              alt="Logo Penyelenggara"
               className="w-7 h-7 sm:w-8 sm:h-8 object-contain"
             />
           </div>
           <div className="hidden sm:block h-8 w-px bg-white/30 mx-1"></div>
           <img
-            src="https://res.cloudinary.com/dp8hmxuix/image/upload/v1788008083/ikadiy.uii.ac.idrun_kg66ut.png"
-            alt="Logo Sembada Run"
+            src={logoKanan || "https://res.cloudinary.com/dp8hmxuix/image/upload/v1788008083/ikadiy.uii.ac.idrun_kg66ut.png"}
+            alt="Logo Event"
             className="w-auto h-7 sm:h-9 object-contain group-hover:scale-105 transition-transform drop-shadow-md"
             crossOrigin="anonymous"
           />
@@ -68,22 +74,6 @@ export default function RunNavbar({
           <a href="/run#racepack" className="hover:text-white transition-colors">
             Racepack
           </a>
-          <Link
-            href="/run/daftar"
-            className={`transition-colors ${
-              pathname.includes("/run/daftar") ? "text-white font-bold" : "hover:text-white"
-            }`}
-          >
-            Daftar Individu
-          </Link>
-          <Link
-            href="/run/komunitas"
-            className={`transition-colors ${
-              pathname.includes("/run/komunitas") ? "text-white font-bold" : "hover:text-white"
-            }`}
-          >
-            Daftar Komunitas
-          </Link>
         </nav>
 
         {/* ACTION BUTTON & MOBILE TOGGLE */}
@@ -133,27 +123,10 @@ export default function RunNavbar({
           <a
             href="/run#racepack"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="py-2 hover:text-[#FCD116] border-b border-slate-800/60"
+            className="py-2 hover:text-[#FCD116]"
           >
             Racepack
           </a>
-          <Link
-            href="/run/daftar"
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="py-2 hover:text-[#FCD116] border-b border-slate-800/60 flex items-center justify-between"
-          >
-            <span>Daftar Individu</span>
-          </Link>
-          <Link
-            href="/run/komunitas"
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="py-2 hover:text-[#FCD116] flex items-center justify-between"
-          >
-            <span>Daftar Komunitas</span>
-            <span className="text-[10px] bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded">
-              Grup
-            </span>
-          </Link>
         </div>
       )}
     </header>

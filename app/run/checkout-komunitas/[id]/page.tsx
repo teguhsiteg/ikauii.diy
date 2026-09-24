@@ -309,7 +309,7 @@ export default function CheckoutKomunitasPage() {
         </div>
       </main>
 
-      <RunFooter eventName={settings?.offlineJudul} waChannelUrl={settings?.waGroupUrl} />
+      <RunFooter eventName={settings?.offlineJudul} waChannelUrl={settings?.waGroupUrl} sosmeds={settings?.sosmeds} />
 
       {modal.isOpen && (
         <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">

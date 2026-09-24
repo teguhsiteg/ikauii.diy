@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useEffect, useState, useRef } from "react";
 import { toast } from "@/lib/toast";
 import { db } from "@/lib/firebase";
@@ -192,7 +197,7 @@ export default function StravaStudioPage() {
     const paceStr = calculatePace(activity.distance, activity.moving_time);
     const jarakKm = (activity.distance / 1000).toFixed(2);
 
-    const isConfirmed = window.confirm(
+    const isConfirmed = await confirmAlert(
       `Setor Waktu ke Leaderboard?\n\nJarak: ${jarakKm} KM\nPace: ${paceStr}/KM\n\nData yang disetor akan dikunci dan tidak bisa diubah. Lanjutkan?`,
     );
 

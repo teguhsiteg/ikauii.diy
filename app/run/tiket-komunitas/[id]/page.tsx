@@ -269,7 +269,7 @@ export default function ETicketKomunitasPage() {
         </div>
       </main>
 
-      <RunFooter eventName={settings?.offlineJudul} waChannelUrl={settings?.waGroupUrl} />
+      <RunFooter eventName={settings?.offlineJudul} waChannelUrl={settings?.waGroupUrl} sosmeds={settings?.sosmeds} />
     </div>
   );
 }

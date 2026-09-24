@@ -13,8 +13,8 @@ import { onAuthStateChanged, getIdToken } from "firebase/auth";
 // IMPORT SEMUA TAB KOMPONEN
 import TabVirtual from "./tabs/TabVirtual";
 import TabOffline from "./tabs/TabOffline";
-import TabCharity from "./tabs/TabCharity";
-import TabPembayaran from "./tabs/TabPembayaran";
+import TabKomunitas from "./tabs/TabKomunitas";
+import TabGlobal from "./tabs/TabGlobal";
 
 // ============================================================
 // HELPER: SEMUA OPERASI TULIS ADMIN LEWAT SERVER ROUTE
@@ -51,6 +51,11 @@ export default function PengaturanAdminPage() {
     isVirtualRunEnabled: true,
     isWaitingRoomActive: false,
     waChannelUrl: "",
+    instagramUrl: "",
+    facebookUrl: "",
+    youtubeUrl: "",
+    tiktokUrl: "",
+    faqs: [],
     eventName: "IKA UII VR 2026",
     statusPendaftaran: "Buka",
     landingTitle: "IKA UII VIRTUAL RUN 2026",
@@ -65,6 +70,21 @@ export default function PengaturanAdminPage() {
     jadwalPuncakAcara: "",
     urlLiveStreaming: "",
     isOfflineRunEnabled: false,
+    isKomunitasEnabled: true,
+    komunitasMinPeserta: 10,
+    komunitasBonusKelipatan: 10,
+    komunitasRules: [
+      {
+        id: "rule_default",
+        minPeserta: 10,
+        freeCount: 1,
+        targetKategori: "cheapest", // "cheapest" | "5K" | "10K" | "all"
+        isKelipatan: true,
+      },
+    ],
+    offlinePrice5K: 150000,
+    offlinePrice10K: 200000,
+    komunitasWaAdmin: "",
     offlineLocation: "",
     offlineDate: "",
     offlineTime: "",
@@ -143,17 +163,6 @@ export default function PengaturanAdminPage() {
   } | null>(null);
 
   // STATE PROMO
-  const [promoCodes, setPromoCodes] = useState<any[]>([]);
-  const [isSavingPromo, setIsSavingPromo] = useState(false);
-  const [newPromo, setNewPromo] = useState({
-    kode: "",
-    jenisDiskon: "persen",
-    nilaiDiskon: 0,
-    kuotaMaksimal: 100,
-    tanggalKedaluwarsa: "",
-    kategoriKhusus: "All",
-    isActive: true,
-  });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => setAdminUser(user));
@@ -196,10 +205,6 @@ export default function PengaturanAdminPage() {
             offlinePackages: processedOfflinePackages,
           });
         }
-        const promoSnap = await getDocs(collection(db, "promo_codes"));
-        setPromoCodes(
-          promoSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
-        );
       } catch {
       } finally {
         setIsLoading(false);
@@ -281,6 +286,81 @@ export default function PengaturanAdminPage() {
       [target]: vrSettings[target].filter((pkg: any) => pkg.id !== id),
     });
   };
+
+    const addFaq = () => {
+    setVrSettings((prev: any) => ({
+      ...prev,
+      faqs: [...(prev.faqs || []), { id: Date.now().toString(), question: "", answer: "" }],
+    }));
+  };
+
+  const addSosmed = () => {
+    setVrSettings((prev: any) => ({
+      ...prev,
+      sosmeds: [...(prev.sosmeds || []), { id: Date.now().toString(), platform: "Instagram", url: "" }],
+    }));
+  };
+
+  const removeSosmed = (id: string) => {
+    setVrSettings((prev: any) => ({
+      ...prev,
+      sosmeds: (prev.sosmeds || []).filter((s: any) => s.id !== id),
+    }));
+  };
+
+  const handleSosmedChange = (id: string, field: string, value: string) => {
+    setVrSettings((prev: any) => ({
+      ...prev,
+      sosmeds: (prev.sosmeds || []).map((s: any) => (s.id === id ? { ...s, [field]: value } : s)),
+    }));
+  };
+
+  // HANDLERS KOMUNITAS RULES
+  const addKomunitasRule = () => {
+    const newRule = {
+      id: "rule_" + Date.now(),
+      minPeserta: 10,
+      freeCount: 1,
+      targetKategori: "cheapest",
+      isKelipatan: true,
+    };
+    setVrSettings((prev: any) => ({
+      ...prev,
+      komunitasRules: [...(prev.komunitasRules || []), newRule],
+    }));
+  };
+
+  const removeKomunitasRule = (id: string) => {
+    setVrSettings((prev: any) => ({
+      ...prev,
+      komunitasRules: (prev.komunitasRules || []).filter((r: any) => r.id !== id),
+    }));
+  };
+
+  const handleKomunitasRuleChange = (id: string, field: string, value: any) => {
+    setVrSettings((prev: any) => ({
+      ...prev,
+      komunitasRules: (prev.komunitasRules || []).map((r: any) =>
+        r.id === id ? { ...r, [field]: value } : r,
+      ),
+    }));
+  };
+
+  const removeFaq = (id: string) => {
+    setVrSettings((prev: any) => ({
+      ...prev,
+      faqs: (prev.faqs || []).filter((f: any) => f.id !== id),
+    }));
+  };
+
+  const handleFaqChange = (id: string, field: "question" | "answer", value: string) => {
+    setVrSettings((prev: any) => ({
+      ...prev,
+      faqs: (prev.faqs || []).map((f: any) =>
+        f.id === id ? { ...f, [field]: value } : f
+      ),
+    }));
+  };
   const saveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingSettings(true);
@@ -299,75 +379,7 @@ export default function PengaturanAdminPage() {
     }
   };
 
-  // PROMO HANDLERS
-  const handleAddPromo = async () => {
-    if (
-      !newPromo.kode.trim() ||
-      newPromo.nilaiDiskon <= 0 ||
-      !newPromo.tanggalKedaluwarsa
-    )
-      return setPopup({ type: "warning", text: "Isi data dengan lengkap!" });
-    setIsSavingPromo(true);
-    try {
-      const promoData = {
-        ...newPromo,
-        kode: newPromo.kode.toUpperCase().trim().replace(/\s/g, ""),
-      };
-      const { id } = await callVrAdminApi("add-promo", { promo: promoData });
-      setPromoCodes([
-        ...promoCodes,
-        {
-          id,
-          ...promoData,
-          kuotaTerpakai: 0,
-          createdAt: new Date().toISOString(),
-        },
-      ]);
-      setNewPromo({ ...newPromo, kode: "", nilaiDiskon: 0 });
-      setPopup({
-        type: "success",
-        text: `Promo ${promoData.kode} ditambahkan.`,
-      });
-    } catch (error: any) {
-      console.error("[pengaturan] add promo error:", error);
-      setPopup({
-        type: "error",
-        text: `Gagal menambah promo: ${error?.message || "terjadi kesalahan"}`,
-      });
-    } finally {
-      setIsSavingPromo(false);
-      setTimeout(() => setPopup(null), 3000);
-    }
-  };
-  const handleTogglePromoStatus = async (id: string, status: boolean) => {
-    try {
-      await callVrAdminApi("toggle-promo", { id, isActive: !status });
-      setPromoCodes(
-        promoCodes.map((p) => (p.id === id ? { ...p, isActive: !status } : p)),
-      );
-    } catch (error: any) {
-      console.error("[pengaturan] toggle promo error:", error);
-      setPopup({
-        type: "error",
-        text: `Gagal ubah status promo: ${error?.message || "terjadi kesalahan"}`,
-      });
-      setTimeout(() => setPopup(null), 3000);
-    }
-  };
-  const handleDeletePromo = async (id: string, kode: string) => {
-    if (!confirm(`Hapus promo ${kode}?`)) return;
-    try {
-      await callVrAdminApi("delete-promo", { id });
-      setPromoCodes(promoCodes.filter((p) => p.id !== id));
-    } catch (error: any) {
-      console.error("[pengaturan] delete promo error:", error);
-      setPopup({
-        type: "error",
-        text: `Gagal hapus promo: ${error?.message || "terjadi kesalahan"}`,
-      });
-      setTimeout(() => setPopup(null), 3000);
-    }
-  };
+
 
   if (isLoading)
     return (
@@ -403,39 +415,12 @@ export default function PengaturanAdminPage() {
         </button>
       </div>
 
-      {/* GLOBAL SETTINGS - WAITING ROOM */}
-      <div className="mb-8 p-6 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <h3 className="text-base font-black text-slate-800 flex items-center gap-2">
-            <span className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </span>
-            Mode Ruang Tunggu Global (Waiting Room)
-          </h3>
-          <p className="text-sm text-slate-500 mt-1 max-w-2xl">
-            Aktifkan fitur antrean virtual ini untuk mencegah server down saat terjadi lonjakan pengunjung (Ticket War) di awal pendaftaran dibuka.
-          </p>
-        </div>
-        <label className="relative inline-flex items-center cursor-pointer shrink-0">
-          <input
-            type="checkbox"
-            name="isWaitingRoomActive"
-            checked={vrSettings.isWaitingRoomActive || false}
-            onChange={handleSettingChange}
-            className="sr-only peer"
-          />
-          <div className="w-14 h-7 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#1A73E8]"></div>
-        </label>
-      </div>
-
       <div className="flex overflow-x-auto gap-1 mb-8 border-b border-slate-200">
         {[
-          { id: "virtual", label: "Virtual" },
-          { id: "offline", label: "Offline" },
-          { id: "charity", label: "Charity (Global)" },
-          { id: "pembayaran", label: "Pembayaran (Global)" },
+          { id: "virtual", label: "Virtual Run" },
+          { id: "offline", label: "Offline Run" },
+          { id: "komunitas", label: "Komunitas" },
+          { id: "global", label: "Pengaturan Global" },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -455,6 +440,9 @@ export default function PengaturanAdminPage() {
             handlePackageChange={handlePackageChange}
             addPackage={addPackage}
             removePackage={removePackage}
+            addFaq={addFaq}
+            removeFaq={removeFaq}
+            handleFaqChange={handleFaqChange}
           />
         )}
         {activeTab === "offline" && (
@@ -465,29 +453,31 @@ export default function PengaturanAdminPage() {
             handlePackageChange={handlePackageChange}
             addPackage={addPackage}
             removePackage={removePackage}
+            addFaq={addFaq}
+            removeFaq={removeFaq}
+            handleFaqChange={handleFaqChange}
           />
         )}
-
-
-
-        {activeTab === "charity" && (
-          <TabCharity
+        {activeTab === "komunitas" && (
+          <TabKomunitas
             vrSettings={vrSettings}
             handleSettingChange={handleSettingChange}
+            addKomunitasRule={addKomunitasRule}
+            removeKomunitasRule={removeKomunitasRule}
+            handleKomunitasRuleChange={handleKomunitasRuleChange}
           />
         )}
-        {activeTab === "pembayaran" && (
-          <TabPembayaran
+        {activeTab === "global" && (
+          <TabGlobal
             vrSettings={vrSettings}
+            handleSettingChange={handleSettingChange}
             selectPaymentMethod={selectPaymentMethod}
-            handleSettingChange={handleSettingChange}
-            promoCodes={promoCodes}
-            newPromo={newPromo}
-            setNewPromo={setNewPromo}
-            handleAddPromo={handleAddPromo}
-            handleTogglePromoStatus={handleTogglePromoStatus}
-            handleDeletePromo={handleDeletePromo}
-            isSavingPromo={isSavingPromo}
+            addFaq={addFaq}
+            removeFaq={removeFaq}
+            handleFaqChange={handleFaqChange}
+            addSosmed={addSosmed}
+            removeSosmed={removeSosmed}
+            handleSosmedChange={handleSosmedChange}
           />
         )}
       </form>

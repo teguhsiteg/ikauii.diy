@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import Link from "next/link";
 import VirtualRunNavbar from "@/components/virtual-run/VirtualRunNavbar";
 import VirtualRunFooter from "@/components/virtual-run/VirtualRunFooter";
@@ -23,6 +23,7 @@ export default function LeaderboardPage() {
   // --- STATE LEADERBOARD ---
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [vrSettings, setVrSettings] = useState<any>(null);
 
   // --- STATE FILTER & PENCARIAN ---
   const [activeTab, setActiveTab] = useState("Semua");
@@ -38,6 +39,12 @@ export default function LeaderboardPage() {
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
+        const docRef = doc(db, "settings", "virtual_run");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setVrSettings(docSnap.data());
+        }
+
         const pSnap = await getDocs(collection(db, "vr_participants"));
         const participants = pSnap.docs
           .map((doc) => ({
@@ -675,7 +682,7 @@ export default function LeaderboardPage() {
       </main>
 
       {/* FOOTER KHUSUS VIRTUAL RUN */}
-      <VirtualRunFooter />
+      <VirtualRunFooter sosmeds={vrSettings?.sosmeds} />
     </div>
   );
 }

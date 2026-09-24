@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useEffect, useState } from "react";
 import { toast } from "@/lib/toast";
 import { useParams, useRouter } from "next/navigation";
@@ -57,7 +62,7 @@ export default function VerifyTicketPage() {
     }
 
     if (
-      !confirm(
+      !await confirmAlert(
         "Konfirmasi: Tandai Race Pack dan Jersey peserta ini SUDAH DIAMBIL?",
       )
     )

@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect } from "react";
 import { toast } from "@/lib/toast";
 import { db } from "@/lib/firebase";
@@ -96,7 +101,7 @@ export default function TabParticipants() {
 
   // 🔥 FUNGSI BULK ACTIONS 🔥
   const handleBulkApprove = async () => {
-    if (!confirm(`Setujui akses untuk ${selectedIds.length} peserta ini?`))
+    if (!await confirmAlert(`Setujui akses untuk ${selectedIds.length} peserta ini?`))
       return;
     setIsProcessing(true);
     try {
@@ -118,7 +123,7 @@ export default function TabParticipants() {
 
   const handleBulkDelete = async () => {
     if (
-      !confirm(
+      !await confirmAlert(
         `HAPUS PERMANEN ${selectedIds.length} data? Tindakan ini tidak bisa dibatalkan!`,
       )
     )
@@ -480,7 +485,7 @@ export default function TabParticipants() {
                           {/* Hapus */}
                           <button
                             onClick={async () => {
-                              if (confirm("Hapus pendaftar ini?")) {
+                              if (await confirmAlert("Hapus pendaftar ini?")) {
                                 await deleteDoc(
                                   doc(db, "masterclass_enrollments", e.id),
                                 );

@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect } from "react";
 import { toast } from "@/lib/toast";
 import { db, auth } from "@/lib/firebase";
@@ -56,7 +61,7 @@ export default function VerifikasiLariPage() {
     action: "Approved" | "Rejected",
     participantName: string,
   ) => {
-    const isConfirm = window.confirm(
+    const isConfirm = await confirmAlert(
       `Apakah Anda yakin ingin menandai bukti lari ini sebagai ${action === "Approved" ? "DISETUJUI" : "DITOLAK"}?`,
     );
     if (!isConfirm) return;
@@ -110,7 +115,7 @@ export default function VerifikasiLariPage() {
 
   const deleteSelected = async () => {
     if (
-      !confirm(
+      !await confirmAlert(
         `Yakin ingin menghapus ${selectedSubmissions.length} bukti lari secara permanen? Data yang dihapus tidak dapat dikembalikan.`,
       )
     )

@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect, useRef } from "react";
 import { toast } from "@/lib/toast";
 import { db } from "@/lib/firebase";
@@ -276,6 +281,10 @@ export default function ManajemenNomorSuratPage() {
       tipePelaksanaan: docData.tipePelaksanaan || "Offline",
       tempatPelaksanaan: docData.tempatPelaksanaan || "",
       linkZoom: docData.linkZoom || "",
+      namaRekomendasi: docData.namaRekomendasi || "",
+      nikRekomendasi: docData.nikRekomendasi || "",
+      jabatanRekomendasi: docData.jabatanRekomendasi || "",
+      tujuanRekomendasi: docData.tujuanRekomendasi || "",
     });
     setEditId(docData.id);
     setModeForm("lengkap");
@@ -340,6 +349,10 @@ export default function ManajemenNomorSuratPage() {
         tipePelaksanaan: "Offline",
         tempatPelaksanaan: "",
         linkZoom: "",
+        namaRekomendasi: "",
+        nikRekomendasi: "",
+        jabatanRekomendasi: "",
+        tujuanRekomendasi: "",
       });
       setSearchPenerima("");
       fetchData();
@@ -362,7 +375,7 @@ export default function ManajemenNomorSuratPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Yakin ingin menghapus nomor surat ini secara permanen?")) {
+    if (await confirmAlert("Yakin ingin menghapus nomor surat ini secara permanen?")) {
       await deleteDoc(doc(db, "nomor_surat", id));
       fetchData();
     }
@@ -517,6 +530,10 @@ export default function ManajemenNomorSuratPage() {
                   tipePelaksanaan: "Offline",
                   tempatPelaksanaan: "",
                   linkZoom: "",
+                  namaRekomendasi: "",
+                  nikRekomendasi: "",
+                  jabatanRekomendasi: "",
+                  tujuanRekomendasi: "",
                 });
                 fetchData();
                 setIsModalOpen(true);

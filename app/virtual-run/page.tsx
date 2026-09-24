@@ -30,7 +30,9 @@ import {
   Sparkles,
   CheckCircle2,
   ChevronRight,
+  Heart,
 } from "lucide-react";
+import FaqAccordion from "@/components/FaqAccordion";
 
 // --- KOMPONEN ANIMASI SCROLL REVEAL (PREMIUM & SMOOTH) ---
 const ScrollReveal = ({
@@ -246,6 +248,7 @@ export default function VirtualRunLandingPage() {
 
   const jerseyUrl = (settings?.urlJerseyVirtual || "").trim();
   const medalUrl = cleanMedalUrl(settings?.urlMedaliVirtual);
+  const bibUrl = (settings?.urlBibVirtual || "").trim();
   const hasJersey = !!jerseyUrl;
   const hasMedal = !!medalUrl;
 
@@ -629,7 +632,7 @@ export default function VirtualRunLandingPage() {
             {settings.isCharityActive && (
               <div className="flex flex-col items-center justify-center md:border-l border-slate-700/60 pt-6 md:pt-0 col-span-1 sm:col-span-2 md:col-span-1">
                 <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-[#FCD116]" /> Total Donasi Terkumpul
+                  <Heart className="w-3.5 h-3.5 text-rose-500" /> Total Donasi Terkumpul
                 </p>
                 <div className="text-3xl sm:text-4xl font-black text-[#FCD116] tracking-tight flex items-center gap-1.5 font-mono">
                   {formatDonasi(totalDonasi)}
@@ -662,83 +665,133 @@ export default function VirtualRunLandingPage() {
             </div>
           </ScrollReveal>
 
-          {/* Grid Tampilan Jersey & Medali */}
-          <div
-            className={`grid gap-8 items-stretch mx-auto ${
-              hasJersey && hasMedal
-                ? "md:grid-cols-2 max-w-5xl"
-                : "max-w-2xl"
-            }`}
-          >
-            {/* 1. Jersey Showcase */}
-            {hasJersey ? (
+          {/* Race Pack Showcase */}
+          <div className="flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-0 lg:-space-x-12 max-w-5xl mx-auto px-4 mt-8">
+            {/* 1. Jersey */}
+            <div className="z-10 w-full lg:w-1/3">
               <ScrollReveal delay={100}>
-                <div className="bg-slate-50 rounded-3xl p-7 shadow-sm border border-slate-200 hover:shadow-xl transition-all duration-300 flex flex-col h-full group">
-                  <div className="aspect-[4/3] bg-white rounded-2xl mb-6 flex items-center justify-center overflow-hidden border border-slate-200 relative">
-                    <img
-                      src={jerseyUrl}
-                      alt="Jersey Finisher"
-                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className="absolute top-3 left-3 bg-[#0B2239] text-[#FCD116] text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-md">
-                      Official Jersey
-                    </div>
+                <div className="flex flex-col items-center group">
+                  <div className="w-full max-w-[280px] aspect-square flex items-center justify-center relative">
+                    {jerseyUrl ? (
+                      <img
+                        src={jerseyUrl}
+                        alt="Jersey Pelari"
+                        className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-700 drop-shadow-2xl"
+                      />
+                    ) : (
+                      <div className="text-slate-300 flex flex-col items-center">
+                        <svg
+                          className="w-24 h-24 text-slate-200 mb-2 transform group-hover:scale-110 transition-transform duration-500"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1}
+                            d="M16 4v12l-4-2-4 2V4M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
+                        </svg>
+                        <span className="font-bold text-sm">Preview Jersey</span>
+                      </div>
+                    )}
                   </div>
-                  <h3 className="text-2xl font-black text-slate-900 mb-2">
-                    Premium Dry-Fit Runner Jersey
-                  </h3>
-                  <p className="text-slate-500 text-sm leading-relaxed mb-6">
-                    Bahan microfiber berpori dengan sirkulasi udara maksimal, cepat kering, dan nyaman dipakai dalam berbagai kondisi cuaca.
-                  </p>
-                  <div className="mt-auto pt-4 border-t border-slate-200 flex flex-wrap gap-2 text-[11px] font-bold text-slate-600">
-                    <span className="bg-white border border-slate-200 px-3 py-1 rounded-lg">Quick-Dry</span>
-                    <span className="bg-white border border-slate-200 px-3 py-1 rounded-lg">Anti-UV 50+</span>
-                    <span className="bg-white border border-slate-200 px-3 py-1 rounded-lg">Size S - XXL</span>
+                  <div className="text-center mt-6">
+                    <h3 className="text-xl md:text-2xl font-black text-slate-800 mb-2">
+                      Runner Jersey
+                    </h3>
+                    <p className="text-slate-500 text-sm max-w-[250px] mx-auto">
+                      Dapatkan jersey eksklusif untuk menambah semangatmu berlari.
+                    </p>
                   </div>
                 </div>
               </ScrollReveal>
-            ) : null}
+            </div>
 
-            {/* 2. Medali Showcase (Hanya Muncul Jika Benar-benar Diisi di Admin) */}
-            {hasMedal ? (
+            {/* 2. Medali (Di Tengah supaya lebih stand out jika overlap) */}
+            <div className="z-30 w-full lg:w-1/3 lg:-mt-12">
               <ScrollReveal delay={200}>
-                <div className="bg-slate-50 rounded-3xl p-7 shadow-sm border border-slate-200 hover:shadow-xl transition-all duration-300 flex flex-col h-full group">
-                  <div className="aspect-[4/3] bg-white rounded-2xl mb-6 flex items-center justify-center overflow-hidden border border-slate-200 relative">
-                    <img
-                      src={medalUrl}
-                      alt="Medali Finisher"
-                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className="absolute top-3 left-3 bg-[#FCD116] text-[#0B2239] text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-md">
-                      Finisher Medal
-                    </div>
+                <div className="flex flex-col items-center group">
+                  <div className="w-full max-w-[320px] aspect-square flex items-center justify-center relative">
+                    {medalUrl ? (
+                      <img
+                        src={medalUrl}
+                        alt="Medali Finisher"
+                        className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-700 drop-shadow-[0_25px_35px_rgba(252,209,22,0.3)]"
+                      />
+                    ) : (
+                      <div className="text-slate-300 flex flex-col items-center">
+                        <svg
+                          className="w-28 h-28 text-slate-200 mb-2 transform group-hover:scale-110 transition-transform duration-500"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1}
+                            d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
+                          />
+                        </svg>
+                        <span className="font-bold text-sm">Preview Medali</span>
+                      </div>
+                    )}
                   </div>
-                  <h3 className="text-2xl font-black text-slate-900 mb-2">
-                    Finisher Medal Collection
-                  </h3>
-                  <p className="text-slate-500 text-sm leading-relaxed mb-6">
-                    Medali logam 3D die-cast presisi tinggi dengan sentuhan akhir mewah, bukti nyata dedikasi dan kilometer yang Anda taklukkan.
-                  </p>
-                  <div className="mt-auto pt-4 border-t border-slate-200 flex flex-wrap gap-2 text-[11px] font-bold text-slate-600">
-                    <span className="bg-white border border-slate-200 px-3 py-1 rounded-lg">Logam 3D Die-Cast</span>
-                    <span className="bg-white border border-slate-200 px-3 py-1 rounded-lg">Tali Lanyard Satin</span>
+                  <div className="text-center mt-6">
+                    <h3 className="text-xl md:text-2xl font-black text-[#FCD116] drop-shadow-sm mb-2">
+                      Finisher Medal
+                    </h3>
+                    <p className="text-slate-500 text-sm max-w-[250px] mx-auto">
+                      Diberikan khusus bagi pelari yang berhasil menyelesaikan jarak tempuh!
+                    </p>
                   </div>
                 </div>
               </ScrollReveal>
-            ) : null}
+            </div>
 
-            {/* Fallback Jika Belum Ada Foto yang Diunggah */}
-            {!hasJersey && !hasMedal ? (
-              <div className="bg-white rounded-3xl p-10 border border-slate-200 text-center text-slate-400 font-medium">
-                <Shirt className="w-14 h-14 text-slate-300 mx-auto mb-3" />
-                <p className="text-base font-bold text-slate-600 mb-1">
-                  Race Pack Resmi Segera Diumumkan
-                </p>
-                <p className="text-xs text-slate-400">
-                  Desain jersey dan merchandise resmi sedang dalam proses finalisasi oleh panitia.
-                </p>
-              </div>
-            ) : null}
+            {/* 3. Nomor BIB */}
+            <div className="z-20 w-full lg:w-1/3">
+              <ScrollReveal delay={300}>
+                <div className="flex flex-col items-center group">
+                  <div className="w-full max-w-[280px] aspect-square flex items-center justify-center relative">
+                    {bibUrl ? (
+                      <img
+                        src={bibUrl}
+                        alt="E-BIB Peserta"
+                        className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-700 drop-shadow-xl"
+                      />
+                    ) : (
+                      <div className="text-slate-300 flex flex-col items-center">
+                        <svg
+                          className="w-24 h-24 text-slate-800 drop-shadow-xl mb-2 transform group-hover:scale-110 transition-transform duration-500"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1}
+                            d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"
+                          />
+                        </svg>
+                        <span className="font-bold text-sm text-slate-400">Preview BIB</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-center mt-6">
+                    <h3 className="text-xl md:text-2xl font-black text-slate-800 mb-2">
+                      Exclusive E-BIB
+                    </h3>
+                    <p className="text-slate-500 text-sm max-w-[250px] mx-auto">
+                      Dapatkan nomor dada eksklusif yang bisa diunduh langsung dari dashboard.
+                    </p>
+                  </div>
+                </div>
+              </ScrollReveal>
+            </div>
           </div>
         </div>
       </section>
@@ -1243,6 +1296,30 @@ export default function VirtualRunLandingPage() {
         </div>
       </section>
 
+      {/* FAQ SECTION */}
+      {settings?.faqs && settings.faqs.length > 0 && (
+        <section className="py-16 md:py-24 bg-[#0B2239] relative w-full border-t border-blue-900/50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <ScrollReveal>
+              <div className="text-center mb-12 md:mb-16">
+                <span className="text-xs font-bold text-[#FCD116] bg-[#FCD116]/10 px-3 py-1 rounded-full uppercase tracking-widest mb-3 inline-block">
+                  FAQ
+                </span>
+                <h2 className="text-2xl md:text-4xl font-black text-white mb-4">
+                  Pertanyaan Seputar Virtual Run
+                </h2>
+                <p className="text-sm md:text-base text-slate-300 font-medium max-w-xl mx-auto mb-8">
+                  Temukan jawaban untuk pertanyaan yang sering diajukan seputar pendaftaran dan pelaksanaan Virtual Run.
+                </p>
+              </div>
+            </ScrollReveal>
+            <ScrollReveal delay={100}>
+              <FaqAccordion faqs={settings.faqs} theme="dark" />
+            </ScrollReveal>
+          </div>
+        </section>
+      )}
+
       {/* ========================================================================= */}
       {/* 10. CTA FOOTER BANNER */}
       {/* ========================================================================= */}
@@ -1291,6 +1368,8 @@ export default function VirtualRunLandingPage() {
       <VirtualRunFooter
         eventName={settings?.eventName || settings?.landingTitle}
         waChannelUrl={settings?.waChannelUrl}
+
+        sosmeds={settings?.sosmeds}
       />
     </div>
   );

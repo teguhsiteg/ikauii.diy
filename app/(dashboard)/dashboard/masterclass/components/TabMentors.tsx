@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect } from "react";
 import { toast } from "@/lib/toast";
 import { db } from "@/lib/firebase";
@@ -114,7 +119,7 @@ export default function TabMentors() {
   };
 
   const deleteMentor = async (id: string) => {
-    if (confirm("Yakin ingin menghapus mentor ini permanen?")) {
+    if (await confirmAlert("Yakin ingin menghapus mentor ini permanen?")) {
       await deleteDoc(doc(db, "masterclass_mentors", id));
       fetchMentorsAndStats();
     }

@@ -96,6 +96,15 @@ export default function DataPesertaPage() {
     currentJarak: "",
   });
 
+  // 🔥 STATE UNTUK MODAL EDIT DATA PESERTA 🔥
+  const [editDataModal, setEditDataModal] = useState<{
+    isOpen: boolean;
+    data: any | null;
+  }>({
+    isOpen: false,
+    data: null,
+  });
+
   const [popup, setPopup] = useState<{
     type: "success" | "error" | "info";
     text: string;
@@ -314,6 +323,25 @@ export default function DataPesertaPage() {
       setPopup({ type: "success", text: `Jarak ${jarakModal.participantName} berhasil diubah ke ${jarakModal.currentJarak}.` });
     } catch (error: any) {
       setPopup({ type: "error", text: error?.message || "Gagal mengubah jarak peserta." });
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  // --- AKSI: UPDATE DATA PESERTA (via server) ---
+  const handleEditData = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editDataModal.data) return;
+    setLoadingAction("editData");
+    try {
+      await callAdminAction("update-data", {
+        id: editDataModal.data.id,
+        data: editDataModal.data,
+      });
+      setEditDataModal({ isOpen: false, data: null });
+      setPopup({ type: "success", text: `Data peserta berhasil diubah.` });
+    } catch (error: any) {
+      setPopup({ type: "error", text: error?.message || "Gagal mengubah data peserta." });
     } finally {
       setLoadingAction(null);
     }
@@ -695,6 +723,112 @@ export default function DataPesertaPage() {
             >
               Buka di Tab Baru
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDIT DATA PESERTA */}
+      {editDataModal.isOpen && editDataModal.data && (
+        <div
+          className="fixed inset-0 z-[115] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in"
+          onClick={() => setEditDataModal({ isOpen: false, data: null })}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 max-w-2xl w-full shadow-2xl flex flex-col max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-4">
+              <h3 className="font-black text-slate-800 text-lg">
+                Edit Data Peserta
+              </h3>
+              <button
+                onClick={() => setEditDataModal({ isOpen: false, data: null })}
+                className="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 p-1.5 rounded-full transition-colors"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleEditData} className="overflow-y-auto custom-scrollbar pr-2 flex-grow space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-500 mb-1 block">Nama Lengkap</label>
+                  <input type="text" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50" 
+                    value={editDataModal.data.nama || ""} 
+                    onChange={e => setEditDataModal({...editDataModal, data: {...editDataModal.data, nama: e.target.value}})} />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 mb-1 block">Email</label>
+                  <input type="email" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50" 
+                    value={editDataModal.data.email || ""} 
+                    onChange={e => setEditDataModal({...editDataModal, data: {...editDataModal.data, email: e.target.value}})} />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 mb-1 block">WhatsApp</label>
+                  <input type="text" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50" 
+                    value={editDataModal.data.whatsapp || ""} 
+                    onChange={e => setEditDataModal({...editDataModal, data: {...editDataModal.data, whatsapp: e.target.value}})} />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 mb-1 block">Ukuran Jersey</label>
+                  <input type="text" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50" 
+                    value={editDataModal.data.ukuranJersey || ""} 
+                    onChange={e => setEditDataModal({...editDataModal, data: {...editDataModal.data, ukuranJersey: e.target.value}})} />
+                </div>
+                {editDataModal.data.tipePeserta === "alumni" && (
+                  <>
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 mb-1 block">Fakultas</label>
+                      <input type="text" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50" 
+                        value={editDataModal.data.fakultas || ""} 
+                        onChange={e => setEditDataModal({...editDataModal, data: {...editDataModal.data, fakultas: e.target.value}})} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 mb-1 block">Angkatan</label>
+                      <input type="text" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50" 
+                        value={editDataModal.data.angkatan || ""} 
+                        onChange={e => setEditDataModal({...editDataModal, data: {...editDataModal.data, angkatan: e.target.value}})} />
+                    </div>
+                  </>
+                )}
+                <div className="md:col-span-2">
+                  <label className="text-xs font-bold text-slate-500 mb-1 block">Alamat Lengkap</label>
+                  <textarea className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50" rows={2}
+                    value={editDataModal.data.alamat || ""} 
+                    onChange={e => setEditDataModal({...editDataModal, data: {...editDataModal.data, alamat: e.target.value}})} />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 mb-1 block">Kecamatan</label>
+                  <input type="text" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50" 
+                    value={editDataModal.data.kecamatan || ""} 
+                    onChange={e => setEditDataModal({...editDataModal, data: {...editDataModal.data, kecamatan: e.target.value}})} />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 mb-1 block">Kota / Kabupaten</label>
+                  <input type="text" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50" 
+                    value={editDataModal.data.kotaKabupaten || ""} 
+                    onChange={e => setEditDataModal({...editDataModal, data: {...editDataModal.data, kotaKabupaten: e.target.value}})} />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 mb-1 block">Provinsi</label>
+                  <input type="text" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50" 
+                    value={editDataModal.data.provinsi || ""} 
+                    onChange={e => setEditDataModal({...editDataModal, data: {...editDataModal.data, provinsi: e.target.value}})} />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 mb-1 block">Kode Pos</label>
+                  <input type="text" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50" 
+                    value={editDataModal.data.kodePos || ""} 
+                    onChange={e => setEditDataModal({...editDataModal, data: {...editDataModal.data, kodePos: e.target.value}})} />
+                </div>
+              </div>
+              <div className="pt-4 border-t border-slate-100 flex justify-end gap-2">
+                <button type="button" onClick={() => setEditDataModal({ isOpen: false, data: null })} className="px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-lg">Batal</button>
+                <button type="submit" disabled={loadingAction === "editData"} className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center">
+                  {loadingAction === "editData" ? "Menyimpan..." : "Simpan Perubahan"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -1102,12 +1236,20 @@ export default function DataPesertaPage() {
                           </span>
                         )}
                       </div>
-                      <button
-                        onClick={() => setDetailModal({ isOpen: true, data: p })}
-                        className="mt-2 text-[10px] font-bold text-[#1A73E8] hover:text-[#1557B0] flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded transition-colors w-fit border border-blue-100"
-                      >
-                        Lihat Detail &rarr;
-                      </button>
+                      <div className="flex items-center gap-2 mt-2">
+                        <button
+                          onClick={() => setDetailModal({ isOpen: true, data: p })}
+                          className="text-[10px] font-bold text-[#1A73E8] hover:text-[#1557B0] flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded transition-colors border border-blue-100"
+                        >
+                          Lihat Detail &rarr;
+                        </button>
+                        <button
+                          onClick={() => setEditDataModal({ isOpen: true, data: p })}
+                          className="text-[10px] font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded transition-colors border border-amber-100"
+                        >
+                          <Edit3 className="w-3 h-3" /> Edit
+                        </button>
+                      </div>
                     </td>
 
                     <td className="px-4 py-3 border-r border-slate-100 align-top">

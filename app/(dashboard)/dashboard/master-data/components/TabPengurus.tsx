@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect, useMemo, } from "react";
 import { db } from "@/lib/firebase";
 import { sendWaAction } from "@/app/actions/wa";
@@ -242,7 +247,7 @@ export default function TabPengurus() {
   };
 
   const cabutPengurus = async (id: string, nama: string) => {
-    if (!confirm(`Yakin ingin mencabut status Pengurus dari ${nama}?`)) return;
+    if (!await confirmAlert(`Yakin ingin mencabut status Pengurus dari ${nama}?`)) return;
     setIsProcessing(true);
     try {
       await updateDoc(doc(db, "pengurus", id), {
@@ -268,7 +273,7 @@ export default function TabPengurus() {
       return;
     }
     
-    if (!confirm(`Apakah Anda yakin ingin meng-generate ulang NIA untuk ${user.nama}? NIA sebelumnya akan diganti dengan yang baru.`)) return;
+    if (!await confirmAlert(`Apakah Anda yakin ingin meng-generate ulang NIA untuk ${user.nama}? NIA sebelumnya akan diganti dengan yang baru.`)) return;
     
     setIsProcessing(true);
     try {
@@ -980,9 +985,9 @@ export default function TabPengurus() {
               </p>
               <div className="flex gap-3">
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (
-                      confirm(
+                      await confirmAlert(
                         `Yakin ingin MENGHAPUS PERMANEN ${selectedIds.length} data ini?`,
                       )
                     ) {

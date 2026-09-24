@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import {
@@ -443,7 +448,7 @@ export default function PengaturanWebPage() {
   // --- HAPUS & UPDATE DATA ---
   const deleteBerita = async (id: string) => {
     if (
-      confirm("Peringatan: Yakin ingin menghapus berita ini secara permanen?")
+      await confirmAlert("Peringatan: Yakin ingin menghapus berita ini secara permanen?")
     ) {
       await deleteDoc(doc(db, "berita", id));
       fetchBeritaList();
@@ -452,7 +457,7 @@ export default function PengaturanWebPage() {
 
   const deleteAgenda = async (id: string) => {
     if (
-      confirm("Peringatan: Yakin ingin menghapus agenda ini secara permanen?")
+      await confirmAlert("Peringatan: Yakin ingin menghapus agenda ini secara permanen?")
     ) {
       await deleteDoc(doc(db, "agenda", id));
       fetchAgendaList();
@@ -460,7 +465,7 @@ export default function PengaturanWebPage() {
   };
 
   const deleteGaleri = async (id: string) => {
-    if (confirm("Peringatan: Yakin ingin menghapus foto galeri ini?")) {
+    if (await confirmAlert("Peringatan: Yakin ingin menghapus foto galeri ini?")) {
       await deleteDoc(doc(db, "galeri", id));
       fetchGaleriList();
     }
@@ -468,7 +473,7 @@ export default function PengaturanWebPage() {
 
   const verifyDonasi = async (id: string) => {
     if (
-      confirm(
+      await confirmAlert(
         "Konfirmasi: Nominal akan diverifikasi dan ditambahkan ke Total Publik.",
       )
     ) {
@@ -487,7 +492,7 @@ export default function PengaturanWebPage() {
   };
 
   const deleteDonasi = async (id: string) => {
-    if (confirm("Peringatan Keras: Hapus data donasi ini permanen?")) {
+    if (await confirmAlert("Peringatan Keras: Hapus data donasi ini permanen?")) {
       try {
         await deleteDoc(doc(db, "agenda_donasi", id));
         fetchDonasiList();

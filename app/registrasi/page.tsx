@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect, useRef } from "react";
 import { toast } from "@/lib/toast";
 import { db, auth } from "@/lib/firebase";
@@ -214,7 +219,7 @@ export default function MejaRegistrasiPage() {
   };
 
   const handleLogout = async () => {
-    if (confirm("Yakin ingin keluar dan menghapus sesi jaga meja ini?")) {
+    if (await confirmAlert("Yakin ingin keluar dan menghapus sesi jaga meja ini?")) {
       await signOut(auth);
       localStorage.removeItem("gate_selected_agenda");
       localStorage.removeItem("gate_petugas_name");
@@ -664,7 +669,7 @@ export default function MejaRegistrasiPage() {
       : peserta.nama;
 
     if (
-      !confirm(
+      !await confirmAlert(
         `Yakin membatalkan status untuk: ${namaTarget}? \nSistem akan mereset status data ini.`,
       )
     )

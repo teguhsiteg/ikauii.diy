@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { useParams, useRouter } from "next/navigation";
 import RunNavbar from "@/components/run/RunNavbar";
 import RunFooter from "@/components/run/RunFooter";
@@ -13,6 +13,7 @@ export default function OfflineRunCheckoutPage() {
   const id = params.id as string;
 
   const [participant, setParticipant] = useState<any>(null);
+  const [allParticipants, setAllParticipants] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -75,6 +76,20 @@ export default function OfflineRunCheckoutPage() {
           }
 
           setParticipant({ id: pSnap.id, ...data });
+
+          if (data.orderIdGroup) {
+            const q = query(
+              collection(db, "offline_participants"),
+              where("orderIdGroup", "==", data.orderIdGroup)
+            );
+            const querySnapshot = await getDocs(q);
+            const fetched = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            // urutkan agar yang isUtama pertama
+            fetched.sort((a: any, b: any) => (a.isUtama === b.isUtama ? 0 : a.isUtama ? -1 : 1));
+            setAllParticipants(fetched);
+          } else {
+            setAllParticipants([{ id: pSnap.id, ...data }]);
+          }
         } else {
           setModal({
             isOpen: true,
@@ -259,370 +274,138 @@ export default function OfflineRunCheckoutPage() {
 
   return (
     <div className="min-h-screen bg-[#F4F7FB] font-sans flex flex-col relative selection:bg-[#1A73E8] selection:text-white">
-      <RunNavbar eventName={settings?.offlineJudul} />
+      <RunNavbar eventName={settings?.offlineJudul} solid={true} />
 
       <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-[120px] md:pt-[160px] pb-20 w-full relative z-10">
-        <div className="animate-in fade-in duration-700">
-          <div className="text-center mb-8 md:mb-12">
-            <span className="text-[10px] font-black text-[#1A73E8] bg-blue-50 border border-blue-100 px-3 py-1 rounded-full uppercase tracking-widest mb-3 inline-block shadow-sm">
-              Langkah Terakhir
-            </span>
-            <h1 className="text-3xl md:text-4xl font-black text-[#0B2239] mb-2 tracking-tight">
-              Selesaikan Pembayaran
-            </h1>
+        <div className="animate-in fade-in duration-500">
+          {/* Stepper (Pembayaran) */}
+          <div className="w-full max-w-3xl mx-auto mb-10 mt-8 hidden md:block">
+            <div className="flex items-center justify-between relative">
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-[2px] bg-slate-200 -z-10">
+                <div className="h-full bg-[#1A73E8] transition-all w-full"></div>
+              </div>
+              {["Pilih Kategori", "Detail Pesanan", "Review Data", "Pembayaran"].map((step, idx) => {
+                const isActive = true; // All steps active
+                return (
+                  <div key={idx} className="flex flex-col items-center bg-[#F4F7FB] px-4">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-[#1A73E8] text-white shadow-md shadow-blue-200">
+                      {idx + 1}
+                    </div>
+                    <p className="text-[11px] mt-2 font-bold uppercase tracking-wider text-[#1A73E8]">{step}</p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="grid lg:grid-cols-12 gap-6 items-start">
+          <div className="grid lg:grid-cols-12 gap-8 items-start">
             {/* =================================================
-                KOLOM KIRI: ORDER SUMMARY (RINGKASAN PESANAN)
+                KOLOM KIRI: PAYMENT METHOD (INSTRUKSI BAYAR)
             ================================================= */}
-            <div className="lg:col-span-5 space-y-6">
-              <div className="bg-white rounded-[24px] overflow-hidden shadow-sm border border-slate-200">
-                <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="font-black text-slate-800 text-sm uppercase tracking-widest">
-                    Order Summary
-                  </h3>
-                </div>
-                <div className="p-6 space-y-4">
-                  <div>
-                    <h4 className="font-black text-lg text-[#0B2239] uppercase tracking-tight mb-4">
-                      {settings?.namaEvent || "IKA UII DIY RUN"}
-                    </h4>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500">Nama Peserta</span>
-                    <span className="font-bold text-slate-800">
-                      {participant.namaLengkap}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500">Kategori</span>
-                    <span className="font-bold text-[#1A73E8]">
-                      {participant.jarak}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm border-b border-dashed border-slate-200 pb-4">
-                    <span className="text-slate-500">Harga Paket</span>
-                    <span className="font-bold text-slate-800">
-                      Rp{" "}
-                      {(
-                        participant.hargaAsli || participant.totalTagihan
-                      )?.toLocaleString("id-ID")}
-                    </span>
-                  </div>
-
-                  {participant.kodePromoDipakai && (
-                    <div className="flex justify-between items-center text-sm text-emerald-600 font-medium">
-                      <span>Promo ({participant.kodePromoDipakai})</span>
-                      <span>
-                        - Rp {participant.totalDiskon?.toLocaleString("id-ID")}
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="pt-2 flex justify-between items-center">
-                    <span className="font-bold text-slate-800">Subtotal</span>
-                    <span className="font-black text-lg text-[#1A73E8]">
-                      Rp {participant.totalTagihan?.toLocaleString("id-ID")}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* =================================================
-                KOLOM KANAN: PAYMENT METHOD (INSTRUKSI BAYAR)
-            ================================================= */}
-            <div className="lg:col-span-7">
+            <div className="lg:col-span-8">
               {isMenungguVerifikasi ? (
-                <div className="bg-white rounded-[24px] p-8 border border-amber-200 text-center shadow-sm">
+                <div className="bg-white rounded-[8px] p-8 border border-slate-100 text-center shadow-sm">
                   <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg
-                      className="w-8 h-8 animate-pulse"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
+                    <svg className="w-8 h-8 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   </div>
-                  <h3 className="text-xl font-black text-[#0B2239] mb-2">
-                    Menunggu Verifikasi Admin
-                  </h3>
-                  <p className="text-sm text-slate-500 font-medium mb-6">
-                    Bukti pembayaran manual Anda telah berhasil diunggah dan
-                    sedang dalam proses pengecekan.
-                  </p>
+                  <h3 className="text-[18px] font-bold text-[#0B2239] mb-2">Menunggu Verifikasi Admin</h3>
+                  <p className="text-[13px] text-slate-500">Bukti pembayaran manual Anda telah berhasil diunggah dan sedang dalam proses pengecekan oleh tim kami.</p>
                 </div>
               ) : (
-                <div className="bg-white rounded-[24px] overflow-hidden shadow-sm border border-slate-200">
-                  <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                        />
-                      </svg>
-                    </div>
-                    <h3 className="font-black text-slate-800 text-sm uppercase tracking-widest">
-                      Payment Method
-                    </h3>
+                <div className="bg-white rounded-[8px] overflow-hidden shadow-sm border border-slate-100">
+                  <div className="px-5 py-4 border-b border-slate-100">
+                    <h2 className="text-[14px] font-bold text-[#0B2239] flex items-center gap-2">
+                      <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                      Metode Pembayaran
+                    </h2>
                   </div>
 
-                  <div className="p-6 sm:p-8">
+                  <div className="p-5">
                     {/* --- TAMPILAN JIKA ADMIN PILIH MANUAL --- */}
                     {activePaymentMethod === "manual" && (
                       <div className="space-y-6">
-                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center flex flex-col items-center">
-                          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
-                            Transfer Ke Rekening
-                          </p>
-                          <p className="text-3xl font-black text-[#0B2239] mb-1">
-                            {settings?.manualBank || "BANK"}
-                          </p>
-                          <div className="flex items-center gap-3 mt-2 bg-white px-4 py-2 rounded-lg border border-slate-200">
-                            <p className="font-mono text-xl font-bold text-[#1A73E8]">
-                              {settings?.manualRekening || "-"}
-                            </p>
-                            <button
-                              onClick={handleCopyRekening}
-                              className="text-xs font-bold text-slate-400 hover:text-[#1A73E8] bg-slate-100 px-2 py-1 rounded transition-colors"
-                            >
+                        <div className="bg-[#F4F7FB] border border-slate-200 rounded-[8px] p-6 text-center flex flex-col items-center">
+                          <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-2">Transfer Ke Rekening</p>
+                          <p className="text-2xl font-black text-[#0B2239] mb-1">{settings?.manualBank || "BANK"}</p>
+                          <div className="flex items-center gap-3 mt-2 bg-white px-4 py-2 rounded-[8px] border border-slate-200 shadow-sm">
+                            <p className="font-mono text-lg font-bold text-[#1A73E8]">{settings?.manualRekening || "-"}</p>
+                            <button onClick={handleCopyRekening} className="text-[11px] font-bold text-slate-500 hover:text-[#1A73E8] bg-slate-100 px-2.5 py-1.5 rounded transition-colors">
                               {isCopied ? "Disalin!" : "Copy"}
                             </button>
                           </div>
-                          <p className="text-xs font-bold text-slate-400 mt-4 uppercase">
-                            a.n. {settings?.manualNama || "IKA UII DIY"}
-                          </p>
+                          <p className="text-[11px] font-bold text-slate-400 mt-4 uppercase">a.n. {settings?.manualNama || "IKA UII DIY"}</p>
                         </div>
-                        <form
-                          onSubmit={handleUploadSubmit}
-                          className="space-y-4"
-                        >
-                          <div className="relative border-2 border-dashed border-slate-300 rounded-2xl p-4 text-center h-32 flex flex-col items-center justify-center bg-slate-50 hover:bg-blue-50 transition-colors">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleFileSelect}
-                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                            />
-                            {previewUrl ? (
-                              <img
-                                src={previewUrl}
-                                className="absolute inset-0 w-full h-full object-cover opacity-80 rounded-xl"
-                              />
-                            ) : (
-                              <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">
-                                Pilih Foto Bukti Transfer
-                              </p>
-                            )}
+                        
+                        <form onSubmit={handleUploadSubmit} className="space-y-4">
+                          <div>
+                            <label className="block text-[12px] font-bold text-[#0B2239] mb-1.5">Upload Bukti Transfer</label>
+                            <div className="relative border-2 border-dashed border-slate-200 rounded-[8px] p-4 text-center h-32 flex flex-col items-center justify-center bg-slate-50 hover:bg-blue-50/50 transition-colors cursor-pointer">
+                              <input type="file" accept="image/*" onChange={handleFileSelect} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                              {previewUrl ? (
+                                <img src={previewUrl} className="absolute inset-0 w-full h-full object-contain p-2 opacity-90 rounded-[8px]" />
+                              ) : (
+                                <div className="text-slate-400">
+                                  <svg className="w-8 h-8 mx-auto mb-2 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                  <p className="text-[11px] font-bold uppercase tracking-widest">Pilih Foto/Screenshot</p>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <button
-                            type="submit"
-                            disabled={isUploading || !selectedFile}
-                            className="w-full bg-[#1A73E8] hover:bg-[#1557B0] text-white font-black py-4 rounded-xl disabled:opacity-50 transition-colors shadow-md"
-                          >
-                            {isUploading
-                              ? "Mengunggah..."
-                              : "Konfirmasi & Kirim Bukti"}
+                          
+                          <button type="submit" disabled={isUploading || !selectedFile} className="w-full bg-[#1A73E8] hover:bg-blue-700 text-white text-[13px] font-bold py-3 rounded-[8px] disabled:opacity-50 transition-colors">
+                            {isUploading ? "Mengunggah..." : "Konfirmasi & Kirim Bukti"}
                           </button>
                         </form>
                       </div>
                     )}
 
-                    {/* --- 🔥 TAMPILAN JIKA ADMIN PILIH MIDTRANS (RADIO BUTTON CARDS) 🔥 --- */}
+                    {/* --- TAMPILAN JIKA ADMIN PILIH MIDTRANS --- */}
                     {activePaymentMethod === "midtrans" && (
                       <div className="space-y-6">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
-                          Pilih Metode Pembayaran
-                        </p>
-
-                        {/* Grid Kartu Bank/E-Wallet */}
+                        <p className="text-[12px] font-bold text-slate-500 mb-3">Pilih Bank / E-Wallet</p>
+                        
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
                           {midtransOptions.map((opt) => (
                             <div
                               key={opt.id}
                               onClick={() => setSelectedBank(opt.id)}
-                              className={`relative cursor-pointer border-2 rounded-2xl p-4 flex flex-col items-center justify-center gap-3 transition-all duration-200 ${
+                              className={`relative cursor-pointer border rounded-[8px] p-4 flex flex-col items-center justify-center gap-3 transition-all duration-200 ${
                                 selectedBank === opt.id
-                                  ? "border-[#1A73E8] bg-[#F4F8FF] text-[#1A73E8] shadow-sm transform scale-[1.02]"
-                                  : "border-slate-200 bg-white text-slate-500 hover:border-blue-300 hover:bg-slate-50"
+                                  ? "border-[#1A73E8] bg-blue-50/30 text-[#1A73E8] shadow-sm ring-1 ring-[#1A73E8]"
+                                  : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50"
                               }`}
                             >
-                              {/* Ikon Checklist Pojok Kanan Atas */}
                               {selectedBank === opt.id && (
-                                <div className="absolute top-2 right-2 bg-[#1A73E8] text-white rounded-full p-0.5 shadow-sm">
-                                  <svg
-                                    className="w-3 h-3"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={3}
-                                      d="M5 13l4 4L19 7"
-                                    />
-                                  </svg>
+                                <div className="absolute top-2 right-2 bg-[#1A73E8] text-white rounded-full p-0.5">
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>
                                 </div>
                               )}
 
-                              {/* Icon SVG Generic Sederhana */}
-                              <div
-                                className={
-                                  selectedBank === opt.id
-                                    ? "text-[#1A73E8]"
-                                    : "text-slate-400"
-                                }
-                              >
-                                {opt.icon === "qr" && (
-                                  <svg
-                                    className="w-8 h-8"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={1.5}
-                                      d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
-                                    />
-                                  </svg>
-                                )}
-                                {opt.icon === "bank" && (
-                                  <svg
-                                    className="w-8 h-8"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={1.5}
-                                      d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11m16-11v11M8 14v3m4-3v3m4-3v3"
-                                    />
-                                  </svg>
-                                )}
-                                {opt.icon === "wallet" && (
-                                  <svg
-                                    className="w-8 h-8"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={1.5}
-                                      d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                                    />
-                                  </svg>
-                                )}
+                              <div className={selectedBank === opt.id ? "text-[#1A73E8]" : "text-slate-400"}>
+                                {opt.icon === "qr" && <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>}
+                                {opt.icon === "bank" && <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11m16-11v11M8 14v3m4-3v3m4-3v3"/></svg>}
+                                {opt.icon === "wallet" && <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>}
                               </div>
 
                               <div className="text-center">
-                                <p className="font-black text-xs uppercase tracking-wide">
-                                  {opt.name}
-                                </p>
-                                <p className="text-[9px] font-medium opacity-70 mt-0.5 uppercase tracking-widest">
-                                  {opt.label}
-                                </p>
+                                <p className="font-bold text-[12px]">{opt.name}</p>
+                                <p className="text-[10px] text-slate-400 mt-0.5">{opt.label}</p>
                               </div>
                             </div>
                           ))}
                         </div>
 
-                        {/* Note Biaya Layanan */}
-                        <p className="text-[11px] text-slate-500 font-medium flex justify-between items-center">
+                        <p className="text-[11px] text-slate-500 flex justify-between items-center">
                           <span>Biaya Layanan Midtrans</span>
                           <span>Dihitung otomatis</span>
                         </p>
 
-                        {/* Kotak Grand Total Hijau */}
-                        <div className="bg-[#E6F4EA] border border-[#CEEAD6] rounded-2xl p-5 flex items-center justify-between">
-                          <div>
-                            <p className="text-[10px] font-black text-[#1E8E3E] uppercase tracking-widest mb-1">
-                              Grand Total
-                            </p>
-                            <p className="text-2xl font-black text-[#1E8E3E]">
-                              Rp{" "}
-                              {participant.totalTagihan?.toLocaleString(
-                                "id-ID",
-                              )}
-                            </p>
-                          </div>
-                          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#1E8E3E] shadow-sm">
-                            <svg
-                              className="w-6 h-6"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={3}
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
-                          </div>
-                        </div>
-
-                        {/* Tombol Bayar Biru */}
                         <button
                           onClick={handlePayMidtrans}
                           disabled={isPaying}
-                          className="w-full bg-[#1A73E8] hover:bg-[#1557B0] text-white text-base font-black py-4 rounded-xl shadow-lg disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                          className="w-full bg-[#1A73E8] hover:bg-blue-700 text-white text-[13px] font-bold py-3 rounded-[8px] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
                         >
-                          {isPaying
-                            ? "Menghubungkan ke Gateway..."
-                            : "Proceed to Payment"}
-                          {!isPaying && (
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2.5}
-                                d="M14 5l7 7m0 0l-7 7m7-7H3"
-                              />
-                            </svg>
-                          )}
+                          {isPaying ? "Menghubungkan..." : "Lanjutkan Pembayaran"}
                         </button>
                       </div>
                     )}
@@ -630,10 +413,72 @@ export default function OfflineRunCheckoutPage() {
                 </div>
               )}
             </div>
+
+            {/* =================================================
+                KOLOM KANAN: ORDER SUMMARY (RINGKASAN PESANAN)
+            ================================================= */}
+            <div className="lg:col-span-4 relative">
+              <div className="bg-white rounded-[8px] overflow-hidden shadow-sm border border-slate-100 sticky top-24">
+                <div className="px-5 py-4 border-b border-slate-100">
+                  <h2 className="text-[14px] font-bold text-[#0B2239] flex items-center gap-2">
+                    <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                    Rincian Pesanan
+                  </h2>
+                </div>
+                
+                <div className="p-5 space-y-4">
+                  <div className="space-y-3">
+                    {allParticipants.map((p, idx) => (
+                      <div key={idx} className="flex justify-between text-[12px] border-b border-slate-50 pb-2">
+                        <div className="space-y-1">
+                          <p className="font-bold text-[#0B2239]">Tiket {idx + 1}: {p.paketNama}</p>
+                          <p className="text-slate-500">{p.namaLengkap}</p>
+                          <p className="text-slate-400 text-[11px]">BIB: {p.namaBib} | Jersey: {p.ukuranJersey}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-[#0B2239]">
+                            Rp {p.hargaAsli?.toLocaleString("id-ID") || "-"}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-2 pt-3 border-t border-slate-100 text-[12px]">
+                    <div className="flex justify-between text-slate-600">
+                      <span>Subtotal Tiket</span>
+                      <span className="font-medium text-[#0B2239]">Rp {(participant.subtotalPesanan || participant.hargaAsli || participant.totalTagihan)?.toLocaleString("id-ID")}</span>
+                    </div>
+
+                    {participant.kodePromoDipakai && (
+                      <div className="flex justify-between text-emerald-600">
+                        <span>Promo ({participant.kodePromoDipakai})</span>
+                        <span className="font-medium">- Rp {participant.totalDiskon?.toLocaleString("id-ID")}</span>
+                      </div>
+                    )}
+
+                    {participant.donasiCharity > 0 && (
+                      <div className="flex justify-between text-blue-600">
+                        <span>Donasi Charity</span>
+                        <span className="font-medium">Rp {participant.donasiCharity?.toLocaleString("id-ID")}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 flex justify-between items-center">
+                    <span className="font-bold text-[13px] text-[#0B2239]">Grand Total</span>
+                    <span className="font-bold text-[16px] text-[#1A73E8]">
+                      Rp {participant.totalTagihan?.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </main>
-      <RunFooter eventName={settings?.offlineJudul} waChannelUrl={settings?.waGroupUrl} />
+      <RunFooter eventName={settings?.offlineJudul} waChannelUrl={settings?.waGroupUrl} sosmeds={settings?.sosmeds} />
 
       {/* POPUP MODAL UMUM */}
       {modal.isOpen && (

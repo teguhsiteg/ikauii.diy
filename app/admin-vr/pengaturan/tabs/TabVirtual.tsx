@@ -1,4 +1,5 @@
 import React from "react";
+import Swal from "sweetalert2";
 import {
   Settings,
   Calendar,
@@ -15,7 +16,58 @@ export default function TabVirtual({
   handlePackageChange,
   addPackage,
   removePackage,
+  handleFaqChange,
+  addFaq,
+  removeFaq,
 }: any) {
+  const addPromo = (pkgId: string, currentPromos: any[]) => {
+    const updated = [
+      ...(currentPromos || []),
+      {
+        id: Date.now().toString(),
+        kode: "",
+        jenisDiskon: "persen",
+        nilaiDiskon: 0,
+        kuotaMaksimal: 100,
+        kuotaTerpakai: 0,
+        tanggalKedaluwarsa: "",
+        isActive: true,
+      },
+    ];
+    handlePackageChange("virtual", pkgId, "promos", updated);
+  };
+
+  const updatePromo = (
+    pkgId: string,
+    currentPromos: any[],
+    promoId: string,
+    field: string,
+    value: any,
+  ) => {
+    const updated = (currentPromos || []).map((p) =>
+      p.id === promoId ? { ...p, [field]: value } : p,
+    );
+    handlePackageChange("virtual", pkgId, "promos", updated);
+  };
+
+  const removePromo = (pkgId: string, currentPromos: any[], promoId: string) => {
+    Swal.fire({
+      title: "Hapus Promo?",
+      text: "Promo ini akan dihapus dari paket.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Ya, Hapus!",
+      cancelButtonText: "Batal"
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const updated = (currentPromos || []).filter((p) => p.id !== promoId);
+        handlePackageChange("virtual", pkgId, "promos", updated);
+      }
+    });
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 border-slate-200 animate-in fade-in slide-in-from-bottom-4 duration-300">
       <div className="lg:col-span-4">
@@ -56,24 +108,6 @@ export default function TabVirtual({
 
 
 
-        <div className="p-4 border border-slate-200 rounded-xl bg-white space-y-3">
-          <div>
-            <label className="block font-bold text-sm text-slate-700 mb-1">
-              Link Grup WhatsApp (WA Channel)
-            </label>
-            <p className="text-xs text-slate-500 mb-3">
-              Tautan WhatsApp Group/Channel untuk peserta Virtual Run.
-            </p>
-            <input
-              type="url"
-              name="waChannelUrl"
-              value={vrSettings.waChannelUrl || ""}
-              onChange={handleSettingChange}
-              placeholder="https://chat.whatsapp.com/..."
-              className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-[#1A73E8] outline-none text-sm transition-all text-slate-800"
-            />
-          </div>
-        </div>
 
         {vrSettings.isVirtualRunEnabled && (
           <div className="space-y-4 pt-4 border-t border-slate-100">
@@ -407,6 +441,112 @@ export default function TabVirtual({
                         </div>
                       )}
                     </div>
+
+                    {/* MANAJEMEN PROMO TIKET */}
+                    <div className="mt-6 pt-6 border-t border-slate-200">
+                      <div className="flex items-center justify-between mb-4">
+                        <label className="block text-xs font-bold text-emerald-600 uppercase tracking-wide">
+                          Manajemen Promo Tiket
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => addPromo(pkg.id, pkg.promos)}
+                          className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-md text-[10px] font-bold hover:bg-emerald-100 transition-colors flex items-center gap-1"
+                        >
+                          <Plus className="w-3 h-3" /> Tambah Promo
+                        </button>
+                      </div>
+
+                      {(!pkg.promos || pkg.promos.length === 0) ? (
+                        <div className="text-center py-4 bg-slate-50 rounded-lg border border-slate-200 border-dashed">
+                          <p className="text-[10px] text-slate-400 font-bold">
+                            Belum ada promo untuk paket ini.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {pkg.promos.map((promo: any) => (
+                            <div
+                              key={promo.id}
+                              className={`flex flex-col gap-3 p-4 rounded-lg border transition-all ${promo.isActive ? "bg-white border-slate-200 shadow-sm" : "bg-slate-50 border-slate-200 opacity-70"}`}
+                            >
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div>
+                                  <label className="block text-[9px] font-bold text-slate-400 mb-1 uppercase">Kode Unik</label>
+                                  <input
+                                    type="text"
+                                    value={promo.kode}
+                                    onChange={(e) => updatePromo(pkg.id, pkg.promos, promo.id, "kode", e.target.value.toUpperCase().replace(/\s/g, ""))}
+                                    placeholder="KODEPROMO"
+                                    className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded text-[10px] uppercase font-bold outline-none focus:border-[#1A73E8]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] font-bold text-slate-400 mb-1 uppercase">Tipe Diskon</label>
+                                  <select
+                                    value={promo.jenisDiskon}
+                                    onChange={(e) => updatePromo(pkg.id, pkg.promos, promo.id, "jenisDiskon", e.target.value)}
+                                    className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded text-[10px] outline-none focus:border-[#1A73E8]"
+                                  >
+                                    <option value="persen">Persen (%)</option>
+                                    <option value="nominal">Nominal (Rp)</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] font-bold text-slate-400 mb-1 uppercase">Nilai Diskon</label>
+                                  <input
+                                    type="number"
+                                    value={promo.nilaiDiskon}
+                                    onChange={(e) => updatePromo(pkg.id, pkg.promos, promo.id, "nilaiDiskon", Number(e.target.value))}
+                                    className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded text-[10px] font-mono outline-none focus:border-[#1A73E8]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] font-bold text-slate-400 mb-1 uppercase">Batas Kuota (0=♾️)</label>
+                                  <input
+                                    type="number"
+                                    value={promo.kuotaMaksimal}
+                                    onChange={(e) => updatePromo(pkg.id, pkg.promos, promo.id, "kuotaMaksimal", Number(e.target.value))}
+                                    className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded text-[10px] font-mono outline-none focus:border-[#1A73E8]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] font-bold text-slate-400 mb-1 uppercase">Tgl Kedaluwarsa</label>
+                                  <input
+                                    type="date"
+                                    value={promo.tanggalKedaluwarsa}
+                                    onChange={(e) => updatePromo(pkg.id, pkg.promos, promo.id, "tanggalKedaluwarsa", e.target.value)}
+                                    className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded text-[10px] outline-none focus:border-[#1A73E8]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] font-bold text-slate-400 mb-1 uppercase">Kuota Terpakai</label>
+                                  <div className="w-full px-2 py-1.5 bg-slate-100 border border-slate-200 rounded text-[10px] font-mono text-slate-500 cursor-not-allowed">
+                                    {promo.kuotaTerpakai} tiket
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex justify-end gap-2 mt-2 pt-3 border-t border-slate-100">
+                                <button
+                                  type="button"
+                                  onClick={() => updatePromo(pkg.id, pkg.promos, promo.id, "isActive", !promo.isActive)}
+                                  className={`px-3 py-1.5 rounded text-[9px] font-bold transition-colors ${promo.isActive ? "bg-amber-50 text-amber-600 hover:bg-amber-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"}`}
+                                >
+                                  {promo.isActive ? "Matikan" : "Aktifkan"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removePromo(pkg.id, pkg.promos, promo.id)}
+                                  className="px-3 py-1.5 bg-rose-50 text-rose-500 rounded text-[9px] font-bold hover:bg-rose-100 transition-colors"
+                                >
+                                  Hapus
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
                 <button
@@ -471,6 +611,34 @@ export default function TabVirtual({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
+                          RPX Username (API V3)
+                        </label>
+                        <input
+                          type="text"
+                          name="rpxUsername"
+                          value={vrSettings.rpxUsername || ""}
+                          onChange={handleSettingChange}
+                          placeholder="Contoh: demo"
+                          className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:border-[#1A73E8] outline-none text-sm font-mono text-slate-800"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
+                          RPX Password (API V3)
+                        </label>
+                        <input
+                          type="password"
+                          name="rpxPassword"
+                          value={vrSettings.rpxPassword || ""}
+                          onChange={handleSettingChange}
+                          placeholder="••••••••"
+                          className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:border-[#1A73E8] outline-none text-sm font-mono text-slate-800"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
                           RPX Account Number
                         </label>
                         <input
@@ -521,6 +689,24 @@ export default function TabVirtual({
                           placeholder="PSN, SDP, dll"
                           className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:border-[#1A73E8] outline-none text-sm font-mono text-slate-800 uppercase"
                         />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
+                          URL Tracking RPX (Dasar)
+                        </label>
+                        <input
+                          type="text"
+                          name="rpxTrackingUrl"
+                          value={vrSettings.rpxTrackingUrl || ""}
+                          onChange={handleSettingChange}
+                          placeholder="https://www.rpx.co.id/tracking/"
+                          className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:border-[#1A73E8] outline-none text-sm font-mono text-slate-800"
+                        />
+                        <p className="text-[10px] text-slate-500 mt-1">
+                          Peserta harus menyalin nomor resi dan mengeceknya manual di halaman ini (karena sistem captcha RPX).
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -603,8 +789,49 @@ export default function TabVirtual({
                     )}
                   </div>
                 </div>
+
+                <div className="pt-6 border-t border-slate-100">
+                  <h4 className="text-[11px] font-bold text-blue-600 uppercase tracking-widest mb-1 pb-2">
+                    Aset Digital (BIB & Sertifikat)
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-2">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                        URL Gambar E-BIB
+                      </label>
+                      <input
+                        type="url"
+                        name="urlBibVirtual"
+                        value={vrSettings.urlBibVirtual || ""}
+                        onChange={handleSettingChange}
+                        placeholder="https://..."
+                        className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-blue-500 outline-none text-sm font-mono"
+                      />
+                      {vrSettings.urlBibVirtual && (
+                        <img src={vrSettings.urlBibVirtual} alt="Preview E-BIB Virtual" className="mt-3 w-full h-32 object-cover rounded-lg border border-slate-200" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                        URL E-Sertifikat (Template)
+                      </label>
+                      <input
+                        type="url"
+                        name="urlSertifikatVirtual"
+                        value={vrSettings.urlSertifikatVirtual || ""}
+                        onChange={handleSettingChange}
+                        placeholder="https://..."
+                        className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-blue-500 outline-none text-sm font-mono"
+                      />
+                      {vrSettings.urlSertifikatVirtual && (
+                        <img src={vrSettings.urlSertifikatVirtual} alt="Preview Sertifikat Virtual" className="mt-3 w-full h-32 object-cover rounded-lg border border-slate-200" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </details>
+
           </div>
         )}
       </div>

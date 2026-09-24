@@ -1,5 +1,7 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
 import { useState, useRef, useEffect } from "react";
 import { toast } from "@/lib/toast";
 import { db } from "@/lib/firebase";
@@ -172,9 +174,9 @@ export default function BibScannerPage() {
     }
   };
 
-  const handleClearHistory = (e: React.MouseEvent) => {
+  const handleClearHistory = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm("Bersihkan semua riwayat scan?")) setScanHistory([]);
+    if (await confirmAlert("Bersihkan semua riwayat scan?")) setScanHistory([]);
   };
 
   const handleDeleteItem = (e: React.MouseEvent, indexToDelete: number) => {

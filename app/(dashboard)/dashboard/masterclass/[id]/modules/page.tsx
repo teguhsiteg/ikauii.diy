@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect } from "react";
 import { toast } from "@/lib/toast";
 import { useParams, useRouter } from "next/navigation";
@@ -359,7 +364,7 @@ export default function ModuleManagementPage() {
                               </button>
                               <button
                                 onClick={async () => {
-                                  if (confirm(`Hapus modul "${mod.judul}"?`)) {
+                                  if (await confirmAlert(`Hapus modul "${mod.judul}"?`)) {
                                     await deleteDoc(
                                       doc(db, "masterclass_modules", mod.id),
                                     );

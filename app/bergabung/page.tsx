@@ -192,7 +192,7 @@ export default function BergabungPage() {
       const recaptchaResponse = await fetch("/api/verify-recaptcha", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, email: formData.email }),
+        body: JSON.stringify({ token, email: formData.email, action: "member_registration" }),
       });
 
       const recaptchaResult = await recaptchaResponse.json();

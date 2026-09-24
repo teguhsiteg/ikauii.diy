@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { rateLimit } from "@/lib/rate-limit";
+import { dbAdmin } from "@/lib/firebase-admin";
 
 const emailRateLimiter = rateLimit({ windowMs: 60 * 1000, maxRequests: 10 });
 
@@ -31,14 +32,22 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { type, email, nama, detail, attachmentBase64 } = body;
 
-
     const currentYear = new Date().getFullYear();
     const officialEmail = "ika.diy@uii.ac.id";
     const NOMOR_WA_ADMIN = process.env.WA_ADMIN_PHONE || "6285179594146";
     const logoUrl = "https://ikadiy.uii.ac.id/logo-dpp-ika.png";
 
+    // FETCH SETTINGS
+    let defaultEventName = "Event IKA UII DIY";
+    try {
+      const settingsDoc = await dbAdmin.collection("settings").doc("virtual_run").get();
+      if (settingsDoc.exists) {
+        defaultEventName = settingsDoc.data()?.offlineJudul || defaultEventName;
+      }
+    } catch (err) {}
+
     // 1. SINKRONISASI NAMA EVENT SECARA GLOBAL (KONSISTEN UNTUK SEMUA EMAIL)
-    const eventName = detail?.eventName || detail?.event || "Event IKA UII DIY";
+    const eventName = detail?.eventName || detail?.event || defaultEventName;
 
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",

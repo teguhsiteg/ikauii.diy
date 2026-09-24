@@ -1211,7 +1211,7 @@ export default function ParticipantDashboard() {
 
       const settings = snap.data();
       const templateUrl =
-        type === "bib" ? settings.urlBib : settings.urlSertifikat;
+        type === "bib" ? settings.urlBibVirtual : settings.urlSertifikatVirtual;
 
       if (
         !templateUrl ||
@@ -2559,21 +2559,33 @@ export default function ParticipantDashboard() {
                                 </p>
                               </div>
                               {participant.resiPengiriman && (
-                                <button
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(
-                                      participant.resiPengiriman,
-                                    );
-                                    setPopup({
-                                      type: "success",
-                                      title: "Disalin!",
-                                      text: "Nomor resi disalin ke clipboard.",
-                                    });
-                                  }}
-                                  className="bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold py-2.5 px-6 rounded-xl text-xs transition-colors border border-purple-200 shrink-0"
-                                >
-                                  Salin Resi
-                                </button>
+                                <div className="flex gap-2 shrink-0">
+                                  {vrSettings?.rpxTrackingUrl && (
+                                    <a
+                                      href={vrSettings.rpxTrackingUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-2.5 px-4 rounded-xl text-xs transition-colors border border-indigo-200"
+                                    >
+                                      Lacak Resi
+                                    </a>
+                                  )}
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(
+                                        participant.resiPengiriman,
+                                      );
+                                      setPopup({
+                                        type: "success",
+                                        title: "Disalin!",
+                                        text: "Nomor resi disalin ke clipboard.",
+                                      });
+                                    }}
+                                    className="bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold py-2.5 px-4 rounded-xl text-xs transition-colors border border-purple-200"
+                                  >
+                                    Salin Resi
+                                  </button>
+                                </div>
                               )}
                             </div>
                           </div>
@@ -3198,7 +3210,7 @@ export default function ParticipantDashboard() {
               </div>
             )}
           </div>
-          <VirtualRunFooter />
+          <VirtualRunFooter sosmeds={vrSettings?.sosmeds} />
         </>
       )}
     </div>

@@ -2,12 +2,19 @@ import { NextResponse } from "next/server";
 import { RecaptchaEnterpriseServiceClient } from "@google-cloud/recaptcha-enterprise";
 import crypto from "crypto";
 
+let formattedKey = process.env.FIREBASE_PRIVATE_KEY || "";
+if (formattedKey.startsWith('"') && formattedKey.endsWith('"')) {
+  formattedKey = formattedKey.slice(1, -1);
+} else if (formattedKey.startsWith("'") && formattedKey.endsWith("'")) {
+  formattedKey = formattedKey.slice(1, -1);
+}
+formattedKey = formattedKey.replace(/\\n/g, "\n");
+
 // 1. Inisialisasi Google Cloud Client MENGGUNAKAN kredensial Firebase dari .env
 const client = new RecaptchaEnterpriseServiceClient({
   credentials: {
     client_email: process.env.FIREBASE_CLIENT_EMAIL,
-    // Perlu replace \n agar format multiline dari .env terbaca benar oleh sistem
-    private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+    private_key: formattedKey,
   },
   projectId: process.env.FIREBASE_PROJECT_ID,
 });

@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy, getDoc } from "firebase/firestore";
@@ -91,7 +96,7 @@ export default function ManajemenSoalKuis({ params }: { params: Promise<{ id: st
   };
 
   const handleDeleteQuestion = async (soalId: string) => {
-    if (!confirm("Yakin ingin menghapus soal ini?")) return;
+    if (!await confirmAlert("Yakin ingin menghapus soal ini?")) return;
     try {
       await deleteDoc(doc(db, `kuis/${quizId}/soal`, soalId));
       toast.success("Soal berhasil dihapus!");

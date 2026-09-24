@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy } from "firebase/firestore";
@@ -75,7 +80,7 @@ export default function KarirPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus lowongan ini?")) return;
+    if (!await confirmAlert("Apakah Anda yakin ingin menghapus lowongan ini?")) return;
     try {
       await deleteDoc(doc(db, "loker", id));
       showToast("Lowongan berhasil dihapus", "success");

@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect } from "react";
 import { toast } from "@/lib/toast";
 import { db } from "@/lib/firebase";
@@ -139,7 +144,7 @@ export default function BroadcastPage() {
     }
 
     if (
-      !confirm(
+      !await confirmAlert(
         `Konfirmasi pengiriman broadcast ke ${targetPeserta.length} alamat email?`,
       )
     )

@@ -91,13 +91,42 @@ function RegistrationForm() {
     }
   }, [selectedRegId, wilayahData]);
 
+  const [availablePostalCodes, setAvailablePostalCodes] = useState<any[]>([]);
+
+  // FETCH DAFTAR KODE POS SAAT KECAMATAN DIPILIH
+  useEffect(() => {
+    const fetchKodePos = async () => {
+      if (selectedDistId && formData.kecamatan && formData.kotaKabupaten) {
+        try {
+          const query = `${formData.kecamatan} ${formData.kotaKabupaten}`.replace(/kabupaten|kota administrasi|kota/gi, '').trim();
+          // Gunakan local API route proxy untuk menghindari blokir CORS / AdBlock di client-side
+          const res = await fetch(`/api/shipping/kodepos?q=${encodeURIComponent(query)}`);
+          const data = await res.json();
+          if (data?.data && data.data.length > 0) {
+            setAvailablePostalCodes(data.data);
+            // KOSONGKAN kodePos agar user dipaksa memilih dari dropdown, sesuai request "bukan otomatis muncul"
+            setFormData(prev => ({ ...prev, kodePos: "" }));
+          } else {
+            setAvailablePostalCodes([]);
+          }
+        } catch (error) {
+          console.error("Gagal fetch kode pos:", error);
+          setAvailablePostalCodes([]);
+        }
+      } else {
+        setAvailablePostalCodes([]);
+      }
+    };
+    fetchKodePos();
+  }, [selectedDistId, formData.kecamatan, formData.kotaKabupaten]);
+
   const [isSyaratChecked, setIsSyaratChecked] = useState(false);
   const [isAsuransiChecked, setIsAsuransiChecked] = useState(false);
   const [isGrupChecked, setIsGrupChecked] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [ongkirReal, setOngkirReal] = useState<number>(0);
+  const [ongkirReal, setOngkirReal] = useState<number | null>(null);
   const [isCheckingOngkir, setIsCheckingOngkir] = useState(false);
   const [layananOngkir, setLayananOngkir] = useState<string>("");
 
@@ -116,10 +145,11 @@ function RegistrationForm() {
           });
           const data = await res.json();
           if (data.success) {
-            setOngkirReal(data.cost);
+            setOngkirReal(data.cost || 0);
             setLayananOngkir(data.service || "RPX");
           } else {
-            setOngkirReal(0);
+            setOngkirReal(-1); // -1 menandakan error/tidak terjangkau
+            setLayananOngkir("Tidak Terjangkau");
             toast.error(data.error || "Gagal cek tarif pengiriman RPX.");
           }
         } catch (error) {
@@ -299,7 +329,7 @@ function RegistrationForm() {
   const perluOngkir =
     selectedPackage && !selectedPackage.nama.toLowerCase().includes("basic");
   const totalOngkir = perluOngkir 
-    ? (settings?.isRpxActive ? ongkirReal : ongkirFlat) 
+    ? (settings?.isRpxActive && ongkirReal !== null ? (ongkirReal === -1 ? 0 : ongkirReal) : (ongkirFlat || 0)) 
     : 0;
 
   const donasi =
@@ -376,9 +406,15 @@ function RegistrationForm() {
             toast.warning("Mohon isi Kode Pos dengan benar untuk menghitung tarif pengiriman.");
             return;
          }
-         if (ongkirReal === 0) {
-            toast.warning("Tarif pengiriman (Kode Pos) belum valid, atau layanan tidak tersedia.");
-            return;
+         if (perluOngkir && settings?.isRpxActive) {
+            if (ongkirReal === -1) {
+              toast.warning("Layanan pengiriman ke wilayah Anda tidak tersedia. Silakan hubungi admin.");
+              return;
+            }
+            if (ongkirReal === 0) {
+              toast.warning("Tarif pengiriman (Kode Pos) belum valid.");
+              return;
+            }
          }
       }
     }
@@ -446,6 +482,9 @@ function RegistrationForm() {
           detail: { 
             id: userSlug, 
             totalTagihan: grandTotal,
+            tiket: hargaPaketAktif,
+            ongkir: totalOngkir,
+            donasi: donasi,
             metodePembayaran: settings?.metodePembayaran,
             bank: settings?.bank,
             rekening: settings?.nomorRekening,
@@ -592,11 +631,11 @@ function RegistrationForm() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans selection:bg-yellow-400 selection:text-slate-950 flex flex-col relative antialiased">
+    <div className="min-h-screen bg-white font-sans selection:bg-blue-400 selection:text-white flex flex-col relative antialiased">
       <VirtualRunNavbar />
 
-      <div className="bg-[#071324] pt-32 pb-28 px-4 sm:px-6 relative overflow-hidden border-b border-slate-800">
-        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+      <div className="bg-white pt-24 pb-16 px-4 sm:px-6 relative overflow-hidden border-b border-slate-100">
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-slate-50 to-white opacity-50 z-0"></div>
         <div className="max-w-5xl mx-auto relative z-10">
           <Link
             href="/virtual-run"
@@ -620,7 +659,7 @@ function RegistrationForm() {
           <h1 className="text-3xl sm:text-4xl font-black text-white mb-2 tracking-tight">
             Registrasi Virtual Run
           </h1>
-          <p className="text-slate-300 text-sm max-w-xl leading-relaxed">
+          <p className="text-slate-500 text-sm max-w-xl leading-relaxed">
             Lengkapi identitas diri, pilih jarak lari, dan tentukan paket race
             pack pilihan Anda.
           </p>
@@ -673,18 +712,18 @@ function RegistrationForm() {
         {/* KOLOM KIRI (DATA & PAKET) */}
         <div className="w-full lg:w-2/3 space-y-5">
           {/* CARD 1: IDENTITAS */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200">
+          <div className="border-b border-slate-100 pb-10 mb-10">
             <h3 className="text-base font-bold text-slate-800 mb-6 border-b border-slate-100 pb-3 flex items-center gap-3">
-              <span className="bg-blue-100 text-blue-700 w-7 h-7 rounded-full flex items-center justify-center text-xs font-black">
+              <span className="border border-slate-300 text-slate-500 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold">
                 1
               </span>
               Identitas Pelari
             </h3>
 
             <div className="space-y-5">
-              <div className="bg-slate-50 p-1.5 rounded-xl border border-slate-200 flex gap-1">
+              <div className="bg-slate-100/50 p-1.5 rounded-xl flex gap-1">
                 <label
-                  className={`flex-1 text-center py-2.5 rounded-lg text-sm font-bold cursor-pointer transition-all ${formData.tipePeserta === "alumni" ? "bg-white text-blue-700 shadow-sm ring-1 ring-slate-200" : "text-slate-500 hover:text-slate-700"}`}
+                  className={`flex-1 text-center py-2.5 rounded-lg text-sm font-bold cursor-pointer transition-all ${formData.tipePeserta === "alumni" ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200 font-bold" : "text-slate-500 hover:text-slate-700"}`}
                 >
                   <input
                     type="radio"
@@ -697,7 +736,7 @@ function RegistrationForm() {
                   Alumni UII
                 </label>
                 <label
-                  className={`flex-1 text-center py-2.5 rounded-lg text-sm font-bold cursor-pointer transition-all ${formData.tipePeserta === "umum" ? "bg-white text-blue-700 shadow-sm ring-1 ring-slate-200" : "text-slate-500 hover:text-slate-700"}`}
+                  className={`flex-1 text-center py-2.5 rounded-lg text-sm font-bold cursor-pointer transition-all ${formData.tipePeserta === "umum" ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200 font-bold" : "text-slate-500 hover:text-slate-700"}`}
                 >
                   <input
                     type="radio"
@@ -722,7 +761,7 @@ function RegistrationForm() {
                   onChange={handleChange}
                   required
                   placeholder="Contoh: Budi Santoso, S.T."
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none text-sm transition-all text-slate-800 font-bold"
+                  className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all text-slate-900 placeholder:text-slate-400 font-bold"
                 />
               </div>
 
@@ -743,7 +782,7 @@ function RegistrationForm() {
                   required
                   maxLength={15}
                   placeholder="Contoh: BUDI S."
-                  className="w-full px-4 py-3 bg-white border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all text-slate-800 font-black tracking-wide placeholder:font-normal placeholder:lowercase uppercase shadow-inner"
+                  className="w-full px-4 py-3 bg-blue-50/30 border border-blue-300 rounded-xl focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all text-slate-800 font-black tracking-wide placeholder:font-normal placeholder:lowercase uppercase shadow-inner"
                 />
                 <p className="text-[10px] text-slate-500 mt-2">
                   Nama mencolok yang akan dicetak di nomor dada pelari Anda.
@@ -762,7 +801,7 @@ function RegistrationForm() {
                     onChange={handleChange}
                     required
                     placeholder="budi@gmail.com"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none text-sm transition-all text-slate-800 font-medium"
+                    className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all text-slate-900 placeholder:text-slate-400 font-medium"
                   />
                 </div>
                 <div>
@@ -776,7 +815,7 @@ function RegistrationForm() {
                     onChange={handleChange}
                     required
                     placeholder="0812... atau @akun_ig"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none text-sm transition-all text-slate-800 font-mono"
+                    className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all text-slate-900 placeholder:text-slate-400 font-mono"
                   />
                 </div>
               </div>
@@ -794,7 +833,7 @@ function RegistrationForm() {
                       onChange={handleChange}
                       required={formData.tipePeserta === "alumni"}
                       placeholder="Contoh: FTI / FMIPA"
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none text-sm transition-all text-slate-800 font-medium"
+                      className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all text-slate-900 placeholder:text-slate-400 font-medium"
                     />
                   </div>
                   <div>
@@ -808,7 +847,7 @@ function RegistrationForm() {
                       onChange={handleChange}
                       required={formData.tipePeserta === "alumni"}
                       placeholder="Contoh: 2015"
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none text-sm transition-all text-slate-800 font-medium"
+                      className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all text-slate-900 placeholder:text-slate-400 font-medium"
                     />
                   </div>
                 </div>
@@ -817,9 +856,9 @@ function RegistrationForm() {
           </div>
 
           {/* CARD 2: KATEGORI & PAKET DINAMIS */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200">
+          <div className="border-b border-slate-100 pb-10 mb-10">
             <h3 className="text-base font-bold text-slate-800 mb-6 border-b border-slate-100 pb-3 flex items-center gap-3">
-              <span className="bg-blue-100 text-blue-700 w-7 h-7 rounded-full flex items-center justify-center text-xs font-black">
+              <span className="border border-slate-300 text-slate-500 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold">
                 2
               </span>
               Jarak & Race Pack
@@ -832,7 +871,7 @@ function RegistrationForm() {
               {daftarJarakLari.map((km) => (
                 <label
                   key={km}
-                  className={`cursor-pointer border rounded-2xl text-center py-4 transition-all ${formData.jarak === km ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-600" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
+                  className={`cursor-pointer border rounded-2xl text-center py-4 transition-all ${formData.jarak === km ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-500 font-bold" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
                 >
                   <input
                     type="radio"
@@ -856,7 +895,7 @@ function RegistrationForm() {
                 .map((pkg: any) => (
                   <label
                     key={pkg.id}
-                    className={`block cursor-pointer border rounded-2xl p-4 transition-all ${formData.paketId === pkg.id ? "border-blue-600 bg-blue-50 ring-1 ring-blue-600" : "border-slate-200 hover:bg-slate-50"}`}
+                    className={`block cursor-pointer border rounded-2xl p-4 transition-all ${formData.paketId === pkg.id ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500 shadow-sm" : "border-slate-200 hover:bg-slate-50"}`}
                   >
                     <div className="flex flex-row items-center justify-between gap-2">
                       <div className="flex items-center gap-4">
@@ -866,7 +905,7 @@ function RegistrationForm() {
                           value={pkg.id}
                           checked={formData.paketId === pkg.id}
                           onChange={handleChange}
-                          className="w-5 h-5 text-blue-600 focus:ring-blue-500"
+                          className="w-5 h-5 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
                         />
                         <div>
                           <p className="text-sm font-bold text-slate-800">
@@ -924,7 +963,7 @@ function RegistrationForm() {
                             const provName = e.target.options[e.target.selectedIndex].text;
                             setFormData({ ...formData, provinsi: provName, kotaKabupaten: "", kecamatan: "" });
                           }}
-                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none text-sm transition-all text-slate-800 font-bold"
+                          className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all text-slate-900 placeholder:text-slate-400 font-bold"
                         >
                           <option value="">Pilih Provinsi</option>
                           {provinces.map((p) => (
@@ -943,7 +982,7 @@ function RegistrationForm() {
                             const regName = e.target.options[e.target.selectedIndex].text;
                             setFormData({ ...formData, kotaKabupaten: regName, kecamatan: "" });
                           }}
-                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none text-sm transition-all text-slate-800 font-bold disabled:bg-slate-100"
+                          className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all text-slate-900 placeholder:text-slate-400 font-bold disabled:bg-slate-100"
                         >
                           <option value="">Pilih Kota/Kab</option>
                           {regencies.map((r) => (
@@ -962,7 +1001,7 @@ function RegistrationForm() {
                             const distName = e.target.options[e.target.selectedIndex].text;
                             setFormData({ ...formData, kecamatan: distName });
                           }}
-                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none text-sm transition-all text-slate-800 font-bold disabled:bg-slate-100"
+                          className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all text-slate-900 placeholder:text-slate-400 font-bold disabled:bg-slate-100"
                         >
                           <option value="">Pilih Kecamatan</option>
                           {districts.map((d) => (
@@ -978,32 +1017,48 @@ function RegistrationForm() {
                           <span>Kode Pos (Wajib)</span>
                           {isCheckingOngkir && <span className="text-blue-500 text-[9px] animate-pulse font-bold">Mengecek tarif...</span>}
                         </label>
-                        <input
-                          type="text"
-                          name="kodePos"
-                          value={formData.kodePos}
-                          onChange={handleChange}
-                          required={perluOngkir && settings?.isRpxActive}
-                          maxLength={5}
-                          placeholder="Misal: 55581"
-                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none text-sm transition-all text-slate-800 font-bold font-mono"
-                        />
+                        {availablePostalCodes.length > 0 ? (
+                          <select
+                            name="kodePos"
+                            value={formData.kodePos}
+                            onChange={handleChange}
+                            required={perluOngkir && settings?.isRpxActive}
+                            className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all text-slate-900 font-bold"
+                          >
+                            <option value="">Pilih Kode Pos</option>
+                            {availablePostalCodes.map((pc, idx) => (
+                              <option key={idx} value={pc.code}>
+                                {pc.code} - {pc.village}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            name="kodePos"
+                            value={formData.kodePos}
+                            onChange={handleChange}
+                            required={perluOngkir && settings?.isRpxActive}
+                            maxLength={5}
+                            placeholder="Misal: 55581"
+                            className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all text-slate-900 placeholder:text-slate-400 font-bold font-mono"
+                          />
+                        )}
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                        Alamat Detail (Jalan, RT/RW, Kelurahan)
-                      </label>
+                    <div className="col-span-1 sm:col-span-2">
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Alamat Detail (Wajib)</label>
                       <textarea
                         name="alamat"
                         value={formData.alamat}
                         onChange={handleChange}
                         rows={2}
                         required
-                        placeholder="Detail Jalan, RT/RW, Kelurahan, Kode Pos"
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none text-sm transition-all custom-scrollbar text-slate-800 font-bold"
+                        placeholder="Contoh: Jl. Sudirman No. 12, RT 01/RW 02, Kel. Melawai"
+                        className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all custom-scrollbar text-slate-900 placeholder:text-slate-400 font-bold"
                       ></textarea>
+                      <p className="text-[10px] text-slate-500 mt-1 font-medium">Tuliskan nama jalan, nomor rumah, RT/RW, dan Kelurahan agar kurir tidak kesulitan mencari alamat Anda.</p>
                     </div>
                 </div>
               </div>
@@ -1012,7 +1067,7 @@ function RegistrationForm() {
 
           {/* CARD 3: CHARITY */}
           {settings?.isCharityActive && (
-            <div className="bg-gradient-to-br from-emerald-50 to-teal-50/30 rounded-3xl p-6 sm:p-8 shadow-sm border border-emerald-100">
+            <div className="bg-emerald-50/30 rounded-3xl p-6 sm:p-8 border border-emerald-100">
               <div className="flex items-start gap-4 mb-5">
                 <div className="w-12 h-12 bg-white text-emerald-600 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border border-emerald-100">
                   <Heart className="w-6 h-6" />
@@ -1067,7 +1122,7 @@ function RegistrationForm() {
           )}
 
           {/* CARD 4: PERSETUJUAN */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200">
+          <div className="border-b border-slate-100 pb-10 mb-10">
             <h3 className="text-base font-bold text-slate-800 mb-6 border-b border-slate-100 pb-3 flex items-center gap-3">
               <span className="bg-blue-100 text-blue-700 w-7 h-7 rounded-full flex items-center justify-center text-xs font-black">
                 3
@@ -1184,8 +1239,8 @@ function RegistrationForm() {
 
         {/* KOLOM KANAN (RINGKASAN & SUBMIT - STICKY) */}
         <div className="w-full lg:w-1/3 lg:sticky lg:top-24">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-200/50 border border-slate-200">
-            <h3 className="text-base font-black text-slate-800 mb-5 border-b border-slate-100 pb-4">
+          <div className="bg-slate-50/50 rounded-3xl p-6 sm:p-8 border border-slate-100">
+            <h3 className="text-lg font-black text-slate-900 mb-5 border-b border-slate-100 pb-4">
               Ringkasan Biaya
             </h3>
             <div className="space-y-3.5 text-sm text-slate-600 mb-6">
@@ -1206,7 +1261,11 @@ function RegistrationForm() {
                     {isCheckingOngkir ? (
                       <span className="text-[10px] text-blue-500 animate-pulse">Menghitung...</span>
                     ) : (
-                      `Rp ${totalOngkir.toLocaleString("id-ID")}`
+                      settings?.isRpxActive && ongkirReal === -1 ? (
+                        <span className="text-red-500 text-xs">Tidak Tersedia</span>
+                      ) : (
+                        `Rp ${totalOngkir.toLocaleString("id-ID")}`
+                      )
                     )}
                   </span>
                 </div>
@@ -1283,7 +1342,7 @@ function RegistrationForm() {
         </div>
       </form>
       </div>
-      <VirtualRunFooter />
+      <VirtualRunFooter sosmeds={settings?.sosmeds} />
     </div>
   );
 }

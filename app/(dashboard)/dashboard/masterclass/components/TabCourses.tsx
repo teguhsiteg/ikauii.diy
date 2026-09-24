@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect } from "react";
 import { toast } from "@/lib/toast";
 import { db } from "@/lib/firebase";
@@ -302,7 +307,7 @@ export default function TabCourses() {
                             <button
                               onClick={async () => {
                                 if (
-                                  confirm(
+                                  await confirmAlert(
                                     "Hapus kelas ini? Tindakan ini tidak bisa dibatalkan.",
                                   )
                                 ) {

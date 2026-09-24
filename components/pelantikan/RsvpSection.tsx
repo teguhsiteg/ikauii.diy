@@ -1,3 +1,8 @@
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import React, { useState } from 'react';
 import { Send, CheckCircle2, MessageSquare, Heart, UserCheck } from 'lucide-react';
 import { GuestInfo, GuestWish } from '@/data/eventData';
@@ -74,7 +79,7 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ guest, dynamicSettings
       }, 4000);
     } catch (error) {
       console.error('Error saving wish:', error);
-      alert('Maaf, terjadi kesalahan saat mengirim ucapan. Silakan coba lagi.');
+      errorAlert('Maaf, terjadi kesalahan saat mengirim ucapan. Silakan coba lagi.');
     } finally {
       setIsSubmitting(false);
     }

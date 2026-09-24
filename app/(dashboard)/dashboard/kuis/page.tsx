@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy } from "firebase/firestore";
@@ -58,7 +63,7 @@ export default function KuisPage() {
   };
 
   const handleDeleteQuiz = async (id: string) => {
-    if (!confirm("Yakin ingin menghapus kuis ini? Semua data terkait kuis ini akan hilang.")) return;
+    if (!await confirmAlert("Yakin ingin menghapus kuis ini? Semua data terkait kuis ini akan hilang.")) return;
     try {
       await deleteDoc(doc(db, "kuis", id));
       toast.success("Kuis berhasil dihapus");

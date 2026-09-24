@@ -221,6 +221,118 @@ export default function AdminOfflineRunPage() {
     XLSX.writeFile(workbook, `REKAP_FULL_OFFLINE_${new Date().getTime()}.xlsx`);
   };
 
+  const handleDownloadTemplate = () => {
+    const templateData = [{
+      "Status Pembayaran": "Lunas",
+      "Nomor BIB": "",
+      "Kategori Jarak": "5K",
+      "Paket Dipilih": "Early Bird",
+      "Nama di BIB": "John Doe",
+      "Nama Lengkap": "John Doe Smith",
+      "Kategori Peserta": "Umum",
+      "Jenis Identitas": "KTP",
+      "Nomor Identitas (NIK/NIS)": "3400000000000000",
+      "Jenis Kelamin": "Laki-laki",
+      "Tanggal Lahir": "1990-01-01",
+      "No. WhatsApp": "08123456789",
+      "Email": "johndoe@example.com",
+      "Komunitas": "-",
+      "Ukuran Jersey": "L",
+      "Golongan Darah": "O",
+      "Riwayat Penyakit": "Tidak Ada",
+      "Nama Kontak Darurat": "Jane Doe",
+      "Hubungan Darurat": "Istri",
+      "No WA Darurat": "08129876543",
+      "Total Tagihan (Nett)": 150000,
+    }];
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Template_Import");
+    XLSX.writeFile(workbook, `Template_Import_Peserta.xlsx`);
+  };
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAlertModal({
+      isOpen: true,
+      type: "warning",
+      title: "Memproses Import...",
+      message: "Mohon tunggu, sistem sedang memproses dan mengimpor data...",
+    });
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const row of jsonData as any[]) {
+          try {
+            const pData = {
+              waktuDaftar: new Date().toISOString(),
+              statusPembayaran: row["Status Pembayaran"] || "Lunas",
+              waktuLunas: row["Status Pembayaran"] === "Lunas" ? new Date().toISOString() : null,
+              nomorBIB: row["Nomor BIB"] ? String(row["Nomor BIB"]) : "",
+              bib: row["Nomor BIB"] ? String(row["Nomor BIB"]) : "",
+              jarak: String(row["Kategori Jarak"] || "5K"),
+              paketNama: String(row["Paket Dipilih"] || ""),
+              namaBib: String(row["Nama di BIB"] || ""),
+              namaLengkap: String(row["Nama Lengkap"] || ""),
+              kategoriPeserta: String(row["Kategori Peserta"] || "Umum"),
+              jenisIdentitas: String(row["Jenis Identitas"] || "KTP"),
+              nik: String(row["Nomor Identitas (NIK/NIS)"] || ""),
+              jenisKelamin: String(row["Jenis Kelamin"] || ""),
+              tanggalLahir: String(row["Tanggal Lahir"] || ""),
+              noWA: String(row["No. WhatsApp"] || ""),
+              email: String(row["Email"] || ""),
+              komunitas: String(row["Komunitas"] || ""),
+              ukuranJersey: String(row["Ukuran Jersey"] || ""),
+              golonganDarah: String(row["Golongan Darah"] || ""),
+              riwayatPenyakit: String(row["Riwayat Penyakit"] || ""),
+              namaDarurat: String(row["Nama Kontak Darurat"] || ""),
+              hubunganDarurat: String(row["Hubungan Darurat"] || ""),
+              waDarurat: String(row["No WA Darurat"] || ""),
+              totalTagihan: Number(row["Total Tagihan (Nett)"] || 0),
+              isImported: true
+            };
+
+            await addDoc(collection(db, "offline_participants"), pData);
+            successCount++;
+          } catch (err) {
+            console.error(err);
+            failCount++;
+          }
+        }
+
+        setAlertModal({
+          isOpen: true,
+          type: "success",
+          title: "Import Selesai",
+          message: `Berhasil import: ${successCount} data.\nGagal: ${failCount} data.`,
+        });
+
+      } catch (error) {
+        console.error(error);
+        setAlertModal({
+          isOpen: true,
+          type: "warning",
+          title: "Import Gagal",
+          message: "Pastikan format Excel sesuai dengan template.",
+        });
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = "";
+  };
+
   // --- 🔥 FITUR BROADCAST REMINDER RACEPACK (INDIVIDU) 🔥 ---
   const handleBroadcastReminderClick = () => {
     const targetParticipants = participants.filter(
@@ -317,41 +429,23 @@ export default function AdminOfflineRunPage() {
           const counterDocRef = doc(db, "settings", "bib_counter");
           const participantRef = doc(db, "offline_participants", p.id);
 
-          let promoRef = null;
-          if (p.idPromoDipakai) {
-            promoRef = doc(db, "promo_codes", p.idPromoDipakai);
-          }
-
+          let settingsRef = doc(db, "settings", "virtual_run");
           const counterDoc = await transaction.get(counterDocRef);
-          let promoDoc = null;
-          if (promoRef) promoDoc = await transaction.get(promoRef);
-
-          let current5K = counterDoc.exists()
-            ? counterDoc.data().lastBib5K || 0
-            : 0;
-          let current10K = counterDoc.exists()
-            ? counterDoc.data().lastBib10K || 0
-            : 0;
+          const settingsDoc = await transaction.get(settingsRef);
 
           const jarakAngka = (p.jarak || "9").replace(/\D/g, "") || "9";
-          let newCounter = 0;
+          const counterField = `lastBib${jarakAngka}K`;
+          
+          let currentCounter = counterDoc.exists()
+            ? counterDoc.data()[counterField] || 0
+            : 0;
 
-          if (jarakAngka === "5") {
-            current5K++;
-            newCounter = current5K;
-            finalBib = `5${String(newCounter).padStart(3, "0")}`;
-          } else if (jarakAngka === "10") {
-            current10K++;
-            newCounter = current10K;
-            finalBib = `10${String(newCounter).padStart(3, "0")}`;
-          } else {
-            newCounter = Math.floor(1000 + Math.random() * 8000);
-            finalBib = `${jarakAngka}${newCounter}`;
-          }
+          currentCounter++;
+          finalBib = `${jarakAngka}${String(currentCounter).padStart(3, "0")}`;
 
           transaction.set(
             counterDocRef,
-            { lastBib5K: current5K, lastBib10K: current10K },
+            { [counterField]: currentCounter },
             { merge: true },
           );
           transaction.update(participantRef, {
@@ -360,11 +454,23 @@ export default function AdminOfflineRunPage() {
             nomorBIB: finalBib,
           });
 
-          if (promoRef && promoDoc && promoDoc.exists()) {
-            const kuotaTerpakaiSekarang = promoDoc.data().kuotaTerpakai || 0;
-            transaction.update(promoRef, {
-              kuotaTerpakai: kuotaTerpakaiSekarang + 1,
+          if (p.idPromoDipakai && p.paketId && settingsDoc.exists()) {
+            const settingsData = settingsDoc.data();
+            const packages = settingsData.offlinePackages || [];
+            const updatedPackages = packages.map((pkg: any) => {
+              if (pkg.id === p.paketId && pkg.promos) {
+                return {
+                  ...pkg,
+                  promos: pkg.promos.map((promo: any) =>
+                    promo.id === p.idPromoDipakai
+                      ? { ...promo, kuotaTerpakai: (promo.kuotaTerpakai || 0) + 1 }
+                      : promo
+                  ),
+                };
+              }
+              return pkg;
             });
+            transaction.update(settingsRef, { offlinePackages: updatedPackages });
           }
         });
       } else {
@@ -846,6 +952,16 @@ export default function AdminOfflineRunPage() {
             )}
             {isBroadcasting ? "Mengirim..." : "Kirim Reminder (RPC)"}
           </button>
+          <button
+            onClick={handleDownloadTemplate}
+            className="bg-emerald-100 text-emerald-700 px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-emerald-200 transition-colors w-full md:w-auto"
+          >
+            Unduh Template
+          </button>
+          <label className="cursor-pointer bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-emerald-700 transition-colors w-full md:w-auto flex items-center justify-center">
+            Import Excel
+            <input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleImportExcel} />
+          </label>
           <button
             onClick={handleExportExcel}
             className="bg-[#0B2239] text-[#FCD116] px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-800 transition-colors w-full md:w-auto"

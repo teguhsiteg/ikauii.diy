@@ -1,5 +1,18 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+import {
+  Inbox,
+  Download,
+  FileText,
+  Upload,
+  Camera,
+  MessageCircle,
+  FileEdit,
+  Save,
+} from "lucide-react";
+
 import { useState, useEffect, useRef, useMemo } from "react";
 import { toast } from "@/lib/toast";
 import { db, auth } from "@/lib/firebase";
@@ -43,6 +56,10 @@ export default function PesertaAgendaPage() {
     key: string;
     direction: "asc" | "desc";
   } | null>(null);
+
+  // STATE UNTUK PAGINASI
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -94,6 +111,7 @@ export default function PesertaAgendaPage() {
     setIsLoadingPeserta(true);
     setSelectedIds([]);
     setSortConfig(null);
+    setCurrentPage(1);
     try {
       const q = query(
         collection(db, "agenda_peserta"),
@@ -130,6 +148,7 @@ export default function PesertaAgendaPage() {
       direction = "desc";
     }
     setSortConfig({ key, direction });
+    setCurrentPage(1);
   };
 
   const sortedPesertaList = useMemo(() => {
@@ -152,6 +171,11 @@ export default function PesertaAgendaPage() {
     }
     return sortableItems;
   }, [pesertaList, sortConfig]);
+
+  const paginatedPesertaList = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return sortedPesertaList.slice(startIndex, startIndex + itemsPerPage);
+  }, [sortedPesertaList, currentPage]);
 
   const renderSortIcon = (columnKey: string) => {
     if (sortConfig?.key !== columnKey) {
@@ -219,7 +243,7 @@ export default function PesertaAgendaPage() {
   };
 
   const deleteSingle = async (id: string) => {
-    if (confirm("Yakin ingin menghapus peserta ini?")) {
+    if (await confirmAlert("Yakin ingin menghapus peserta ini?")) {
       await deleteDoc(doc(db, "agenda_peserta", id));
       setPesertaList(pesertaList.filter((p) => p.id !== id));
       setSelectedIds(selectedIds.filter((itemId) => itemId !== id));
@@ -228,7 +252,7 @@ export default function PesertaAgendaPage() {
 
   const deleteBulk = async () => {
     if (
-      confirm(`Yakin ingin menghapus ${selectedIds.length} peserta terpilih?`)
+      await confirmAlert(`Yakin ingin menghapus ${selectedIds.length} peserta terpilih?`)
     ) {
       try {
         await Promise.all(
@@ -451,7 +475,7 @@ export default function PesertaAgendaPage() {
 
         {agendaList.length === 0 ? (
           <div className="bg-white p-10 rounded-2xl border border-slate-200 text-center shadow-sm">
-            <span className="text-4xl mb-4 block">📭</span>
+            <Inbox className="w-12 h-12 text-slate-400 mx-auto mb-4" />
             <h3 className="font-bold text-slate-700 mb-1">Belum Ada Agenda</h3>
             <p className="text-sm text-slate-500">
               Anda belum membuat agenda apapun untuk bidang ini.
@@ -510,8 +534,8 @@ export default function PesertaAgendaPage() {
             </button>
             {importStep === 1 ? (
               <div className="text-center py-6">
-                <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
-                  📥
+                <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Download className="w-8 h-8" />
                 </div>
                 <h3 className="text-2xl font-black text-blue-950 mb-2">
                   Import Data Peserta
@@ -525,9 +549,7 @@ export default function PesertaAgendaPage() {
                     onClick={downloadTemplateImport}
                     className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 rounded-2xl hover:bg-slate-50 hover:border-blue-300 transition-all group"
                   >
-                    <span className="text-2xl mb-2 group-hover:-translate-y-1 transition-transform">
-                      📄
-                    </span>
+                    <FileText className="w-8 h-8 text-slate-500 mb-2 group-hover:-translate-y-1 transition-transform" />
                     <span className="font-bold text-slate-700 text-sm">
                       1. Download Template
                     </span>
@@ -536,9 +558,7 @@ export default function PesertaAgendaPage() {
                     </span>
                   </button>
                   <div className="relative flex flex-col items-center justify-center p-6 border-2 border-dashed border-blue-300 bg-blue-50 rounded-2xl hover:bg-blue-100 transition-all group cursor-pointer overflow-hidden">
-                    <span className="text-2xl mb-2 group-hover:-translate-y-1 transition-transform">
-                      📤
-                    </span>
+                    <Upload className="w-8 h-8 text-blue-500 mb-2 group-hover:-translate-y-1 transition-transform" />
                     <span className="font-bold text-blue-700 text-sm">
                       2. Upload File Excel
                     </span>
@@ -657,7 +677,7 @@ export default function PesertaAgendaPage() {
                     >
                       {isImportingData
                         ? "Menyimpan..."
-                        : `💾 Simpan ${validDataCount} Data Baru`}
+                        : <><Save className="w-4 h-4" /> Simpan {validDataCount} Data Baru</>}
                     </button>
                   </div>
                 </div>
@@ -738,9 +758,7 @@ export default function PesertaAgendaPage() {
             href="/dashboard/scanner"
             className="bg-blue-950 hover:bg-blue-900 text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg flex items-center gap-2 transition-all group"
           >
-            <span className="text-lg group-hover:scale-110 transition-transform">
-              📷
-            </span>{" "}
+            <Camera className="w-5 h-5 group-hover:scale-110 transition-transform" />
             Buka Gate Scanner
           </Link>
 
@@ -749,7 +767,7 @@ export default function PesertaAgendaPage() {
               onClick={() => setIsImportModalOpen(true)}
               className="bg-transparent hover:bg-white text-slate-600 hover:text-blue-700 px-5 py-2.5 rounded-lg font-bold text-sm flex items-center gap-2 transition-all"
             >
-              📥 Import
+              <Download className="w-4 h-4" /> Import
             </button>
             <div className="w-px h-6 bg-slate-300 mx-1"></div>
             <button
@@ -757,7 +775,7 @@ export default function PesertaAgendaPage() {
               disabled={pesertaList.length === 0}
               className="bg-transparent hover:bg-white text-slate-600 hover:text-green-700 px-5 py-2.5 rounded-lg font-bold text-sm flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              📤 Export
+              <Upload className="w-4 h-4" /> Export
             </button>
           </div>
         </div>
@@ -786,7 +804,7 @@ export default function PesertaAgendaPage() {
           </div>
         ) : pesertaList.length === 0 ? (
           <div className="p-20 text-center">
-            <span className="text-5xl mb-4 block opacity-50">📝</span>
+            <FileEdit className="w-12 h-12 text-slate-300 mx-auto mb-4" />
             <h3 className="font-bold text-slate-700 text-lg">
               Belum Ada Pendaftar
             </h3>
@@ -839,8 +857,9 @@ export default function PesertaAgendaPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {sortedPesertaList.map((p, index) => {
+                {paginatedPesertaList.map((p, index) => {
                   const isSelected = selectedIds.includes(p.id);
+                  const actualIndex = (currentPage - 1) * itemsPerPage + index + 1;
                   return (
                     <tr
                       key={p.id}
@@ -855,7 +874,7 @@ export default function PesertaAgendaPage() {
                         />
                       </td>
                       <td className="p-4 text-center align-top font-bold text-slate-400 mt-1">
-                        {index + 1}
+                        {actualIndex}
                       </td>
                       <td className="p-4 align-top">
                         <button
@@ -927,7 +946,7 @@ export default function PesertaAgendaPage() {
                           rel="noopener noreferrer"
                           className="text-green-600 font-medium text-xs flex items-center gap-1 mb-1 hover:underline mt-1"
                         >
-                          <span>💬</span> {p.whatsapp}
+                          <MessageCircle className="w-3 h-3" /> {p.whatsapp}
                         </a>
                         <p className="text-xs text-slate-500 line-clamp-1">
                           {p.email || "-"}
@@ -989,6 +1008,31 @@ export default function PesertaAgendaPage() {
                 })}
               </tbody>
             </table>
+
+            {/* Pagination Controls */}
+            {sortedPesertaList.length > 0 && (
+              <div className="flex flex-col sm:flex-row justify-between items-center p-4 border-t border-slate-100 bg-slate-50 gap-4">
+                <span className="text-sm font-medium text-slate-500">
+                  Menampilkan <span className="font-bold text-slate-700">{paginatedPesertaList.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</span> - <span className="font-bold text-slate-700">{Math.min(currentPage * itemsPerPage, sortedPesertaList.length)}</span> dari <span className="font-bold text-slate-700">{sortedPesertaList.length}</span> data
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 text-sm font-bold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    Sebelumnya
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                    disabled={currentPage * itemsPerPage >= sortedPesertaList.length}
+                    className="px-4 py-2 text-sm font-bold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    Selanjutnya
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

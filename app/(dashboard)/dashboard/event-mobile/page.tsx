@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc, deleteDoc, doc, query } from "firebase/firestore";
@@ -41,7 +46,7 @@ export default function EventMobilePage() {
   };
 
   const handleDeleteEvent = async (id: string) => {
-    if (!confirm("Hapus event ini?")) return;
+    if (!await confirmAlert("Hapus event ini?")) return;
     try {
       await deleteDoc(doc(db, "events", id));
       toast.success("Event dihapus");

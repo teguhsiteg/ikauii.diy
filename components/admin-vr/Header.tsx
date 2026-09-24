@@ -1,12 +1,17 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { LogOut } from "lucide-react";
 
 export default function Header({ userEmail }: { userEmail: string }) {
   const handleLogout = async () => {
-    if (confirm("Yakin ingin keluar dari panel admin?")) {
+    if (await confirmAlert("Yakin ingin keluar dari panel admin?")) {
       await signOut(auth);
     }
   };

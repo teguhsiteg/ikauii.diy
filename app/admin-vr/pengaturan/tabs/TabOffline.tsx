@@ -1,4 +1,5 @@
 import React from "react";
+import Swal from "sweetalert2";
 import { toast } from "@/lib/toast";
 import {
   Settings,
@@ -50,6 +51,9 @@ export default function TabOffline({
   handlePackageChange,
   addPackage,
   removePackage,
+  handleFaqChange,
+  addFaq,
+  removeFaq,
 }: any) {
   const handleGpxUpload = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -124,6 +128,54 @@ export default function TabOffline({
   ) => {
     const updated = currentWaypoints.filter((wp) => wp.id !== wpId);
     handlePackageChange("offline", pkgId, "waypoints", updated);
+  };
+
+  const addPromo = (pkgId: string, currentPromos: any[]) => {
+    const updated = [
+      ...(currentPromos || []),
+      {
+        id: Date.now().toString(),
+        kode: "",
+        jenisDiskon: "persen",
+        nilaiDiskon: 0,
+        kuotaMaksimal: 100,
+        kuotaTerpakai: 0,
+        tanggalKedaluwarsa: "",
+        isActive: true,
+      },
+    ];
+    handlePackageChange("offline", pkgId, "promos", updated);
+  };
+
+  const updatePromo = (
+    pkgId: string,
+    currentPromos: any[],
+    promoId: string,
+    field: string,
+    value: any,
+  ) => {
+    const updated = (currentPromos || []).map((p) =>
+      p.id === promoId ? { ...p, [field]: value } : p,
+    );
+    handlePackageChange("offline", pkgId, "promos", updated);
+  };
+
+  const removePromo = (pkgId: string, currentPromos: any[], promoId: string) => {
+    Swal.fire({
+      title: "Hapus Promo?",
+      text: "Promo ini akan dihapus dari paket.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Ya, Hapus!",
+      cancelButtonText: "Batal"
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const updated = (currentPromos || []).filter((p) => p.id !== promoId);
+        handlePackageChange("offline", pkgId, "promos", updated);
+      }
+    });
   };
 
   const WaypointIcons: Record<string, string> = {
@@ -254,50 +306,120 @@ export default function TabOffline({
 
                 <div>
                   <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">
-                    Konten Landing Page
+                    Konten Landing Page & Coming Soon
                   </h4>
-                  <div className="grid grid-cols-1 gap-5 bg-[#F8F9FA] p-4 rounded-lg border border-slate-200">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
-                        Judul Utama Landing Page
-                      </label>
-                      <input
-                        type="text"
-                        name="offlineJudul"
-                        value={vrSettings.offlineJudul || ""}
-                        onChange={handleSettingChange}
-                        placeholder="Contoh: SIAP BERLARI? UII SEHAT MENUNGGUMU"
-                        className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-md focus:border-[#1A73E8] outline-none text-sm font-bold"
-                      />
-                      <p className="text-[10px] text-slate-500 mt-1">Gunakan kata-kata singkat dan menarik (max 50 karakter).</p>
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
-                        Deskripsi Singkat / Sub-judul
-                      </label>
-                      <textarea
-                        name="offlineDeskripsi"
-                        value={vrSettings.offlineDeskripsi || ""}
-                        onChange={handleSettingChange}
-                        placeholder="Contoh: Bergabunglah bersama ribuan peserta..."
-                        rows={3}
-                        className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-md focus:border-[#1A73E8] outline-none text-sm resize-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
-                        Background Image URL (Hero)
-                      </label>
-                      <input
-                        type="text"
-                        name="urlOfflineHeroBg"
-                        value={vrSettings.urlOfflineHeroBg || ""}
-                        onChange={handleSettingChange}
-                        placeholder="https://..."
-                        className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-md focus:border-[#1A73E8] outline-none text-sm font-mono"
-                      />
-                      <p className="text-[10px] text-slate-500 mt-1">Kosongkan jika ingin memakai background default.</p>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-[#F8F9FA] p-4 rounded-lg border border-slate-200">
+                    <div className="md:col-span-2">
+                       <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                         Judul Utama Landing Page
+                       </label>
+                       <input
+                         type="text"
+                         name="offlineJudul"
+                         value={vrSettings.offlineJudul || ""}
+                         onChange={handleSettingChange}
+                         placeholder="Contoh: SIAP BERLARI? UII SEHAT MENUNGGUMU"
+                         className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-md focus:border-[#1A73E8] outline-none text-sm font-bold"
+                       />
+                       <p className="text-[10px] text-slate-500 mt-1">Gunakan kata-kata singkat dan menarik (max 50 karakter).</p>
+                     </div>
+                     <div className="md:col-span-2">
+                       <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                         Deskripsi Singkat / Sub-judul (Juga muncul di layar Coming Soon)
+                       </label>
+                       <textarea
+                         name="offlineDeskripsi"
+                         value={vrSettings.offlineDeskripsi || ""}
+                         onChange={handleSettingChange}
+                         placeholder="Contoh: Bergabunglah bersama ribuan peserta..."
+                         rows={3}
+                         className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-md focus:border-[#1A73E8] outline-none text-sm resize-none"
+                       />
+                     </div>
+                     <div>
+                       <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                         Background Image URL (Hero)
+                       </label>
+                       <input
+                         type="text"
+                         name="urlOfflineHeroBg"
+                         value={vrSettings.urlOfflineHeroBg || ""}
+                         onChange={handleSettingChange}
+                         placeholder="https://..."
+                         className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-md focus:border-[#1A73E8] outline-none text-sm font-mono"
+                       />
+                       <p className="text-[10px] text-slate-500 mt-1">Kosongkan jika ingin memakai background default.</p>
+                     </div>
+                     <div>
+                       <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                         Size Chart URL (Jersey)
+                       </label>
+                       <input
+                         type="text"
+                         name="offlineSizeChartUrl"
+                         value={vrSettings.offlineSizeChartUrl || ""}
+                         onChange={handleSettingChange}
+                         placeholder="https://..."
+                         className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-md focus:border-[#1A73E8] outline-none text-sm font-mono"
+                       />
+                       <p className="text-[10px] text-slate-500 mt-1">URL gambar Size Chart yang muncul saat diklik peserta.</p>
+                     </div>
+                     <div>
+                       <label className="block text-[11px] font-bold text-emerald-600 mb-1.5 uppercase">
+                         Teks Tombol Sosmed (Layar Coming Soon)
+                       </label>
+                       <input
+                         type="text"
+                         name="offlineIgUsername"
+                         value={vrSettings.offlineIgUsername || ""}
+                         onChange={handleSettingChange}
+                         placeholder="Contoh: @ikauii.diy"
+                         className="w-full px-4 py-2.5 bg-white border border-emerald-300 rounded-md focus:border-emerald-500 outline-none text-sm font-bold text-emerald-800"
+                       />
+                       <p className="text-[10px] text-emerald-600/80 mt-1">Teks yang muncul pada tombol (contoh: @ikauii.diy).</p>
+                     </div>
+                     <div>
+                       <label className="block text-[11px] font-bold text-emerald-600 mb-1.5 uppercase">
+                         URL Link Sosmed (Layar Coming Soon)
+                       </label>
+                       <input
+                         type="text"
+                         name="offlineIgUrl"
+                         value={vrSettings.offlineIgUrl || ""}
+                         onChange={handleSettingChange}
+                         placeholder="https://instagram.com/ikauii.diy"
+                         className="w-full px-4 py-2.5 bg-white border border-emerald-300 rounded-md focus:border-emerald-500 outline-none text-sm font-mono text-emerald-800"
+                       />
+                       <p className="text-[10px] text-emerald-600/80 mt-1">Link tujuan ketika tombol ditekan.</p>
+                     </div>
+                     <div>
+                       <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                         URL Logo Penyelenggara (Kiri)
+                       </label>
+                       <input
+                         type="text"
+                         name="offlineLogoKiri"
+                         value={vrSettings.offlineLogoKiri || ""}
+                         onChange={handleSettingChange}
+                         placeholder="Kosongkan untuk default"
+                         className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-md focus:border-[#1A73E8] outline-none text-sm font-mono"
+                       />
+                       <p className="text-[10px] text-slate-500 mt-1">Muncul di Navbar kiri. Contoh: /logo-dpp-ika.png</p>
+                     </div>
+                     <div>
+                       <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                         URL Logo Event (Kanan)
+                       </label>
+                       <input
+                         type="text"
+                         name="offlineLogoKanan"
+                         value={vrSettings.offlineLogoKanan || ""}
+                         onChange={handleSettingChange}
+                         placeholder="Kosongkan untuk default"
+                         className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-md focus:border-[#1A73E8] outline-none text-sm font-mono"
+                       />
+                       <p className="text-[10px] text-slate-500 mt-1">Muncul di Navbar setelah logo penyelenggara.</p>
+                     </div>
                   </div>
                 </div>
               </div>
@@ -731,6 +853,112 @@ export default function TabOffline({
                         )}
                       </div>
                     </div>
+
+                    {/* MANAJEMEN PROMO TIKET */}
+                    <div className="mt-6 pt-6 border-t border-slate-200">
+                      <div className="flex items-center justify-between mb-4">
+                        <label className="block text-xs font-bold text-emerald-600 uppercase tracking-wide">
+                          Manajemen Promo Tiket
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => addPromo(pkg.id, pkg.promos)}
+                          className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-md text-[10px] font-bold hover:bg-emerald-100 transition-colors flex items-center gap-1"
+                        >
+                          <Plus className="w-3 h-3" /> Tambah Promo
+                        </button>
+                      </div>
+
+                      {(!pkg.promos || pkg.promos.length === 0) ? (
+                        <div className="text-center py-4 bg-slate-50 rounded-lg border border-slate-200 border-dashed">
+                          <p className="text-[10px] text-slate-400 font-bold">
+                            Belum ada promo untuk kategori ini.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {pkg.promos.map((promo: any) => (
+                            <div
+                              key={promo.id}
+                              className={`flex flex-col gap-3 p-4 rounded-lg border transition-all ${promo.isActive ? "bg-white border-slate-200 shadow-sm" : "bg-slate-50 border-slate-200 opacity-70"}`}
+                            >
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div>
+                                  <label className="block text-[9px] font-bold text-slate-400 mb-1 uppercase">Kode Unik</label>
+                                  <input
+                                    type="text"
+                                    value={promo.kode}
+                                    onChange={(e) => updatePromo(pkg.id, pkg.promos, promo.id, "kode", e.target.value.toUpperCase().replace(/\s/g, ""))}
+                                    placeholder="KODEPROMO"
+                                    className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded text-[10px] uppercase font-bold outline-none focus:border-[#1A73E8]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] font-bold text-slate-400 mb-1 uppercase">Tipe Diskon</label>
+                                  <select
+                                    value={promo.jenisDiskon}
+                                    onChange={(e) => updatePromo(pkg.id, pkg.promos, promo.id, "jenisDiskon", e.target.value)}
+                                    className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded text-[10px] outline-none focus:border-[#1A73E8]"
+                                  >
+                                    <option value="persen">Persen (%)</option>
+                                    <option value="nominal">Nominal (Rp)</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] font-bold text-slate-400 mb-1 uppercase">Nilai Diskon</label>
+                                  <input
+                                    type="number"
+                                    value={promo.nilaiDiskon}
+                                    onChange={(e) => updatePromo(pkg.id, pkg.promos, promo.id, "nilaiDiskon", Number(e.target.value))}
+                                    className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded text-[10px] font-mono outline-none focus:border-[#1A73E8]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] font-bold text-slate-400 mb-1 uppercase">Batas Kuota (0=♾️)</label>
+                                  <input
+                                    type="number"
+                                    value={promo.kuotaMaksimal}
+                                    onChange={(e) => updatePromo(pkg.id, pkg.promos, promo.id, "kuotaMaksimal", Number(e.target.value))}
+                                    className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded text-[10px] font-mono outline-none focus:border-[#1A73E8]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] font-bold text-slate-400 mb-1 uppercase">Tgl Kedaluwarsa</label>
+                                  <input
+                                    type="date"
+                                    value={promo.tanggalKedaluwarsa}
+                                    onChange={(e) => updatePromo(pkg.id, pkg.promos, promo.id, "tanggalKedaluwarsa", e.target.value)}
+                                    className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded text-[10px] outline-none focus:border-[#1A73E8]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] font-bold text-slate-400 mb-1 uppercase">Kuota Terpakai</label>
+                                  <div className="w-full px-2 py-1.5 bg-slate-100 border border-slate-200 rounded text-[10px] font-mono text-slate-500 cursor-not-allowed">
+                                    {promo.kuotaTerpakai} tiket
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex justify-end gap-2 mt-2 pt-3 border-t border-slate-100">
+                                <button
+                                  type="button"
+                                  onClick={() => updatePromo(pkg.id, pkg.promos, promo.id, "isActive", !promo.isActive)}
+                                  className={`px-3 py-1.5 rounded text-[9px] font-bold transition-colors ${promo.isActive ? "bg-amber-50 text-amber-600 hover:bg-amber-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"}`}
+                                >
+                                  {promo.isActive ? "Matikan" : "Aktifkan"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removePromo(pkg.id, pkg.promos, promo.id)}
+                                  className="px-3 py-1.5 bg-rose-50 text-rose-500 rounded text-[9px] font-bold hover:bg-rose-100 transition-colors"
+                                >
+                                  Hapus
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
                 <button
@@ -812,6 +1040,9 @@ export default function TabOffline({
                         placeholder="https://..."
                         className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-blue-500 outline-none text-sm font-mono"
                       />
+                      {vrSettings.urlBibOffline && (
+                        <img src={vrSettings.urlBibOffline} alt="Preview E-BIB Offline" className="mt-3 w-full h-32 object-cover rounded-lg border border-slate-200" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      )}
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
@@ -825,11 +1056,15 @@ export default function TabOffline({
                         placeholder="https://..."
                         className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg focus:bg-white focus:border-blue-500 outline-none text-sm font-mono"
                       />
+                      {vrSettings.urlSertifikatOffline && (
+                        <img src={vrSettings.urlSertifikatOffline} alt="Preview Sertifikat Offline" className="mt-3 w-full h-32 object-cover rounded-lg border border-slate-200" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
             </details>
+
 
           </div>
         )}

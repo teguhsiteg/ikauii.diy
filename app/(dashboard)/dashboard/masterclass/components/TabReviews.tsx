@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect } from "react";
 import { toast } from "@/lib/toast";
 import { db } from "@/lib/firebase";
@@ -60,7 +65,7 @@ export default function TabReviews() {
   ) => {
     const newStatus = currentStatus === "Sembunyi" ? "Tampil" : "Sembunyi";
     if (
-      !confirm(
+      !await confirmAlert(
         `Ubah status ulasan ini menjadi "${newStatus}" di halaman publik?`,
       )
     )
@@ -78,7 +83,7 @@ export default function TabReviews() {
   };
 
   const handleDelete = async (reviewId: string) => {
-    if (!confirm("Hapus permanen ulasan ini dari database?")) return;
+    if (!await confirmAlert("Hapus permanen ulasan ini dari database?")) return;
     try {
       await deleteDoc(doc(db, "masterclass_reviews", reviewId));
       fetchData();

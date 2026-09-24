@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { db, storage } from "@/lib/firebase";
@@ -102,7 +107,7 @@ export default function LengkapiProfilPage() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.size > 2 * 1024 * 1024) {
-        alert("Ukuran foto maksimal 2MB");
+        errorAlert("Ukuran foto maksimal 2MB");
         return;
       }
       setFotoFile(file);
@@ -169,7 +174,7 @@ export default function LengkapiProfilPage() {
 
     } catch (error) {
       console.error(error);
-      alert("Terjadi kesalahan saat menyimpan data.");
+      errorAlert("Terjadi kesalahan saat menyimpan data.");
     } finally {
       setIsSubmitting(false);
     }
@@ -190,7 +195,7 @@ export default function LengkapiProfilPage() {
       link.click();
     } catch (err) {
       console.error("Gagal mendownload KTA", err);
-      alert("Gagal mendownload KTA. Silakan coba lagi.");
+      errorAlert("Gagal mendownload KTA. Silakan coba lagi.");
     } finally {
       setIsDownloading(false);
     }

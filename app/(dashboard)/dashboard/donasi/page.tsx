@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect } from "react";
 import { toast } from "@/lib/toast";
 import { db, auth } from "@/lib/firebase";
@@ -240,7 +245,7 @@ export default function PengelolaanDonasiPage() {
   // 4. FUNGSI TUTUP PERIODE
   const handleTutupPeriode = async (id: string, currentStatus: string) => {
     if (
-      confirm(
+      await confirmAlert(
         `Yakin ingin ${currentStatus === "Aktif" ? "MENUTUP" : "MEMBUKA KEMBALI"} periode donasi ini?`,
       )
     ) {

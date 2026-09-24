@@ -1,5 +1,10 @@
 "use client";
 
+import { confirmAlert, errorAlert } from "@/lib/sweetalert";
+
+
+
+
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
@@ -831,7 +836,7 @@ export default function RuangKerjaProkerDinamic({ slug: _slug }: { slug: string 
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Hapus proker?")) {
+    if (await confirmAlert("Hapus proker?")) {
       await deleteDoc(doc(db, "proker", id));
       fetchData();
     }

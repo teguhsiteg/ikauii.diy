@@ -17,6 +17,7 @@ import RunNavbar from "@/components/run/RunNavbar";
 import RunFooter from "@/components/run/RunFooter";
 import CountdownTimer from "@/components/CountdownTimer";
 import dynamic from "next/dynamic";
+import FaqAccordion from "@/components/FaqAccordion";
 
 // 🔥 IMPORT PETA SECARA DINAMIS (SSR FALSE) 🔥
 const EventMap = dynamic(() => import("@/components/EventMap"), { ssr: false });
@@ -247,7 +248,7 @@ function OfflineRunLandingPageContent() {
 
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <a
-              href="https://instagram.com/ikauii.diy"
+              href={settings?.offlineIgUrl || "https://instagram.com/ikauii.diy"}
               target="_blank"
               rel="noopener noreferrer"
               className="bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239] px-6 py-3 rounded-full flex items-center justify-center gap-2.5 transition-all font-black text-sm shadow-lg w-full sm:w-auto"
@@ -255,14 +256,14 @@ function OfflineRunLandingPageContent() {
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2.163c3.204 0 3.584.012 4.85.067 3.282.153 4.769 1.64 4.922 4.922.055 1.266.067 1.646.067 4.849 0 3.204-.012 3.584-.067 4.85-.153 3.282-1.64 4.769-4.922 4.922-1.266.055-1.646.067-4.85.067-3.204 0-3.584-.012-4.85-.067-3.282-.153-4.769-1.64-4.922-4.922-.055-1.266-.067-1.646-.067-4.849 0-3.204.012-3.584.067-4.85.153-3.282 1.64-4.769 4.922-4.922 1.266-.055 1.646-.067 4.85-.067zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 1.61-6.98 5.928-.058 1.28-.072 1.688-.072 4.947s.014 3.667.072 4.947c.2 4.358 2.618 6.78 5.928 6.98 1.28.058 1.688.072 4.947.072 3.259 0 3.667-.014 4.947-.072 4.358-.2 6.78-1.61 6.98-5.928.058-1.28.072-1.688.072-4.947s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-5.928-6.98-1.28-.058-1.688-.072-4.947-.072zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.791-4-4s1.791-4 4-4 4 1.791 4 4-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
               </svg>
-              @ikauii.diy
+              {settings?.offlineIgUsername || "@ikauii.diy"}
             </a>
             {settings?.statusPendaftaran === "Buka" && (
               <Link
                 href="/virtual-run"
                 className="bg-white hover:bg-slate-50 text-blue-900 px-6 py-3 rounded-full flex items-center justify-center gap-2.5 transition-all font-black text-sm shadow-lg border border-slate-200 w-full sm:w-auto"
               >
-                <span>🌍</span> Ikuti Virtual Run
+                Ikuti Virtual Run
               </Link>
             )}
           </div>
@@ -345,7 +346,11 @@ function OfflineRunLandingPageContent() {
   // 3. TAMPILAN NORMAL
   return (
     <div className="min-h-screen bg-slate-50 font-sans selection:bg-[#FCD116] selection:text-[#0B2239] flex flex-col scroll-smooth relative">
-      <RunNavbar eventName={settings?.offlineJudul || "SEMBADA RUN"} />
+      <RunNavbar 
+        eventName={settings?.offlineJudul || "SEMBADA RUN"} 
+        logoKiri={settings?.offlineLogoKiri}
+        logoKanan={settings?.offlineLogoKanan}
+      />
 
       {isBypassed && (
         <button
@@ -356,7 +361,7 @@ function OfflineRunLandingPageContent() {
         </button>
       )}
 
-      <section className="relative pt-[160px] pb-20 md:pt-[200px] lg:pt-[240px] lg:pb-32 overflow-hidden min-h-[85vh] flex flex-col justify-center">
+      <section className="relative pt-[120px] pb-20 md:pt-[160px] lg:pt-[200px] lg:pb-32 overflow-hidden min-h-[85vh] flex flex-col justify-start">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat grayscale-[20%]"
           style={{
@@ -378,8 +383,8 @@ function OfflineRunLandingPageContent() {
           <ScrollReveal delay={100}>
             <div className="mb-6">
               <img
-                src="https://res.cloudinary.com/dp8hmxuix/image/upload/v1788008083/ikadiy.uii.ac.idrun_kg66ut.png"
-                alt="Logo Sembada Run"
+                src={settings?.offlineLogoKanan || "https://res.cloudinary.com/dp8hmxuix/image/upload/v1788008083/ikadiy.uii.ac.idrun_kg66ut.png"}
+                alt="Logo Event"
                 className="h-28 md:h-40 object-contain drop-shadow-2xl mx-auto"
                 crossOrigin="anonymous"
               />
@@ -409,6 +414,21 @@ function OfflineRunLandingPageContent() {
               )}
             </p>
           </ScrollReveal>
+
+          {settings?.offlineDate && (
+            <ScrollReveal delay={250}>
+              <div className="flex flex-col items-center mb-10 w-full max-w-md mx-auto bg-[#0B2239]/60 backdrop-blur-md p-6 rounded-3xl border border-white/10 shadow-2xl">
+                <p className="text-[#FCD116] text-[10px] md:text-xs font-black uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-[#FCD116] rounded-full animate-ping"></span>
+                  Event Dimulai Dalam
+                </p>
+                <CountdownTimer
+                  targetDate={settings.offlineDate}
+                  onExpire={() => {}}
+                />
+              </div>
+            </ScrollReveal>
+          )}
 
           <ScrollReveal delay={300}>
             <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-12 w-full mt-8">
@@ -538,17 +558,27 @@ function OfflineRunLandingPageContent() {
               </ScrollReveal>
 
               <ScrollReveal delay={400}>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full md:w-auto">
+                <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-4 w-full md:w-auto">
                   <a
                     href="#kategori-tiket"
                     onClick={scrollToTiket}
-                    className="w-full sm:w-auto bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239] font-black px-10 py-4 md:px-12 md:py-5 rounded-full text-base md:text-lg transition-all shadow-2xl transform hover:-translate-y-1 flex items-center justify-center gap-2"
+                    className="w-full sm:w-auto bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239] font-black px-8 py-4 md:px-10 md:py-5 rounded-full text-base md:text-lg transition-all shadow-2xl transform hover:-translate-y-1 flex items-center justify-center gap-2"
                   >
-                    Amankan Slot Sekarang &rarr;
+                    Daftar Fun Run (Offline) &rarr;
                   </a>
+
+                  {settings?.isVirtualRunEnabled && (
+                    <Link
+                      href="/virtual-run"
+                      className="w-full sm:w-auto bg-white text-blue-900 font-black px-8 py-4 md:px-10 md:py-5 rounded-full text-base md:text-lg transition-all shadow-xl hover:bg-slate-50 transform hover:-translate-y-1 flex items-center justify-center gap-2"
+                    >
+                      Daftar Virtual Run &rarr;
+                    </Link>
+                  )}
+
                   <button
                     onClick={() => setIsTimelineModalOpen(true)}
-                    className="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white font-black px-10 py-4 md:px-10 md:py-5 rounded-full text-base md:text-lg transition-all shadow-xl border border-white/20 backdrop-blur-sm transform hover:-translate-y-1 flex items-center justify-center gap-2"
+                    className="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white font-black px-8 py-4 md:px-10 md:py-5 rounded-full text-base md:text-lg transition-all shadow-xl border border-white/20 backdrop-blur-sm transform hover:-translate-y-1 flex items-center justify-center gap-2"
                   >
                     Timeline
                   </button>
@@ -583,124 +613,132 @@ function OfflineRunLandingPageContent() {
             </div>
           </ScrollReveal>
 
-          <div className="grid lg:grid-cols-3 gap-8 items-stretch max-w-6xl mx-auto">
+          <div className="flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-0 lg:-space-x-12 max-w-5xl mx-auto px-4 mt-8">
             {/* 1. Jersey */}
-            <ScrollReveal delay={100}>
-              <div className="bg-slate-50 rounded-[2rem] p-6 shadow-sm border border-slate-100 hover:shadow-xl transition-shadow group flex flex-col h-full">
-                <div className="aspect-square bg-white rounded-3xl mb-6 flex items-center justify-center overflow-hidden relative border border-slate-100">
-                  <div className="absolute inset-0 bg-[#0B2239]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  {settings?.urlJerseyOffline ? (
-                    <img
-                      src={settings.urlJerseyOffline}
-                      alt="Jersey Pelari"
-                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                    />
-                  ) : (
-                    <div className="text-slate-300 flex flex-col items-center">
-                      <svg
-                        className="w-16 h-16 text-slate-300 mb-2 transform group-hover:scale-110 transition-transform duration-500"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1.5}
-                          d="M16 4v12l-4-2-4 2V4M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                      <span className="font-bold text-xs md:text-sm">
-                        Preview Jersey
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <h3 className="text-lg md:text-xl font-black text-slate-800 mb-2 text-center md:text-left">
-                  Runner Jersey
-                </h3>
-                <p className="text-slate-500 text-xs md:text-sm text-center md:text-left">
-                  Dapatkan jersey eksklusif untuk menambah semangatmu berlari.
-                </p>
-              </div>
-            </ScrollReveal>
-
-            {/* 2. Nomor BIB & Refreshment */}
-            <ScrollReveal delay={200}>
-              <div className="bg-slate-50 rounded-[2rem] p-6 shadow-sm border border-slate-100 hover:shadow-xl transition-shadow group flex flex-col h-full">
-                <div className="aspect-square bg-white rounded-3xl mb-6 flex items-center justify-center overflow-hidden relative border border-slate-100">
-                  <div className="absolute inset-0 bg-[#0B2239]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <div className="text-slate-300 flex flex-col items-center">
-                    <svg
-                      className="w-20 h-20 text-[#0B2239]/80 mb-2 transform group-hover:scale-110 transition-transform duration-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"
+            <div className="z-10 w-full lg:w-1/3">
+              <ScrollReveal delay={100}>
+                <div className="flex flex-col items-center group">
+                  <div className="w-full max-w-[280px] aspect-square flex items-center justify-center relative">
+                    {settings?.urlJerseyOffline ? (
+                      <img
+                        src={settings.urlJerseyOffline}
+                        alt="Jersey Pelari"
+                        className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-700 drop-shadow-2xl"
                       />
-                    </svg>
-                    <span className="font-bold text-xs md:text-sm text-slate-400">
-                      BIB & Tiket Lari
-                    </span>
+                    ) : (
+                      <div className="text-slate-300 flex flex-col items-center">
+                        <svg
+                          className="w-24 h-24 text-slate-200 mb-2 transform group-hover:scale-110 transition-transform duration-500"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1}
+                            d="M16 4v12l-4-2-4 2V4M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
+                        </svg>
+                        <span className="font-bold text-sm">Preview Jersey</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-center mt-6">
+                    <h3 className="text-xl md:text-2xl font-black text-slate-800 mb-2">
+                      Runner Jersey
+                    </h3>
+                    <p className="text-slate-500 text-sm max-w-[250px] mx-auto">
+                      Dapatkan jersey eksklusif untuk menambah semangatmu berlari.
+                    </p>
                   </div>
                 </div>
-                <h3 className="text-lg md:text-xl font-black text-slate-800 mb-2 text-center md:text-left">
-                  Nomor BIB & Refreshment
-                </h3>
-                <p className="text-slate-500 text-xs md:text-sm text-center md:text-left">
-                  Dapatkan nomor dada eksklusif sebagai identitas pelari.
-                  Nikmati juga fasilitas water station & refreshment selama
-                  acara.
-                </p>
-              </div>
-            </ScrollReveal>
+              </ScrollReveal>
+            </div>
 
-            {/* 3. Medali */}
-            <ScrollReveal delay={300}>
-              <div className="bg-slate-50 rounded-[2rem] p-6 shadow-sm border border-slate-100 hover:shadow-xl transition-shadow group flex flex-col h-full">
-                <div className="aspect-square bg-white rounded-3xl mb-6 flex items-center justify-center overflow-hidden relative border border-slate-100">
-                  <div className="absolute inset-0 bg-[#FCD116]/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  {settings?.urlMedaliOffline ? (
-                    <img
-                      src={settings.urlMedaliOffline}
-                      alt="Medali Finisher"
-                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                    />
-                  ) : (
-                    <div className="text-slate-300 flex flex-col items-center">
-                      <svg
-                        className="w-16 h-16 text-slate-300 mb-2 transform group-hover:scale-110 transition-transform duration-500"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1.5}
-                          d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
-                        />
-                      </svg>
-                      <span className="font-bold text-xs md:text-sm">
-                        Preview Medali
-                      </span>
-                    </div>
-                  )}
+            {/* 2. Medali (Di Tengah supaya lebih stand out jika overlap) */}
+            <div className="z-30 w-full lg:w-1/3 lg:-mt-12">
+              <ScrollReveal delay={200}>
+                <div className="flex flex-col items-center group">
+                  <div className="w-full max-w-[320px] aspect-square flex items-center justify-center relative">
+                    {settings?.urlMedaliOffline ? (
+                      <img
+                        src={settings.urlMedaliOffline}
+                        alt="Medali Finisher"
+                        className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-700 drop-shadow-[0_25px_35px_rgba(252,209,22,0.3)]"
+                      />
+                    ) : (
+                      <div className="text-slate-300 flex flex-col items-center">
+                        <svg
+                          className="w-28 h-28 text-slate-200 mb-2 transform group-hover:scale-110 transition-transform duration-500"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1}
+                            d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
+                          />
+                        </svg>
+                        <span className="font-bold text-sm">Preview Medali</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-center mt-6">
+                    <h3 className="text-xl md:text-2xl font-black text-[#FCD116] drop-shadow-sm mb-2">
+                      Finisher Medal
+                    </h3>
+                    <p className="text-slate-500 text-sm max-w-[250px] mx-auto">
+                      Diberikan khusus bagi pelari yang berhasil melewati garis finish!
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-lg md:text-xl font-black text-slate-800 mb-2 text-center md:text-left">
-                  Finisher Medal
-                </h3>
-                <p className="text-slate-500 text-xs md:text-sm text-center md:text-left">
-                  Diberikan khusus bagi
-                  pelari yang berhasil melewati garis finish!
-                </p>
-              </div>
-            </ScrollReveal>
+              </ScrollReveal>
+            </div>
+
+            {/* 3. Nomor BIB & Refreshment */}
+            <div className="z-20 w-full lg:w-1/3">
+              <ScrollReveal delay={300}>
+                <div className="flex flex-col items-center group">
+                  <div className="w-full max-w-[280px] aspect-square flex items-center justify-center relative">
+                    {settings?.urlBibOffline ? (
+                      <img
+                        src={settings.urlBibOffline}
+                        alt="E-BIB Peserta"
+                        className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-700 drop-shadow-xl"
+                      />
+                    ) : (
+                      <div className="text-slate-300 flex flex-col items-center">
+                        <svg
+                          className="w-24 h-24 text-slate-800 drop-shadow-xl mb-2 transform group-hover:scale-110 transition-transform duration-500"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1}
+                            d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"
+                          />
+                        </svg>
+                        <span className="font-bold text-sm text-slate-400">Preview BIB</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-center mt-6">
+                    <h3 className="text-xl md:text-2xl font-black text-slate-800 mb-2">
+                      BIB & Refreshment
+                    </h3>
+                    <p className="text-slate-500 text-sm max-w-[250px] mx-auto">
+                      Dapatkan nomor dada eksklusif serta nikmati water station selama acara.
+                    </p>
+                  </div>
+                </div>
+              </ScrollReveal>
+            </div>
           </div>
         </div>
       </section>
@@ -718,19 +756,52 @@ function OfflineRunLandingPageContent() {
             <h2 className="text-2xl md:text-4xl font-black text-slate-900 mb-4">
               Pilihan Tiket & Kategori Jarak
             </h2>
-            <p className="text-sm md:text-base text-slate-500 font-medium max-w-xl mx-auto">
+            <p className="text-sm md:text-base text-slate-500 font-medium max-w-xl mx-auto mb-6">
               Pilih kategori jarak lari yang sesuai dengan kemampuanmu.
             </p>
+            <div className="flex flex-col sm:flex-row justify-center gap-4 items-center">
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-left max-w-xs shadow-sm">
+                <h4 className="font-bold text-[#0B2239] flex items-center gap-2 mb-2">
+                  <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                  </svg>
+                  Fun Run (Offline)
+                </h4>
+                <p className="text-xs text-slate-600 font-medium leading-relaxed">Pendaftaran untuk berlari bersama di lokasi acara (Pilih kategori di bawah).</p>
+              </div>
+              
+              {settings?.isVirtualRunEnabled && (
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-left max-w-xs shadow-sm">
+                  <h4 className="font-bold text-amber-700 flex items-center gap-2 mb-2">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Virtual Run
+                  </h4>
+                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                    Berlari dari lokasi Anda masing-masing. <Link href="/virtual-run" className="text-amber-600 font-bold underline hover:text-amber-800">Daftar di sini &rarr;</Link>
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </ScrollReveal>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto items-stretch">
+        <div
+          className={`grid grid-cols-1 gap-6 mx-auto items-stretch ${
+            settings?.offlinePackages?.length === 1
+              ? "max-w-md md:grid-cols-1 lg:grid-cols-1"
+              : settings?.offlinePackages?.length === 2
+                ? "max-w-4xl md:grid-cols-2 lg:grid-cols-2"
+                : "max-w-6xl md:grid-cols-2 lg:grid-cols-3"
+          }`}
+        >
           {settings?.offlinePackages && settings.offlinePackages.length > 0 ? (
             settings.offlinePackages.map((pkg: any, index: number) => {
               const isHighlight = pkg.isHighlight === true;
               const terisi = packageCounts[pkg.id] || 0;
               const batasKuota = Number(pkg.kuota) || 0;
-              const isUnlimited = batasKuota === 0;
+              const isUnlimited = pkg.kuota < 0; // If they want unlimited, they can set it to -1, but 0 means 0
               const sisaKuota = isUnlimited
                 ? "Tak Terbatas"
                 : Math.max(0, batasKuota - terisi);
@@ -968,6 +1039,49 @@ function OfflineRunLandingPageContent() {
             </div>
           )}
         </div>
+
+        {/* --- TOMBOL DAFTAR KOMUNITAS KHUSUS --- */}
+        <ScrollReveal delay={300}>
+          <div className="mt-12 md:mt-16 bg-gradient-to-br from-[#0B2239] to-blue-900 rounded-3xl p-8 md:p-12 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 border border-blue-800">
+            {/* Dekorasi BG */}
+            <div className="absolute -top-24 -right-10 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-24 -left-10 w-64 h-64 bg-[#FCD116]/10 rounded-full blur-3xl"></div>
+
+            <div className="relative z-10 text-center md:text-left">
+              <span className="text-[#FCD116] text-xs font-black uppercase tracking-widest mb-2 block">
+                Pendaftaran Kolektif
+              </span>
+              <h3 className="text-2xl md:text-3xl font-black text-white mb-3 tracking-tight">
+                Daftar Sebagai Komunitas / Instansi
+              </h3>
+              <p className="text-blue-100/80 text-sm md:text-base max-w-xl leading-relaxed">
+                Ingin mendaftar bareng teman-teman komunitas, kantor, atau kampus? Gunakan pendaftaran kolektif agar lebih mudah (satu kali bayar untuk semua anggota) langsung melalui web resmi kami.
+              </p>
+            </div>
+
+            <div className="relative z-10 w-full md:w-auto shrink-0">
+              <Link
+                href="/run/komunitas"
+                className="group w-full md:w-auto flex items-center justify-center gap-3 bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239] font-black px-8 py-4 md:px-10 md:py-5 rounded-2xl transition-all shadow-xl hover:-translate-y-1"
+              >
+                Daftar Kolektif Sekarang
+                <svg
+                  className="w-5 h-5 transform group-hover:translate-x-1 transition-transform"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 8l4 4m0 0l-4 4m4-4H3"
+                  />
+                </svg>
+              </Link>
+            </div>
+          </div>
+        </ScrollReveal>
       </section>
 
       {/* SECTION CHARITY (Jika Aktif) */}
@@ -1190,9 +1304,37 @@ function OfflineRunLandingPageContent() {
         </div>
       )}
 
+      {/* FAQ SECTION */}
+      {settings?.faqs && settings.faqs.length > 0 && (
+        <section className="py-16 md:py-24 bg-white relative w-full border-t border-slate-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <ScrollReveal>
+              <div className="text-center mb-12 md:mb-16">
+                <span className="text-xs font-bold text-[#0B2239] bg-blue-50 px-3 py-1 rounded-full uppercase tracking-widest mb-3 inline-block">
+                  FAQ
+                </span>
+                <h2 className="text-2xl md:text-4xl font-black text-slate-900 mb-4">
+                  Pertanyaan Seputar Sembada Run
+                </h2>
+                <p className="text-sm md:text-base text-slate-500 font-medium max-w-xl mx-auto mb-8">
+                  Temukan jawaban untuk pertanyaan yang sering diajukan seputar pendaftaran dan pelaksanaan Sembada Run.
+                </p>
+              </div>
+            </ScrollReveal>
+            <ScrollReveal delay={100}>
+              <FaqAccordion faqs={settings.faqs} theme="light" />
+            </ScrollReveal>
+          </div>
+        </section>
+      )}
+
       <RunFooter
         eventName={settings?.offlineJudul || "Sembada Run"}
-        waChannelUrl={settings?.waGroupUrl}
+        waChannelUrl={settings?.waGroupUrl || settings?.waChannelUrl}
+        sosmeds={settings?.sosmeds}
+        logoKiri={settings?.offlineLogoKiri}
+        logoKanan={settings?.offlineLogoKanan}
+        deskripsiSingkat={settings?.offlineDeskripsi}
       />
     </div>
   );

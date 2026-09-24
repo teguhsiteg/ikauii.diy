@@ -345,39 +345,30 @@ export default function AdminKomunitasPage() {
         const groupRef = doc(db, "pendaftaran_komunitas", g.id);
 
         const counterDoc = await transaction.get(counterDocRef);
-        let current5K = counterDoc.exists()
-          ? counterDoc.data().lastBib5K || 0
-          : 0;
-        let current10K = counterDoc.exists()
-          ? counterDoc.data().lastBib10K || 0
-          : 0;
+        
+        let countersToUpdate: Record<string, number> = {};
 
         finalParticipants = (g.participants || []).map((member: any) => {
           if (member.nomorBIB || member.bib) return member;
 
-          const jarakAngka = (member.kategori || "9").replace(/\D/g, "") || "9";
-          let newCounter = 0;
-          let generatedBib = "";
+          const jarakAngka = (member.kategori || member.jarak || "9").replace(/\D/g, "") || "9";
+          const counterField = `lastBib${jarakAngka}K`;
 
-          if (jarakAngka === "5") {
-            current5K++;
-            newCounter = current5K;
-            generatedBib = `K-5${String(newCounter).padStart(3, "0")}`;
-          } else if (jarakAngka === "10") {
-            current10K++;
-            newCounter = current10K;
-            generatedBib = `K-10${String(newCounter).padStart(3, "0")}`;
-          } else {
-            newCounter = Math.floor(1000 + Math.random() * 8000);
-            generatedBib = `K-${jarakAngka}${newCounter}`;
+          if (countersToUpdate[counterField] === undefined) {
+            countersToUpdate[counterField] = counterDoc.exists()
+              ? counterDoc.data()[counterField] || 0
+              : 0;
           }
+
+          countersToUpdate[counterField]++;
+          const generatedBib = `K-${jarakAngka}${String(countersToUpdate[counterField]).padStart(3, "0")}`;
 
           return { ...member, nomorBIB: generatedBib, bib: generatedBib };
         });
 
         transaction.set(
           counterDocRef,
-          { lastBib5K: current5K, lastBib10K: current10K },
+          countersToUpdate,
           { merge: true },
         );
         transaction.update(groupRef, {

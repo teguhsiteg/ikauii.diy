@@ -658,6 +658,23 @@ export async function executeSendEmail(body: any) {
             </table>
           </div>
 
+          ${detail?.isUtama && detail?.totalTagihan > 0 ? `
+          <div style="background-color: #F8F9FA; padding: 20px; border: 1px solid #DADCE0; border-radius: 8px; margin: 25px 0;">
+            <p style="margin: 0; font-size: 12px; color: #5F6368; font-weight: 700; text-transform: uppercase;">Rekap Transaksi (Pemesan Utama)</p>
+            <table style="width: 100%; text-align: left; font-size: 14px; color: #202124; border-collapse: collapse; margin-top: 10px;">
+              <tr>
+                <td style="padding: 8px 0; color: #5F6368; border-bottom: 1px dashed #DADCE0;"><strong>Total Pembayaran</strong></td>
+                <td style="padding: 8px 0; font-weight: bold; border-bottom: 1px dashed #DADCE0;">: Rp ${Number(detail.totalTagihan).toLocaleString("id-ID")}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #5F6368;"><strong>Status</strong></td>
+                <td style="padding: 8px 0; font-weight: bold; color: #1E8E3E;">: LUNAS</td>
+              </tr>
+            </table>
+            <p style="margin: 15px 0 0 0; font-size: 12px; color: #5F6368;">*E-Ticket untuk anggota grup Anda telah dikirimkan ke email mereka masing-masing.</p>
+          </div>
+          ` : ''}
+
           <div style="margin: 35px 0 0 0; text-align: center;">
             ${generateButton("Lihat E-Ticket di Website", `${baseUrl}/run/tiket/${pId}`, true)}
           </div>
@@ -719,8 +736,31 @@ export async function executeSendEmail(body: any) {
           <p>Pendaftaran Anda untuk <strong>${eventName}</strong> telah tercatat.</p>
           
           <div style="background-color: #F8F9FA; padding: 20px; border: 1px solid #DADCE0; border-radius: 8px; margin: 25px 0;">
-            <p style="margin: 0; font-size: 12px; color: #5F6368; font-weight: 700; text-transform: uppercase;">Total Tagihan Pembayaran</p>
-            <p style="margin: 8px 0 ${detail?.bank ? '15px' : '0'} 0; font-size: 28px; color: #1A73E8; font-weight: 400;">Rp ${displayTagihan}</p>
+            <p style="margin: 0; font-size: 12px; color: #5F6368; font-weight: 700; text-transform: uppercase;">Rincian Pembayaran</p>
+            <table style="width: 100%; font-size: 13px; color: #202124; border-collapse: collapse; margin-top: 10px; margin-bottom: 15px;">
+              <tr>
+                <td style="padding: 4px 0; color: #5F6368;">Tiket Pendaftaran</td>
+                <td style="padding: 4px 0; text-align: right;">Rp ${Number(detail?.tiket || 0).toLocaleString("id-ID")}</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; color: #5F6368;">Ongkos Kirim</td>
+                <td style="padding: 4px 0; text-align: right;">Rp ${Number(detail?.ongkir || 0).toLocaleString("id-ID")}</td>
+              </tr>
+              ${detail?.donasi > 0 ? `
+              <tr>
+                <td style="padding: 4px 0; color: #5F6368;">Donasi</td>
+                <td style="padding: 4px 0; text-align: right;">Rp ${Number(detail?.donasi || 0).toLocaleString("id-ID")}</td>
+              </tr>
+              ` : ''}
+              <tr>
+                <td colspan="2" style="border-top: 1px dashed #DADCE0; margin-top: 8px; padding-top: 8px;"></td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; font-weight: bold; color: #1A73E8; font-size: 14px;">TOTAL TAGIHAN</td>
+                <td style="padding: 4px 0; text-align: right; font-weight: bold; color: #1A73E8; font-size: 16px;">Rp ${displayTagihan}</td>
+              </tr>
+            </table>
+
             ${
               detail?.metodePembayaran === "manual" && detail?.bank
                 ? `
