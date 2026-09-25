@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, collection, addDoc, query, where, getCountFromServer } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -121,7 +121,7 @@ const Stepper = ({ currentStep }: { currentStep: number }) => {
   );
 };
 
-export default function PendaftaranOffline() {
+function PendaftaranOfflineInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultPaketId = searchParams.get("paket") || "";
@@ -1059,5 +1059,13 @@ export default function PendaftaranOffline() {
       )}
 
     </div>
+  );
+}
+
+export default function PendaftaranOffline() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#0B2239] border-t-[#FCD116] rounded-full animate-spin"></div></div>}>
+      <PendaftaranOfflineInner />
+    </Suspense>
   );
 }
