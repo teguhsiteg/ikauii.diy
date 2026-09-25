@@ -35,7 +35,7 @@ export default function TabGlobal({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </span>
-            Mode Ruang Tunggu Global (Waiting Room)
+            Mode Ruang Tunggu
           </h3>
           <p className="text-sm text-slate-500 mt-1 max-w-2xl">
             Aktifkan fitur antrean virtual ini untuk mencegah server down saat terjadi lonjakan pengunjung (Ticket War) di awal pendaftaran dibuka.

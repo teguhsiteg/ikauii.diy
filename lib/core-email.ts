@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { dbAdmin } from "@/lib/firebase-admin";
 
 export async function executeSendEmail(body: any) {
   try {
@@ -10,8 +11,22 @@ export async function executeSendEmail(body: any) {
     const NOMOR_WA_ADMIN = process.env.WA_ADMIN_PHONE || "6285179594146";
     const logoUrl = "https://ikadiy.uii.ac.id/logo-dpp-ika.png";
 
+    // FETCH SETTINGS
+    let defaultEventName = "Event IKA UII DIY";
+    try {
+      const settingsDoc = await dbAdmin.collection("settings").doc("virtual_run").get();
+      if (settingsDoc.exists) {
+        const settingsData = settingsDoc.data();
+        if (type.includes("offline")) {
+            defaultEventName = settingsData?.offlineJudul || defaultEventName;
+        } else {
+            defaultEventName = settingsData?.landingTitle || defaultEventName;
+        }
+      }
+    } catch (err) {}
+
     // 1. SINKRONISASI NAMA EVENT SECARA GLOBAL (KONSISTEN UNTUK SEMUA EMAIL)
-    const eventName = detail?.eventName || detail?.event || "Event IKA UII DIY";
+    const eventName = detail?.eventName || detail?.event || defaultEventName;
 
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
@@ -620,11 +635,11 @@ export async function executeSendEmail(body: any) {
 
         htmlContent = generateHtml(
           `
-          <h2 style="color: #1E8E3E; margin-top: 0; font-size: 20px; font-weight: 500;">Pembayaran Berhasil</h2>
+          <h2 style="color: #1E8E3E; margin-top: 0; font-size: 20px; font-weight: 500;">${detail?.isUpgrade ? "Berhasil Upgrade Kategori" : "Pembayaran Berhasil"}</h2>
           ${salamPembuka}
           <p>Halo <strong>${nama}</strong>,</p>
-          <p>Kami telah menerima konfirmasi pembayaran Anda. Status pendaftaran Anda saat ini adalah <strong style="color: #1E8E3E;">LUNAS</strong>.</p>
-          <p>Berikut adalah rincian pendaftaran dan E-Ticket resmi Anda. <strong>Mohon simpan email ini (bisa difoto layar atau dibintangi)</strong>. Anda diwajibkan untuk menunjukkan email berisi QR Code di bawah ini kepada panitia sebagai syarat utama saat pengambilan <em>Racepack</em> di lokasi acara.</p>
+          <p>${detail?.isUpgrade ? "Kami telah menerima konfirmasi pembayaran Upgrade Kategori Anda. Status pendaftaran Anda saat ini tetap <strong style=\"color: #1E8E3E;\">LUNAS</strong> dan telah di-upgrade." : "Kami telah menerima konfirmasi pembayaran Anda. Status pendaftaran Anda saat ini adalah <strong style=\"color: #1E8E3E;\">LUNAS</strong>."}</p>
+          <p>Berikut adalah rincian pendaftaran dan E-Ticket resmi Anda${detail?.isUpgrade ? " yang terbaru" : ""}. <strong>Mohon simpan email ini (bisa difoto layar atau dibintangi)</strong>. Anda diwajibkan untuk menunjukkan email berisi QR Code di bawah ini kepada panitia sebagai syarat utama saat pengambilan <em>Racepack</em> di lokasi acara.</p>
           
           <div style="background-color: #F8F9FA; padding: 30px 20px; border: 1px solid #DADCE0; border-radius: 12px; margin: 25px 0; text-align: center;">
             <img src="${qrCodeUrl}" alt="QR Code E-Ticket" width="160" height="160" style="display: block; margin: 0 auto 15px auto; border: 6px solid #fff; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);" />

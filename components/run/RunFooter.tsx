@@ -138,6 +138,25 @@ export default function RunFooter({
               </div>
             </div>
           )}
+          
+          {/* Flag Counter */}
+          <div className={`pt-4 border-t border-slate-800 ${(sosmeds && sosmeds.length > 0) ? 'mt-6' : 'mt-0'}`}>
+            <h4 className="text-white font-black uppercase tracking-wider text-[10px] mb-3 text-slate-500">
+              Statistik Pengunjung
+            </h4>
+            <a
+              href="https://info.flagcounter.com/Xfqa"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block opacity-75 hover:opacity-100 transition-opacity duration-300"
+            >
+              <img
+                src="https://s05.flagcounter.com/count2/Xfqa/bg_0B1221/txt_FFFFFF/border_0B1221/columns_3/maxflags_12/viewers_0/labels_0/pageviews_0/flags_0/percent_0/"
+                alt="Flag Counter"
+                className="h-auto max-w-[150px] rounded"
+              />
+            </a>
+          </div>
         </div>
       </div>
 

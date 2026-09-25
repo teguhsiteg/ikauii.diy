@@ -129,6 +129,8 @@ function PendaftaranOfflineInner() {
 
   const [settings, setSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEventClosed, setIsEventClosed] = useState(false);
+  const [eventClosedReason, setEventClosedReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState(1);
   const [packages, setPackages] = useState<any[]>([]);
@@ -209,6 +211,36 @@ function PendaftaranOfflineInner() {
 
             if (defaultPaketId && Object.keys(selectedTickets).length === 0) {
               setSelectedTickets({ [defaultPaketId]: 1 });
+            }
+          }
+
+          const isBypassed = localStorage.getItem("dev_bypass") === "true";
+          const isForceOpen = searchParams.get("force_open") === "secret_key";
+
+          if (!isBypassed && !isForceOpen) {
+            const isOfflineEnabled = data.isOfflineRunEnabled;
+            const adminStatus = data.offlineStatus || "auto";
+            const openDate = data.offlineTanggalPembukaan ? new Date(data.offlineTanggalPembukaan) : null;
+            const closeDate = data.offlineTanggalPenutupan ? new Date(data.offlineTanggalPenutupan) : null;
+            const currentTime = new Date();
+
+            if (!isOfflineEnabled || adminStatus === "tutup") {
+              setIsEventClosed(true);
+              setEventClosedReason("Pendaftaran event saat ini sedang ditutup.");
+            } else if (adminStatus === "coming_soon") {
+              setIsEventClosed(true);
+              setEventClosedReason("Pendaftaran event belum dibuka.");
+            } else if (adminStatus === "preview") {
+              setIsEventClosed(true);
+              setEventClosedReason("Pendaftaran belum dibuka.");
+            } else if (adminStatus !== "buka") {
+              if (openDate && currentTime < openDate) {
+                setIsEventClosed(true);
+                setEventClosedReason(`Pendaftaran dibuka pada ${openDate.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}.`);
+              } else if (closeDate && currentTime > closeDate) {
+                setIsEventClosed(true);
+                setEventClosedReason("Periode pendaftaran event telah berakhir.");
+              }
             }
           }
         }
@@ -443,7 +475,9 @@ function PendaftaranOfflineInner() {
 
       const orderId = "ORD-" + Date.now() + Math.random().toString(36).substring(2, 6).toUpperCase();
       const subtotal = calculateSubtotal();
-      const totalSemuaTagihan = subtotal - promoDiscount + (Number(donasi) || 0);
+      const adminFeePerTicket = Number(settings?.offlineAdminFee) || 0;
+      const adminFee = adminFeePerTicket * participants.length;
+      const totalSemuaTagihan = subtotal - promoDiscount + (Number(donasi) || 0) + adminFee;
       
       let masterDocId = "";
 
@@ -469,6 +503,7 @@ function PendaftaranOfflineInner() {
             subtotalPesanan: subtotal,
             kodePromoDipakai: promoDiscount > 0 ? promoCode : "",
             totalDiskon: promoDiscount,
+            adminFeeWeb: adminFee,
             donasiCharity: Number(donasi) || 0
           } : {})
         };
@@ -515,11 +550,11 @@ function PendaftaranOfflineInner() {
       <RunNavbar eventName={settings?.offlineJudul} solid={true} />
 
       <div className="pt-24 pb-20">
-        <Stepper currentStep={step} />
+        {!isEventClosed && <Stepper currentStep={step} />}
 
         <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          <div className="lg:col-span-8 space-y-6">
+          <div className={`lg:col-span-${isEventClosed ? '12' : '8'} space-y-6`}>
             
             <div className="bg-white rounded-[8px] p-5 shadow-sm border border-slate-100 flex items-center gap-5">
               <div className="w-16 h-16 bg-slate-50 rounded-lg border border-slate-100 overflow-hidden flex-shrink-0 flex items-center justify-center p-2">
@@ -540,7 +575,25 @@ function PendaftaranOfflineInner() {
               </div>
             </div>
 
-            {step === 1 && (
+            {isEventClosed ? (
+              <div className="bg-white rounded-[8px] p-8 md:p-12 text-center shadow-sm border border-slate-100 animate-in zoom-in-95 mt-6">
+                <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-200">
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-black text-[#0B2239] mb-2">Pendaftaran Sedang Ditutup</h2>
+                <p className="text-slate-600 max-w-md mx-auto mb-6 text-sm">{eventClosedReason}</p>
+                <Link
+                  href="/run"
+                  className="inline-flex items-center gap-2 bg-[#0B2239] hover:bg-slate-800 text-[#FCD116] font-bold px-6 py-3 rounded-xl transition-colors text-sm shadow-md"
+                >
+                  Kembali ke Beranda Run
+                </Link>
+              </div>
+            ) : (
+              <>
+                {step === 1 && (
               <div className="animate-in fade-in duration-500">
                 <div className="bg-white rounded-[8px] shadow-sm border border-slate-100 divide-y divide-slate-100">
                   {packages.map((pkg: any) => {
@@ -896,9 +949,12 @@ function PendaftaranOfflineInner() {
                 </div>
               </div>
             )}
+            </>
+            )}
           </div>
 
-          <div className="lg:col-span-4 mt-8 lg:mt-0 relative">
+          {!isEventClosed && (
+            <div className="lg:col-span-4 mt-8 lg:mt-0 relative">
             <div className="bg-white rounded-[8px] shadow-sm border border-slate-100 p-5 sticky top-24">
               <h2 className="text-[14px] font-bold text-[#0B2239] mb-4 flex items-center gap-2">
                 <svg className="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
@@ -962,11 +1018,17 @@ function PendaftaranOfflineInner() {
                     <span>Rp {Number(donasi).toLocaleString("id-ID")}</span>
                   </div>
                 ) : null}
+                {settings?.offlineAdminFee ? (
+                  <div className="flex justify-between text-slate-500">
+                    <span>Admin Fee</span>
+                    <span>Rp {(Number(settings.offlineAdminFee) * totalTickets).toLocaleString("id-ID")}</span>
+                  </div>
+                ) : null}
               </div>
               
               <div className="flex justify-between items-center mb-6 pt-4 border-t border-slate-100">
                 <span className="font-bold text-[#0B2239] text-[13px]">Grand Total</span>
-                <span className="font-bold text-[#0B2239] text-[15px]">Rp {(calculateSubtotal() - promoDiscount + (Number(donasi) || 0)).toLocaleString("id-ID")}</span>
+                <span className="font-bold text-[#0B2239] text-[15px]">Rp {(calculateSubtotal() - promoDiscount + (Number(donasi) || 0) + ((Number(settings?.offlineAdminFee) || 0) * totalTickets)).toLocaleString("id-ID")}</span>
               </div>
 
               {step === 1 ? (
@@ -1020,6 +1082,7 @@ function PendaftaranOfflineInner() {
               )}
             </div>
           </div>
+          )}
 
         </div>
       </div>

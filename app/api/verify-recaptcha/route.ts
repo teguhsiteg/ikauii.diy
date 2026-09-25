@@ -10,14 +10,19 @@ if (formattedKey.startsWith('"') && formattedKey.endsWith('"')) {
 }
 formattedKey = formattedKey.replace(/\\n/g, "\n");
 
-// 1. Inisialisasi Google Cloud Client MENGGUNAKAN kredensial Firebase dari .env
-const client = new RecaptchaEnterpriseServiceClient({
-  credentials: {
+// 1. Inisialisasi Google Cloud Client (ADC / Kredensial Firebase)
+const clientOptions: any = {
+  projectId: process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "suratdigitalv2",
+};
+
+if (formattedKey && process.env.FIREBASE_CLIENT_EMAIL) {
+  clientOptions.credentials = {
     client_email: process.env.FIREBASE_CLIENT_EMAIL,
     private_key: formattedKey,
-  },
-  projectId: process.env.FIREBASE_PROJECT_ID,
-});
+  };
+}
+
+const client = new RecaptchaEnterpriseServiceClient(clientOptions);
 
 export async function POST(request: Request) {
   try {

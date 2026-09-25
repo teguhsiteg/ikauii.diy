@@ -121,7 +121,7 @@ function PendaftaranKomunitasContent() {
               setEventClosedReason("Pendaftaran event belum dibuka (Coming Soon).");
             } else if (adminStatus === "preview") {
               setIsEventClosed(true);
-              setEventClosedReason("Event sedang dalam mode preview. Pendaftaran belum dibuka.");
+              setEventClosedReason("Pendaftaran belum dibuka.");
             } else if (adminStatus !== "buka") {
               if (openDate && currentTime < openDate) {
                 setIsEventClosed(true);
@@ -517,6 +517,9 @@ function PendaftaranKomunitasContent() {
     .reduce((acc, curr) => acc + curr.hargaAsli, 0);
 
   const totalBiayaBersih = Math.max(0, totalBiayaKotor - potonganGratis);
+  const adminFeePerTicket = Number(settings?.offlineAdminFee) || 0;
+  const adminFee = adminFeePerTicket * participants.length;
+  const grandTotal = totalBiayaBersih + adminFee;
 
   // --- 🔥 PERBAIKAN FUNGSI SUBMIT KE CLOUDINARY & FIRESTORE 🔥 ---
   const handleCheckout = async () => {
@@ -562,6 +565,8 @@ function PendaftaranKomunitasContent() {
         participants: participants,
         freeTicketIds: freeTicketIds,
         totalBiaya: totalBiayaBersih,
+        adminFeeWeb: adminFee,
+        grandTotal: grandTotal,
         statusPembayaran: "Pending",
         createdAt: serverTimestamp(),
       };
@@ -573,7 +578,7 @@ function PendaftaranKomunitasContent() {
 
       // 4. Kirim WA ke Admin
       const waAdminPhone = settings?.komunitasWaAdmin || process.env.NEXT_PUBLIC_WA_ADMIN_PHONE || "6285179594146";
-      const waMessage = `Halo Admin IKA UII DIY, saya ${kapten.nama} telah mendaftarkan Komunitas/Grup *${kapten.komunitas}* dengan total ${participants.length} peserta.\n\nMohon petunjuk untuk pembayaran kolektif sebesar *Rp ${totalBiayaBersih.toLocaleString("id-ID")}*.\n\nTerima kasih.`;
+      const waMessage = `Halo Admin IKA UII DIY, saya ${kapten.nama} telah mendaftarkan Komunitas/Grup *${kapten.komunitas}* dengan total ${participants.length} peserta.\n\nMohon petunjuk untuk pembayaran kolektif sebesar *Rp ${grandTotal.toLocaleString("id-ID")}*.\n\nTerima kasih.`;
 
       window.open(
         `https://wa.me/${waAdminPhone.replace(/\D/g, "")}?text=${encodeURIComponent(waMessage)}`,
@@ -604,7 +609,7 @@ function PendaftaranKomunitasContent() {
             Kategori Kolektif
           </span>
           <h1 className="text-3xl md:text-5xl font-black text-[#0B2239] mb-4 tracking-tight leading-tight">
-            Pendaftaran Komunitas
+            Pendaftaran Komunitas / Kolektif
           </h1>
           <p className="text-slate-500 font-medium text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
             Daftarkan tim Anda! Dapatkan{" "}
@@ -613,7 +618,12 @@ function PendaftaranKomunitasContent() {
           </p>
         </div>
 
-        {isEventClosed ? (
+        {isLoadingSettings ? (
+          <div className="bg-white rounded-3xl p-12 text-center shadow-xl border border-slate-200 flex flex-col items-center justify-center animate-pulse">
+            <div className="w-12 h-12 border-4 border-[#0B2239] border-t-[#FCD116] rounded-full animate-spin mb-4"></div>
+            <p className="text-slate-500 font-medium">Memeriksa status pendaftaran...</p>
+          </div>
+        ) : isEventClosed ? (
           <div className="bg-white rounded-3xl p-8 md:p-12 text-center shadow-xl border border-slate-200 animate-in zoom-in-95">
             <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-200">
               <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1101,6 +1111,12 @@ function PendaftaranKomunitasContent() {
                     <span>Potongan Tiket Gratis ({freeTicketIds.length}x)</span>
                     <span>- Rp {potonganGratis.toLocaleString("id-ID")}</span>
                   </div>
+                  {settings?.offlineAdminFee ? (
+                    <div className="flex justify-between text-slate-500 font-medium">
+                      <span>Admin Fee</span>
+                      <span>Rp {Number(settings.offlineAdminFee).toLocaleString("id-ID")}</span>
+                    </div>
+                  ) : null}
                 </div>
                 <div className="border-t border-slate-200 pt-4 mb-6">
                   <div className="flex justify-between items-center">
@@ -1108,7 +1124,7 @@ function PendaftaranKomunitasContent() {
                       Total Pembayaran
                     </span>
                     <span className="text-2xl font-black text-[#0B2239]">
-                      Rp {totalBiayaBersih.toLocaleString("id-ID")}
+                      Rp {grandTotal.toLocaleString("id-ID")}
                     </span>
                   </div>
                 </div>

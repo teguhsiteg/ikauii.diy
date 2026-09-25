@@ -6,11 +6,14 @@ import {
   collection,
   onSnapshot,
   doc,
+  getDoc,
+  setDoc,
   updateDoc,
   writeBatch,
   addDoc,
   runTransaction,
   query,
+  deleteField,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import * as XLSX from "xlsx";
@@ -21,6 +24,8 @@ export default function AdminOfflineRunPage() {
   const [participants, setParticipants] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState("Semua");
+  const [filterKategori, setFilterKategori] = useState("Semua");
+  const [filterGender, setFilterGender] = useState("Semua");
   const [searchQuery, setSearchQuery] = useState("");
   const [adminUser, setAdminUser] = useState<any>(null);
 
@@ -61,6 +66,22 @@ export default function AdminOfflineRunPage() {
     step: "confirm" | "processing" | "success" | "error";
     message: string;
   }>({ isOpen: false, participant: null, step: "confirm", message: "" });
+
+  const [importProcess, setImportProcess] = useState<{
+    isOpen: boolean;
+    data: any[];
+    step: "confirm" | "processing" | "success" | "error";
+    message: string;
+    successCount: number;
+    failCount: number;
+  }>({
+    isOpen: false,
+    data: [],
+    step: "confirm",
+    message: "",
+    successCount: 0,
+    failCount: 0,
+  });
 
   // --- STATE PAGINATION, SORTING & LIMIT ---
   const [sortConfig] = useState<{
@@ -111,6 +132,10 @@ export default function AdminOfflineRunPage() {
   const filteredData = participants.filter((p) => {
     const matchStatus =
       filterStatus === "Semua" || p.statusPembayaran === filterStatus;
+    const matchKategori = 
+      filterKategori === "Semua" || p.jarak === filterKategori;
+    const matchGender = 
+      filterGender === "Semua" || p.jenisKelamin === filterGender;
     const matchSearch =
       p.namaLengkap?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.nomorBIB?.includes(searchQuery) ||
@@ -118,7 +143,7 @@ export default function AdminOfflineRunPage() {
       p.namaBib?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.kodePromoDipakai?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    return matchStatus && matchSearch;
+    return matchStatus && matchKategori && matchGender && matchSearch;
   });
 
   const sortedData = [...filteredData].sort((a, b) => {
@@ -258,8 +283,8 @@ export default function AdminOfflineRunPage() {
     setAlertModal({
       isOpen: true,
       type: "warning",
-      title: "Memproses Import...",
-      message: "Mohon tunggu, sistem sedang memproses dan mengimpor data...",
+      title: "Membaca File...",
+      message: "Mohon tunggu, sistem sedang membaca isi Excel...",
     });
 
     const reader = new FileReader();
@@ -271,52 +296,22 @@ export default function AdminOfflineRunPage() {
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-        let successCount = 0;
-        let failCount = 0;
-
-        for (const row of jsonData as any[]) {
-          try {
-            const pData = {
-              waktuDaftar: new Date().toISOString(),
-              statusPembayaran: row["Status Pembayaran"] || "Lunas",
-              waktuLunas: row["Status Pembayaran"] === "Lunas" ? new Date().toISOString() : null,
-              nomorBIB: row["Nomor BIB"] ? String(row["Nomor BIB"]) : "",
-              bib: row["Nomor BIB"] ? String(row["Nomor BIB"]) : "",
-              jarak: String(row["Kategori Jarak"] || "5K"),
-              paketNama: String(row["Paket Dipilih"] || ""),
-              namaBib: String(row["Nama di BIB"] || ""),
-              namaLengkap: String(row["Nama Lengkap"] || ""),
-              kategoriPeserta: String(row["Kategori Peserta"] || "Umum"),
-              jenisIdentitas: String(row["Jenis Identitas"] || "KTP"),
-              nik: String(row["Nomor Identitas (NIK/NIS)"] || ""),
-              jenisKelamin: String(row["Jenis Kelamin"] || ""),
-              tanggalLahir: String(row["Tanggal Lahir"] || ""),
-              noWA: String(row["No. WhatsApp"] || ""),
-              email: String(row["Email"] || ""),
-              komunitas: String(row["Komunitas"] || ""),
-              ukuranJersey: String(row["Ukuran Jersey"] || ""),
-              golonganDarah: String(row["Golongan Darah"] || ""),
-              riwayatPenyakit: String(row["Riwayat Penyakit"] || ""),
-              namaDarurat: String(row["Nama Kontak Darurat"] || ""),
-              hubunganDarurat: String(row["Hubungan Darurat"] || ""),
-              waDarurat: String(row["No WA Darurat"] || ""),
-              totalTagihan: Number(row["Total Tagihan (Nett)"] || 0),
-              isImported: true
-            };
-
-            await addDoc(collection(db, "offline_participants"), pData);
-            successCount++;
-          } catch (err) {
-            console.error(err);
-            failCount++;
-          }
+        if (!jsonData || jsonData.length === 0) {
+           setAlertModal({ isOpen: true, type: "error", title: "File Kosong", message: "Tidak ada baris data di file Excel." });
+           return;
         }
 
-        setAlertModal({
+        // Tutup loading alert
+        setAlertModal({ isOpen: false, type: "success", title: "", message: "" });
+        
+        // Tampilkan konfirmasi Opsi BIB
+        setImportProcess({
           isOpen: true,
-          type: "success",
-          title: "Import Selesai",
-          message: `Berhasil import: ${successCount} data.\nGagal: ${failCount} data.`,
+          data: jsonData,
+          step: "confirm",
+          message: `Ditemukan ${jsonData.length} data peserta dalam file Excel.`,
+          successCount: 0,
+          failCount: 0,
         });
 
       } catch (error) {
@@ -324,13 +319,99 @@ export default function AdminOfflineRunPage() {
         setAlertModal({
           isOpen: true,
           type: "warning",
-          title: "Import Gagal",
+          title: "Gagal Membaca File",
           message: "Pastikan format Excel sesuai dengan template.",
         });
       }
     };
     reader.readAsArrayBuffer(file);
     e.target.value = "";
+  };
+
+  const executeImport = async (useAutoBib: boolean) => {
+    setImportProcess((prev) => ({ ...prev, step: "processing", message: "Sedang memproses import (jangan tutup halaman ini)..." }));
+    
+    let successCount = 0;
+    let failCount = 0;
+    let currentLastBib = 0;
+    const counterDocRef = doc(db, "pengaturan", "counter_bib_offline");
+
+    try {
+      if (useAutoBib) {
+        const counterSnap = await getDoc(counterDocRef);
+        if (counterSnap.exists() && (counterSnap.data()?.lastBib || 0) >= 500) {
+           currentLastBib = counterSnap.data()?.lastBib || 0;
+        } else {
+           currentLastBib = 500;
+        }
+      }
+
+      for (const row of importProcess.data as any[]) {
+        try {
+          let finalBib = row["Nomor BIB"] ? String(row["Nomor BIB"]) : "";
+          
+          if (useAutoBib) {
+             currentLastBib++;
+             const jarakAngka = String(row["Kategori Jarak"] || "5K").replace(/\D/g, "") || "9";
+             finalBib = `${jarakAngka}${String(currentLastBib).padStart(3, "0")}`;
+          }
+
+          const pData = {
+            waktuDaftar: new Date().toISOString(),
+            statusPembayaran: row["Status Pembayaran"] || "Lunas",
+            waktuLunas: row["Status Pembayaran"] === "Lunas" ? new Date().toISOString() : null,
+            nomorBIB: finalBib,
+            bib: finalBib,
+            jarak: String(row["Kategori Jarak"] || "5K"),
+            paketNama: String(row["Paket Dipilih"] || ""),
+            namaBib: String(row["Nama di BIB"] || ""),
+            namaLengkap: String(row["Nama Lengkap"] || ""),
+            kategoriPeserta: String(row["Kategori Peserta"] || "Umum"),
+            jenisIdentitas: String(row["Jenis Identitas"] || "KTP"),
+            nik: String(row["Nomor Identitas (NIK/NIS)"] || ""),
+            jenisKelamin: String(row["Jenis Kelamin"] || ""),
+            tanggalLahir: String(row["Tanggal Lahir"] || ""),
+            noWA: String(row["No. WhatsApp"] || ""),
+            email: String(row["Email"] || ""),
+            komunitas: String(row["Komunitas"] || ""),
+            ukuranJersey: String(row["Ukuran Jersey"] || ""),
+            golonganDarah: String(row["Golongan Darah"] || ""),
+            riwayatPenyakit: String(row["Riwayat Penyakit"] || ""),
+            namaDarurat: String(row["Nama Kontak Darurat"] || ""),
+            hubunganDarurat: String(row["Hubungan Darurat"] || ""),
+            waDarurat: String(row["No WA Darurat"] || ""),
+            totalTagihan: Number(row["Total Tagihan (Nett)"] || 0),
+            isImported: true
+          };
+          
+          await addDoc(collection(db, "offline_participants"), pData);
+          successCount++;
+        } catch (err) {
+          failCount++;
+        }
+      }
+
+      if (useAutoBib && successCount > 0) {
+         try {
+           await setDoc(counterDocRef, { lastBib: currentLastBib }, { merge: true });
+         } catch(e) { console.error(e); }
+      }
+
+      setImportProcess((prev) => ({
+        ...prev,
+        step: "success",
+        successCount,
+        failCount,
+        message: "Proses Selesai",
+      }));
+
+    } catch (e: any) {
+      setImportProcess((prev) => ({
+        ...prev,
+        step: "error",
+        message: e.message || "Gagal melakukan import secara massal.",
+      }));
+    }
   };
 
   // --- 🔥 FITUR BROADCAST REMINDER RACEPACK (INDIVIDU) 🔥 ---
@@ -418,43 +499,58 @@ export default function AdminOfflineRunPage() {
 
     try {
       let finalBib = p.nomorBIB || "";
+      let isUpgrade = !!p.upgradeRequest;
+      let newJarak = isUpgrade ? p.upgradeRequest.newKategori : p.jarak;
 
-      if (!finalBib) {
+      if (!finalBib || isUpgrade) {
         setApproveProcess((prev) => ({
           ...prev,
           message: "Men-generate Nomor BIB...",
         }));
 
         await runTransaction(db, async (transaction) => {
-          const counterDocRef = doc(db, "settings", "bib_counter");
+          const counterDocRef = doc(db, "pengaturan", "counter_bib_offline");
           const participantRef = doc(db, "offline_participants", p.id);
 
           let settingsRef = doc(db, "settings", "virtual_run");
           const counterDoc = await transaction.get(counterDocRef);
           const settingsDoc = await transaction.get(settingsRef);
 
-          const jarakAngka = (p.jarak || "9").replace(/\D/g, "") || "9";
-          const counterField = `lastBib${jarakAngka}K`;
-          
-          let currentCounter = counterDoc.exists()
-            ? counterDoc.data()[counterField] || 0
-            : 0;
+          let nomorUrutBaru = 500;
+          if (counterDoc.exists() && (counterDoc.data()?.lastBib || 0) >= 500) {
+            nomorUrutBaru = (counterDoc.data()?.lastBib || 0) + 1;
+          }
 
-          currentCounter++;
-          finalBib = `${jarakAngka}${String(currentCounter).padStart(3, "0")}`;
+          const jarakAngka = (newJarak || "9").replace(/\D/g, "") || "9";
+          finalBib = `${jarakAngka}${String(nomorUrutBaru).padStart(3, "0")}`;
 
           transaction.set(
             counterDocRef,
-            { [counterField]: currentCounter },
+            { lastBib: nomorUrutBaru },
             { merge: true },
           );
-          transaction.update(participantRef, {
+          
+          let updateData: any = {
             statusPembayaran: "Lunas",
             waktuLunas: new Date().toISOString(),
             nomorBIB: finalBib,
-          });
+            bib: finalBib,
+          };
 
-          if (p.idPromoDipakai && p.paketId && settingsDoc.exists()) {
+          if (isUpgrade) {
+            updateData.paketId = p.upgradeRequest.newPaketId;
+            updateData.kategori = p.upgradeRequest.newKategori;
+            updateData.jarak = p.upgradeRequest.newKategori;
+            updateData.paketNama = p.upgradeRequest.newPaketNama;
+            updateData.hargaAsli = (p.hargaAsli || 0) + (p.upgradeRequest.selisih || 0);
+            updateData.subtotalPesanan = (p.subtotalPesanan || 0) + (p.upgradeRequest.selisih || 0);
+            updateData.totalTagihan = (p.totalTagihan || 0) + (p.upgradeRequest.selisih || 0);
+            updateData.upgradeRequest = deleteField();
+          }
+
+          transaction.update(participantRef, updateData);
+
+          if (!isUpgrade && p.idPromoDipakai && p.paketId && settingsDoc.exists()) {
             const settingsData = settingsDoc.data();
             const packages = settingsData.offlinePackages || [];
             const updatedPackages = packages.map((pkg: any) => {
@@ -487,10 +583,11 @@ export default function AdminOfflineRunPage() {
           detail: {
             id: p.id,
             nik: p.nik || "-",
-            jarak: p.jarak || "-",
+            jarak: newJarak || "-",
             ukuranJersey: p.ukuranJersey || "-",
             namaBib: p.namaBib || "-",
             bib: finalBib || "-",
+            isUpgrade: isUpgrade,
           },
         });
 
@@ -654,6 +751,68 @@ export default function AdminOfflineRunPage() {
       )}
 
       {/* --- 🔥 KUMPULAN MODAL (MENGGANTIKAN ALERT BAWAAN) 🔥 --- */}
+
+      {/* 0. Modal Konfirmasi Import */}
+      {importProcess.isOpen && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-8 text-center bg-blue-50">
+              <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 text-3xl shadow-sm bg-blue-100 text-[#1A73E8]">
+                {importProcess.step === "success" ? "✅" : importProcess.step === "error" ? "❌" : "📦"}
+              </div>
+              <h3 className="text-xl font-black text-slate-800">
+                {importProcess.step === "confirm" ? "Konfirmasi Import" : 
+                 importProcess.step === "processing" ? "Memproses Import" : 
+                 importProcess.step === "success" ? "Import Berhasil" : "Import Gagal"}
+              </h3>
+              <p className="text-sm text-slate-600 mt-2 font-medium whitespace-pre-wrap leading-relaxed">
+                {importProcess.message}
+              </p>
+            </div>
+            
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex flex-col gap-3">
+              {importProcess.step === "confirm" && (
+                <>
+                  <button
+                    onClick={() => executeImport(true)}
+                    className="w-full bg-[#1A73E8] hover:bg-[#1557B0] text-white font-bold py-3 px-4 rounded-xl transition-colors shadow-sm text-sm"
+                  >
+                    1. Generate BIB Baru Otomatis (Aman)
+                  </button>
+                  <button
+                    onClick={() => executeImport(false)}
+                    className="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 px-4 rounded-xl transition-colors text-sm"
+                  >
+                    2. Gunakan Nomor BIB dari Excel
+                  </button>
+                  <button
+                    onClick={() => setImportProcess({ ...importProcess, isOpen: false })}
+                    className="w-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-500 font-bold py-3 px-4 rounded-xl transition-colors text-sm mt-2"
+                  >
+                    Batal Import
+                  </button>
+                </>
+              )}
+              
+              {importProcess.step === "processing" && (
+                <div className="flex flex-col items-center p-4">
+                  <div className="w-8 h-8 border-4 border-blue-200 border-t-[#1A73E8] rounded-full animate-spin"></div>
+                  <p className="text-xs text-slate-500 mt-4 font-bold">Harap tunggu...</p>
+                </div>
+              )}
+              
+              {(importProcess.step === "success" || importProcess.step === "error") && (
+                <button
+                  onClick={() => setImportProcess({ ...importProcess, isOpen: false })}
+                  className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-4 rounded-xl transition-colors shadow-sm text-sm"
+                >
+                  Tutup
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 1. Modal Alert (Success/Error/Warning) */}
       {alertModal.isOpen && (
@@ -1027,7 +1186,27 @@ export default function AdminOfflineRunPage() {
             className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1A73E8] w-full"
           />
         </div>
-        <div className="flex gap-3 w-full md:w-auto">
+        <div className="flex flex-wrap gap-3 w-full md:w-auto justify-end">
+          <select
+            value={filterKategori}
+            onChange={(e) => setFilterKategori(e.target.value)}
+            className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#1A73E8] w-full md:w-auto"
+          >
+            <option value="Semua">Semua Kategori</option>
+            <option value="3K">3K</option>
+            <option value="5K">5K</option>
+            <option value="10K">10K</option>
+            <option value="21K">21K</option>
+          </select>
+          <select
+            value={filterGender}
+            onChange={(e) => setFilterGender(e.target.value)}
+            className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#1A73E8] w-full md:w-auto hidden lg:block"
+          >
+            <option value="Semua">Gender (Semua)</option>
+            <option value="Laki-laki">Laki-laki</option>
+            <option value="Perempuan">Perempuan</option>
+          </select>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -1119,14 +1298,35 @@ export default function AdminOfflineRunPage() {
                     <p className="text-xs text-slate-500 mt-0.5">{p.noWA}</p>
                   </td>
                   <td className="p-4">
-                    <p className="font-bold text-slate-700">{p.jarak}</p>
+                    <p className="font-bold text-slate-700">
+                      {p.jarak}
+                      {p.upgradeRequest && (
+                        <span className="ml-2 px-1.5 py-0.5 text-[10px] bg-purple-100 text-purple-700 font-bold rounded">
+                          UPGRADE KE {p.upgradeRequest.newKategori}
+                        </span>
+                      )}
+                    </p>
                     <p className="text-xs text-slate-500 mt-0.5">
                       Jersey:{" "}
                       <span className="font-bold">{p.ukuranJersey}</span>
                     </p>
                   </td>
-                  <td className="p-4 font-bold text-slate-800">
-                    Rp {p.totalTagihan?.toLocaleString("id-ID")}
+                  <td className="p-4">
+                    {p.upgradeRequest ? (
+                      <div>
+                        <p className="font-bold text-purple-700">Rp {((p.totalTagihan || 0) + (p.upgradeRequest.selisih || 0)).toLocaleString("id-ID")}</p>
+                        <p className="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Tagihan Baru</p>
+                      </div>
+                    ) : (
+                      <p className="font-bold text-slate-800">
+                        Rp {p.totalTagihan?.toLocaleString("id-ID")}
+                        {p.kodePromoDipakai && (
+                          <span className="block mt-1 text-[9px] bg-emerald-100 text-emerald-700 px-1 py-0.5 rounded w-max uppercase tracking-wider font-bold">
+                            PROMO {p.kodePromoDipakai}
+                          </span>
+                        )}
+                      </p>
+                    )}
                   </td>
                   <td className="p-4">
                     <span
@@ -1388,10 +1588,30 @@ export default function AdminOfflineRunPage() {
                 </div>
 
                 <div className="mt-4 bg-blue-50 text-[#1A73E8] p-4 rounded-2xl flex flex-col justify-center min-h-[100px]">
+                  {detailParticipant.upgradeRequest && (
+                    <div className="mb-3 text-left text-xs space-y-1.5 border-b border-blue-200/50 pb-3">
+                      <div className="flex justify-between text-purple-700 font-bold">
+                        <span>REQUEST UPGRADE TIKET</span>
+                      </div>
+                      <div className="flex justify-between text-slate-500 font-medium">
+                        <span>Upgrade Ke:</span>
+                        <span className="font-bold text-purple-600">{detailParticipant.upgradeRequest.newKategori}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-500 font-medium mt-2 pt-2 border-t border-blue-100">
+                        <span>Tagihan Lama (Sudah Dibayar):</span>
+                        <span>Rp {detailParticipant.totalTagihan?.toLocaleString("id-ID")}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-800 font-bold">
+                        <span>Kekurangan / Biaya Upgrade:</span>
+                        <span>+ Rp {detailParticipant.upgradeRequest.selisih?.toLocaleString("id-ID")}</span>
+                      </div>
+                    </div>
+                  )}
+
                   {detailParticipant.kodePromoDipakai && (
                     <div className="mb-3 text-left text-xs space-y-1.5 border-b border-blue-200/50 pb-3">
                       <div className="flex justify-between text-slate-500 font-medium">
-                        <span>Harga Asli:</span>
+                        <span>Harga Asli (Sebelum Promo):</span>
                         <span>
                           Rp{" "}
                           {detailParticipant.hargaAsli?.toLocaleString("id-ID")}
@@ -1412,12 +1632,14 @@ export default function AdminOfflineRunPage() {
                   )}
                   <div className="text-center">
                     <p className="text-[10px] font-bold uppercase tracking-widest mb-1 opacity-70">
-                      Total Dibayar{" "}
-                      {detailParticipant.kodePromoDipakai ? "(Nett)" : ""}
+                      {detailParticipant.upgradeRequest ? "Total Keseluruhan (Baru)" : "Total Dibayar"}
                     </p>
                     <p className="text-2xl font-black">
                       Rp{" "}
-                      {detailParticipant.totalTagihan?.toLocaleString("id-ID")}
+                      {detailParticipant.upgradeRequest 
+                        ? ((detailParticipant.totalTagihan || 0) + (detailParticipant.upgradeRequest.selisih || 0)).toLocaleString("id-ID")
+                        : detailParticipant.totalTagihan?.toLocaleString("id-ID")
+                      }
                     </p>
                   </div>
                 </div>

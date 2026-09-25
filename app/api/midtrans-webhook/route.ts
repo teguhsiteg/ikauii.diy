@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { FieldValue } from "firebase-admin/firestore";
 import { dbAdmin } from "@/lib/firebase-admin";
 import crypto from "crypto";
 
@@ -65,7 +66,9 @@ export async function POST(request: Request) {
     // Gunakan regex untuk memisahkan: docId-timestamp
     // Format docId TIDAK boleh mengandung "-" — jika ada, fallback ke full order_id
     const separatorMatch = order_id.match(/^(.+)-(\d{10,13})$/);
-    const realOrderId = separatorMatch ? separatorMatch[1] : order_id;
+    const parsedOrderId = separatorMatch ? separatorMatch[1] : order_id;
+    const isUpgrade = parsedOrderId.startsWith("UPG-");
+    const realOrderId = isUpgrade ? parsedOrderId.replace("UPG-", "") : parsedOrderId;
     // 🔥 5. OMNI-ROUTING: CARI DATA DI 3 TABEL BERBEDA
     // =================================================================
     let targetRef = dbAdmin.collection("offline_participants").doc(realOrderId);
@@ -91,6 +94,76 @@ export async function POST(request: Request) {
     // =================================================================
     if (targetSnap.exists) {
       const targetData = targetSnap.data() || {};
+
+      if (isUpgrade) {
+        if (statusPembayaran === "Lunas" && targetData.upgradeRequest) {
+          const upgradeRequest = targetData.upgradeRequest;
+          
+          let newBib = targetData.nomorBIB || "";
+          try {
+            const counterRef = dbAdmin.collection("pengaturan").doc("counter_bib_offline");
+            await dbAdmin.runTransaction(async (transaction) => {
+              const counterSnap = await transaction.get(counterRef);
+              let nomorUrutBaru = 500;
+              if (counterSnap.exists && (counterSnap.data()?.lastBib || 0) >= 500) {
+                nomorUrutBaru = (counterSnap.data()?.lastBib || 0) + 1;
+              }
+              const jarakAngka = (upgradeRequest.newKategori || "9").replace(/\D/g, "") || "9";
+              newBib = `${jarakAngka}${String(nomorUrutBaru).padStart(3, "0")}`;
+              transaction.set(counterRef, { lastBib: nomorUrutBaru }, { merge: true });
+            });
+          } catch (err) {
+            console.error("[Midtrans] Gagal generate BIB baru untuk upgrade:", err);
+          }
+
+          await targetRef.update({
+            paketId: upgradeRequest.newPaketId,
+            kategori: upgradeRequest.newKategori,
+            jarak: upgradeRequest.newKategori,
+            paketNama: upgradeRequest.newPaketNama,
+            nomorBIB: newBib,
+            bib: newBib,
+            hargaAsli: (targetData.hargaAsli || 0) + (upgradeRequest.selisih || 0),
+            subtotalPesanan: (targetData.subtotalPesanan || 0) + (upgradeRequest.selisih || 0),
+            totalTagihan: (targetData.totalTagihan || 0) + (upgradeRequest.selisih || 0),
+            upgradeRequest: FieldValue.delete(),
+          });
+          console.log(`[Midtrans] Berhasil UPGRADE Kategori untuk ${realOrderId} dengan BIB baru: ${newBib}`);
+          
+          // Kirim email konfirmasi upgrade
+          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://ikadiy.uii.ac.id";
+          try {
+            const internalSecret = process.env.INTERNAL_API_SECRET || "";
+            await fetch(`${baseUrl}/api/send-email`, {
+              method: "POST",
+              headers: { 
+                "Content-Type": "application/json",
+                "x-internal-secret": internalSecret
+              },
+              body: JSON.stringify({
+                type: "payment_success_offline",
+                email: targetData.email,
+                nama: targetData.namaLengkap,
+                detail: {
+                  id: realOrderId,
+                  totalTagihan: (targetData.totalTagihan || 0) + (upgradeRequest.selisih || 0),
+                  nik: targetData.nik || "-",
+                  jarak: upgradeRequest.newKategori || "-",
+                  ukuranJersey: targetData.ukuranJersey || "-",
+                  namaBib: targetData.namaBib || "-",
+                  bib: newBib || "-",
+                  event: "Sembada Run",
+                  isUpgrade: true,
+                }
+              }),
+            });
+            console.log(`[Email] Sukses kirim notifikasi upgrade ke ${targetData.email}`);
+          } catch (emailErr) {
+            console.error(`[Email] Gagal kirim email upgrade:`, emailErr);
+          }
+        }
+        return NextResponse.json({ message: "Upgrade Webhook processed successfully" }, { status: 200 });
+      }
 
       if (eventType === "masterclass") {
         // --- UPDATE MASTERCLASS ---
@@ -293,3 +366,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

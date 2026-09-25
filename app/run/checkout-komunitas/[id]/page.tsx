@@ -222,13 +222,23 @@ export default function CheckoutKomunitasPage() {
                     {groupData.participants?.length} Orang
                   </span>
                 </div>
+                {groupData.adminFeeWeb ? (
+                  <div className="flex justify-between py-2 border-b border-slate-100 text-slate-500">
+                    <span className="text-xs font-bold uppercase">
+                      Admin Fee
+                    </span>
+                    <span className="text-sm font-bold uppercase">
+                      Rp {groupData.adminFeeWeb?.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="pt-4 mt-2">
                   <div className="bg-[#0B2239] rounded-xl p-4 flex items-center justify-between shadow-md">
                     <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
                       Total Bayar
                     </span>
                     <span className="text-xl font-black text-[#FCD116]">
-                      Rp {groupData.totalBiaya?.toLocaleString("id-ID")}
+                      Rp {(groupData.grandTotal || groupData.totalBiaya)?.toLocaleString("id-ID")}
                     </span>
                   </div>
                 </div>

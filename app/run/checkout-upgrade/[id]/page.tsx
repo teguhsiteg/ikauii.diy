@@ -68,10 +68,21 @@ export default function OfflineRunCheckoutPage() {
         if (pSnap.exists()) {
           const data = pSnap.data();
 
-          if (data.statusPembayaran === "Lunas") {
-            isLunas = true;
+          if (data.statusPembayaran !== "Lunas") {
             setIsRedirecting(true);
-            router.push(`/run/tiket/${id}`);
+            router.push(`/run/checkout/${id}`);
+            return;
+          }
+
+          if (!data.upgradeRequest) {
+            // Jika belum ada karena cache/delay, tampilkan error ringan
+            setModal({
+              isOpen: true,
+              type: "warning",
+              title: "Tunggu Sebentar",
+              message: "Data upgrade sedang disiapkan. Silakan muat ulang (refresh) halaman ini.",
+            });
+            setIsLoading(false);
             return;
           }
 
@@ -226,15 +237,13 @@ export default function OfflineRunCheckoutPage() {
   const handlePayMidtrans = async () => {
     setIsPaying(true);
     try {
-      const res = await fetch("/api/midtrans/get-token", {
+      const res = await fetch("/api/upgrade-category", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: participant.id,
-          nama: participant.namaLengkap,
-          email: participant.email,
-          noWA: participant.noWA,
-          type: "offline",
+          newPaketId: participant.upgradeRequest.newPaketId,
+          isManual: false,
         }),
       });
 
@@ -444,54 +453,36 @@ export default function OfflineRunCheckoutPage() {
                 
                 <div className="p-5 space-y-4">
                   <div className="space-y-3">
-                    {allParticipants.map((p, idx) => (
-                      <div key={idx} className="flex justify-between text-[12px] border-b border-slate-50 pb-2">
+                      <div className="flex justify-between text-[12px] border-b border-slate-50 pb-2">
                         <div className="space-y-1">
-                          <p className="font-bold text-[#0B2239]">Tiket {idx + 1}: {p.paketNama}</p>
-                          <p className="text-slate-500">{p.namaLengkap}</p>
-                          <p className="text-slate-400 text-[11px]">BIB: {p.namaBib} | Jersey: {p.ukuranJersey}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium text-[#0B2239]">
-                            Rp {p.hargaAsli?.toLocaleString("id-ID") || "-"}
-                          </p>
+                          <p className="font-bold text-[#0B2239]">Upgrade Ke: {participant.upgradeRequest?.newPaketNama}</p>
+                          <p className="text-slate-500">{participant.namaLengkap}</p>
+                          <p className="text-slate-400 text-[11px]">Kategori Lama: {participant.kategori} | Jersey: {participant.ukuranJersey}</p>
                         </div>
                       </div>
-                    ))}
                   </div>
 
                   <div className="space-y-2 pt-3 border-t border-slate-100 text-[12px]">
                     <div className="flex justify-between text-slate-600">
-                      <span>Subtotal Tiket</span>
-                      <span className="font-medium text-[#0B2239]">Rp {(participant.subtotalPesanan || participant.hargaAsli || participant.totalTagihan)?.toLocaleString("id-ID")}</span>
+                      <span>Harga Kategori Lama</span>
+                      <span className="font-medium text-[#0B2239]">Rp {participant.hargaAsli?.toLocaleString("id-ID")}</span>
                     </div>
 
-                    {participant.kodePromoDipakai && (
-                      <div className="flex justify-between text-emerald-600">
-                        <span>Promo ({participant.kodePromoDipakai})</span>
-                        <span className="font-medium">- Rp {participant.totalDiskon?.toLocaleString("id-ID")}</span>
-                      </div>
-                    )}
+                    <div className="flex justify-between text-slate-600">
+                      <span>Harga Kategori Baru</span>
+                      <span className="font-medium text-[#0B2239]">Rp {(participant.hargaAsli + participant.upgradeRequest?.selisih)?.toLocaleString("id-ID")}</span>
+                    </div>
 
-                    {participant.donasiCharity > 0 && (
-                      <div className="flex justify-between text-blue-600">
-                        <span>Donasi Charity</span>
-                        <span className="font-medium">Rp {participant.donasiCharity?.toLocaleString("id-ID")}</span>
-                      </div>
-                    )}
-
-                    {participant.adminFeeWeb > 0 && (
-                      <div className="flex justify-between text-slate-500">
-                        <span>Admin Fee</span>
-                        <span className="font-medium">Rp {participant.adminFeeWeb?.toLocaleString("id-ID")}</span>
-                      </div>
-                    )}
+                    <div className="flex justify-between text-blue-600">
+                      <span>Selisih Harga</span>
+                      <span className="font-medium">Rp {participant.upgradeRequest?.selisih?.toLocaleString("id-ID")}</span>
+                    </div>
                   </div>
 
                   <div className="pt-3 border-t border-slate-100 flex justify-between items-center">
-                    <span className="font-bold text-[13px] text-[#0B2239]">Grand Total</span>
+                    <span className="font-bold text-[13px] text-[#0B2239]">Total Bayar Upgrade</span>
                     <span className="font-bold text-[16px] text-[#1A73E8]">
-                      Rp {participant.totalTagihan?.toLocaleString("id-ID")}
+                      Rp {participant.upgradeRequest?.selisih?.toLocaleString("id-ID")}
                     </span>
                   </div>
                 </div>

@@ -9,6 +9,7 @@ const nextConfig = {
   // Externalize package server-only (firebase-admin → @google-cloud/firestore → @opentelemetry/api)
   // agar tidak di-bundle webpack. Mencegah bug dev-mode Next 15.0.x:
   // "Cannot find module './vendor-chunks/@opentelemetry.js'".
+  output: "standalone",
   serverExternalPackages: [
     "firebase-admin",
     "@google-cloud/firestore",
@@ -41,4 +42,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;

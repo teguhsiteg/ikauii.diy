@@ -120,7 +120,7 @@ function OfflineRunLandingPageContent() {
 
   const scrollToTiket = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    const elem = document.getElementById("kategori-tiket");
+    const elem = document.getElementById("kategori");
     if (elem) {
       elem.scrollIntoView({ behavior: "smooth" });
     }
@@ -560,7 +560,7 @@ function OfflineRunLandingPageContent() {
               <ScrollReveal delay={400}>
                 <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-4 w-full md:w-auto">
                   <a
-                    href="#kategori-tiket"
+                    href="#kategori"
                     onClick={scrollToTiket}
                     className="w-full sm:w-auto bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239] font-black px-8 py-4 md:px-10 md:py-5 rounded-full text-base md:text-lg transition-all shadow-2xl transform hover:-translate-y-1 flex items-center justify-center gap-2"
                   >
@@ -596,7 +596,7 @@ function OfflineRunLandingPageContent() {
       </section>
 
       {/* RACE PACK & FASILITAS SECTION */}
-      <section className="py-16 md:py-24 bg-white w-full relative">
+      <section id="racepack" className="py-16 md:py-24 bg-white w-full relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <ScrollReveal>
             <div className="text-center mb-12 md:mb-16">
@@ -745,7 +745,7 @@ function OfflineRunLandingPageContent() {
 
       {/* CATEGORIES SECTION */}
       <section
-        id="kategori-tiket"
+        id="kategori"
         className="py-16 md:py-24 bg-[#F8F9FA] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full scroll-mt-24 border-t border-slate-200"
       >
         <ScrollReveal>
@@ -788,7 +788,8 @@ function OfflineRunLandingPageContent() {
         </ScrollReveal>
 
         <div
-          className={`grid grid-cols-1 gap-6 mx-auto items-stretch ${
+          id="rute"
+          className={`grid grid-cols-1 gap-6 mx-auto items-stretch scroll-mt-24 ${
             settings?.offlinePackages?.length === 1
               ? "max-w-md md:grid-cols-1 lg:grid-cols-1"
               : settings?.offlinePackages?.length === 2
@@ -1049,10 +1050,10 @@ function OfflineRunLandingPageContent() {
 
             <div className="relative z-10 text-center md:text-left">
               <span className="text-[#FCD116] text-xs font-black uppercase tracking-widest mb-2 block">
-                Pendaftaran Kolektif
+                Pendaftaran Komunitas
               </span>
               <h3 className="text-2xl md:text-3xl font-black text-white mb-3 tracking-tight">
-                Daftar Sebagai Komunitas / Instansi
+                Daftar Sebagai Komunitas / Kelompok
               </h3>
               <p className="text-blue-100/80 text-sm md:text-base max-w-xl leading-relaxed">
                 Ingin mendaftar bareng teman-teman komunitas, kantor, atau kampus? Gunakan pendaftaran kolektif agar lebih mudah (satu kali bayar untuk semua anggota) langsung melalui web resmi kami.
@@ -1064,7 +1065,7 @@ function OfflineRunLandingPageContent() {
                 href="/run/komunitas"
                 className="group w-full md:w-auto flex items-center justify-center gap-3 bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239] font-black px-8 py-4 md:px-10 md:py-5 rounded-2xl transition-all shadow-xl hover:-translate-y-1"
               >
-                Daftar Kolektif Sekarang
+                Daftar Sekarang
                 <svg
                   className="w-5 h-5 transform group-hover:translate-x-1 transition-transform"
                   fill="none"

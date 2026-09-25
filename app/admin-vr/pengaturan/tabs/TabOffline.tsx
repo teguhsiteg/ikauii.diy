@@ -227,6 +227,31 @@ export default function TabOffline({
           </label>
         </div>
 
+        <div
+          className={`flex items-center justify-between p-4 border rounded-xl transition-all ${vrSettings.isUpgradeEnabled ? "bg-white border-[#1A73E8] shadow-[0_0_0_1px_rgba(26,115,232,0.1)]" : "bg-[#F8F9FA] border-slate-200"}`}
+        >
+          <div>
+            <p
+              className={`font-bold text-sm ${vrSettings.isUpgradeEnabled ? "text-[#1A73E8]" : "text-slate-700"}`}
+            >
+              Upgrade Kategori
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Jika aktif, peserta yang sudah Lunas dapat mengajukan upgrade kategori mandiri.
+            </p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer shrink-0">
+            <input
+              type="checkbox"
+              name="isUpgradeEnabled"
+              checked={vrSettings.isUpgradeEnabled || false}
+              onChange={handleSettingChange}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1A73E8]"></div>
+          </label>
+        </div>
+
         {vrSettings.isOfflineRunEnabled && (
           <div className="space-y-4 pt-4 border-t border-slate-100">
             
@@ -282,6 +307,23 @@ export default function TabOffline({
                       <option value="internal">Internal (Web sim-dpwikadiy)</option>
                       <option value="third_party">Pihak Ketiga (Platform Tiket Eksternal)</option>
                     </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                      Admin Fee / Biaya Layanan Web (Rp)
+                    </label>
+                    <p className="text-[10px] text-slate-500 mb-2">
+                      Biaya tambahan untuk platform yang dibebankan ke pendaftar (per tiket, bukan per checkout).
+                    </p>
+                    <input
+                      type="number"
+                      name="offlineAdminFee"
+                      value={vrSettings.offlineAdminFee || 0}
+                      onChange={handleSettingChange}
+                      placeholder="Contoh: 5000"
+                      className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-md focus:border-[#1A73E8] outline-none text-sm font-bold text-[#0B2239]"
+                    />
                   </div>
                   
                   {vrSettings.registrationPlatform === "third_party" && (

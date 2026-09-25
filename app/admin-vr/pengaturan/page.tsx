@@ -113,6 +113,7 @@ export default function PengaturanAdminPage() {
     offlineCertOpening: "Diberikan kepada:",
     offlineCertFooter: "",
     isCharityActive: false,
+    isUpgradeEnabled: false,
     charityTitle: "",
     charityDesc: "",
     urlCharityImg: "",

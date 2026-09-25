@@ -21,6 +21,9 @@ export default function ETicketPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [scale, setScale] = useState(1);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [selectedUpgradePaket, setSelectedUpgradePaket] = useState<any>(null);
+  const [isProcessingUpgrade, setIsProcessingUpgrade] = useState(false);
 
   const ticketRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -80,7 +83,23 @@ export default function ETicketPage() {
 
         const sRef = doc(db, "settings", "virtual_run");
         const sSnap = await getDoc(sRef);
-        if (sSnap.exists()) setSettings(sSnap.data());
+        if (sSnap.exists()) {
+          const sData = sSnap.data();
+          setSettings(sData);
+          
+          if (sData.metodePembayaran === "midtrans" && sData.midtransClientKey) {
+            const isSandbox = sData.midtransClientKey.startsWith("SB-");
+            const snapScriptUrl = isSandbox
+              ? "https://app.sandbox.midtrans.com/snap/snap.js"
+              : "https://app.midtrans.com/snap/snap.js";
+
+            const script = document.createElement("script");
+            script.src = snapScriptUrl;
+            script.setAttribute("data-client-key", sData.midtransClientKey);
+            script.async = true;
+            document.body.appendChild(script);
+          }
+        }
       } catch (error) {
         console.error("Error loading ticket:", error);
       } finally {
@@ -88,6 +107,10 @@ export default function ETicketPage() {
       }
     };
     fetchTicket();
+    return () => {
+      const existingScript = document.querySelector('script[src*="snap.js"]');
+      if (existingScript) document.body.removeChild(existingScript);
+    };
   }, [id, router]);
 
   useEffect(() => {
@@ -107,6 +130,30 @@ export default function ETicketPage() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [isLoading]);
+
+  const handleUpgrade = async () => {
+    if (!selectedUpgradePaket) return;
+    setIsProcessingUpgrade(true);
+    try {
+      const res = await fetch("/api/upgrade-category", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: participant.id,
+          newPaketId: selectedUpgradePaket.id,
+          initOnly: true, // Hanya simpan ke DB, redirect ke halaman checkout
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal memproses request");
+
+      setShowUpgradeModal(false);
+      window.location.href = `/run/checkout-upgrade/${participant.id}`;
+    } catch (err: any) {
+      toast.error(err.message);
+      setIsProcessingUpgrade(false);
+    }
+  };
 
   const handleDownloadTicket = async () => {
     if (!ticketRef.current) return;
@@ -281,21 +328,88 @@ export default function ETicketPage() {
           </div>
         </div>
 
-        <div className="flex justify-center gap-3 w-full max-w-sm shrink-0">
-          <button
-            onClick={handleDownloadTicket}
-            disabled={isDownloading}
-            className="flex-1 bg-[#0B2239] hover:bg-blue-950 text-white font-bold py-3.5 px-4 rounded-[8px] shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 text-[13px] transition-colors"
-          >
-            {isDownloading ? "Memproses..." : "Unduh E-Ticket"}
-          </button>
+        <div className="flex flex-col gap-3 w-full max-w-sm shrink-0">
+          <div className="flex gap-3 w-full">
+            <button
+              onClick={handleDownloadTicket}
+              disabled={isDownloading}
+              className="flex-1 bg-[#0B2239] hover:bg-blue-950 text-white font-bold py-3.5 px-4 rounded-[8px] shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 text-[13px] transition-colors"
+            >
+              {isDownloading ? "Memproses..." : "Unduh E-Ticket"}
+            </button>
+            {settings?.isUpgradeEnabled && (
+              <button
+                onClick={() => setShowUpgradeModal(true)}
+                className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-[#0B2239] font-bold py-3.5 px-4 rounded-[8px] flex items-center justify-center gap-2 text-[13px] transition-colors shadow-sm"
+              >
+                Upgrade Kategori
+              </button>
+            )}
+          </div>
           <Link
             href="/run"
-            className="flex-1 bg-white border border-slate-200 text-slate-700 font-bold py-3.5 px-4 rounded-[8px] flex items-center justify-center gap-2 text-[13px] transition-colors hover:bg-slate-50 shadow-sm"
+            className="w-full bg-white border border-slate-200 text-slate-700 font-bold py-3.5 px-4 rounded-[8px] flex items-center justify-center gap-2 text-[13px] transition-colors hover:bg-slate-50 shadow-sm text-center"
           >
             Selesai
           </Link>
         </div>
+
+        {showUpgradeModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-xl">
+              <h2 className="text-xl font-bold text-[#0B2239] mb-4">Upgrade Kategori</h2>
+              <div className="space-y-3 mb-6">
+                {settings?.offlinePackages?.map((pkg: any) => {
+                  const currentPrice = Number(participant.hargaAsli || 0);
+                  const newPrice = Number(pkg.harga || 0);
+                  const selisih = newPrice - currentPrice;
+                  const isEligible = selisih > 0;
+                  
+                  return (
+                    <div 
+                      key={pkg.id}
+                      onClick={() => isEligible && setSelectedUpgradePaket(pkg)}
+                      className={`p-4 border rounded-xl transition-all ${isEligible ? 'cursor-pointer' : 'cursor-not-allowed'} ${
+                        selectedUpgradePaket?.id === pkg.id ? 'border-blue-500 bg-blue-50' : 
+                        isEligible ? 'border-slate-200 hover:border-blue-300' : 'border-slate-100 opacity-50'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-bold text-[#0B2239]">{pkg.nama}</p>
+                          <p className="text-xs text-slate-500">{pkg.jarak}</p>
+                        </div>
+                        {isEligible ? (
+                          <div className="text-right">
+                            <p className="text-xs text-slate-500">Tambah</p>
+                            <p className="font-bold text-blue-600">+ Rp {selisih.toLocaleString('id-ID')}</p>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400">Tidak tersedia</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowUpgradeModal(false)}
+                  className="flex-1 py-3 px-4 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                >
+                  Batal
+                </button>
+                <button 
+                  onClick={handleUpgrade}
+                  disabled={!selectedUpgradePaket || isProcessingUpgrade}
+                  className="flex-1 py-3 px-4 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  {isProcessingUpgrade ? "Memproses..." : "Lanjut Bayar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

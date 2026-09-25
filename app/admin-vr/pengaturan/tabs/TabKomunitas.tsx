@@ -27,7 +27,7 @@ export default function TabKomunitas({
             <span className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
               <Users className="w-4 h-4" />
             </span>
-            Pendaftaran Komunitas / Kolektif
+            Pendaftaran Komunitas
           </h3>
           <p className="text-sm text-slate-500 mt-1 max-w-2xl">
             Aktifkan rute pendaftaran massal <span className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">/run/komunitas</span> dan tampilkan tombol banner komunitas di landing page utama.
@@ -53,7 +53,7 @@ export default function TabKomunitas({
               <span className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
                 <Gift className="w-4 h-4" />
               </span>
-              Ketentuan Tiket Gratis & Minimal Anggota (Custom Rules)
+              Ketentuan Tiket Gratis & Minimal Anggota
             </h3>
             <p className="text-xs text-slate-500 mt-1">
               Tambahkan aturan promo sesuka Anda: minimal tiket berapa, jumlah free berapa, dan untuk kategori apa.
@@ -73,7 +73,7 @@ export default function TabKomunitas({
         <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
-              Batas Minimal Peserta Kolektif (Validasi Excel)
+              Batas Minimal Peserta
             </label>
             <p className="text-[11px] text-slate-500">
               Jumlah minimal peserta yang wajib diunggah dalam satu file pendaftaran.
@@ -251,7 +251,7 @@ export default function TabKomunitas({
           <span className="w-8 h-8 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
             <DollarSign className="w-4 h-4" />
           </span>
-          Tarif Tiket Kolektif / Komunitas
+          Tarif Tiket Komunitas
         </h3>
         <p className="text-xs text-slate-500 mb-6">
           Tentukan harga dasar per peserta untuk masing-masing kategori jarak yang telah didaftarkan.
