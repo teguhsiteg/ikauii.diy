@@ -15,7 +15,22 @@ import {
 import { onAuthStateChanged } from "firebase/auth";
 import * as XLSX from "xlsx";
 import { sendEmailAction } from "@/app/actions/email";
-
+import {
+  Users2,
+  Users,
+  CheckCircle2,
+  Clock,
+  CircleDollarSign,
+  Search,
+  FileSpreadsheet,
+  Trash2,
+  Eye,
+  RotateCcw,
+  Check,
+  X,
+  ShieldCheck,
+  AlertTriangle
+} from "lucide-react";
 
 export default function AdminKomunitasPage() {
   const [groups, setGroups] = useState<any[]>([]);
@@ -117,16 +132,27 @@ export default function AdminKomunitasPage() {
   });
 
   const sortedData = [...filteredData].sort((a, b) => {
-    let valA = a[sortConfig.key] || "";
-    let valB = b[sortConfig.key] || "";
+    let valA = a[sortConfig.key];
+    let valB = b[sortConfig.key];
 
     if (sortConfig.key === "komunitas") {
       valA = a.kapten?.komunitas || "";
       valB = b.kapten?.komunitas || "";
-    }
-    if (sortConfig.key === "namaKapten") {
+    } else if (sortConfig.key === "namaKapten") {
       valA = a.kapten?.nama || "";
       valB = b.kapten?.nama || "";
+    } else if (sortConfig.key === "peserta") {
+      valA = (a.peserta || []).length;
+      valB = (b.peserta || []).length;
+      return sortConfig.direction === "asc" ? (valA as number) - (valB as number) : (valB as number) - (valA as number);
+    } else if (sortConfig.key === "totalBiaya") {
+      const numA = Number(valA) || 0;
+      const numB = Number(valB) || 0;
+      return sortConfig.direction === "asc" ? numA - numB : numB - numA;
+    } else if (sortConfig.key === "createdAt") {
+      const timeA = new Date(valA || 0).getTime() || 0;
+      const timeB = new Date(valB || 0).getTime() || 0;
+      return sortConfig.direction === "asc" ? timeA - timeB : timeB - timeA;
     }
 
     if (typeof valA === "string") valA = valA.toLowerCase();
@@ -220,6 +246,8 @@ export default function AdminKomunitasPage() {
             "No Darurat": p.waDarurat || "-",
             "Nama Darurat": p.kontakDarurat || "-",
             "Riwayat Penyakit": p.riwayatPenyakit || "-",
+            "Donasi / Charity (Rp)": g.charity || g.donasi || 0,
+            "Total Biaya Grup": g.totalBiaya || 0,
             "Status Racepack": g.isRacepackTaken ? "SUDAH DIAMBIL" : "BELUM",
             "Diserahkan Kepada": g.namaPengambilAtribut || "-",
             "Verifikasi RPC": g.metodeVerifikasiRPC || "-",
@@ -237,6 +265,8 @@ export default function AdminKomunitasPage() {
             ? new Date(g.waktuLunas).toLocaleString("id-ID")
             : "-",
           "Nama Peserta": "KOSONG",
+          "Donasi / Charity (Rp)": g.charity || g.donasi || 0,
+          "Total Biaya Grup": g.totalBiaya || 0,
           "Status Racepack": g.isRacepackTaken ? "SUDAH DIAMBIL" : "BELUM",
         });
       }
@@ -334,41 +364,39 @@ export default function AdminKomunitasPage() {
     setApproveProcess((prev) => ({
       ...prev,
       step: "processing",
-      message: "Menerbitkan Nomor BIB Komunitas (Format K-)...",
+      message: "Menerbitkan Nomor BIB Komunitas...",
     }));
 
     try {
       let finalParticipants: any[] = [];
 
       await runTransaction(db, async (transaction) => {
-        const counterDocRef = doc(db, "settings", "bib_counter");
+        const counterDocRef = doc(db, "pengaturan", "counter_bib_offline");
         const groupRef = doc(db, "pendaftaran_komunitas", g.id);
 
         const counterDoc = await transaction.get(counterDocRef);
-        
-        let countersToUpdate: Record<string, number> = {};
+        const cData = counterDoc.exists() ? counterDoc.data() : {};
+        let updatedCategoryCounters: Record<string, number> = {};
 
         finalParticipants = (g.participants || []).map((member: any) => {
           if (member.nomorBIB || member.bib) return member;
 
-          const jarakAngka = (member.kategori || member.jarak || "9").replace(/\D/g, "") || "9";
+          const jarakAngka = (member.kategori || member.jarak || "5").replace(/\D/g, "") || "5";
           const counterField = `lastBib${jarakAngka}K`;
 
-          if (countersToUpdate[counterField] === undefined) {
-            countersToUpdate[counterField] = counterDoc.exists()
-              ? counterDoc.data()[counterField] || 0
-              : 0;
+          if (updatedCategoryCounters[counterField] === undefined) {
+            updatedCategoryCounters[counterField] = Number(cData?.[counterField]) || 0;
           }
 
-          countersToUpdate[counterField]++;
-          const generatedBib = `K-${jarakAngka}${String(countersToUpdate[counterField]).padStart(3, "0")}`;
+          updatedCategoryCounters[counterField]++;
+          const generatedBib = `${jarakAngka}${String(updatedCategoryCounters[counterField]).padStart(3, "0")}`;
 
           return { ...member, nomorBIB: generatedBib, bib: generatedBib };
         });
 
         transaction.set(
           counterDocRef,
-          countersToUpdate,
+          updatedCategoryCounters,
           { merge: true },
         );
         transaction.update(groupRef, {
@@ -401,7 +429,7 @@ export default function AdminKomunitasPage() {
 
       await addDoc(collection(db, "vr_logs"), {
         type: "bayar",
-        action: `menyetujui pembayaran komunitas (Generate BIB K-)`,
+        action: `menyetujui pembayaran komunitas`,
         targetName: g.kapten?.komunitas,
         adminEmail: adminUser?.email || "Admin",
         timestamp: Date.now(),
@@ -418,7 +446,7 @@ export default function AdminKomunitasPage() {
       setApproveProcess((prev) => ({
         ...prev,
         step: "success",
-        message: `Selesai! BIB Komunitas berhasil diterbitkan dengan prefix 'K-' dan Email E-Ticket telah dikirim.`,
+        message: `Selesai! BIB Komunitas berhasil diterbitkan dan Email E-Ticket telah dikirim.`,
       }));
     } catch (e: any) {
       setApproveProcess((prev) => ({
@@ -889,389 +917,409 @@ export default function AdminKomunitasPage() {
         </div>
       )}
 
-      {/* --- BAGIAN ATAS: TITLE & EXPORT --- */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 shrink-0 px-1">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">
-            Pendaftar Offline Run
-          </h1>
-          <p className="text-sm text-slate-500 font-medium">
-            Verifikasi pembayaran dan manajemen logistik racepack
-          </p>
-        </div>
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          {selectedIds.length > 0 && (
-            <button
-              onClick={handleBulkDeleteClick}
-              className="bg-[#FCE8E6] text-[#D93025] hover:bg-red-100 px-4 py-2 rounded-xl text-sm font-bold border border-red-200 transition-colors w-full md:w-auto shadow-sm"
-            >
-              Hapus ({selectedIds.length})
-            </button>
-          )}
-
-          {/* TOMBOL BROADCAST REMINDER */}
-          <button
-            onClick={handleBroadcastReminderClick}
-            disabled={isBroadcasting}
-            className="px-4 py-2 bg-[#FCD116] text-[#0B2239] rounded-xl text-sm font-bold hover:bg-yellow-500 transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50"
-          >
-            {isBroadcasting ? (
-              <div className="w-4 h-4 border-2 border-[#0B2239] border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"
-                />
-              </svg>
-            )}
-            {isBroadcasting ? "Mengirim..." : "Kirim Reminder (RPC)"}
-          </button>
-
-          <button
-            onClick={handleExportExcel}
-            className="bg-[#0B2239] text-[#FCD116] px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-800 transition-colors w-full md:w-auto"
-          >
-            Ekspor Excel
-          </button>
-        </div>
-      </div>
-
       {/* --- STATISTIK --- */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 shrink-0">
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-500 mb-1">
-              Total Grup
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Total Komunitas / Grup
             </p>
-            <p className="text-2xl font-black text-slate-800">
+            <h3 className="text-2xl font-black text-slate-900">
               {groups.length}
-            </p>
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-1">Grup Terdaftar</p>
           </div>
-          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-              />
-            </svg>
+          <div className="w-12 h-12 rounded-xl bg-blue-50 text-[#1A73E8] flex items-center justify-center">
+            <Users2 className="w-6 h-6" />
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-500 mb-1">
-              Total Peserta
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Total Anggota Peserta
             </p>
-            <p className="text-2xl font-black text-slate-800">
+            <h3 className="text-2xl font-black text-[#1A73E8]">
               {totalPesertaGrup}
-            </p>
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-1">Akumulasi Seluruh Peserta</p>
           </div>
-          <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center">
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-              />
-            </svg>
+          <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <Users className="w-6 h-6" />
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-500 mb-1">
-              Grup Lunas
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Grup Lunas (Verified)
             </p>
-            <p className="text-2xl font-black text-emerald-600">{totalLunas}</p>
+            <h3 className="text-2xl font-black text-[#1E8E3E]">
+              {totalLunas}
+            </h3>
+            <p className="text-[11px] text-emerald-600 font-semibold mt-1">Pembayaran Valid</p>
           </div>
-          <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center">
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-[#1E8E3E] flex items-center justify-center">
+            <CheckCircle2 className="w-6 h-6" />
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-500 mb-1">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
               Dana Masuk
             </p>
-            <p className="text-xl font-black text-[#0B2239]">
+            <h3 className="text-xl font-black text-[#1A73E8] truncate">
               Rp {totalUangLunas.toLocaleString("id-ID")}
-            </p>
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-1">Total Pemasukan Komunitas</p>
           </div>
-          <div className="w-12 h-12 bg-yellow-50 text-yellow-600 rounded-full flex items-center justify-center">
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+          <div className="w-12 h-12 rounded-xl bg-blue-50 text-[#1A73E8] flex items-center justify-center">
+            <CircleDollarSign className="w-6 h-6" />
           </div>
         </div>
       </div>
 
-      {/* --- TOOLBAR --- */}
-      <div className="bg-white p-4 rounded-t-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-center shrink-0">
-        <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-          <div className="relative">
-            <svg
-              className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+      {/* --- FILTER TABS & TOOLBAR UTAMA --- */}
+      <div className="space-y-4 mb-4">
+        {/* ROW 1: TABS STATUS PEMBAYARAN & ACTION BUTTONS */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 w-full sm:w-auto">
+            {[
+              { id: "Semua", label: "Semua", count: groups.length },
+              { id: "Lunas", label: "Lunas", count: totalLunas },
+              { id: "Menunggu Verifikasi", label: "Menunggu Verifikasi", count: groups.filter((g) => g.statusPembayaran === "Menunggu Verifikasi").length },
+              { id: "Pending", label: "Pending", count: groups.filter((g) => g.statusPembayaran === "Pending" || !g.statusPembayaran).length },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setFilterStatus(tab.id);
+                  setCurrentPage(1);
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+                  filterStatus === tab.id
+                    ? "bg-[#1A73E8] text-white shadow-sm shadow-blue-500/20"
+                    : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
+                }`}
+              >
+                {tab.label}
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                    filterStatus === tab.id
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* ACTION BUTTONS ATAS */}
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+            {selectedIds.length > 0 && (
+              <button
+                onClick={handleBulkDeleteClick}
+                className="bg-rose-50 text-[#D93025] hover:bg-rose-100 px-3.5 py-2 rounded-xl text-xs font-bold border border-rose-200 transition-colors flex items-center gap-1.5 shadow-sm"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Hapus ({selectedIds.length})
+              </button>
+            )}
+
+            <button
+              onClick={handleBroadcastReminderClick}
+              disabled={isBroadcasting}
+              className="px-3.5 py-2 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold hover:bg-amber-100 transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-50"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
+              {isBroadcasting ? (
+                <div className="w-3.5 h-3.5 border-2 border-amber-800 border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <Clock className="w-3.5 h-3.5" />
+              )}
+              {isBroadcasting ? "Mengirim..." : "Reminder RPC"}
+            </button>
+
+            <button
+              onClick={handleExportExcel}
+              className="bg-slate-900 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-slate-800 transition-colors flex items-center gap-1.5"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              Ekspor Excel
+            </button>
+          </div>
+        </div>
+
+        {/* ROW 2: SEARCH & FILTER TOOLBAR */}
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 justify-between items-center">
+          <div className="relative w-full md:w-96">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Cari Kapten / Komunitas / ID Grup..."
+              placeholder="Cari Kapten, Komunitas, ID Grup, WA..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1A73E8] w-full md:w-72"
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1A73E8] w-full transition-all"
             />
           </div>
 
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#1A73E8]"
-          >
-            <option value="Semua">Semua Status</option>
-            <option value="Lunas">Lunas</option>
-            <option value="Menunggu Verifikasi">Menunggu Verifikasi</option>
-            <option value="Pending">Pending (Belum Upload)</option>
-          </select>
-
-          <select
-            value={itemsPerPage}
-            onChange={(e) =>
-              setItemsPerPage(
-                e.target.value === "All" ? "All" : Number(e.target.value),
-              )
-            }
-            className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#1A73E8]"
-          >
-            <option value={10}>10 Baris</option>
-            <option value={50}>50 Baris</option>
-            <option value={100}>100 Baris</option>
-            <option value="All">Semua</option>
-          </select>
-        </div>
-      </div>
-
-      {/* --- TABLE --- */}
-      <div className="bg-white border-x border-slate-100 flex-grow overflow-auto relative">
-        <table className="w-full text-left border-collapse text-sm whitespace-nowrap">
-          <thead className="bg-slate-50 text-slate-500 sticky top-0 z-10 shadow-sm">
-            <tr>
-              <th className="p-4 border-b border-slate-200 w-10">
-                <input
-                  type="checkbox"
-                  checked={
-                    selectedIds.length === paginatedData.length &&
-                    paginatedData.length > 0
-                  }
-                  onChange={toggleSelectAllVisible}
-                  className="rounded text-[#1A73E8] focus:ring-[#1A73E8] w-4 h-4"
-                />
-              </th>
-              <th
-                className="p-4 border-b border-slate-200 font-bold cursor-pointer hover:bg-slate-100"
-                onClick={() => handleSort("createdAt")}
-              >
-                Waktu Daftar
-              </th>
-              <th
-                className="p-4 border-b border-slate-200 font-bold cursor-pointer hover:bg-slate-100"
-                onClick={() => handleSort("komunitas")}
-              >
-                Komunitas
-              </th>
-              <th
-                className="p-4 border-b border-slate-200 font-bold cursor-pointer hover:bg-slate-100"
-                onClick={() => handleSort("namaKapten")}
-              >
-                Kapten (PJ)
-              </th>
-              <th className="p-4 border-b border-slate-200 font-bold">
-                Peserta
-              </th>
-              <th
-                className="p-4 border-b border-slate-200 font-bold cursor-pointer hover:bg-slate-100"
-                onClick={() => handleSort("totalBiaya")}
-              >
-                Tagihan
-              </th>
-              <th
-                className="p-4 border-b border-slate-200 font-bold cursor-pointer hover:bg-slate-100"
-                onClick={() => handleSort("statusPembayaran")}
-              >
-                Status
-              </th>
-              <th className="p-4 border-b border-slate-200 font-bold text-center">
-                Aksi
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {paginatedData.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="p-8 text-center text-slate-400">
-                  Tidak ada data pendaftaran komunitas yang sesuai.
-                </td>
-              </tr>
-            ) : (
-              paginatedData.map((g) => {
-                let displayDate = "-";
-                if (g.createdAt) {
-                  displayDate = new Date(
-                    g.createdAt.seconds
-                      ? g.createdAt.seconds * 1000
-                      : g.createdAt,
-                  ).toLocaleString("id-ID", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  });
-                }
-
-                return (
-                  <tr
-                    key={g.id}
-                    className="hover:bg-slate-50/50 transition-colors"
-                  >
-                    <td className="p-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.includes(g.id)}
-                        onChange={() => toggleSelect(g.id)}
-                        className="rounded text-[#1A73E8] focus:ring-[#1A73E8] w-4 h-4"
-                      />
-                    </td>
-                    <td className="p-4 text-slate-600">
-                      {displayDate}
-                      <div className="text-[10px] font-mono text-slate-400 mt-1">
-                        ID: {g.id}
-                      </div>
-                    </td>
-                    <td className="p-4 font-bold text-slate-800">
-                      {g.kapten?.komunitas || "-"}
-                    </td>
-                    <td className="p-4 text-slate-600">
-                      <div className="font-medium">{g.kapten?.nama}</div>
-                      <div className="text-xs text-slate-400">
-                        {g.kapten?.wa}
-                      </div>
-                    </td>
-                    <td className="p-4 font-medium text-slate-600">
-                      {g.participants?.length || 0} Orang
-                    </td>
-                    <td className="p-4 font-bold text-slate-800">
-                      Rp {g.totalBiaya?.toLocaleString("id-ID")}
-                    </td>
-                    <td className="p-4">
-                      <span
-                        className={`px-3 py-1 text-xs font-bold rounded-full ${g.statusPembayaran === "Lunas" ? "bg-emerald-100 text-emerald-700 border border-emerald-200" : g.statusPembayaran === "Menunggu Verifikasi" ? "bg-amber-100 text-amber-700 border border-amber-200" : "bg-slate-100 text-slate-600 border border-slate-200"}`}
-                      >
-                        {g.statusPembayaran || "Pending"}
-                      </span>
-                    </td>
-                    <td className="p-4 text-center">
-                      <button
-                        onClick={() => setDetailGroup(g)}
-                        className="px-4 py-1.5 bg-blue-50 text-[#1A73E8] hover:bg-blue-100 font-bold rounded-lg transition-colors text-xs"
-                      >
-                        Detail
-                      </button>
-                    </td>
-                  </tr>
+          <div className="flex flex-wrap gap-2.5 w-full md:w-auto justify-end">
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(
+                  e.target.value === "All" ? "All" : Number(e.target.value),
                 );
-              })
-            )}
-          </tbody>
-        </table>
+                setCurrentPage(1);
+              }}
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1A73E8]"
+            >
+              <option value={10}>10 Baris</option>
+              <option value={50}>50 Baris</option>
+              <option value={100}>100 Baris</option>
+              <option value="All">Semua</option>
+            </select>
+          </div>
+        </div>
       </div>
 
-      {/* --- PAGINATION --- */}
-      <div className="bg-white p-4 rounded-b-2xl shadow-sm border border-slate-100 flex justify-between items-center shrink-0">
-        <p className="text-sm text-slate-500">
-          Menampilkan baris{" "}
-          <span className="font-bold text-slate-800">
-            {(currentPage - 1) *
-              (itemsPerPage === "All" ? sortedData.length : itemsPerPage) +
-              1}
-          </span>{" "}
-          -{" "}
-          <span className="font-bold text-slate-800">
-            {Math.min(
-              currentPage *
-                (itemsPerPage === "All" ? sortedData.length : itemsPerPage),
-              sortedData.length,
-            )}
-          </span>{" "}
-          dari{" "}
-          <span className="font-bold text-slate-800">{sortedData.length}</span>{" "}
-          data
-        </p>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
-          >
-            Prev
-          </button>
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
-          >
-            Next
-          </button>
+      {/* --- TABLE CARD --- */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left whitespace-nowrap">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[11px] font-bold tracking-wider sticky top-0 z-10">
+              <tr>
+                <th className="px-4 py-3.5 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={
+                      selectedIds.length === paginatedData.length &&
+                      paginatedData.length > 0
+                    }
+                    onChange={toggleSelectAllVisible}
+                    className="w-4 h-4 cursor-pointer accent-[#1A73E8]"
+                  />
+                </th>
+                <th
+                  className="px-4 py-3.5 font-bold cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                  onClick={() => handleSort("createdAt")}
+                >
+                  <div className="flex items-center gap-1.5">
+                    Waktu Daftar
+                    {sortConfig.key === "createdAt" ? (
+                      <span className="text-[#1A73E8] font-bold text-xs">{sortConfig.direction === "asc" ? "▲" : "▼"}</span>
+                    ) : (
+                      <span className="text-slate-300 text-xs">↕</span>
+                    )}
+                  </div>
+                </th>
+                <th
+                  className="px-4 py-3.5 font-bold cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                  onClick={() => handleSort("komunitas")}
+                >
+                  <div className="flex items-center gap-1.5">
+                    Komunitas
+                    {sortConfig.key === "komunitas" ? (
+                      <span className="text-[#1A73E8] font-bold text-xs">{sortConfig.direction === "asc" ? "▲" : "▼"}</span>
+                    ) : (
+                      <span className="text-slate-300 text-xs">↕</span>
+                    )}
+                  </div>
+                </th>
+                <th
+                  className="px-4 py-3.5 font-bold cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                  onClick={() => handleSort("namaKapten")}
+                >
+                  <div className="flex items-center gap-1.5">
+                    Kapten (PJ)
+                    {sortConfig.key === "namaKapten" ? (
+                      <span className="text-[#1A73E8] font-bold text-xs">{sortConfig.direction === "asc" ? "▲" : "▼"}</span>
+                    ) : (
+                      <span className="text-slate-300 text-xs">↕</span>
+                    )}
+                  </div>
+                </th>
+                <th
+                  className="px-4 py-3.5 font-bold cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                  onClick={() => handleSort("peserta")}
+                >
+                  <div className="flex items-center gap-1.5">
+                    Peserta
+                    {sortConfig.key === "peserta" ? (
+                      <span className="text-[#1A73E8] font-bold text-xs">{sortConfig.direction === "asc" ? "▲" : "▼"}</span>
+                    ) : (
+                      <span className="text-slate-300 text-xs">↕</span>
+                    )}
+                  </div>
+                </th>
+                <th
+                  className="px-4 py-3.5 font-bold cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                  onClick={() => handleSort("totalBiaya")}
+                >
+                  <div className="flex items-center gap-1.5">
+                    Total Tagihan
+                    {sortConfig.key === "totalBiaya" ? (
+                      <span className="text-[#1A73E8] font-bold text-xs">{sortConfig.direction === "asc" ? "▲" : "▼"}</span>
+                    ) : (
+                      <span className="text-slate-300 text-xs">↕</span>
+                    )}
+                  </div>
+                </th>
+                <th
+                  className="px-4 py-3.5 font-bold cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                  onClick={() => handleSort("statusPembayaran")}
+                >
+                  <div className="flex items-center gap-1.5">
+                    Status Bayar
+                    {sortConfig.key === "statusPembayaran" ? (
+                      <span className="text-[#1A73E8] font-bold text-xs">{sortConfig.direction === "asc" ? "▲" : "▼"}</span>
+                    ) : (
+                      <span className="text-slate-300 text-xs">↕</span>
+                    )}
+                  </div>
+                </th>
+                <th className="px-4 py-3.5 font-bold text-right">
+                  Aksi
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-sm">
+              {paginatedData.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="p-16 text-center text-slate-400 font-medium text-sm bg-slate-50">
+                    <Search className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+                    {searchQuery
+                      ? `Tidak ditemukan komunitas dengan kata kunci "${searchQuery}".`
+                      : "Belum ada data pendaftaran komunitas."}
+                  </td>
+                </tr>
+              ) : (
+                paginatedData.map((g) => {
+                  let displayDate = "-";
+                  let displayTime = "-";
+                  if (g.createdAt) {
+                    const d = new Date(
+                      g.createdAt.seconds
+                        ? g.createdAt.seconds * 1000
+                        : g.createdAt,
+                    );
+                    displayDate = d.toLocaleDateString("id-ID", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    });
+                    displayTime = d.toLocaleTimeString("id-ID", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    });
+                  }
+
+                  const participantCount = g.participants?.length || g.peserta?.length || 0;
+
+                  return (
+                    <tr
+                      key={g.id}
+                      className={`hover:bg-slate-50 transition-colors ${selectedIds.includes(g.id) ? "bg-blue-50/50" : ""}`}
+                    >
+                      <td className="px-4 py-3.5 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(g.id)}
+                          onChange={() => toggleSelect(g.id)}
+                          className="w-4 h-4 cursor-pointer accent-[#1A73E8]"
+                        />
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <p className="font-medium text-slate-800">{displayDate}</p>
+                        <p className="text-xs text-slate-400 font-mono mt-0.5">{displayTime} • ID: {g.id}</p>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <p className="font-bold text-slate-900 text-sm">{g.kapten?.komunitas || "-"}</p>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <p className="font-bold text-slate-800 text-sm">{g.kapten?.nama || "-"}</p>
+                        <p className="text-xs text-slate-500 font-mono mt-0.5">{g.kapten?.wa || "-"} • {g.kapten?.email || "-"}</p>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className="inline-flex items-center gap-1 font-bold text-xs px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                          <Users className="w-3 h-3 text-slate-500" />
+                          {participantCount} Peserta
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <p className="font-bold text-slate-900 text-sm">
+                          Rp {g.totalBiaya?.toLocaleString("id-ID")}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 text-[10px] uppercase tracking-wider font-bold rounded-full border ${
+                            g.statusPembayaran === "Lunas"
+                              ? "bg-[#E6F4EA] text-[#1E8E3E] border-[#1E8E3E]/20"
+                              : g.statusPembayaran === "Menunggu Verifikasi"
+                              ? "bg-[#FEF7E0] text-[#B08D00] border-[#F9AB00]/20"
+                              : "bg-[#FCE8E6] text-[#D93025] border-[#D93025]/20"
+                          }`}
+                        >
+                          {g.statusPembayaran || "Pending"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-right">
+                        <button
+                          onClick={() => setDetailGroup(g)}
+                          className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 px-3.5 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all"
+                        >
+                          Detail Grup &rarr;
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
+
+        {/* --- FOOTER PAGINATION --- */}
+        {itemsPerPage !== "All" && (
+          <div className="bg-white border-t border-slate-200 p-3 flex justify-between items-center text-xs font-medium text-slate-500">
+            <div>
+              Menampilkan{" "}
+              <span className="font-bold text-slate-800">
+                {(currentPage - 1) * (itemsPerPage as number) + 1}
+              </span>{" "}
+              -{" "}
+              <span className="font-bold text-slate-800">
+                {Math.min(
+                  currentPage * (itemsPerPage as number),
+                  sortedData.length,
+                )}
+              </span>{" "}
+              dari <span className="font-bold text-slate-800">{sortedData.length}</span> data
+            </div>
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed font-medium transition-colors"
+              >
+                Sebelumnya
+              </button>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed font-medium transition-colors"
+              >
+                Selanjutnya
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* --- 🔥 MODAL DETAIL PENDAFTAR GRUP 🔥 --- */}

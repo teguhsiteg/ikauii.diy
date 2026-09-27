@@ -18,7 +18,27 @@ import {
 import { onAuthStateChanged } from "firebase/auth";
 import * as XLSX from "xlsx";
 import { sendEmailAction } from "@/app/actions/email";
-
+import {
+  Users,
+  CheckCircle2,
+  Clock,
+  CircleDollarSign,
+  Search,
+  Download,
+  Upload,
+  FileSpreadsheet,
+  Mail,
+  RotateCcw,
+  Trash2,
+  Edit3,
+  Eye,
+  AlertTriangle,
+  X,
+  ShieldCheck,
+  ChevronDown,
+  Bell,
+  ArrowUpDown
+} from "lucide-react";
 
 export default function AdminOfflineRunPage() {
   const [participants, setParticipants] = useState<any[]>([]);
@@ -35,6 +55,7 @@ export default function AdminOfflineRunPage() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [isBroadcasting, setIsBroadcasting] = useState(false);
+  const [isBroadcastingUpgrade, setIsBroadcastingUpgrade] = useState(false);
 
   // --- 🔥 STATE TOAST NOTIFICATION (BUKTI BARU) 🔥 ---
   const [showToast, setShowToast] = useState(false);
@@ -84,7 +105,7 @@ export default function AdminOfflineRunPage() {
   });
 
   // --- STATE PAGINATION, SORTING & LIMIT ---
-  const [sortConfig] = useState<{
+  const [sortConfig, setSortConfig] = useState<{
     key: string;
     direction: "asc" | "desc";
   }>({ key: "waktuDaftar", direction: "desc" });
@@ -103,7 +124,49 @@ export default function AdminOfflineRunPage() {
   useEffect(() => {
     const q = query(collection(db, "offline_participants"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      const data = snapshot.docs.map((doc) => {
+        const raw = doc.data() as any;
+        return {
+          id: doc.id,
+          ...raw,
+          // Normalisasi Nama
+          namaLengkap: raw.namaLengkap || raw.nama || raw.fullName || (raw.pemesan_namaDepan ? `${raw.pemesan_namaDepan} ${raw.pemesan_namaBelakang || ""}`.trim() : "") || "Peserta",
+          namaBib: raw.namaBib || raw.bibName || raw.namaLengkap || raw.nama || "-",
+          // Normalisasi BIB & Jarak
+          nomorBIB: raw.nomorBIB || raw.bib || raw.nomorBibLengkap || "",
+          jarak: raw.jarak || raw.kategori || raw.category || "5K",
+          kategori: raw.kategori || raw.jarak || "5K",
+          paketNama: raw.paketNama || raw.namaPaket || raw.paket || `${raw.jarak || "5K"} Offline`,
+          ukuranJersey: raw.ukuranJersey || raw.jerseySize || raw.sizeJersey || raw.ukuranKaos || "-",
+          // Normalisasi Identitas & Gender
+          nik: raw.nik || raw.noKTP || raw.nomorIdentitas || raw.idNumber || "-",
+          jenisIdentitas: raw.jenisIdentitas || raw.idType || "KTP",
+          jenisKelamin: raw.jenisKelamin || raw.gender || raw.kelamin || "-",
+          tanggalLahir: raw.tanggalLahir || raw.birthDate || raw.dob || "-",
+          golonganDarah: raw.golonganDarah || raw.golDarah || raw.bloodType || "-",
+          riwayatPenyakit: raw.riwayatPenyakit || raw.medicalHistory || raw.penyakit || "-",
+          // Normalisasi Kontak
+          noWA: raw.noWA || raw.noWhatsApp || raw.telepon || raw.phone || raw.whatsapp || "-",
+          email: raw.email || raw.eMail || raw.alamatEmail || "-",
+          // Normalisasi Kontak Darurat
+          namaDarurat: raw.namaDarurat || raw.emergencyContactName || raw.namaKontakDarurat || raw.kontakDarurat || "-",
+          hubunganDarurat: raw.hubunganDarurat || raw.emergencyContactRelation || raw.relasiDarurat || "-",
+          waDarurat: raw.waDarurat || raw.emergencyContactPhone || raw.noWADarurat || raw.teleponDarurat || raw.nomorDarurat || "-",
+          // Normalisasi Domisili & Komunitas
+          komunitas: raw.komunitas || raw.namaKomunitas || raw.community || raw.club || "-",
+          noPendaftaran: raw.noPendaftaran || raw.orderIdGroup || raw.registrationNumber || "-",
+          kota: raw.kota || raw.city || raw.kabupaten || "-",
+          provinsi: raw.provinsi || raw.province || "-",
+          alamat: raw.alamat || raw.address || raw.domisili || "",
+          negara: raw.negara || raw.nationality || raw.kewarganegaraan || "Indonesia",
+          // Normalisasi Finansial & Status
+          statusPembayaran: raw.statusPembayaran || raw.status || "Belum Bayar",
+          totalTagihan: Number(raw.totalTagihan ?? raw.totalBayar ?? raw.hargaAsli ?? raw.subtotalPesanan ?? 0),
+          hargaAsli: Number(raw.hargaAsli ?? raw.totalTagihan ?? 0),
+          buktiBayarUrl: raw.buktiBayarUrl || raw.buktiTransfer || raw.buktiPembayaran || raw.buktiTransferUrl || "",
+          waktuDaftar: raw.waktuDaftar || raw.createdAt || raw.tanggalDaftar || "",
+        };
+      });
       setParticipants(data);
       setIsLoading(false);
 
@@ -140,6 +203,8 @@ export default function AdminOfflineRunPage() {
       p.namaLengkap?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.nomorBIB?.includes(searchQuery) ||
       p.nik?.includes(searchQuery) ||
+      p.noWA?.includes(searchQuery) ||
+      p.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.namaBib?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.kodePromoDipakai?.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -147,8 +212,26 @@ export default function AdminOfflineRunPage() {
   });
 
   const sortedData = [...filteredData].sort((a, b) => {
-    let valA = a[sortConfig.key] || "";
-    let valB = b[sortConfig.key] || "";
+    let valA = a[sortConfig.key];
+    let valB = b[sortConfig.key];
+
+    if (sortConfig.key === "nomorBIB" || sortConfig.key === "bib") {
+      const numA = parseInt(String(valA || "").replace(/\D/g, ""), 10) || 0;
+      const numB = parseInt(String(valB || "").replace(/\D/g, ""), 10) || 0;
+      return sortConfig.direction === "asc" ? numA - numB : numB - numA;
+    }
+
+    if (sortConfig.key === "totalTagihan") {
+      const numA = Number(valA) || 0;
+      const numB = Number(valB) || 0;
+      return sortConfig.direction === "asc" ? numA - numB : numB - numA;
+    }
+
+    if (sortConfig.key === "waktuDaftar") {
+      const timeA = new Date(valA || 0).getTime() || 0;
+      const timeB = new Date(valB || 0).getTime() || 0;
+      return sortConfig.direction === "asc" ? timeA - timeB : timeB - timeA;
+    }
 
     if (typeof valA === "string") valA = valA.toLowerCase();
     if (typeof valB === "string") valB = valB.toLowerCase();
@@ -157,6 +240,14 @@ export default function AdminOfflineRunPage() {
     if (valA > valB) return sortConfig.direction === "asc" ? 1 : -1;
     return 0;
   });
+
+  const handleSort = (key: string) => {
+    let direction: "asc" | "desc" = "asc";
+    if (sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
+    }
+    setSortConfig({ key, direction });
+  };
 
   const totalPages =
     itemsPerPage === "All" ? 1 : Math.ceil(sortedData.length / itemsPerPage);
@@ -228,9 +319,13 @@ export default function AdminOfflineRunPage() {
         "Nama Kontak Darurat": p.namaDarurat || "-",
         "Hubungan Darurat": p.hubunganDarurat || "-",
         "No WA Darurat": p.waDarurat || "-",
+        "Kota / Domisili": p.kota || "-",
+        "Alamat": p.alamat || "-",
+        "No Pendaftaran (Mitra)": p.noPendaftaran || "-",
         "Harga Asli": p.hargaAsli || p.totalTagihan || 0,
         "Kode Promo Dipakai": p.kodePromoDipakai || "-",
         "Total Diskon": p.totalDiskon || 0,
+        "Donasi / Charity (Rp)": p.charity || p.donasi || 0,
         "Total Tagihan (Nett)": p.totalTagihan || 0,
         "Logistik (Racepack)": p.isRacepackTaken ? "SUDAH DIAMBIL" : "BELUM",
         "Diserahkan Oleh Admin": p.adminHandler || "-",
@@ -268,6 +363,8 @@ export default function AdminOfflineRunPage() {
       "Nama Kontak Darurat": "Jane Doe",
       "Hubungan Darurat": "Istri",
       "No WA Darurat": "08129876543",
+      "Kota": "Kab. Sleman",
+      "Alamat": "Jl. Kaliurang KM 14",
       "Total Tagihan (Nett)": 150000,
     }];
     const worksheet = XLSX.utils.json_to_sheet(templateData);
@@ -328,73 +425,275 @@ export default function AdminOfflineRunPage() {
     e.target.value = "";
   };
 
+  const handleResetBibCounter = () => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Reset Counter BIB Offline ke 0",
+      message:
+        "Apakah Anda yakin ingin me-reset seluruh urutan nomor BIB Offline ke 0? Penomoran BIB berikutnya untuk setiap kategori (3K: 3001, 5K: 5001, 10K: 10001, 21K: 21001) akan dimulai dari 001. Pastikan data pendaftar sebelumnya sudah disesuaikan.",
+      onConfirm: async () => {
+        try {
+          await setDoc(
+            doc(db, "pengaturan", "counter_bib_offline"),
+            {
+              lastBib3K: 0,
+              lastBib5K: 0,
+              lastBib10K: 0,
+              lastBib21K: 0,
+              lastBib: 0,
+            },
+            { merge: true }
+          );
+          setAlertModal({
+            isOpen: true,
+            type: "success",
+            title: "Berhasil Reset",
+            message: "Counter BIB Offline seluruh kategori berhasil di-reset ke 0. Penomoran berikutnya akan dimulai dari 001 (misal 3001, 5001, 10001).",
+          });
+        } catch (e: any) {
+          setAlertModal({
+            isOpen: true,
+            type: "error",
+            title: "Gagal Reset",
+            message: e.message || "Gagal mereset counter BIB.",
+          });
+        }
+      },
+    });
+  };
+
   const executeImport = async (useAutoBib: boolean) => {
-    setImportProcess((prev) => ({ ...prev, step: "processing", message: "Sedang memproses import (jangan tutup halaman ini)..." }));
+    setImportProcess((prev) => ({
+      ...prev,
+      step: "processing",
+      message: `Sedang menyiapkan ${prev.data.length} data peserta...`,
+    }));
     
     let successCount = 0;
     let failCount = 0;
-    let currentLastBib = 0;
     const counterDocRef = doc(db, "pengaturan", "counter_bib_offline");
+    let categoryCounters: Record<string, number> = {};
 
     try {
+      // Fetch packages to map paketId for proper quota decrement
+      let offlinePackages: any[] = [];
+      try {
+        const settingsSnap = await getDoc(doc(db, "settings", "virtual_run"));
+        if (settingsSnap.exists()) {
+          offlinePackages = settingsSnap.data()?.offlinePackages || [];
+        }
+      } catch (err) {
+        console.warn("Could not fetch offlinePackages:", err);
+      }
+
       if (useAutoBib) {
         const counterSnap = await getDoc(counterDocRef);
-        if (counterSnap.exists() && (counterSnap.data()?.lastBib || 0) >= 500) {
-           currentLastBib = counterSnap.data()?.lastBib || 0;
+        if (counterSnap.exists()) {
+          const cData = counterSnap.data() || {};
+          categoryCounters = {
+            lastBib3K: Number(cData.lastBib3K) || 0,
+            lastBib5K: Number(cData.lastBib5K) || 0,
+            lastBib10K: Number(cData.lastBib10K) || 0,
+            lastBib21K: Number(cData.lastBib21K) || 0,
+          };
         } else {
-           currentLastBib = 500;
+          categoryCounters = {
+            lastBib3K: 0,
+            lastBib5K: 0,
+            lastBib10K: 0,
+            lastBib21K: 0,
+          };
         }
       }
 
-      for (const row of importProcess.data as any[]) {
-        try {
-          let finalBib = row["Nomor BIB"] ? String(row["Nomor BIB"]) : "";
-          
-          if (useAutoBib) {
-             currentLastBib++;
-             const jarakAngka = String(row["Kategori Jarak"] || "5K").replace(/\D/g, "") || "9";
-             finalBib = `${jarakAngka}${String(currentLastBib).padStart(3, "0")}`;
-          }
+      const rows = importProcess.data as any[];
+      const totalRows = rows.length;
+      const preparedDocs: any[] = [];
 
-          const pData = {
-            waktuDaftar: new Date().toISOString(),
-            statusPembayaran: row["Status Pembayaran"] || "Lunas",
-            waktuLunas: row["Status Pembayaran"] === "Lunas" ? new Date().toISOString() : null,
-            nomorBIB: finalBib,
-            bib: finalBib,
-            jarak: String(row["Kategori Jarak"] || "5K"),
-            paketNama: String(row["Paket Dipilih"] || ""),
-            namaBib: String(row["Nama di BIB"] || ""),
-            namaLengkap: String(row["Nama Lengkap"] || ""),
-            kategoriPeserta: String(row["Kategori Peserta"] || "Umum"),
-            jenisIdentitas: String(row["Jenis Identitas"] || "KTP"),
-            nik: String(row["Nomor Identitas (NIK/NIS)"] || ""),
-            jenisKelamin: String(row["Jenis Kelamin"] || ""),
-            tanggalLahir: String(row["Tanggal Lahir"] || ""),
-            noWA: String(row["No. WhatsApp"] || ""),
-            email: String(row["Email"] || ""),
-            komunitas: String(row["Komunitas"] || ""),
-            ukuranJersey: String(row["Ukuran Jersey"] || ""),
-            golonganDarah: String(row["Golongan Darah"] || ""),
-            riwayatPenyakit: String(row["Riwayat Penyakit"] || ""),
-            namaDarurat: String(row["Nama Kontak Darurat"] || ""),
-            hubunganDarurat: String(row["Hubungan Darurat"] || ""),
-            waDarurat: String(row["No WA Darurat"] || ""),
-            totalTagihan: Number(row["Total Tagihan (Nett)"] || 0),
-            isImported: true
-          };
-          
-          await addDoc(collection(db, "offline_participants"), pData);
-          successCount++;
-        } catch (err) {
-          failCount++;
+      for (let i = 0; i < totalRows; i++) {
+        const row = rows[i];
+        const getVal = (keys: string[]): string => {
+          for (const k of keys) {
+            if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== "") {
+              return String(row[k]).trim();
+            }
+          }
+          return "";
+        };
+
+        // 1. Kategori & Jarak
+        const rawKat = getVal(["Kategori Jarak", "Grup Kategori", "Kategori", "Category", "Jarak"]);
+        let jarak = rawKat.toUpperCase();
+        if (jarak.includes("21K")) jarak = "21K";
+        else if (jarak.includes("10K")) jarak = "10K";
+        else if (jarak.includes("5K")) jarak = "5K";
+        else if (jarak.includes("3K")) jarak = "3K";
+        else jarak = rawKat || "5K";
+
+        const paketNama = getVal(["Paket Dipilih", "Kategori", "Paket", "Package"]) || `${jarak} - Mitra Lawana`;
+
+        // Match package for quota and categorization
+        const matchedPkg = offlinePackages.find((pkg: any) => 
+          (pkg.name && (pkg.name.toLowerCase() === paketNama.toLowerCase() || paketNama.toLowerCase().includes(pkg.name.toLowerCase()))) ||
+          (pkg.jarak && pkg.jarak.toLowerCase() === jarak.toLowerCase())
+        );
+        const paketId = matchedPkg?.id || "";
+
+        // 2. BIB
+        let rawBib = getVal(["Nomor BIB", "BIB Number", "BIB", "No BIB", "Nomor Dada"]);
+        let finalBib = rawBib;
+        
+        if (useAutoBib) {
+          const jarakAngka = jarak.replace(/\D/g, "") || "5";
+          const counterField = `lastBib${jarakAngka}K`;
+          if (categoryCounters[counterField] === undefined) {
+            categoryCounters[counterField] = 0;
+          }
+          categoryCounters[counterField]++;
+          finalBib = `${jarakAngka}${String(categoryCounters[counterField]).padStart(3, "0")}`;
         }
+
+        // 3. Nama & BIB Name
+        const namaLengkap = getVal(["Nama Lengkap", "Full Name", "Nama", "Name"]);
+        const namaBib = getVal(["Nama di BIB", "BIB Name", "Nama BIB", "Bib Name"]) || namaLengkap;
+
+        // 4. Identitas & Gender
+        const jenisIdentitas = getVal(["Jenis Identitas", "ID Number Type", "Identitas", "ID Type"]) || "KTP";
+        const nik = getVal(["Nomor Identitas (NIK/NIS)", "ID Number", "NIK", "No KTP", "Nomor Identitas"]);
+        
+        const rawGender = getVal(["Jenis Kelamin", "Gender", "Kelamin"]).toLowerCase();
+        let jenisKelamin = getVal(["Jenis Kelamin", "Gender"]);
+        if (rawGender === "female" || rawGender === "perempuan" || rawGender === "wanita" || rawGender === "p") {
+          jenisKelamin = "Perempuan";
+        } else if (rawGender === "male" || rawGender === "laki-laki" || rawGender === "pria" || rawGender === "l") {
+          jenisKelamin = "Laki-laki";
+        }
+
+        // 5. Kontak & Akun
+        let noWA = getVal(["No. WhatsApp", "Phone Number", "No WA", "WhatsApp", "Phone", "Telepon", "No HP"]);
+        if (noWA.startsWith("62")) noWA = "0" + noWA.slice(2);
+        else if (noWA.startsWith("+62")) noWA = "0" + noWA.slice(3);
+
+        const email = getVal(["Email", "E-mail", "Alamat Email"]);
+
+        // 6. Ukuran Jersey (Bersihkan jika ada format Unisex, contoh: 'XS (Unisex)' -> 'XS')
+        let ukuranJersey = getVal(["Ukuran Jersey", "Jersey Size", "Jersey", "Ukuran Kaos", "Size"]);
+        ukuranJersey = ukuranJersey.replace(/\(.*?\)/g, "").trim();
+
+        // 7. Kontak Darurat (Tetap ada & aman)
+        const namaDarurat = getVal(["Nama Kontak Darurat", "Emergency Contact Name", "Nama Darurat", "Kontak Darurat"]) || "-";
+        const hubunganDarurat = getVal(["Hubungan Darurat", "Emergency Contact Relation", "Hubungan", "Relasi Darurat"]) || "-";
+        const waDarurat = getVal(["No WA Darurat", "Emergency Contact Number", "No Telepon Darurat", "WA Darurat", "Emergency Phone"]) || "-";
+
+        // 8. Domisili & Info Tambahan
+        const noPendaftaran = getVal(["No Pendaftaran", "Registration Number", "No Registrasi", "Order ID"]);
+        const negara = getVal(["Nationality", "Negara", "Kewarganegaraan"]) || "Indonesia";
+        const kota = getVal(["City", "Kota", "Kabupaten", "Kabupaten/Kota"]);
+        const alamat = getVal(["Address", "Alamat", "Domisili"]);
+        const tanggalLahir = getVal(["Tanggal Lahir", "Birth Date", "DOB", "Tgl Lahir"]);
+        const golonganDarah = getVal(["Golongan Darah", "Blood Type", "Gol Darah"]) || "-";
+        const riwayatPenyakit = getVal(["Riwayat Penyakit", "Medical History", "Penyakit"]) || "-";
+        const komunitas = getVal(["Komunitas", "Community", "Club", "Klub"]) || "-";
+        const statusPembayaran = getVal(["Status Pembayaran", "Payment Status", "Status"]) || "Lunas";
+        const rawWaktu = getVal(["Tanggal Daftar", "Waktu Daftar", "Created At", "Registration Date"]);
+        let waktuDaftar = new Date().toISOString();
+        if (rawWaktu) {
+          const parsed = new Date(rawWaktu);
+          if (!isNaN(parsed.getTime())) waktuDaftar = parsed.toISOString();
+        }
+
+        const parsePrice = (keys: string[]): number => {
+          for (const k of keys) {
+            if (row[k] !== undefined && row[k] !== null) {
+              if (typeof row[k] === "number") return Math.round(row[k]);
+              const cleaned = String(row[k]).replace(/[^0-9]/g, "");
+              if (cleaned !== "") {
+                const num = parseInt(cleaned, 10);
+                if (!isNaN(num) && num > 0) return num;
+              }
+            }
+          }
+          return 0;
+        };
+
+        let totalTagihan = parsePrice(["Total Tagihan (Nett)", "Total Tagihan", "Nominal", "Harga", "Biaya Pendaftaran", "Total Bayar", "Price", "Amount", "Subtotal", "Paid Amount", "Total"]);
+        const charity = parsePrice(["Donasi / Charity (Rp)", "Donasi", "Charity", "Donasi / Charity", "Nominal Charity", "Donation"]);
+
+        // Jika totalTagihan di Excel 0 atau tidak ada kolom harga, gunakan harga paket default dari settings
+        if (totalTagihan === 0 && matchedPkg && matchedPkg.harga) {
+          totalTagihan = Number(matchedPkg.harga) || 0;
+        }
+
+        const pData: any = {
+          waktuDaftar,
+          statusPembayaran,
+          waktuLunas: statusPembayaran === "Lunas" ? new Date().toISOString() : null,
+          nomorBIB: finalBib,
+          bib: finalBib,
+          jarak,
+          paketNama,
+          namaBib,
+          namaLengkap,
+          kategoriPeserta: getVal(["Kategori Peserta"]) || "Umum",
+          jenisIdentitas,
+          nik,
+          jenisKelamin,
+          tanggalLahir,
+          noWA,
+          email,
+          komunitas,
+          ukuranJersey,
+          golonganDarah,
+          riwayatPenyakit,
+          namaDarurat,
+          hubunganDarurat,
+          waDarurat,
+          totalTagihan,
+          hargaAsli: totalTagihan,
+          subtotalPesanan: totalTagihan,
+          charity: charity > 0 ? charity : 0,
+          noPendaftaran,
+          negara,
+          kota,
+          alamat,
+          isImported: true
+        };
+
+        if (paketId) {
+          pData.paketId = paketId;
+        }
+
+        preparedDocs.push(pData);
+      }
+
+      // Batch write in chunks of 250 (Firestore limit is 500 operations per batch)
+      const BATCH_CHUNK_SIZE = 250;
+      const offlineCol = collection(db, "offline_participants");
+
+      for (let i = 0; i < preparedDocs.length; i += BATCH_CHUNK_SIZE) {
+        const chunk = preparedDocs.slice(i, i + BATCH_CHUNK_SIZE);
+        const batch = writeBatch(db);
+
+        for (const docData of chunk) {
+          const newDocRef = doc(offlineCol);
+          batch.set(newDocRef, docData);
+        }
+
+        setImportProcess((prev) => ({
+          ...prev,
+          message: `Menyimpan ke database (${Math.min(i + chunk.length, totalRows)} dari ${totalRows} data)...`,
+        }));
+
+        await batch.commit();
+        successCount += chunk.length;
       }
 
       if (useAutoBib && successCount > 0) {
-         try {
-           await setDoc(counterDocRef, { lastBib: currentLastBib }, { merge: true });
-         } catch(e) { console.error(e); }
+        try {
+          await setDoc(counterDocRef, categoryCounters, { merge: true });
+        } catch (e) {
+          console.error("Gagal update counter BIB:", e);
+        }
       }
 
       setImportProcess((prev) => ({
@@ -402,10 +701,11 @@ export default function AdminOfflineRunPage() {
         step: "success",
         successCount,
         failCount,
-        message: "Proses Selesai",
+        message: `Berhasil mengimpor ${successCount} data peserta ke sistem!`,
       }));
 
     } catch (e: any) {
+      console.error("Import error:", e);
       setImportProcess((prev) => ({
         ...prev,
         step: "error",
@@ -477,6 +777,69 @@ export default function AdminOfflineRunPage() {
     });
   };
 
+  // --- 🔥 FITUR BROADCAST INFO UPGRADE KATEGORI (EMAIL) 🔥 ---
+  const handleBroadcastUpgradeClick = () => {
+    const targetParticipants = participants.filter(
+      (p) => p.statusPembayaran === "Lunas",
+    );
+
+    if (targetParticipants.length === 0) {
+      setAlertModal({
+        isOpen: true,
+        type: "warning",
+        title: "Target Kosong",
+        message:
+          "Tidak ada Peserta Individu yang memenuhi syarat (Status Lunas).",
+      });
+      return;
+    }
+
+    setConfirmModal({
+      isOpen: true,
+      title: "Kirim Info Upgrade & E-Ticket",
+      message: `Anda akan mengirim Email Pemberitahuan E-Ticket & Penawaran Upgrade Kategori kepada ${targetParticipants.length} Peserta Lunas. Lanjutkan?`,
+      onConfirm: () => executeBroadcastUpgrade(targetParticipants),
+    });
+  };
+
+  const executeBroadcastUpgrade = async (targetParticipants: any[]) => {
+    setIsBroadcastingUpgrade(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const p of targetParticipants) {
+      try {
+        const res = await sendEmailAction({
+          type: "info_upgrade_kategori",
+          email: p.email,
+          nama: p.namaLengkap,
+          detail: {
+            id: p.id,
+            nik: p.nik || "-",
+            jarak: p.jarak || "-",
+            ukuranJersey: p.ukuranJersey || "-",
+            namaBib: p.namaBib || "-",
+            bib: p.nomorBIB || p.bib || "-",
+          },
+        });
+
+        if (res.success) successCount++;
+        else failCount++;
+      } catch {
+        failCount++;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 800));
+    }
+
+    setIsBroadcastingUpgrade(false);
+    setAlertModal({
+      isOpen: true,
+      type: "success",
+      title: "Pengiriman Selesai",
+      message: `Email Info Upgrade berhasil dikirim:\n• Berhasil: ${successCount} Peserta\n• Gagal: ${failCount} Peserta`,
+    });
+  };
+
   // --- 🔥 AKSI PEMBAYARAN BARU DENGAN POPUP PROGRESS 🔥 ---
   const triggerApprove = (p: any) => {
     setApproveProcess({
@@ -516,17 +879,17 @@ export default function AdminOfflineRunPage() {
           const counterDoc = await transaction.get(counterDocRef);
           const settingsDoc = await transaction.get(settingsRef);
 
-          let nomorUrutBaru = 500;
-          if (counterDoc.exists() && (counterDoc.data()?.lastBib || 0) >= 500) {
-            nomorUrutBaru = (counterDoc.data()?.lastBib || 0) + 1;
-          }
+          const jarakAngka = (newJarak || p.jarak || "5").replace(/\D/g, "") || "5";
+          const counterField = `lastBib${jarakAngka}K`;
+          const currentCounterVal = counterDoc.exists() ? (counterDoc.data()?.[counterField] || 0) : 0;
+          const nomorUrutBaru = currentCounterVal + 1;
+          const isUndangan = Boolean(p.isUndanganKhusus || p.tipePeserta === "Undangan Khusus");
 
-          const jarakAngka = (newJarak || "9").replace(/\D/g, "") || "9";
-          finalBib = `${jarakAngka}${String(nomorUrutBaru).padStart(3, "0")}`;
+          finalBib = `${isUndangan ? "U-" : ""}${jarakAngka}${String(nomorUrutBaru).padStart(3, "0")}`;
 
           transaction.set(
             counterDocRef,
-            { lastBib: nomorUrutBaru },
+            { [counterField]: nomorUrutBaru },
             { merge: true },
           );
           
@@ -757,8 +1120,26 @@ export default function AdminOfflineRunPage() {
         <div className="fixed inset-0 z-[600] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-8 text-center bg-blue-50">
-              <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 text-3xl shadow-sm bg-blue-100 text-[#1A73E8]">
-                {importProcess.step === "success" ? "✅" : importProcess.step === "error" ? "❌" : "📦"}
+              <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 shadow-sm ${
+                importProcess.step === "success"
+                  ? "bg-emerald-100 text-emerald-600"
+                  : importProcess.step === "error"
+                  ? "bg-rose-100 text-rose-600"
+                  : "bg-blue-100 text-[#1A73E8]"
+              }`}>
+                {importProcess.step === "success" ? (
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : importProcess.step === "error" ? (
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                )}
               </div>
               <h3 className="text-xl font-black text-slate-800">
                 {importProcess.step === "confirm" ? "Konfirmasi Import" : 
@@ -1068,325 +1449,482 @@ export default function AdminOfflineRunPage() {
         </div>
       )}
 
-      {/* --- BAGIAN ATAS: TITLE & EXPORT --- */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 shrink-0 px-1">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">
-            Pendaftar Offline Run
-          </h1>
-          <p className="text-sm text-slate-500 font-medium">
-            Verifikasi pembayaran dan manajemen logistik racepack
-          </p>
-        </div>
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          {selectedIds.length > 0 && (
-            <button
-              onClick={handleBulkDeleteClick}
-              className="bg-[#FCE8E6] text-[#D93025] hover:bg-red-100 px-4 py-2 rounded-xl text-sm font-bold border border-red-200 transition-colors w-full md:w-auto shadow-sm"
-            >
-              Hapus ({selectedIds.length})
-            </button>
-          )}
-          <button
-            onClick={handleBroadcastReminderClick}
-            disabled={isBroadcasting}
-            className="px-4 py-2 bg-[#FCD116] text-[#0B2239] rounded-xl text-sm font-bold hover:bg-yellow-500 transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50"
-          >
-            {isBroadcasting ? (
-              <div className="w-4 h-4 border-2 border-[#0B2239] border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"
-                />
-              </svg>
-            )}
-            {isBroadcasting ? "Mengirim..." : "Kirim Reminder (RPC)"}
-          </button>
-          <button
-            onClick={handleDownloadTemplate}
-            className="bg-emerald-100 text-emerald-700 px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-emerald-200 transition-colors w-full md:w-auto"
-          >
-            Unduh Template
-          </button>
-          <label className="cursor-pointer bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-emerald-700 transition-colors w-full md:w-auto flex items-center justify-center">
-            Import Excel
-            <input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleImportExcel} />
-          </label>
-          <button
-            onClick={handleExportExcel}
-            className="bg-[#0B2239] text-[#FCD116] px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-800 transition-colors w-full md:w-auto"
-          >
-            Ekspor Excel
-          </button>
-        </div>
-      </div>
-
       {/* --- STATISTIK --- */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 shrink-0">
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-          <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">
-            Total Peserta
-          </p>
-          <p className="text-2xl font-black text-slate-800">
-            {participants.length}
-          </p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Total Peserta
+            </p>
+            <h3 className="text-2xl font-black text-slate-900">
+              {participants.length}
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-1">Pendaftar Offline</p>
+          </div>
+          <div className="w-12 h-12 rounded-xl bg-blue-50 text-[#1A73E8] flex items-center justify-center">
+            <Users className="w-6 h-6" />
+          </div>
         </div>
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-          <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">
-            Lunas (Verified)
-          </p>
-          <p className="text-2xl font-black text-[#1E8E3E]">{totalLunas}</p>
+
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Lunas (Verified)
+            </p>
+            <h3 className="text-2xl font-black text-[#1E8E3E]">
+              {totalLunas}
+            </h3>
+            <p className="text-[11px] text-emerald-600 font-semibold mt-1">Pembayaran Valid</p>
+          </div>
+          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-[#1E8E3E] flex items-center justify-center">
+            <CheckCircle2 className="w-6 h-6" />
+          </div>
         </div>
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-          <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">
-            Pending / Tunggu
-          </p>
-          <p className="text-2xl font-black text-[#F9AB00]">{totalPending}</p>
+
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Pending / Tunggu
+            </p>
+            <h3 className="text-2xl font-black text-[#F9AB00]">
+              {totalPending}
+            </h3>
+            <p className="text-[11px] text-amber-600 font-semibold mt-1">Perlu Verifikasi</p>
+          </div>
+          <div className="w-12 h-12 rounded-xl bg-amber-50 text-[#F9AB00] flex items-center justify-center">
+            <Clock className="w-6 h-6" />
+          </div>
         </div>
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-          <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">
-            Dana Masuk
-          </p>
-          <p className="text-lg md:text-xl font-black text-[#1A73E8] truncate">
-            Rp {totalUangLunas.toLocaleString("id-ID")}
-          </p>
+
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Dana Masuk
+            </p>
+            <h3 className="text-xl font-black text-[#1A73E8] truncate">
+              Rp {totalUangLunas.toLocaleString("id-ID")}
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-1">Total Pemasukan Lunas</p>
+          </div>
+          <div className="w-12 h-12 rounded-xl bg-blue-50 text-[#1A73E8] flex items-center justify-center">
+            <CircleDollarSign className="w-6 h-6" />
+          </div>
         </div>
       </div>
 
-      {/* --- TOOLBAR: SEARCH & FILTER --- */}
-      <div className="bg-white p-4 rounded-t-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-3 justify-between items-center shrink-0">
-        <div className="relative w-full md:w-96">
-          <svg
-            className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-          <input
-            type="text"
-            placeholder="Cari nama, NIK, Kode Promo..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1A73E8] w-full"
-          />
-        </div>
-        <div className="flex flex-wrap gap-3 w-full md:w-auto justify-end">
-          <select
-            value={filterKategori}
-            onChange={(e) => setFilterKategori(e.target.value)}
-            className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#1A73E8] w-full md:w-auto"
-          >
-            <option value="Semua">Semua Kategori</option>
-            <option value="3K">3K</option>
-            <option value="5K">5K</option>
-            <option value="10K">10K</option>
-            <option value="21K">21K</option>
-          </select>
-          <select
-            value={filterGender}
-            onChange={(e) => setFilterGender(e.target.value)}
-            className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#1A73E8] w-full md:w-auto hidden lg:block"
-          >
-            <option value="Semua">Gender (Semua)</option>
-            <option value="Laki-laki">Laki-laki</option>
-            <option value="Perempuan">Perempuan</option>
-          </select>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#1A73E8] w-full md:w-auto"
-          >
-            <option value="Semua">Semua Status</option>
-            <option value="Lunas">Lunas</option>
-            <option value="Pending">Pending</option>
-          </select>
-          <select
-            value={itemsPerPage}
-            onChange={(e) =>
-              setItemsPerPage(
-                e.target.value === "All" ? "All" : Number(e.target.value),
-              )
-            }
-            className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#1A73E8] w-full md:w-auto hidden md:block"
-          >
-            <option value={10}>10 Baris</option>
-            <option value={50}>50 Baris</option>
-            <option value={100}>100 Baris</option>
-            <option value="All">Semua</option>
-          </select>
-        </div>
-      </div>
-
-      {/* --- TABLE --- */}
-      <div className="bg-white border-x border-slate-100 flex-grow overflow-auto relative">
-        <table className="w-full text-left border-collapse text-sm whitespace-nowrap">
-          <thead className="bg-slate-50 text-slate-500 sticky top-0 z-10 shadow-sm">
-            <tr>
-              <th className="p-4 border-b border-slate-200 w-10">
-                <input
-                  type="checkbox"
-                  checked={
-                    selectedIds.length === paginatedData.length &&
-                    paginatedData.length > 0
-                  }
-                  onChange={toggleSelectAllVisible}
-                  className="rounded text-[#1A73E8] focus:ring-[#1A73E8] w-4 h-4 cursor-pointer"
-                />
-              </th>
-              <th className="p-4 border-b border-slate-200 font-bold">BIB</th>
-              <th className="p-4 border-b border-slate-200 font-bold">
-                Nama Pendaftar
-              </th>
-              <th className="p-4 border-b border-slate-200 font-bold">
-                Kategori & Size
-              </th>
-              <th className="p-4 border-b border-slate-200 font-bold">
-                Tagihan
-              </th>
-              <th className="p-4 border-b border-slate-200 font-bold">
-                Status
-              </th>
-              <th className="p-4 border-b border-slate-200 font-bold text-right">
-                Aksi
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {paginatedData.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="p-8 text-center text-slate-400">
-                  Tidak ada data yang sesuai dengan pencarian atau filter.
-                </td>
-              </tr>
-            ) : (
-              paginatedData.map((p) => (
-                <tr
-                  key={p.id}
-                  className={`hover:bg-blue-50/50 transition-colors ${p.statusPembayaran === "Pending" ? "bg-amber-50/30" : ""}`}
+      {/* --- FILTER TABS & TOOLBAR UTAMA --- */}
+      <div className="space-y-4 mb-4">
+        {/* ROW 1: TABS STATUS PEMBAYARAN */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 w-full sm:w-auto">
+            {[
+              { id: "Semua", label: "Semua", count: participants.length },
+              { id: "Lunas", label: "Lunas", count: totalLunas },
+              { id: "Pending", label: "Pending (Upload)", count: totalPending },
+              { id: "Belum Bayar", label: "Belum Bayar", count: participants.filter((p) => p.statusPembayaran === "Belum Bayar").length },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setFilterStatus(tab.id);
+                  setCurrentPage(1);
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+                  filterStatus === tab.id
+                    ? "bg-[#1A73E8] text-white shadow-sm shadow-blue-500/20"
+                    : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
+                }`}
+              >
+                {tab.label}
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                    filterStatus === tab.id
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-100 text-slate-600"
+                  }`}
                 >
-                  <td className="p-4">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(p.id)}
-                      onChange={() => toggleSelect(p.id)}
-                      className="rounded text-[#1A73E8] focus:ring-[#1A73E8] w-4 h-4 cursor-pointer"
-                    />
-                  </td>
-                  <td className="p-4">
-                    <span className="font-mono font-black text-[#1A73E8] bg-blue-50 px-2 py-1 rounded">
-                      {p.nomorBIB || "-"}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <p className="font-bold text-slate-800">{p.namaLengkap}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{p.noWA}</p>
-                  </td>
-                  <td className="p-4">
-                    <p className="font-bold text-slate-700">
-                      {p.jarak}
-                      {p.upgradeRequest && (
-                        <span className="ml-2 px-1.5 py-0.5 text-[10px] bg-purple-100 text-purple-700 font-bold rounded">
-                          UPGRADE KE {p.upgradeRequest.newKategori}
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Jersey:{" "}
-                      <span className="font-bold">{p.ukuranJersey}</span>
-                    </p>
-                  </td>
-                  <td className="p-4">
-                    {p.upgradeRequest ? (
-                      <div>
-                        <p className="font-bold text-purple-700">Rp {((p.totalTagihan || 0) + (p.upgradeRequest.selisih || 0)).toLocaleString("id-ID")}</p>
-                        <p className="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Tagihan Baru</p>
-                      </div>
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* ACTION BUTTONS ATAS */}
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+            {selectedIds.length > 0 && (
+              <button
+                onClick={handleBulkDeleteClick}
+                className="bg-rose-50 text-[#D93025] hover:bg-rose-100 px-3.5 py-2 rounded-xl text-xs font-bold border border-rose-200 transition-colors flex items-center gap-1.5 shadow-sm"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Hapus ({selectedIds.length})
+              </button>
+            )}
+
+            <button
+              onClick={handleBroadcastUpgradeClick}
+              disabled={isBroadcastingUpgrade}
+              className="px-3.5 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+              title="Kirim email info E-Ticket & penawaran Upgrade Kategori kepada peserta lunas"
+            >
+              {isBroadcastingUpgrade ? (
+                <div className="w-3.5 h-3.5 border-2 border-indigo-700 border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <Mail className="w-3.5 h-3.5" />
+              )}
+              {isBroadcastingUpgrade ? "Mengirim..." : "Info Upgrade"}
+            </button>
+
+            <button
+              onClick={handleBroadcastReminderClick}
+              disabled={isBroadcasting}
+              className="px-3.5 py-2 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold hover:bg-amber-100 transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+            >
+              {isBroadcasting ? (
+                <div className="w-3.5 h-3.5 border-2 border-amber-800 border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <Bell className="w-3.5 h-3.5" />
+              )}
+              {isBroadcasting ? "Mengirim..." : "Reminder RPC"}
+            </button>
+
+            <button
+              onClick={handleResetBibCounter}
+              className="bg-rose-50 text-rose-700 border border-rose-200 px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-rose-100 transition-colors flex items-center gap-1.5"
+              title="Reset urutan nomor BIB Offline ke 0 (001)"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Reset BIB
+            </button>
+
+            <button
+              onClick={handleDownloadTemplate}
+              className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-emerald-100 transition-colors flex items-center gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Template
+            </button>
+
+            <label className="cursor-pointer bg-emerald-600 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-emerald-700 transition-colors flex items-center gap-1.5">
+              <Upload className="w-3.5 h-3.5" />
+              Import
+              <input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleImportExcel} />
+            </label>
+
+            <button
+              onClick={handleExportExcel}
+              className="bg-slate-900 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-slate-800 transition-colors flex items-center gap-1.5"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              Ekspor
+            </button>
+          </div>
+        </div>
+
+        {/* ROW 2: SEARCH & FILTER TOOLBAR */}
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 justify-between items-center">
+          <div className="relative w-full md:w-96">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari nama, BIB, NIK, No WA, Promo..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1A73E8] w-full transition-all"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2.5 w-full md:w-auto justify-end">
+            <select
+              value={filterKategori}
+              onChange={(e) => {
+                setFilterKategori(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1A73E8]"
+            >
+              <option value="Semua">Semua Kategori</option>
+              <option value="3K">3K</option>
+              <option value="5K">5K</option>
+              <option value="10K">10K</option>
+              <option value="21K">21K</option>
+            </select>
+
+            <select
+              value={filterGender}
+              onChange={(e) => {
+                setFilterGender(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1A73E8] hidden lg:block"
+            >
+              <option value="Semua">Semua Gender</option>
+              <option value="Laki-laki">Laki-laki</option>
+              <option value="Perempuan">Perempuan</option>
+            </select>
+
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(
+                  e.target.value === "All" ? "All" : Number(e.target.value),
+                );
+                setCurrentPage(1);
+              }}
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1A73E8]"
+            >
+              <option value={10}>10 Baris</option>
+              <option value={50}>50 Baris</option>
+              <option value={100}>100 Baris</option>
+              <option value="All">Semua</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* --- TABLE CARD --- */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left whitespace-nowrap">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[11px] font-bold tracking-wider sticky top-0 z-10">
+              <tr>
+                <th className="px-4 py-3.5 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={
+                      selectedIds.length === paginatedData.length &&
+                      paginatedData.length > 0
+                    }
+                    onChange={toggleSelectAllVisible}
+                    className="w-4 h-4 cursor-pointer accent-[#1A73E8]"
+                  />
+                </th>
+                <th
+                  className="px-4 py-3.5 font-bold cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                  onClick={() => handleSort("nomorBIB")}
+                >
+                  <div className="flex items-center gap-1.5">
+                    BIB
+                    {sortConfig.key === "nomorBIB" ? (
+                      <span className="text-[#1A73E8] font-bold text-xs">{sortConfig.direction === "asc" ? "▲" : "▼"}</span>
                     ) : (
-                      <p className="font-bold text-slate-800">
-                        Rp {p.totalTagihan?.toLocaleString("id-ID")}
-                        {p.kodePromoDipakai && (
-                          <span className="block mt-1 text-[9px] bg-emerald-100 text-emerald-700 px-1 py-0.5 rounded w-max uppercase tracking-wider font-bold">
-                            PROMO {p.kodePromoDipakai}
-                          </span>
-                        )}
-                      </p>
+                      <span className="text-slate-300 text-xs">↕</span>
                     )}
-                  </td>
-                  <td className="p-4">
-                    <span
-                      className={`px-3 py-1 text-[10px] uppercase tracking-wider font-bold rounded-full border ${p.statusPembayaran === "Lunas" ? "bg-[#E6F4EA] text-[#1E8E3E] border-[#1E8E3E]/20" : "bg-[#FEF7E0] text-[#B08D00] border-[#F9AB00]/20"}`}
-                    >
-                      {p.statusPembayaran}
-                    </span>
-                  </td>
-                  <td className="p-4 text-right">
-                    <button
-                      onClick={() => setDetailParticipant(p)}
-                      className="bg-white border border-slate-200 text-slate-600 px-4 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-slate-50 transition-colors"
-                    >
-                      Detail
-                    </button>
+                  </div>
+                </th>
+                <th
+                  className="px-4 py-3.5 font-bold cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                  onClick={() => handleSort("namaLengkap")}
+                >
+                  <div className="flex items-center gap-1.5">
+                    Peserta
+                    {sortConfig.key === "namaLengkap" ? (
+                      <span className="text-[#1A73E8] font-bold text-xs">{sortConfig.direction === "asc" ? "▲" : "▼"}</span>
+                    ) : (
+                      <span className="text-slate-300 text-xs">↕</span>
+                    )}
+                  </div>
+                </th>
+                <th
+                  className="px-4 py-3.5 font-bold cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                  onClick={() => handleSort("jarak")}
+                >
+                  <div className="flex items-center gap-1.5">
+                    Kategori & Jersey
+                    {sortConfig.key === "jarak" ? (
+                      <span className="text-[#1A73E8] font-bold text-xs">{sortConfig.direction === "asc" ? "▲" : "▼"}</span>
+                    ) : (
+                      <span className="text-slate-300 text-xs">↕</span>
+                    )}
+                  </div>
+                </th>
+                <th
+                  className="px-4 py-3.5 font-bold cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                  onClick={() => handleSort("totalTagihan")}
+                >
+                  <div className="flex items-center gap-1.5">
+                    Tagihan
+                    {sortConfig.key === "totalTagihan" ? (
+                      <span className="text-[#1A73E8] font-bold text-xs">{sortConfig.direction === "asc" ? "▲" : "▼"}</span>
+                    ) : (
+                      <span className="text-slate-300 text-xs">↕</span>
+                    )}
+                  </div>
+                </th>
+                <th
+                  className="px-4 py-3.5 font-bold cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                  onClick={() => handleSort("statusPembayaran")}
+                >
+                  <div className="flex items-center gap-1.5">
+                    Status Bayar
+                    {sortConfig.key === "statusPembayaran" ? (
+                      <span className="text-[#1A73E8] font-bold text-xs">{sortConfig.direction === "asc" ? "▲" : "▼"}</span>
+                    ) : (
+                      <span className="text-slate-300 text-xs">↕</span>
+                    )}
+                  </div>
+                </th>
+                <th className="px-4 py-3.5 font-bold text-right">
+                  Aksi
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-sm">
+              {paginatedData.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-16 text-center text-slate-400 font-medium text-sm bg-slate-50">
+                    <Search className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+                    {searchQuery
+                      ? `Tidak ditemukan peserta dengan kata kunci "${searchQuery}".`
+                      : "Belum ada data peserta yang sesuai."}
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                paginatedData.map((p) => (
+                  <tr
+                    key={p.id}
+                    className={`hover:bg-slate-50 transition-colors ${selectedIds.includes(p.id) ? "bg-blue-50/50" : ""}`}
+                  >
+                    <td className="px-4 py-3.5 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(p.id)}
+                        onChange={() => toggleSelect(p.id)}
+                        className="w-4 h-4 cursor-pointer accent-[#1A73E8]"
+                      />
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <span className="font-mono font-black text-xs text-[#1A73E8] bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-md">
+                        {p.nomorBIB || "-"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <p className="font-bold text-slate-900 text-sm">{p.namaLengkap}</p>
+                      <p className="text-xs text-slate-500 font-mono mt-0.5">{p.noWA} • {p.email}</p>
+                      {p.komunitas && p.komunitas !== "-" && (
+                        <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                          {p.komunitas}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-black px-2 py-0.5 rounded bg-slate-800 text-white">
+                          {p.jarak}
+                        </span>
+                        {p.upgradeRequest && (
+                          <span className="text-[10px] bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded border border-purple-200">
+                            Upgrade: {p.upgradeRequest.newKategori}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Jersey: <span className="font-bold text-slate-700">{p.ukuranJersey || "-"}</span>
+                      </p>
+                    </td>
+                    <td className="px-4 py-3.5">
+                      {p.upgradeRequest ? (
+                        <div>
+                          <p className="font-bold text-purple-700 text-sm">
+                            Rp {((p.totalTagihan || 0) + (p.upgradeRequest.selisih || 0)).toLocaleString("id-ID")}
+                          </p>
+                          <p className="text-[9px] text-purple-500 uppercase tracking-wider font-bold">Tagihan Upgrade</p>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="font-bold text-slate-800 text-sm">
+                            Rp {p.totalTagihan?.toLocaleString("id-ID")}
+                          </p>
+                          <div className="flex flex-col items-start gap-1 mt-1">
+                            {Boolean(p.isUndanganKhusus || p.tipePeserta === "Undangan Khusus") && (
+                              <span className="text-[9px] bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                                Undangan Khusus
+                              </span>
+                            )}
+                            {p.kodePromoDipakai && (
+                              <span className="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded font-bold uppercase">
+                                Promo: {p.kodePromoDipakai}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 text-[10px] uppercase tracking-wider font-bold rounded-full border ${
+                          p.statusPembayaran === "Lunas"
+                            ? "bg-[#E6F4EA] text-[#1E8E3E] border-[#1E8E3E]/20"
+                            : p.statusPembayaran === "Pending"
+                            ? "bg-[#FEF7E0] text-[#B08D00] border-[#F9AB00]/20"
+                            : "bg-[#FCE8E6] text-[#D93025] border-[#D93025]/20"
+                        }`}
+                      >
+                        {p.statusPembayaran}
+                      </span>
 
-      {/* --- PAGINATION BAWAH --- */}
-      <div className="bg-white p-4 rounded-b-2xl shadow-sm border border-slate-100 flex justify-between items-center shrink-0">
-        <p className="text-sm text-slate-500 hidden md:block">
-          Menampilkan baris{" "}
-          <span className="font-bold text-slate-800">
-            {(currentPage - 1) *
-              (itemsPerPage === "All" ? sortedData.length : itemsPerPage) +
-              1}
-          </span>{" "}
-          -{" "}
-          <span className="font-bold text-slate-800">
-            {Math.min(
-              currentPage *
-                (itemsPerPage === "All" ? sortedData.length : itemsPerPage),
-              sortedData.length,
-            )}
-          </span>{" "}
-          dari{" "}
-          <span className="font-bold text-slate-800">{sortedData.length}</span>{" "}
-          data
-        </p>
-        <div className="flex gap-2 w-full md:w-auto justify-between md:justify-end">
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
-          >
-            Sebelumnya
-          </button>
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
-          >
-            Selanjutnya
-          </button>
+                      {p.buktiBayarUrl && (
+                        <button
+                          onClick={() => setSelectedImage(p.buktiBayarUrl)}
+                          className="mt-1.5 text-[10px] font-bold text-[#1A73E8] bg-[#E8F0FE] hover:bg-[#D2E3FC] px-2 py-1 rounded transition-colors border border-blue-100 flex items-center gap-1"
+                        >
+                          <Eye className="w-3 h-3" /> Cek Struk
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-4 py-3.5 text-right">
+                      <button
+                        onClick={() => setDetailParticipant(p)}
+                        className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 px-3.5 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all"
+                      >
+                        Detail &rarr;
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
+
+        {/* --- FOOTER PAGINATION --- */}
+        {itemsPerPage !== "All" && (
+          <div className="bg-white border-t border-slate-200 p-3 flex justify-between items-center text-xs font-medium text-slate-500">
+            <div>
+              Menampilkan{" "}
+              <span className="font-bold text-slate-800">
+                {(currentPage - 1) * (itemsPerPage as number) + 1}
+              </span>{" "}
+              -{" "}
+              <span className="font-bold text-slate-800">
+                {Math.min(
+                  currentPage * (itemsPerPage as number),
+                  sortedData.length,
+                )}
+              </span>{" "}
+              dari <span className="font-bold text-slate-800">{sortedData.length}</span> data
+            </div>
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed font-medium transition-colors"
+              >
+                Sebelumnya
+              </button>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed font-medium transition-colors"
+              >
+                Selanjutnya
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* --- 🔥 MODAL DETAIL PESERTA 🔥 --- */}
@@ -1402,12 +1940,17 @@ export default function AdminOfflineRunPage() {
                   ID: {detailParticipant.id}
                 </p>
               </div>
-              <div className="flex flex-col items-end">
+              <div className="flex flex-col items-end gap-1">
                 <span
                   className={`px-3 py-1 text-[10px] uppercase tracking-wider font-black rounded-full border ${detailParticipant.statusPembayaran === "Lunas" ? "bg-[#E6F4EA] text-[#1E8E3E] border-[#1E8E3E]/20" : "bg-[#FEF7E0] text-[#B08D00] border-[#F9AB00]/20"}`}
                 >
                   {detailParticipant.statusPembayaran}
                 </span>
+                {Boolean(detailParticipant.isUndanganKhusus || detailParticipant.tipePeserta === "Undangan Khusus") && (
+                  <span className="px-2.5 py-0.5 text-[9px] uppercase tracking-wider font-bold rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                    Undangan Khusus
+                  </span>
+                )}
               </div>
             </div>
 
@@ -1501,6 +2044,86 @@ export default function AdminOfflineRunPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* --- KONTAK DARURAT --- */}
+                <div>
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 mb-3">
+                    Kontak Darurat
+                  </h3>
+                  <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm bg-rose-50/50 p-4 rounded-2xl border border-rose-100/60">
+                    <div>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase">
+                        Nama Kontak Darurat
+                      </p>
+                      <p className="font-semibold text-slate-800">
+                        {detailParticipant.namaDarurat || "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase">
+                        Hubungan
+                      </p>
+                      <p className="font-semibold text-slate-800">
+                        {detailParticipant.hubunganDarurat || "-"}
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-[10px] text-slate-500 font-bold uppercase">
+                        No. Telepon / WA Darurat
+                      </p>
+                      <p className="font-bold text-rose-600 font-mono">
+                        {detailParticipant.waDarurat || "-"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* --- DOMISILI & REGISTRASI --- */}
+                {(detailParticipant.alamat || detailParticipant.kota || detailParticipant.noPendaftaran) && (
+                  <div>
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 mb-3">
+                      Domisili & Registrasi
+                    </h3>
+                    <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                      {detailParticipant.noPendaftaran && (
+                        <div className="col-span-2">
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">
+                            No. Pendaftaran (Mitra)
+                          </p>
+                          <p className="font-mono font-bold text-slate-700">
+                            {detailParticipant.noPendaftaran}
+                          </p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase">
+                          Kota / Kabupaten
+                        </p>
+                        <p className="font-medium text-slate-800">
+                          {detailParticipant.kota || "-"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase">
+                          Kewarganegaraan
+                        </p>
+                        <p className="font-medium text-slate-800">
+                          {detailParticipant.negara || detailParticipant.kewarganegaraan || "Indonesia"}
+                        </p>
+                      </div>
+                      {detailParticipant.alamat && (
+                        <div className="col-span-2">
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">
+                            Alamat Lengkap
+                          </p>
+                          <p className="font-medium text-slate-800">
+                            {detailParticipant.alamat}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {detailParticipant.isRacepackTaken && (
                   <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4">

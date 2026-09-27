@@ -276,22 +276,27 @@ export default function ETicketPage() {
               {/* PARTICIPANT INFO */}
               <div style={{ padding: "20px 30px", flex: 1, zIndex: 10 }}>
                 <div style={{ backgroundColor: "rgba(255, 255, 255, 0.05)", borderRadius: "16px", padding: "20px", border: "1px solid rgba(255,255,255,0.1)" }}>
+                  {Boolean(participant.isUndanganKhusus || participant.tipePeserta === "Undangan Khusus") && (
+                    <div style={{ display: "inline-block", backgroundColor: "rgba(252, 209, 22, 0.15)", border: "1px solid #FCD116", color: "#FCD116", fontSize: "10px", fontWeight: 800, padding: "3px 8px", borderRadius: "4px", textTransform: "uppercase", letterSpacing: "1.2px", marginBottom: "10px" }}>
+                      UNDANGAN KHUSUS {participant.kodePromoDipakai ? `• ${participant.kodePromoDipakai}` : ""}
+                    </div>
+                  )}
                   <p style={{ margin: 0, fontSize: "11px", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px" }}>
                     Nama Pelari
                   </p>
-                  <h2 style={{ margin: "4px 0 24px", fontSize: "26px", color: "#ffffff", fontWeight: 900, textTransform: "uppercase", lineHeight: "1.2" }}>
+                  <h2 style={{ margin: "4px 0 20px", fontSize: "24px", color: "#ffffff", fontWeight: 900, textTransform: "uppercase", lineHeight: "1.2" }}>
                     {participant.namaLengkap}
                   </h2>
                   
                   <div style={{ display: "flex", gap: "20px" }}>
                     <div style={{ flex: 1 }}>
                       <p style={{ margin: 0, fontSize: "10px", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px" }}>Kategori</p>
-                      <p style={{ margin: "4px 0 0", fontSize: "22px", color: "#FCD116", fontWeight: 900 }}>{participant.jarak}</p>
+                      <p style={{ margin: "4px 0 0", fontSize: "20px", color: "#FCD116", fontWeight: 900 }}>{participant.jarak}</p>
                     </div>
                     <div style={{ width: "1px", backgroundColor: "rgba(255,255,255,0.1)" }}></div>
                     <div style={{ flex: 1 }}>
                       <p style={{ margin: 0, fontSize: "10px", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px" }}>Jersey</p>
-                      <p style={{ margin: "4px 0 0", fontSize: "22px", color: "#ffffff", fontWeight: 900 }}>{participant.ukuranJersey}</p>
+                      <p style={{ margin: "4px 0 0", fontSize: "20px", color: "#ffffff", fontWeight: 900 }}>{participant.ukuranJersey}</p>
                     </div>
                   </div>
                 </div>
@@ -360,7 +365,14 @@ export default function ETicketPage() {
               <h2 className="text-xl font-bold text-[#0B2239] mb-4">Upgrade Kategori</h2>
               <div className="space-y-3 mb-6">
                 {settings?.offlinePackages?.map((pkg: any) => {
-                  const currentPrice = Number(participant.hargaAsli || 0);
+                  let currentPrice = Number(participant.hargaAsli || participant.totalTagihan || 0);
+                  if (currentPrice === 0) {
+                    const matchedOldPkg = settings?.offlinePackages?.find((p: any) => 
+                      (p.id && p.id === participant.paketId) ||
+                      (p.jarak && participant.jarak && p.jarak.toUpperCase() === participant.jarak.toUpperCase())
+                    );
+                    if (matchedOldPkg) currentPrice = Number(matchedOldPkg.harga || 0);
+                  }
                   const newPrice = Number(pkg.harga || 0);
                   const selisih = newPrice - currentPrice;
                   const isEligible = selisih > 0;

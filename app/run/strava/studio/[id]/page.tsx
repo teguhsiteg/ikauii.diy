@@ -56,14 +56,8 @@ export default function StravaStudioPage() {
   const id = params.id as string;
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // =========================================================================
-  // 🔥 SETTING ANTI-CHEAT (PENGATURAN TANGGAL EVENT) 🔥
-  // =========================================================================
-  // ⚠️ GANTI TANGGAL INI SESUAI TANGGAL ASLI EVENT UII SEHAT 2026 (Format: YYYY-MM-DD)
-  // Jika event hanya 1 hari, isi START dan END dengan tanggal yang sama.
-  const EVENT_START_DATE = "2026-08-16";
-  const EVENT_END_DATE = "2026-08-16";
-  // =========================================================================
+  const [settings, setSettings] = useState<any>(null);
+  const [eventDate, setEventDate] = useState<string>("");
 
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -96,24 +90,28 @@ export default function StravaStudioPage() {
           setIsSubmitted(true);
         }
 
-        const res = await fetch(
-          "https://www.strava.com/api/v3/athlete/activities?per_page=30",
-          {
-            headers: {
-              Authorization: `Bearer ${dataPeserta.strava_access_token}`,
-            },
-          },
-        );
+        // Ambil Pengaturan Event Date & Judul
+        try {
+          const settingsSnap = await getDoc(doc(db, "settings", "virtual_run"));
+          if (settingsSnap.exists()) {
+            const sData = settingsSnap.data();
+            setSettings(sData);
+            if (sData.offlineDate) setEventDate(sData.offlineDate.split("T")[0]);
+          }
+        } catch (e) {
+          console.error("Gagal load setting tanggal:", e);
+        }
 
-        const stravaData = await res.json();
+        const res = await fetch(`/api/strava/activities?id=${id}`);
+        const apiData = await res.json();
 
-        if (!res.ok || !Array.isArray(stravaData) || stravaData.length === 0) {
-          setErrorMsg("Gagal mengambil data atau belum ada aktivitas lari.");
+        if (!res.ok || !Array.isArray(apiData.activities) || apiData.activities.length === 0) {
+          setErrorMsg(apiData.error || "Gagal mengambil data atau belum ada aktivitas lari di akun Strava.");
           setIsLoading(false);
           return;
         }
 
-        const runs = stravaData.filter((act: any) => act.type === "Run");
+        const runs = apiData.activities.filter((act: any) => act.type === "Run");
 
         if (runs.length === 0) {
           toast.warning("Semua data aktivitas belum termuat, mohon tunggu sebentar atau muat ulang halaman.");
@@ -153,9 +151,9 @@ export default function StravaStudioPage() {
   // Fungsi Validasi Tanggal
   const checkIsEventDate = (dateString: string) => {
     if (!dateString) return false;
-    // Potong string untuk mengambil format YYYY-MM-DD saja dari Strava (contoh: 2026-08-16T06:00:00Z)
+    if (!eventDate) return true;
     const datePart = dateString.split("T")[0];
-    return datePart >= EVENT_START_DATE && datePart <= EVENT_END_DATE;
+    return datePart === eventDate;
   };
 
   // Mengecek apakah aktivitas yang dipilih valid masuk Leaderboard
@@ -179,7 +177,8 @@ export default function StravaStudioPage() {
 
       const dataUrl = canvas.toDataURL("image/png");
       const link = document.createElement("a");
-      link.download = `UII_Sehat_${participant.nomorBIB}_${activity.id}.png`;
+      const evName = (settings?.offlineJudul || "SEMBADA_RUN_2026").replace(/\s+/g, "_");
+      link.download = `${evName}_${participant?.nomorBIB || "BIB"}_${activity.id}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -215,7 +214,7 @@ export default function StravaStudioPage() {
       });
 
       setIsSubmitted(true);
-      toast.success("✅ Berhasil! Nama Anda sudah melesat masuk ke Leaderboard IKA UII DIY dengan lencana Strava!");
+      toast.success(`✅ Berhasil! Nama Anda sudah masuk ke Leaderboard ${settings?.offlineJudul || "Event"} dengan lencana Strava!`);
     } catch (error) {
       console.error("Gagal setor ke leaderboard:", error);
       toast.error("Gagal menyetor data. Pastikan koneksi internet stabil.");

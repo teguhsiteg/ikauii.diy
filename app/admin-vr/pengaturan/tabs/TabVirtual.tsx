@@ -502,7 +502,7 @@ export default function TabVirtual({
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-[9px] font-bold text-slate-400 mb-1 uppercase">Batas Kuota (0=♾️)</label>
+                                  <label className="block text-[9px] font-bold text-slate-400 mb-1 uppercase">Batas Kuota (0 = Tanpa Batas)</label>
                                   <input
                                     type="number"
                                     value={promo.kuotaMaksimal}

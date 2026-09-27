@@ -197,6 +197,26 @@ export default function OfflineRunCheckoutPage() {
         statusPembayaran: "Pending",
       }));
 
+      // Kirim notifikasi Telegram ke Admin
+      try {
+        await fetch("/api/telegram/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "offline_indiv",
+            id: participant.id,
+            nama: participant.namaLengkap,
+            email: participant.email,
+            wa: participant.noWA,
+            kategori: `UPGRADE: ${participant.jarak || "-"} ➔ ${participant.upgradeRequest?.newKategori || "-"}`,
+            totalBayar: participant.upgradeRequest?.selisih || 0,
+            buktiBayarUrl: data.secure_url,
+          }),
+        });
+      } catch (e) {
+        console.error("Gagal mengirim notifikasi telegram upgrade", e);
+      }
+
       // Kirim email notifikasi bahwa bukti telah disubmit
       try {
         await fetch("/api/notify-upload", {

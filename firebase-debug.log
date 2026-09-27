@@ -1,0 +1,1484 @@
+[debug] [2026-09-27T04:16:46.109Z] ----------------------------------------------------------------------
+[debug] [2026-09-27T04:16:46.111Z] Command:       D:\Program Files\nodejs\node.exe C:\Users\Hii Masteg\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2026-09-27T04:16:46.111Z] CLI Version:   15.31.0
+[debug] [2026-09-27T04:16:46.111Z] Platform:      win32
+[debug] [2026-09-27T04:16:46.111Z] Node Version:  v24.19.0
+[debug] [2026-09-27T04:16:46.112Z] Detected Agent: unknown
+[debug] [2026-09-27T04:16:46.112Z] Time:          Sun Sep 27 2026 11:16:46 GMT+0700 (Western Indonesia Time)
+[debug] [2026-09-27T04:16:46.112Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-09-27T04:16:47.461Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-27T04:16:47.461Z] > authorizing via signed-in user (teguhsiteg95@gmail.com)
+[debug] [2026-09-27T04:16:47.461Z] [iam] checking project suratdigitalv2 for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-09-27T04:16:47.472Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:16:47.472Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:16:47.473Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions [none]
+[debug] [2026-09-27T04:16:47.473Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions  x-goog-user-project=suratdigitalv2
+[debug] [2026-09-27T04:16:47.473Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-09-27T04:16:47.897Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions 200
+[debug] [2026-09-27T04:16:47.897Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-09-27T04:16:47.898Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:16:47.898Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:16:47.898Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/suratdigitalv2 [none]
+[debug] [2026-09-27T04:16:48.559Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/suratdigitalv2 200
+[debug] [2026-09-27T04:16:48.559Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/suratdigitalv2 {"projectId":"suratdigitalv2","projectNumber":"46792735306","displayName":"IKA UII DIY","name":"projects/suratdigitalv2","resources":{"hostingSite":"suratdigitalv2"},"state":"ACTIVE","labels":{"firebase":"enabled","firebaseworkflows/environment":"production","firebase/storage-default-bucket":"created"},"etag":"1_233e471b-cd93-479a-850a-c736fb026b61"}
+[debug] [2026-09-27T04:16:50.362Z] defaultcredentials: writing to file C:\Users\Hii Masteg\AppData\Roaming\firebase\teguhsiteg95_gmail_com_application_default_credentials.json
+[debug] [2026-09-27T04:16:50.364Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:16:50.364Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:16:50.364Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/suratdigitalv2/sites pageToken=&pageSize=10
+[debug] [2026-09-27T04:16:51.530Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/suratdigitalv2/sites 200
+[debug] [2026-09-27T04:16:51.531Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/suratdigitalv2/sites {"sites":[{"name":"projects/suratdigitalv2/sites/dpw-ikadiy","defaultUrl":"https://dpw-ikadiy.web.app","appId":"1:46792735306:web:ababc2cec51a774cbe84b3","type":"USER_SITE"},{"name":"projects/suratdigitalv2/sites/suratdigitalv2","defaultUrl":"https://suratdigitalv2.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2026-09-27T04:16:51.531Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:16:51.531Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:16:51.532Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/-/webApps/1:46792735306:web:ababc2cec51a774cbe84b3/config [none]
+[debug] [2026-09-27T04:16:53.126Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/-/webApps/1:46792735306:web:ababc2cec51a774cbe84b3/config 200
+[debug] [2026-09-27T04:16:53.127Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/-/webApps/1:46792735306:web:ababc2cec51a774cbe84b3/config {"projectId":"suratdigitalv2","appId":"1:46792735306:web:ababc2cec51a774cbe84b3","storageBucket":"suratdigitalv2.firebasestorage.app","apiKey":"AIzaSyB_oBi8xCjwk0Tj__FhKjjVpBIDKT0aY3Y","authDomain":"suratdigitalv2.firebaseapp.com","messagingSenderId":"46792735306","measurementId":"G-0HFMKYDPM6","projectNumber":"46792735306","version":"2"}
+[info] 
+   Thank you for trying our early preview of Next.js support on Firebase Hosting.
+   During the preview, support is best-effort and breaking changes can be expected. Proceed with caution.
+
+   Documentation: https://firebase.google.com/docs/hosting/frameworks/nextjs
+   File a bug: https://github.com/firebase/firebase-tools/issues/new?template=bug_report.md
+   Submit a feature request: https://github.com/firebase/firebase-tools/issues/new?template=feature_request.md
+
+   We'd love to learn from you. Express your interest in helping us shape the future of Firebase Hosting: https://goo.gle/41enW5X
+
+[debug] [2026-09-27T04:16:57.022Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:16:57.022Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:16:57.022Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/suratdigitalv2/sites/suratdigitalv2 [none]
+[debug] [2026-09-27T04:16:57.835Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/suratdigitalv2/sites/suratdigitalv2 200
+[debug] [2026-09-27T04:16:57.835Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/suratdigitalv2/sites/suratdigitalv2 {"name":"projects/suratdigitalv2/sites/suratdigitalv2","defaultUrl":"https://suratdigitalv2.web.app","type":"DEFAULT_SITE"}
+[info]    ▲ Next.js 15.0.5
+
+[info]    - Environments: .env.local
+
+
+[info]    Creating an optimized production build ...
+
+[info]  ⚠ Compiled with warnings
+
+
+[info] ./node_modules/@protobufjs/inquire/index.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@protobufjs/inquire/index.js
+./node_modules/protobufjs/src/util/minimal.js
+./node_modules/protobufjs/src/index-minimal.js
+./node_modules/protobufjs/minimal.js
+./node_modules/@google-cloud/recaptcha-enterprise/build/protos/protos.js
+./node_modules/@google-cloud/recaptcha-enterprise/build/src/index.js
+./app/api/verify-recaptcha/route.ts
+
+
+[info]  ✓ Compiled successfully
+
+[info]    Skipping linting
+
+[info]    Checking validity of types ...
+
+[info]    Collecting page data ...
+
+[info] ✅ Firebase Admin SDK init dengan private key.
+
+[info] ✅ Firebase Admin SDK init dengan private key.
+
+[info] ✅ Firebase Admin SDK init dengan private key.
+
+[info] ✅ Firebase Admin SDK init dengan private key.
+
+[info] ✅ Firebase Admin SDK init dengan private key.
+
+[info] ✅ Firebase Admin SDK init dengan private key.
+
+[info] ✅ Firebase Admin SDK init dengan private key.
+
+[info]  ⚠ Using edge runtime on a page currently disables static generation for that page
+
+[info]    Generating static pages (0/121) ...
+
+[info] ✅ Firebase Admin SDK init dengan private key.
+
+[info] ✅ Firebase Admin SDK init dengan private key.
+
+[info] ✅ Firebase Admin SDK init dengan private key.
+
+[info] ✅ Firebase Admin SDK init dengan private key.
+
+[info]    Generating static pages (30/121) 
+
+[info]    Generating static pages (60/121) 
+
+[info]    Generating static pages (90/121) 
+
+[info]  ✓ Generating static pages (121/121)
+
+[info]    Finalizing page optimization ...
+   Collecting build traces ...
+
+[info] 
+
+[info] Route (app)                                  Size     First Load JS
+┌ ○ /                                        12.3 kB         276 kB
+├ ○ /_not-found                              237 B           102 kB
+├ ○ /admin-event                             4.69 kB         256 kB
+├ ○ /admin-event/login                       3.21 kB         255 kB
+├ ○ /admin-vr                                4.42 kB         265 kB
+├ ○ /admin-vr/bib-scanner                    4.63 kB         277 kB
+├ ○ /admin-vr/crew                           13.5 kB         424 kB
+├ ○ /admin-vr/komunitas-partner              3.24 kB         393 kB
+├ ○ /admin-vr/legal                          2.42 kB         263 kB
+├ ○ /admin-vr/offline                        31.1 kB         421 kB
+├ ○ /admin-vr/pengaturan                     21.1 kB         293 kB
+├ ○ /admin-vr/peserta                        11.8 kB         402 kB
+├ ○ /admin-vr/race-display                   5.31 kB         257 kB
+├ ○ /admin-vr/race-management                10.5 kB         401 kB
+├ ○ /admin-vr/sponsor                        6.18 kB         258 kB
+├ ○ /admin-vr/verifikasi                     5.99 kB         278 kB
+├ ○ /agenda                                  4.28 kB         272 kB
+├ ƒ /agenda/[id]                             10 kB           274 kB
+├ ○ /anggota                                 9.66 kB         270 kB
+├ ƒ /api/auth/logout                         237 B           102 kB
+├ ƒ /api/auth/reset-password                 237 B           102 kB
+├ ƒ /api/auth/session                        237 B           102 kB
+├ ƒ /api/bio-track                           237 B           102 kB
+├ ƒ /api/cari-tiket                          237 B           102 kB
+├ ƒ /api/cron/maintenance                    237 B           102 kB
+├ ƒ /api/import-excel                        237 B           102 kB
+├ ƒ /api/midtrans-masterclass                237 B           102 kB
+├ ƒ /api/midtrans-webhook                    237 B           102 kB
+├ ƒ /api/midtrans/get-token                  237 B           102 kB
+├ ƒ /api/notify-upload                       237 B           102 kB
+├ ƒ /api/og                                  237 B           102 kB
+├ ƒ /api/run-offline/validator               237 B           102 kB
+├ ƒ /api/send-email                          237 B           102 kB
+├ ƒ /api/send-wa                             237 B           102 kB
+├ ƒ /api/shipping/cost                       237 B           102 kB
+├ ƒ /api/shipping/kodepos                    237 B           102 kB
+├ ƒ /api/strava/activities                   237 B           102 kB
+├ ƒ /api/strava/callback                     237 B           102 kB
+├ ƒ /api/telegram/notify                     237 B           102 kB
+├ ƒ /api/telegram/webhook                    237 B           102 kB
+├ ƒ /api/upgrade-category                    237 B           102 kB
+├ ƒ /api/verify-recaptcha                    237 B           102 kB
+├ ƒ /api/vr-admin                            237 B           102 kB
+├ ƒ /api/vr-admin/rpx-awb                    237 B           102 kB
+├ ƒ /api/vr-admin/settings                   237 B           102 kB
+├ ƒ /api/vr-auth/request-otp                 237 B           102 kB
+├ ƒ /api/vr-auth/verify-otp                  237 B           102 kB
+├ ƒ /api/vr-export-public                    237 B           102 kB
+├ ƒ /api/vr-midtrans                         237 B           102 kB
+├ ƒ /api/vr-submit-run                       237 B           102 kB
+├ ƒ /api/vr-update-profile                   237 B           102 kB
+├ ƒ /api/vr-upload-payment                   237 B           102 kB
+├ ƒ /api/vr-verify-order                     237 B           102 kB
+├ ○ /bergabung                               9.1 kB          276 kB
+├ ○ /berita                                  2.73 kB         266 kB
+├ ƒ /berita/[id]                             3.7 kB          271 kB
+├ ○ /bib-display                             1.8 kB          253 kB
+├ ○ /bio                                     6.53 kB         258 kB
+├ ○ /cek-tiket                               2.53 kB         270 kB
+├ ○ /cookie-policy                           184 B           111 kB
+├ ○ /crew                                    31 kB           298 kB
+├ ○ /dashboard                               5.07 kB         266 kB
+├ ○ /dashboard/admin-mobile                  2.73 kB         254 kB
+├ ○ /dashboard/bio                           7.99 kB         260 kB
+├ ○ /dashboard/broadcast                     5.28 kB         277 kB
+├ ○ /dashboard/direktori                     10.6 kB         401 kB
+├ ○ /dashboard/dokumen                       6.51 kB         258 kB
+├ ○ /dashboard/donasi                        6.52 kB         417 kB
+├ ○ /dashboard/e-office                      9.56 kB         291 kB
+├ ƒ /dashboard/e-office/print-presensi/[id]  2.7 kB          254 kB
+├ ƒ /dashboard/e-office/print/[id]           5.25 kB         263 kB
+├ ○ /dashboard/event-mobile                  2.28 kB         274 kB
+├ ○ /dashboard/invoice                       6.64 kB         285 kB
+├ ○ /dashboard/karir                         2.53 kB         275 kB
+├ ○ /dashboard/kuis                          4.18 kB         285 kB
+├ ƒ /dashboard/kuis/[id]                     4.03 kB         285 kB
+├ ○ /dashboard/kuitansi                      6.63 kB         285 kB
+├ ○ /dashboard/master-data                   22.3 kB         439 kB
+├ ○ /dashboard/masterclass                   20 kB           440 kB
+├ ƒ /dashboard/masterclass/[id]/modules      5.23 kB         277 kB
+├ ○ /dashboard/pengaturan                    10.4 kB         283 kB
+├ ○ /dashboard/peserta                       9.74 kB         430 kB
+├ ƒ /dashboard/proker/[slug]                 8.52 kB         281 kB
+├ ƒ /dashboard/proker/[slug]/cetak/[id]      8.26 kB         280 kB
+├ ○ /dashboard/scanner                       6.2 kB          278 kB
+├ ○ /dashboard/superadmin/templates          3.76 kB         255 kB
+├ ○ /dashboard/ulasan                        3.54 kB         255 kB
+├ ○ /dashboard/users                         6.55 kB         258 kB
+├ ○ /dashboard/validasi                      5.5 kB          263 kB
+├ ○ /dashboard/verifikasi-anggota            14.1 kB         410 kB
+├ ○ /direktori-bisnis                        9.05 kB         276 kB
+├ ○ /doorprize-screen                        2.74 kB         254 kB
+├ ○ /event                                   8.67 kB         269 kB
+├ ○ /galeri                                  3.11 kB         270 kB
+├ ○ /gateway                                 3.92 kB         256 kB
+├ ○ /kebijakan-privasi                       184 B           111 kB
+├ ƒ /kta/[id]                                137 kB          408 kB
+├ ○ /layanan                                 360 B           268 kB
+├ ○ /leaderboard-offline                     4.8 kB          266 kB
+├ ƒ /lengkapi-profil/[id]                    4.88 kB         282 kB
+├ ○ /login                                   4.46 kB         265 kB
+├ ○ /masterclass                             8.6 kB          275 kB
+├ ƒ /masterclass/[id]                        9.23 kB         275 kB
+├ ƒ /masterclass/[id]/certificate            8.67 kB         260 kB
+├ ƒ /masterclass/[id]/exam/[moduleId]        4.27 kB         276 kB
+├ ƒ /masterclass/[id]/learn                  17.9 kB         279 kB
+├ ○ /masterclass/my-courses                  7.59 kB         274 kB
+├ ○ /masterclass/register                    4.07 kB         265 kB
+├ ○ /mobile                                  8.44 kB         110 kB
+├ ○ /pasang-iklan                            4.19 kB         272 kB
+├ ○ /pelantikan                              12.8 kB         341 kB
+├ ○ /pengurus                                5.97 kB         269 kB
+├ ○ /photobooth                              3.7 kB          255 kB
+├ ○ /race-clock                              3.84 kB         255 kB
+├ ○ /registrasi                              120 kB          392 kB
+├ ○ /regulasi                                5.98 kB         273 kB
+├ ○ /reset-password                          3.78 kB         264 kB
+├ ○ /robots.txt                              0 B                0 B
+├ ○ /run                                     13.9 kB         281 kB
+├ ƒ /run/checkout-komunitas/[id]             4.43 kB         271 kB
+├ ƒ /run/checkout-upgrade/[id]               6.08 kB         273 kB
+├ ƒ /run/checkout/[id]                       6.09 kB         273 kB
+├ ○ /run/daftar                              20.9 kB         287 kB
+├ ○ /run/komunitas                           10.9 kB         416 kB
+├ ○ /run/komunitas-partner                   3.87 kB         270 kB
+├ ○ /run/sertifikat                          5.34 kB         272 kB
+├ ○ /run/strava                              5.64 kB         272 kB
+├ ƒ /run/strava/studio/[id]                  9.33 kB         327 kB
+├ ƒ /run/tiket-komunitas/[id]                4.79 kB         323 kB
+├ ƒ /run/tiket/[id]                          4.76 kB         317 kB
+├ ○ /sitemap.xml                             0 B                0 B
+├ ○ /statistik                               2.82 kB         270 kB
+├ ○ /syarat-ketentuan                        184 B           111 kB
+├ ○ /tentang-kami                            1.96 kB         269 kB
+├ ƒ /tiket/[id]                              1.85 kB         269 kB
+├ ƒ /u/[id]                                  4.3 kB          265 kB
+├ ○ /undangankirim                           1.11 kB         329 kB
+├ ƒ /verif-kuitansi/[id]                     3.67 kB         255 kB
+├ ƒ /verifttd/[id]                           3.33 kB         255 kB
+├ ƒ /verify-ticket/[id]                      4.72 kB         277 kB
+├ ƒ /verify/[id]                             3.16 kB         264 kB
+├ ○ /virtual-run                             13.4 kB         278 kB
+├ ○ /virtual-run/dashboard                   23.8 kB         294 kB
+├ ○ /virtual-run/leaderboard                 7.8 kB          272 kB
+├ ○ /virtual-run/register                    15.4 kB         280 kB
+└ ƒ /virtual-run/verify/[participantId]      2.85 kB         254 kB
++ First Load JS shared by all                101 kB
+  ├ chunks/1517-577b011f32642a19.js          45.9 kB
+  ├ chunks/4bd1b696-2a2038936fbcf019.js      52.5 kB
+  └ other shared chunks (total)              3.05 kB
+
+
+ƒ Middleware                                 30.3 kB
+
+[info] 
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+
+[info] Building a Cloud Function to run this application. This is needed due to:
+[info]  • middleware
+[info]  • non-static component /api/auth/reset-password/route
+[info]  • non-static component /api/bio-track/route
+[info]  • non-static component /api/cari-tiket/route
+[info]  • non-static component /api/cron/maintenance/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/midtrans-masterclass/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/import-excel/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/midtrans-webhook/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/midtrans/get-token/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/notify-upload/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/run-offline/validator/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/send-wa/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/strava/activities/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/strava/callback/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/shipping/cost/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/telegram/webhook/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/shipping/kodepos/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/upgrade-category/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/telegram/notify/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/verify-recaptcha/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/send-email/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/vr-admin/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/vr-admin/rpx-awb/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/vr-admin/settings/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/vr-auth/verify-otp/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/vr-auth/request-otp/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/vr-export-public/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/vr-midtrans/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/vr-submit-run/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/vr-update-profile/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/vr-upload-payment/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/vr-verify-order/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/auth/logout/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /api/auth/session/route
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /kta/[id]/page
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /masterclass/[id]/certificate/page
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /masterclass/[id]/exam/[moduleId]/page
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /masterclass/[id]/learn/page
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /run/checkout-komunitas/[id]/page
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /run/checkout-upgrade/[id]/page
+[debug] [2026-09-27T04:17:56.533Z]  • non-static component /run/checkout/[id]/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /run/strava/studio/[id]/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /run/tiket/[id]/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /run/tiket-komunitas/[id]/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /u/[id]/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /verif-kuitansi/[id]/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /verify-ticket/[id]/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /verify/[id]/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /virtual-run/verify/[participantId]/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /berita/[id]/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /masterclass/[id]/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /verifttd/[id]/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /(dashboard)/dashboard/e-office/print-presensi/[id]/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /(dashboard)/dashboard/e-office/print/[id]/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /(dashboard)/dashboard/kuis/[id]/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /(dashboard)/dashboard/masterclass/[id]/modules/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /(public)/lengkapi-profil/[id]/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /(public)/tiket/[id]/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /(dashboard)/dashboard/proker/[slug]/cetak/[id]/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /(dashboard)/dashboard/proker/[slug]/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /(public)/agenda/[id]/page
+[debug] [2026-09-27T04:17:56.534Z]  • non-static component /api/og/route
+[debug] [2026-09-27T04:17:56.534Z]  • route with server action /bergabung
+[debug] [2026-09-27T04:17:56.534Z]  • route with server action /crew
+[debug] [2026-09-27T04:17:56.534Z]  • route with server action /masterclass/[id]/certificate
+[debug] [2026-09-27T04:17:56.534Z]  • route with server action /run/daftar
+[debug] [2026-09-27T04:17:56.534Z]  • route with server action /virtual-run/register
+[debug] [2026-09-27T04:17:56.534Z]  • route with server action /dashboard/direktori
+[debug] [2026-09-27T04:17:56.534Z]  • route with server action /dashboard/broadcast
+[debug] [2026-09-27T04:17:56.534Z]  • route with server action /dashboard/users
+[debug] [2026-09-27T04:17:56.534Z]  • route with server action /dashboard/verifikasi-anggota
+[debug] [2026-09-27T04:17:56.534Z]  • route with server action /admin-vr/offline
+[debug] [2026-09-27T04:17:56.534Z]  • route with server action /admin-vr/crew
+[debug] [2026-09-27T04:17:56.534Z]  • route with server action /admin-vr/peserta
+[debug] [2026-09-27T04:17:56.534Z]  • route with server action /agenda/[id]
+[debug] [2026-09-27T04:17:56.534Z]  • route with server action /dashboard/master-data
+[debug] [2026-09-27T04:17:56.534Z]  • advanced rewrites
+[info]  • and 72 other reasons, use --debug to see more
+[info] 
+[debug] [2026-09-27T04:17:57.563Z] skipping /bergabung due to server action
+[debug] [2026-09-27T04:17:57.564Z] skipping /crew due to server action
+[debug] [2026-09-27T04:17:57.565Z] skipping /run/daftar due to server action
+[debug] [2026-09-27T04:17:57.565Z] skipping /virtual-run/register due to server action
+[debug] [2026-09-27T04:17:57.565Z] skipping /dashboard/broadcast due to server action
+[debug] [2026-09-27T04:17:57.566Z] skipping /dashboard/direktori due to server action
+[debug] [2026-09-27T04:17:57.566Z] skipping /dashboard/master-data due to server action
+[debug] [2026-09-27T04:17:57.566Z] skipping /dashboard/users due to server action
+[debug] [2026-09-27T04:17:57.567Z] skipping /dashboard/verifikasi-anggota due to server action
+[debug] [2026-09-27T04:17:57.567Z] skipping /admin-vr/offline due to server action
+[debug] [2026-09-27T04:17:57.567Z] skipping /admin-vr/crew due to server action
+[debug] [2026-09-27T04:17:57.567Z] skipping /admin-vr/peserta due to server action
+[debug] [2026-09-27T04:18:00.598Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:18:00.599Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:18:00.599Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/suratdigitalv2/sites/suratdigitalv2 [none]
+[debug] [2026-09-27T04:18:01.451Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/suratdigitalv2/sites/suratdigitalv2 200
+[debug] [2026-09-27T04:18:01.452Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/suratdigitalv2/sites/suratdigitalv2 {"name":"projects/suratdigitalv2/sites/suratdigitalv2","defaultUrl":"https://suratdigitalv2.web.app","type":"DEFAULT_SITE"}
+[debug] [2026-09-27T04:18:08.296Z] [web frameworks] effective firebase.json:  {
+  "hosting": [
+    {
+      "target": "sim-app",
+      "source": ".",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "frameworksBackend": {
+        "region": "asia-southeast1",
+        "maxInstances": 10,
+        "memory": "512MiB"
+      },
+      "rewrites": [
+        {
+          "source": "**",
+          "function": {
+            "functionId": "ssrdpwikadiy",
+            "region": "asia-southeast1",
+            "pinTag": true
+          }
+        }
+      ],
+      "site": "dpw-ikadiy",
+      "redirects": [],
+      "headers": [
+        {
+          "source": "/robots.txt",
+          "headers": [
+            {
+              "key": "cache-control",
+              "value": "public, max-age=0, must-revalidate"
+            },
+            {
+              "key": "content-type",
+              "value": "text/plain"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/robots.txt/layout,_N_T_/robots.txt/route,_N_T_/robots.txt"
+            }
+          ]
+        },
+        {
+          "source": "/sitemap.xml",
+          "headers": [
+            {
+              "key": "cache-control",
+              "value": "public, max-age=0, must-revalidate"
+            },
+            {
+              "key": "content-type",
+              "value": "application/xml"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/sitemap.xml/layout,_N_T_/sitemap.xml/route,_N_T_/sitemap.xml"
+            }
+          ]
+        },
+        {
+          "source": "/admin-event/login",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/admin-event/layout,_N_T_/admin-event/login/layout,_N_T_/admin-event/login/page,_N_T_/admin-event/login"
+            }
+          ]
+        },
+        {
+          "source": "/admin-event",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/admin-event/layout,_N_T_/admin-event/page,_N_T_/admin-event"
+            }
+          ]
+        },
+        {
+          "source": "/agenda",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/agenda/layout,_N_T_/agenda/page,_N_T_/agenda"
+            }
+          ]
+        },
+        {
+          "source": "/_not-found",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/_not-found/layout,_N_T_/_not-found/page,_N_T_/_not-found"
+            }
+          ]
+        },
+        {
+          "source": "/bib-display",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/bib-display/layout,_N_T_/bib-display/page,_N_T_/bib-display"
+            }
+          ]
+        },
+        {
+          "source": "/bergabung",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/bergabung/layout,_N_T_/bergabung/page,_N_T_/bergabung"
+            }
+          ]
+        },
+        {
+          "source": "/anggota",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/anggota/layout,_N_T_/anggota/page,_N_T_/anggota"
+            }
+          ]
+        },
+        {
+          "source": "/favicon.ico",
+          "headers": [
+            {
+              "key": "cache-control",
+              "value": "public, max-age=0, must-revalidate"
+            },
+            {
+              "key": "content-type",
+              "value": "image/x-icon"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/favicon.ico/layout,_N_T_/favicon.ico/route,_N_T_/favicon.ico"
+            }
+          ]
+        },
+        {
+          "source": "/cek-tiket",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/cek-tiket/layout,_N_T_/cek-tiket/page,_N_T_/cek-tiket"
+            }
+          ]
+        },
+        {
+          "source": "/bio",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/bio/layout,_N_T_/bio/page,_N_T_/bio"
+            }
+          ]
+        },
+        {
+          "source": "/cookie-policy",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/cookie-policy/layout,_N_T_/cookie-policy/page,_N_T_/cookie-policy"
+            }
+          ]
+        },
+        {
+          "source": "/crew",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/crew/layout,_N_T_/crew/page,_N_T_/crew"
+            }
+          ]
+        },
+        {
+          "source": "/galeri",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/galeri/layout,_N_T_/galeri/page,_N_T_/galeri"
+            }
+          ]
+        },
+        {
+          "source": "/doorprize-screen",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/doorprize-screen/layout,_N_T_/doorprize-screen/page,_N_T_/doorprize-screen"
+            }
+          ]
+        },
+        {
+          "source": "/event",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/event/layout,_N_T_/event/page,_N_T_/event"
+            }
+          ]
+        },
+        {
+          "source": "/gateway",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/gateway/layout,_N_T_/gateway/page,_N_T_/gateway"
+            }
+          ]
+        },
+        {
+          "source": "/masterclass",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/masterclass/layout,_N_T_/masterclass/page,_N_T_/masterclass"
+            }
+          ]
+        },
+        {
+          "source": "/leaderboard-offline",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/leaderboard-offline/layout,_N_T_/leaderboard-offline/page,_N_T_/leaderboard-offline"
+            }
+          ]
+        },
+        {
+          "source": "/kebijakan-privasi",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/kebijakan-privasi/layout,_N_T_/kebijakan-privasi/page,_N_T_/kebijakan-privasi"
+            }
+          ]
+        },
+        {
+          "source": "/masterclass/my-courses",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/masterclass/layout,_N_T_/masterclass/my-courses/layout,_N_T_/masterclass/my-courses/page,_N_T_/masterclass/my-courses"
+            }
+          ]
+        },
+        {
+          "source": "/masterclass/register",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/masterclass/layout,_N_T_/masterclass/register/layout,_N_T_/masterclass/register/page,_N_T_/masterclass/register"
+            }
+          ]
+        },
+        {
+          "source": "/photobooth",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/photobooth/layout,_N_T_/photobooth/page,_N_T_/photobooth"
+            }
+          ]
+        },
+        {
+          "source": "/mobile",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/mobile/layout,_N_T_/mobile/page,_N_T_/mobile"
+            }
+          ]
+        },
+        {
+          "source": "/race-clock",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/race-clock/layout,_N_T_/race-clock/page,_N_T_/race-clock"
+            }
+          ]
+        },
+        {
+          "source": "/registrasi",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/registrasi/layout,_N_T_/registrasi/page,_N_T_/registrasi"
+            }
+          ]
+        },
+        {
+          "source": "/regulasi",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/regulasi/layout,_N_T_/regulasi/page,_N_T_/regulasi"
+            }
+          ]
+        },
+        {
+          "source": "/reset-password",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/reset-password/layout,_N_T_/reset-password/page,_N_T_/reset-password"
+            }
+          ]
+        },
+        {
+          "source": "/run/komunitas-partner",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/run/layout,_N_T_/run/komunitas-partner/layout,_N_T_/run/komunitas-partner/page,_N_T_/run/komunitas-partner"
+            }
+          ]
+        },
+        {
+          "source": "/run",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/run/layout,_N_T_/run/page,_N_T_/run"
+            }
+          ]
+        },
+        {
+          "source": "/run/sertifikat",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/run/layout,_N_T_/run/sertifikat/layout,_N_T_/run/sertifikat/page,_N_T_/run/sertifikat"
+            }
+          ]
+        },
+        {
+          "source": "/run/komunitas",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/run/layout,_N_T_/run/komunitas/layout,_N_T_/run/komunitas/page,_N_T_/run/komunitas"
+            }
+          ]
+        },
+        {
+          "source": "/run/daftar",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/run/layout,_N_T_/run/daftar/layout,_N_T_/run/daftar/page,_N_T_/run/daftar"
+            }
+          ]
+        },
+        {
+          "source": "/run/strava",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/run/layout,_N_T_/run/strava/layout,_N_T_/run/strava/page,_N_T_/run/strava"
+            }
+          ]
+        },
+        {
+          "source": "/tentang-kami",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/tentang-kami/layout,_N_T_/tentang-kami/page,_N_T_/tentang-kami"
+            }
+          ]
+        },
+        {
+          "source": "/syarat-ketentuan",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/syarat-ketentuan/layout,_N_T_/syarat-ketentuan/page,_N_T_/syarat-ketentuan"
+            }
+          ]
+        },
+        {
+          "source": "/virtual-run/leaderboard",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/virtual-run/layout,_N_T_/virtual-run/leaderboard/layout,_N_T_/virtual-run/leaderboard/page,_N_T_/virtual-run/leaderboard"
+            }
+          ]
+        },
+        {
+          "source": "/virtual-run/register",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/virtual-run/layout,_N_T_/virtual-run/register/layout,_N_T_/virtual-run/register/page,_N_T_/virtual-run/register"
+            }
+          ]
+        },
+        {
+          "source": "/virtual-run",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/virtual-run/layout,_N_T_/virtual-run/page,_N_T_/virtual-run"
+            }
+          ]
+        },
+        {
+          "source": "/virtual-run/dashboard",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/virtual-run/layout,_N_T_/virtual-run/dashboard/layout,_N_T_/virtual-run/dashboard/page,_N_T_/virtual-run/dashboard"
+            }
+          ]
+        },
+        {
+          "source": "/dashboard",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/(dashboard)/layout,_N_T_/(dashboard)/dashboard/layout,_N_T_/(dashboard)/dashboard/page,_N_T_/dashboard"
+            }
+          ]
+        },
+        {
+          "source": "/berita",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/(public)/layout,_N_T_/(public)/berita/layout,_N_T_/(public)/berita/page,_N_T_/berita"
+            }
+          ]
+        },
+        {
+          "source": "/admin-vr/komunitas-partner",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/admin-vr/layout,_N_T_/admin-vr/komunitas-partner/layout,_N_T_/admin-vr/komunitas-partner/page,_N_T_/admin-vr/komunitas-partner"
+            }
+          ]
+        },
+        {
+          "source": "/admin-vr/bib-scanner",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/admin-vr/layout,_N_T_/admin-vr/bib-scanner/layout,_N_T_/admin-vr/bib-scanner/page,_N_T_/admin-vr/bib-scanner"
+            }
+          ]
+        },
+        {
+          "source": "/admin-vr",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/admin-vr/layout,_N_T_/admin-vr/page,_N_T_/admin-vr"
+            }
+          ]
+        },
+        {
+          "source": "/admin-vr/legal",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/admin-vr/layout,_N_T_/admin-vr/legal/layout,_N_T_/admin-vr/legal/page,_N_T_/admin-vr/legal"
+            }
+          ]
+        },
+        {
+          "source": "/admin-vr/offline",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/admin-vr/layout,_N_T_/admin-vr/offline/layout,_N_T_/admin-vr/offline/page,_N_T_/admin-vr/offline"
+            }
+          ]
+        },
+        {
+          "source": "/admin-vr/crew",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/admin-vr/layout,_N_T_/admin-vr/crew/layout,_N_T_/admin-vr/crew/page,_N_T_/admin-vr/crew"
+            }
+          ]
+        },
+        {
+          "source": "/admin-vr/pengaturan",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/admin-vr/layout,_N_T_/admin-vr/pengaturan/layout,_N_T_/admin-vr/pengaturan/page,_N_T_/admin-vr/pengaturan"
+            }
+          ]
+        },
+        {
+          "source": "/admin-vr/race-display",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/admin-vr/layout,_N_T_/admin-vr/race-display/layout,_N_T_/admin-vr/race-display/page,_N_T_/admin-vr/race-display"
+            }
+          ]
+        },
+        {
+          "source": "/admin-vr/sponsor",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/admin-vr/layout,_N_T_/admin-vr/sponsor/layout,_N_T_/admin-vr/sponsor/page,_N_T_/admin-vr/sponsor"
+            }
+          ]
+        },
+        {
+          "source": "/admin-vr/peserta",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/admin-vr/layout,_N_T_/admin-vr/peserta/layout,_N_T_/admin-vr/peserta/page,_N_T_/admin-vr/peserta"
+            }
+          ]
+        },
+        {
+          "source": "/admin-vr/verifikasi",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/admin-vr/layout,_N_T_/admin-vr/verifikasi/layout,_N_T_/admin-vr/verifikasi/page,_N_T_/admin-vr/verifikasi"
+            }
+          ]
+        },
+        {
+          "source": "/admin-vr/race-management",
+          "headers": [
+            {
+              "key": "x-nextjs-stale-time",
+              "value": "4294967294"
+            },
+            {
+              "key": "x-nextjs-prerender",
+              "value": "1"
+            },
+            {
+              "key": "x-next-cache-tags",
+              "value": "_N_T_/layout,_N_T_/admin-vr/layout,_N_T_/admin-vr/race-management/layout,_N_T_/admin-vr/race-management/page,_N_T_/admin-vr/race-management"
+            }
+          ]
+        },
+        {
+          "source": "**/*.[jt]s",
+          "headers": [
+            {
+              "key": "Set-Cookie",
+              "value": "__FIREBASE_DEFAULTS__=eyJjb25maWciOnsicHJvamVjdElkIjoic3VyYXRkaWdpdGFsdjIiLCJhcHBJZCI6IjE6NDY3OTI3MzUzMDY6d2ViOmFiYWJjMmNlYzUxYTc3NGNiZTg0YjMiLCJzdG9yYWdlQnVja2V0Ijoic3VyYXRkaWdpdGFsdjIuZmlyZWJhc2VzdG9yYWdlLmFwcCIsImFwaUtleSI6IkFJemFTeUJfb0JpOHhDandrMFRqX19GaEtqalZwQklES1QwYVkzWSIsImF1dGhEb21haW4iOiJzdXJhdGRpZ2l0YWx2Mi5maXJlYmFzZWFwcC5jb20iLCJtZXNzYWdpbmdTZW5kZXJJZCI6IjQ2NzkyNzM1MzA2IiwibWVhc3VyZW1lbnRJZCI6IkctMEhGTUtZRFBNNiIsInByb2plY3ROdW1iZXIiOiI0Njc5MjczNTMwNiIsInZlcnNpb24iOiIyIn0sIl9hdXRoVG9rZW5TeW5jVVJMIjoiL19fc2Vzc2lvbiJ9; SameSite=Strict; Expires=2028-08-21T14:58:08.296Z; Path=/;"
+            }
+          ]
+        }
+      ],
+      "cleanUrls": true,
+      "trailingSlash": false,
+      "public": ".firebase\\dpw-ikadiy\\hosting",
+      "webFramework": "next_ssr"
+    }
+  ],
+  "functions": [
+    {
+      "source": ".firebase\\dpw-ikadiy\\functions",
+      "codebase": "firebase-frameworks-dpw-ikadiy"
+    }
+  ]
+}
+[debug] [2026-09-27T04:18:08.297Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-27T04:18:08.297Z] > authorizing via signed-in user (teguhsiteg95@gmail.com)
+[debug] [2026-09-27T04:18:08.297Z] [iam] checking project suratdigitalv2 for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2026-09-27T04:18:08.297Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:18:08.297Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:18:08.297Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions [none]
+[debug] [2026-09-27T04:18:08.297Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions  x-goog-user-project=suratdigitalv2
+[debug] [2026-09-27T04:18:08.297Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-09-27T04:18:08.657Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions 200
+[debug] [2026-09-27T04:18:08.658Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'suratdigitalv2'...
+[info] 
+[info] i  deploying functions, firestore, hosting 
+[debug] [2026-09-27T04:18:08.660Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:18:08.660Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:18:08.660Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2 [none]
+[debug] [2026-09-27T04:18:09.537Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2 200
+[debug] [2026-09-27T04:18:09.537Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2 {"projectNumber":"46792735306","projectId":"suratdigitalv2","lifecycleState":"ACTIVE","name":"IKA UII DIY","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2025-12-22T08:26:33.864052Z"}
+[info] i  functions: preparing codebase firebase-frameworks-dpw-ikadiy for deployment 
+[info] i  functions: ensuring required API cloudfunctions.googleapis.com is enabled... 
+[info] i  functions: ensuring required API cloudbuild.googleapis.com is enabled... 
+[info] i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled... 
+[debug] [2026-09-27T04:18:09.541Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:18:09.541Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:18:09.541Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/suratdigitalv2/adminSdkConfig [none]
+[debug] [2026-09-27T04:18:10.548Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/suratdigitalv2/adminSdkConfig 200
+[debug] [2026-09-27T04:18:10.548Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/suratdigitalv2/adminSdkConfig {"projectId":"suratdigitalv2","storageBucket":"suratdigitalv2.firebasestorage.app"}
+[debug] [2026-09-27T04:18:10.549Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:18:10.549Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:18:10.549Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/suratdigitalv2/configs [none]
+[debug] [2026-09-27T04:18:13.051Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/suratdigitalv2/configs 200
+[debug] [2026-09-27T04:18:13.051Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/suratdigitalv2/configs {}
+[debug] [2026-09-27T04:18:13.053Z] Validating nodejs source
+[warn] !  functions: package.json indicates an outdated version of firebase-functions. Please upgrade using npm install --save firebase-functions@latest in your functions directory. 
+[debug] [2026-09-27T04:18:13.784Z] > [functions] package.json contents: {
+  "name": "sim-dpwikadiy",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@google-cloud/recaptcha-enterprise": "^6.4.1",
+    "@react-leaflet/core": "^2.1.0",
+    "@tailwindcss/postcss": "^4.2.1",
+    "browser-image-compression": "^2.0.2",
+    "firebase": "^11.0.0",
+    "firebase-admin": "^13.10.0",
+    "firebase-functions": "^7.2.5",
+    "geist": "^1.7.0",
+    "heic2any": "^0.0.4",
+    "html-to-image": "^1.11.13",
+    "html2canvas": "^1.4.1",
+    "html5-qrcode": "^2.3.8",
+    "jose": "^6.2.4",
+    "jspdf": "^4.2.1",
+    "leaflet": "^1.9.4",
+    "lenis": "^1.3.26",
+    "lucide-react": "^1.14.0",
+    "motion": "^13.1.0",
+    "next": "^15.0.5",
+    "next-nprogress-bar": "^2.4.7",
+    "nextjs-toploader": "^3.9.17",
+    "nodemailer": "^8.0.4",
+    "qrcode.react": "^4.2.0",
+    "react": "18.3.1",
+    "react-cookie-consent": "^10.0.1",
+    "react-dom": "18.3.1",
+    "react-google-recaptcha-v3": "^1.11.0",
+    "react-leaflet": "^4.2.1",
+    "react-player": "^3.4.0",
+    "react-qr-code": "^2.0.18",
+    "react-quill-new": "^3.7.0",
+    "react-youtube": "^10.1.0",
+    "recharts": "^3.8.1",
+    "sweetalert2": "^11.26.25",
+    "sweetalert2-react-content": "^5.1.2",
+    "xlsx": "^0.18.5",
+    "firebase-frameworks": "^0.11.0"
+  },
+  "engines": {
+    "node": "22"
+  },
+  "main": "server.js"
+}
+[debug] [2026-09-27T04:18:13.785Z] Building nodejs source
+[info] i  functions: Loaded environment variables from .firebase\dpw-ikadiy\functions\.env 
+[info] i  functions: Loading and analyzing source code for codebase firebase-frameworks-dpw-ikadiy to determine what to deploy 
+[debug] [2026-09-27T04:18:13.787Z] Could not find functions.yaml. Must use http discovery
+[debug] [2026-09-27T04:18:13.794Z] Found firebase-functions binary at 'D:\Projects\sim-dpwikadiy-main\.firebase\dpw-ikadiy\functions\node_modules\.bin\firebase-functions'
+[info] Serving at port 8022
+
+[debug] [2026-09-27T04:18:14.492Z] Got response from /__/functions.yaml {"endpoints":{"ssrdpwikadiy":{"availableMemoryMb":512,"timeoutSeconds":null,"minInstances":null,"maxInstances":10,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["asia-southeast1"],"labels":{},"httpsTrigger":{},"entryPoint":"ssrdpwikadiy"}},"specVersion":"v1alpha1","requiredAPIs":[],"extensions":{}}
+[debug] [2026-09-27T04:18:17.551Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:18:17.551Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:18:17.551Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/projects/suratdigitalv2/locations/-/functions [none]
+[debug] [2026-09-27T04:18:18.464Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v1/projects/suratdigitalv2/locations/-/functions 200
+[debug] [2026-09-27T04:18:18.464Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v1/projects/suratdigitalv2/locations/-/functions {"functions":[{"name":"projects/suratdigitalv2/locations/asia-southeast2/functions/ext-storage-resize-images-generateResizedImage","description":"Listens for new images uploaded to your specified Cloud Storage bucket, resizes the images, then stores the resized images in the same bucket. Optionally keeps or deletes the original images.","sourceArchiveUrl":"gs://firebase-mod-sources-prod/9bef1be55abd83c1a54ccc2dd9d9380e24e6576040868e3651eef700646c4339","eventTrigger":{"eventType":"google.storage.object.finalize","resource":"projects/_/buckets/gcf-v2-sources-46792735306-asia-east1","service":"storage.googleapis.com","failurePolicy":{}},"status":"UNKNOWN","entryPoint":"generateResizedImage","timeout":"60s","availableMemoryMb":1024,"serviceAccountEmail":"ext-storage-resize-images@suratdigitalv2.iam.gserviceaccount.com","updateTime":"2026-08-20T13:26:22.631754256Z","versionId":"1","labels":{"firebase-extensions-ar":"enabled","goog-firebase-ext":"storage-resize-images","goog-firebase-ext-iid":"storage-resize-images","deployment-tool":"firebase-extensions"},"environmentVariables":{"CONTENT_FILTER_LEVEL":"OFF","DATABASE_INSTANCE":"","DATABASE_URL":"","DELETE_ORIGINAL_FILE":"on_success","EXT_INSTANCE_ID":"storage-resize-images","FIREBASE_CONFIG":"{\"projectId\":\"suratdigitalv2\",\"databaseURL\":\"\",\"storageBucket\":\"suratdigitalv2.firebasestorage.app\"}","FUNCTION_MEMORY":"1024","GCLOUD_PROJECT":"suratdigitalv2","IMAGE_TYPE":"false","IMG_BUCKET":"gcf-v2-sources-46792735306-asia-east1","IMG_SIZES":"200x200","IS_ANIMATED":"true","LOCATION":"asia-southeast2","MAKE_PUBLIC":"false","PROJECT_ID":"suratdigitalv2","REGENERATE_TOKEN":"true","STORAGE_BUCKET":"suratdigitalv2.firebasestorage.app"},"runtime":"nodejs22","maxInstances":3000,"ingressSettings":"ALLOW_INTERNAL_ONLY","buildId":"b1607b2d-7cfc-413d-86ec-3c87ca14cf5d","buildEnvironmentVariables":{"GOOGLE_NODE_RUN_SCRIPTS":""},"buildName":"projects/46792735306/locations/asia-southeast2/builds/b1607b2d-7cfc-413d-86ec-3c87ca14cf5d","dockerRegistry":"ARTIFACT_REGISTRY","automaticUpdatePolicy":{},"buildServiceAccount":"projects/suratdigitalv2/serviceAccounts/46792735306-compute@developer.gserviceaccount.com","satisfiesPzs":true,"satisfiesPzi":true}]}
+[debug] [2026-09-27T04:18:18.465Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:18:18.465Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:18:18.466Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v2/projects/suratdigitalv2/locations/-/functions filter=environment%3D%22GEN_2%22
+[debug] [2026-09-27T04:18:20.103Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v2/projects/suratdigitalv2/locations/-/functions 200
+[debug] [2026-09-27T04:18:20.103Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v2/projects/suratdigitalv2/locations/-/functions {"functions":[{"name":"projects/suratdigitalv2/locations/asia-southeast1/functions/ssrdpwikadiy","buildConfig":{"build":"projects/46792735306/locations/asia-southeast1/builds/9a497268-b738-467e-94b1-c48103d084d2","runtime":"nodejs22","entryPoint":"ssrdpwikadiy","source":{"storageSource":{"bucket":"gcf-v2-sources-46792735306-asia-southeast1","object":"ssrdpwikadiy/function-source.zip","generation":"1790481772110727"}},"environmentVariables":{"GOOGLE_NODE_RUN_SCRIPTS":""},"dockerRepository":"projects/suratdigitalv2/locations/asia-southeast1/repositories/gcf-artifacts","sourceProvenance":{"resolvedStorageSource":{"bucket":"gcf-v2-sources-46792735306-asia-southeast1","object":"ssrdpwikadiy/function-source.zip","generation":"1790481772110727"}},"dockerRegistry":"ARTIFACT_REGISTRY","serviceAccount":"projects/suratdigitalv2/serviceAccounts/46792735306-compute@developer.gserviceaccount.com","automaticUpdatePolicy":{}},"serviceConfig":{"service":"projects/suratdigitalv2/locations/asia-southeast1/services/ssrdpwikadiy","timeoutSeconds":60,"environmentVariables":{"VERCEL_URL":"suratdigitalv2.web.app","__FIREBASE_FRAMEWORKS_ENTRY__":"next.js","__FIREBASE_DEFAULTS__":"{\"config\":{\"projectId\":\"suratdigitalv2\",\"appId\":\"1:46792735306:web:ababc2cec51a774cbe84b3\",\"storageBucket\":\"suratdigitalv2.firebasestorage.app\",\"apiKey\":\"AIzaSyB_oBi8xCjwk0Tj__FhKjjVpBIDKT0aY3Y\",\"authDomain\":\"suratdigitalv2.firebaseapp.com\",\"messagingSenderId\":\"46792735306\",\"measurementId\":\"G-0HFMKYDPM6\",\"projectNumber\":\"46792735306\",\"version\":\"2\"},\"_authTokenSyncURL\":\"/__session\"}","FIREBASE_CONFIG":"{\"projectId\":\"suratdigitalv2\",\"storageBucket\":\"suratdigitalv2.firebasestorage.app\"}","GCLOUD_PROJECT":"suratdigitalv2","EVENTARC_CLOUD_EVENT_SOURCE":"projects/suratdigitalv2/locations/asia-southeast1/services/ssrdpwikadiy","FUNCTION_REGION":"asia-southeast1","FUNCTION_TARGET":"ssrdpwikadiy","LOG_EXECUTION_ID":"true"},"maxInstanceCount":10,"ingressSettings":"ALLOW_ALL","uri":"https://ssrdpwikadiy-vomk3qsa2q-as.a.run.app","serviceAccountEmail":"46792735306-compute@developer.gserviceaccount.com","availableMemory":"512Mi","allTrafficOnLatestRevision":true,"revision":"ssrdpwikadiy-00462-tir","maxInstanceRequestConcurrency":80,"availableCpu":"1"},"state":"ACTIVE","updateTime":"2026-09-27T04:08:43.041701763Z","labels":{"firebase-functions-codebase":"firebase-frameworks-dpw-ikadiy","firebase-functions-hash":"1f99d8c33b3a028579bfb6d8b431227b38a2f360","deployment-tool":"cli-firebase"},"environment":"GEN_2","url":"https://asia-southeast1-suratdigitalv2.cloudfunctions.net/ssrdpwikadiy","satisfiesPzs":true,"createTime":"2026-03-19T14:45:33.965743871Z","satisfiesPzi":true}]}
+[info] i  extensions: ensuring required API firebaseextensions.googleapis.com is enabled... 
+[debug] [2026-09-27T04:18:20.107Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-27T04:18:20.107Z] > authorizing via signed-in user (teguhsiteg95@gmail.com)
+[debug] [2026-09-27T04:18:20.107Z] [iam] checking project suratdigitalv2 for permissions ["firebase.projects.get","firebaseextensions.instances.list"]
+[debug] [2026-09-27T04:18:20.107Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:18:20.107Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:18:20.107Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions [none]
+[debug] [2026-09-27T04:18:20.108Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions  x-goog-user-project=suratdigitalv2
+[debug] [2026-09-27T04:18:20.108Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions {"permissions":["firebase.projects.get","firebaseextensions.instances.list"]}
+[debug] [2026-09-27T04:18:20.456Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions 200
+[debug] [2026-09-27T04:18:20.457Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/suratdigitalv2:testIamPermissions {"permissions":["firebase.projects.get","firebaseextensions.instances.list"]}
+[debug] [2026-09-27T04:18:20.457Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:18:20.457Z] Checked if tokens are valid: true, expires at: 1790485207184
+[debug] [2026-09-27T04:18:20.457Z] >>> [apiv2][query] GET https://firebaseextensions.googleapis.com/v1beta/projects/suratdigitalv2/instances pageSize=100&pageToken=
+[debug] [2026-09-27T04:18:21.812Z] <<< [apiv2][status] GET https://firebaseextensions.googleapis.com/v1beta/projects/suratdigitalv2/instances 200
+[debug] [2026-09-27T04:18:21.813Z] <<< [apiv2][body] GET https://firebaseextensions.googleapis.com/v1beta/projects/suratdigitalv2/instances {"instances":[{"name":"projects/suratdigitalv2/instances/storage-resize-images","createTime":"2026-05-02T04:22:48.090805Z","updateTime":"2026-05-02T04:26:33.992547Z","state":"ERRORED","config":{"name":"projects/suratdigitalv2/instances/storage-resize-images/configurations/9085db23-b321-4258-9f23-e97087294e0f","createTime":"2026-05-02T04:22:48.090805Z","source":{"name":"projects/firebaseextensions/sources/36a70118-bd3f-4cec-b6cd-79eeb7d8a26d","packageUri":"https://storage.googleapis.com/firebase-extensions-packages-prod/firebase-storage-resize-images-0.3.3-d8e09367-236e-42c9-9bc9-ae338a29ac26.zip","hash":"a1e2bacebdfc6fb76357c40398e7bd90190168c69a0944dd5b85896dd8bf0822","extensionRoot":"/","spec":{"specVersion":"v1beta","name":"storage-resize-images","version":"0.3.3","description":"Resizes images uploaded to Cloud Storage to a specified size, and optionally keeps or deletes the original image.","apis":[{"apiName":"storage-component.googleapis.com","reason":"Needed to use Cloud Storage"}],"roles":[{"role":"storage.admin","reason":"Allows the extension to store resized images in Cloud Storage"},{"role":"aiplatform.user","reason":"Allows use of Gemini models for AI content filtering, if enabled."}],"resources":[{"name":"generateResizedImage","type":"firebaseextensions.v1beta.function","propertiesYaml":"availableMemoryMb: ${param:FUNCTION_MEMORY}\neventTrigger:\n  eventType: google.storage.object.finalize\n  resource: projects/_/buckets/${param:IMG_BUCKET}\nruntime: nodejs22\n","description":"Listens for new images uploaded to your specified Cloud Storage bucket, resizes the images, then stores the resized images in the same bucket. Optionally keeps or deletes the original images.","deletionPolicy":"DELETE"}],"billingRequired":true,"author":{"authorName":"Firebase","url":"https://firebase.google.com"},"contributors":[{"authorName":"Tina Liang","url":"https://github.com/tinaliang"},{"authorName":"Chris Bianca","email":"chris@csfrequency.com","url":"https://github.com/chrisbianca"},{"authorName":"Invertase","email":"oss@invertase.io","url":"https://github.com/invertase"}],"license":"Apache-2.0","releaseNotesUrl":"https://github.com/firebase/extensions/blob/master/storage-resize-images/CHANGELOG.md","sourceUrl":"https://github.com/firebase/extensions/tree/master/storage-resize-images","params":[{"param":"IMG_BUCKET","label":"Cloud Storage bucket for images","type":"SELECT_RESOURCE","description":"To which Cloud Storage bucket will you upload images that you want to resize? Resized images will be stored in this bucket. Depending on your extension configuration, original images are either kept or deleted. It is recommended to create a separate bucket for this extension. For more information, refer to the [pre-installation guide](https://firebase.google.com/products/extensions/storage-resize-images).\n","required":true,"default":"${STORAGE_BUCKET}","example":"my-project-12345.appspot.com","validationRegex":"^([0-9a-z_.-]*)$","validationErrorMessage":"Invalid storage bucket","resourceInfo":{"resourceType":"storage.googleapis.com/Bucket"}},{"param":"IMG_SIZES","label":"Sizes of resized images","type":"STRING","description":"What sizes of images would you like (in pixels)? Enter the sizes as a comma-separated list of WIDTHxHEIGHT values. Learn more about [how this parameter works](https://firebase.google.com/products/extensions/storage-resize-images).\n","required":true,"default":"200x200","example":"200x200","validationRegex":"^\\d+x(\\d+,\\d+x)*\\d+$","validationErrorMessage":"Invalid sizes, must be a comma-separated list of WIDTHxHEIGHT values."},{"param":"DELETE_ORIGINAL_FILE","label":"Deletion of original file","type":"SELECT","description":"Do you want to automatically delete the original file from the Cloud Storage bucket? warning: these deletions cannot be undone.","required":true,"options":[{"value":"false","label":"Don't delete"},{"value":"true","label":"Delete on any resize attempt"},{"value":"on_success","label":"Delete only on successful resize attempts"}],"default":"false"},{"param":"MAKE_PUBLIC","label":"Make resized images public","type":"SELECT","description":"Do you want to make the resized images public automatically? So you can access them by URL. For example: https://storage.googleapis.com/{bucket}/{path}","options":[{"value":"true","label":"Yes"},{"value":"false","label":"No"}],"default":"false"},{"param":"RESIZED_IMAGES_PATH","label":"Cloud Storage path for resized images","type":"STRING","description":"A relative path in which to store resized images. For example, if you specify a path here of `thumbs` and you upload an image to `/images/original.jpg`, then the resized image is stored at `/images/thumbs/original_200x200.jpg`. If you prefer to store resized images at the root of your bucket, leave this field empty.\n","example":"thumbnails"},{"param":"INCLUDE_PATH_LIST","label":"Paths that contain images you want to resize","type":"STRING","description":"Restrict storage-resize-images to only resize images in specific locations in your Storage bucket by  supplying a comma-separated list of absolute paths. For example, specifying the paths `/users/pictures,/restaurants/menuItems` will resize any images found in any subdirectories of `/users/pictures` and `/restaurants/menuItems`.\nYou may also use wildcard notation for directories in the path. For example, `/users/*/pictures` would include any images in any subdirectories of `/users/foo/pictures` as well as any images in subdirectories of `/users/bar/pictures`, but also any images in subdirectories of `/users/any/level/of/subdirectories/pictures`. \nIf you prefer not to explicitly restrict to certain directories of your Storage bucket, leave this field empty.\n","example":"/users/avatars,/design/pictures","validationRegex":"^(\\/[^\\s\\/\\,]+)+(\\,(\\/[^\\s\\/\\,]+)+)*$","validationErrorMessage":"Invalid paths, must be a comma-separated list of absolute path values."},{"param":"EXCLUDE_PATH_LIST","label":"List of absolute paths not included for resized images","type":"STRING","description":"Ensure storage-resize-images does *not* resize images in _specific locations_ in your Storage bucket by  supplying a comma-separated list of absolute paths. For example, to *exclude* the images  stored in the `/foo/alpha` and its subdirectories and `/bar/beta` and its subdirectories, specify the paths `/foo/alpha,/bar/beta`.\nYou may also use wildcard notation for directories in the path. For example, `/users/*/pictures` would exclude any images in any subdirectories of `/users/foo/pictures` as well as any images in subdirectories of `/users/bar/pictures`, but also any images in subdirectories of `/users/any/level/of/subdirectories/pictures`.\nIf you prefer to resize every image uploaded to your Storage bucket, leave this field empty.\n","example":"/users/avatars/thumbs,/design/pictures/thumbs","validationRegex":"^(\\/[^\\s\\/\\,]+)+(\\,(\\/[^\\s\\/\\,]+)+)*$","validationErrorMessage":"Invalid paths, must be a comma-separated list of absolute path values."},{"param":"FAILED_IMAGES_PATH","label":"Cloud Storage path for failed images","type":"STRING","description":"A relative path in which to store failed images. For example, if you specify a path here of `failed` and you upload an image to `/images/original.jpg`, then resizing failed, the image will be stored at `/images/failed/original.jpg`.\nLeave this field empty if you do not want to store failed images in a separate directory.\n","example":"failed","validationRegex":"^([^\\/.]*|)$","validationErrorMessage":"Values cannot include \"/\", \".\"."},{"param":"CACHE_CONTROL_HEADER","label":"Cache-Control header for resized images","type":"STRING","description":"This extension automatically copies any `Cache-Control` metadata from the original image to the resized images. For the resized images, do you want to overwrite this copied `Cache-Control` metadata or add `Cache-Control` metadata? Learn more about [`Cache-Control` headers](https://developer.mozilla.org/docs/Web/HTTP/Headers/Cache-Control). If you prefer not to overwrite or add `Cache-Control` metadata, leave this field empty.\n","example":"max-age=86400"},{"param":"IMAGE_TYPE","label":"Convert image to preferred types","type":"MULTISELECT","description":"The image types you'd like your source image to convert to.  The default for this option will be to keep the original file type as the destination file type.\n","required":true,"options":[{"value":"jpeg","label":"jpeg"},{"value":"webp","label":"webp"},{"value":"png","label":"png"},{"value":"tiff","label":"tiff"},{"value":"gif","label":"gif"},{"value":"avif","label":"avif"},{"value":"false","label":"original"}],"default":"false"},{"param":"OUTPUT_OPTIONS","label":"Output options for selected formats","type":"STRING","description":"Provide an optional output option as a stringified object containing Sharp Output Options for selected image types conversion. eg. `{\"jpeg\": { \"quality\": 5, \"chromaSubsampling\": \"4:4:4\" }, \"png\": { \"palette\": true }}` and `{\"png\":{\"compressionLevel\":9}}`. The `\"compressionLevel\": 9` specifies the level of compression for PNG images. Higher numbers here indicate greater compression, leading to smaller file sizes at the cost of potentially increased processing time and possible loss of image quality.\n","validationRegex":"^({(.*?)})$","validationErrorMessage":"Please provide a valid JSON object."},{"param":"SHARP_OPTIONS","label":"Sharp constructor options for resizing images","type":"STRING","description":"Provide an optional stringified Sharp ResizeOptions object to customize resizing behavior, eg. `{ \"fastShrinkOnLoad\": false, \"position\": “centre”, \"fit\": \"inside\" }` The `\"fit\": \"inside\"` option ensures the image fits within given dimensions, maintaining aspect ratio, scaling down as needed without cropping or distortion. Learn more about [`Sharp constructor options`](https://sharp.pixelplumbing.com/api-resize#resize).\n","validationRegex":"^({(.*?)})$","validationErrorMessage":"Please provide a valid JSON object."},{"param":"IS_ANIMATED","label":"GIF and WEBP animated option","type":"SELECT","description":"Keep animation of GIF and WEBP formats.\n","options":[{"value":"true","label":"Yes"},{"value":"false","label":"No (1st frame only)"}],"default":"true"},{"param":"FUNCTION_MEMORY","label":"Cloud Function memory","type":"SELECT","description":"Memory of the function responsible of resizing images.  Choose how much memory to give to the function that resize images. (For animated GIF => GIF we recommend using a minimum of 2GB).","required":true,"options":[{"value":"512","label":"512 MB"},{"value":"1024","label":"1 GB"},{"value":"2048","label":"2 GB"},{"value":"4096","label":"4 GB"},{"value":"8192","label":"8 GB"}],"default":"1024"},{"param":"REGENERATE_TOKEN","label":"Assign new access token","type":"SELECT","description":"Should resized images have a new access token assigned to them,  different from the original image?\n","options":[{"value":"true","label":"Yes"},{"value":"false","label":"No"}],"default":"true"},{"param":"CONTENT_FILTER_LEVEL","label":"Content filter level","type":"SELECT","description":"Set the level of content filtering to apply to uploaded images. Choose 'OFF' to disable content filtering entirely, 'BLOCK_ONLY_HIGH' to block only high-severity inappropriate content, 'BLOCK_MEDIUM_AND_ABOVE' for medium and high severity content, or 'BLOCK_LOW_AND_ABOVE' for the strictest filtering (blocks low, medium, and high severity content).\n","required":true,"options":[{"value":"OFF","label":"Off (No filtering)"},{"value":"BLOCK_ONLY_HIGH","label":"Low strictness (Block only high severity content)"},{"value":"BLOCK_MEDIUM_AND_ABOVE","label":"Medium strictness (Block medium and high severity content)"},{"value":"BLOCK_LOW_AND_ABOVE","label":"High strictness (Block low, medium, and high severity content)"}],"default":"OFF"},{"param":"CUSTOM_FILTER_PROMPT","label":"Custom content filter prompt","type":"STRING","description":"Optionally, provide a custom prompt for content filtering. This allows you to define specific criteria for filtering beyond the standard categories. Note that this prompt should be a yes/no question. For example, \"Does this image contain a cat?\" will filter out images that Gemini thinks contain a cat. This is additional filtering on top of whichever content filtering level you choose. Leave empty to use just your selected built-in content filtering configuration.\n","example":"Does this image contain violent or threatening content?"},{"param":"PLACEHOLDER_IMAGE_PATH","label":"Path to placeholder image","type":"STRING","description":"Optionally, specify a path to a placeholder image to use when an uploaded image is blocked by content filtering. This should be a relative path within your storage bucket. If not provided, a default placeholder image is used.\n","example":"placeholders/blocked-content.jpg","validationRegex":"^([a-zA-Z0-9_\\-\\./]+)\\.(png|jpg|jpeg|gif|webp)$","validationErrorMessage":"Please provide a valid image path within your bucket."}],"preinstallContent":"Use this extension to create resized versions of an image uploaded to a Cloud Storage bucket.\n\nWhen you upload a file to your specified Cloud Storage bucket, this extension:\n\n- Detects if the file is an image. If it is, then:\n  - Creates a resized image with your specified dimensions.\n  - Names the resized image using the same name as the original uploaded image, but suffixed with your specified width and height.\n  - Stores the resized image in the same Storage bucket as the original uploaded image.\n\nYou can even configure the extension to create resized images of different dimensions for each original image upload. For example, you might want images that are 200x200, 400x400, and 680x680 - this extension can create these three resized images then store them in your bucket.\n\nThe extension automatically copies the following metadata, if present, from the original image to the resized image(s): `Cache-Control`, `Content-Disposition`, `Content-Encoding`, `Content-Language`, `Content-Type`, and user-provided metadata (a new Firebase storage download token will be generated on the resized image(s) if the original metadata contains a token). Note that you can optionally configure the extension to overwrite the [`Cache-Control`](https://developer.mozilla.org/docs/Web/HTTP/Headers/Cache-Control) value for the resized image(s).\n\nThe extension supports resizing images in `JPEG`, `PNG`, `WebP`, `GIF`, `AVIF` and `TIFF` formats, and the output can be in one or more of these formats.\n\nThe extension can publish a resize completion event, which you can optionally enable when you install the extension. If you enable events, you can write custom event handlers that respond to these events. You can always enable or disable events later. Events will be emitted via Eventarc.\n\nFurthermore, you can choose if you want to receive events upon the successful completion of the image resizing. Hence, you can do anything based on the event you will receive. For example, you can use [EventArc gen2 functions](https://firebase.google.com/docs/functions/custom-events#handle-events) to be triggered on events published by the extension.\n\n#### Detailed configuration information\n\nTo configure this extension, you specify a maximum width and a maximum height (in pixels, px). This extension keeps the aspect ratio of uploaded images constant and shrinks the image until the resized image's dimensions are at or under your specified max width and height.\n\nFor example, say that you specify a max width of 200px and a max height of 100px. You upload an image that is 480px wide by 640px high, which means a 0.75 aspect ratio. The final resized image will be 75px wide by 100px high to maintain the aspect ratio while also being at or under both of your maximum specified dimensions.\n\n#### Content Filtering\n\nThis extension includes an optional content filtering system to automatically detect and block inappropriate images before resizing them. This feature leverages Google's AI models to analyze uploaded images and take action based on your specified filtering level.\n\n##### Content Filter Levels\n\nYou can configure the strictness of content filtering according to your needs:\n\n- **Off**: No content filtering is applied; all images will be processed.\n- **Low strictness**: Blocks only high-severity inappropriate content.\n- **Medium strictness**: Blocks medium and high severity inappropriate content.\n- **High strictness**: Blocks all low, medium, and high severity inappropriate content.\n\n##### Custom Filter Prompts\n\nBeyond the standard content filtering categories, you can define custom filtering criteria by providing a yes/no question as a prompt. For example:\n\n- \"Does this image contain a company logo?\"\n- \"Does this image show violent or threatening content?\"\n- \"Is this image inappropriate for children?\"\n\nThe AI model will evaluate each image against your custom prompt, and only images that meet the criteria will be processed. This provides an additional layer of filtering beyond the standard content categories.\n\n##### Placeholder Images\n\nWhen an image is blocked by content filtering, the extension will automatically replace it with a placeholder image before processing. You have two options:\n\n1. **Default placeholder**: If no custom placeholder is specified, the extension will use a built-in default placeholder image.\n\n2. **Custom placeholder**: You can provide a path to your own placeholder image within your storage bucket. This lets you use a branded or contextually appropriate image when content is blocked.\n\n##### Implementation Details\n\nWhen an image fails content filtering:\n\n1. The original image is not resized.\n2. The placeholder image (default or custom) is used for generating all configured resized versions.\n3. If you've configured a failed images path, the original image is moved to that location with metadata indicating it was blocked by content filtering.\n4. If events are enabled, an event is emitted with information about the content filtering result.\n\n##### Benefits of Content Filtering\n\n- **Brand protection**: Prevents inappropriate content from being associated with your application.\n- **User safety**: Creates a safer environment for your users by filtering harmful content.\n- **Compliance**: Helps meet regulatory requirements for content moderation.\n- **Resource optimization**: Saves processing resources by not resizing inappropriate content.\n\n##### Considerations\n\n- Content filtering adds processing overhead to the image resizing workflow.\n- AI-based filtering is not flawless, and may occasionally produce false positives or negatives.\n- For sensitive applications, consider implementing additional review processes for edge cases.\n\n#### Additional setup\n\nBefore installing this extension, make sure that you've [set up a Cloud Storage bucket](https://firebase.google.com/docs/storage) in your Firebase project.\n\n> **NOTE**: As mentioned above, this extension listens for all changes made to the specified Cloud Storage bucket. This may cause unnecessary function calls. It is recommended to create a separate Cloud Storage bucket, especially for images you want to resize, and set up this extension to listen to that bucket.\n\n#### Multiple instances of this extension\n\nYou can install multiple instances of this extension for the same project to configure different resizing options for different paths. However, as mentioned before this extension listens for all changes made to the specified Cloud Storage bucket. That means all instances will be triggered every time a file is uploaded to the bucket. Therefore, it is recommended to use different buckets instead of different paths to prevent unnecessary function calls.\n\n#### Troubleshooting\n\nIf events are enabled, and you want to create custom event handlers to respond to the events published by the extension, you must ensure that you have the appropriate [role/permissions](https://cloud.google.com/pubsub/docs/access-control#permissions_and_roles) to subscribe to Pub/Sub events.\n\n#### Example Event Handler for Successful Resize Operation\nHere is a an example of a custom event handler for events you can choose to emit from this extension:\n```typescript\nimport * as functions from 'firebase-functions';\nimport { onCustomEventPublished } from 'firebase-functions/v2/eventarc';\n\nexport const onImageResized = onCustomEventPublished(\n    \"firebase.extensions.storage-resize-images.v1.onSuccess\",\n    (event) => {\n        functions.logger.info(\"Resize Image is successful\", event);\n        // Additional operations based on the event data can be performed here\n        return Promise.resolve();\n    }\n);\n```\n\n#### AI-powered image moderation with Genkit\n\nThis extension uses the [Genkit SDK](https://genkit.dev/) to power AI-based content filtering for uploaded images. \n\nFor more information about Genkit, visit the Genkit documentation at [genkit.dev](http://genkit.dev/).\n\n#### Billing\nTo install an extension, your project must be on the [Blaze (pay as you go) plan](https://firebase.google.com/pricing)\n\n- This extension uses other Firebase and Google Cloud Platform services, which have associated charges if you exceed the service’s no-cost tier:\n - Cloud Storage\n - Cloud Functions (Node.js 10+ runtime. [See FAQs](https://firebase.google.com/support/faq#extensions-pricing))\n- If you enable events [Eventarc fees apply](https://cloud.google.com/eventarc/pricing).\n\n#### Further reading & resources\n\nYou can find more information about this extension in the following articles:\n\n- [Image Optimization With Firebase Extensions](https://invertase.link/ext-resize-images-tutorial)","postinstallContent":"### See it in action\n\nYou can test out this extension right away!\n\n1.  Go to your [Storage dashboard](https://console.firebase.google.com/project/${param:PROJECT_ID}/storage) in the Firebase console.\n\n1.  Upload an image file to the bucket: `${param:IMG_BUCKET}`\n\n1.  In a few seconds, the resized image(s) appear in the same bucket.\n\n    Note that you might need to refresh the page to see changes.\n\n### Using the extension\n\nYou can upload images using the [Cloud Storage for Firebase SDK](https://firebase.google.com/docs/storage/) for your platform (iOS, Android, or Web). Alternatively, you can upload images directly in the Firebase console's Storage dashboard.\n\nWhenever you upload an image file to `${param:IMG_BUCKET}`, this extension does the following:\n\n- Creates resized image(s) with your specified dimensions.\n- Names resized image(s) using the same name as the original uploaded image, but suffixed with the specified width and height.\n- Stores the resized image(s) in the bucket `${param:IMG_BUCKET}` (and, if configured, under the path `${param:RESIZED_IMAGES_PATH}`).\n\nThe extension also copies the following [metadata](https://cloud.google.com/storage/docs/metadata#mutable), if present, from the original image to the resized image(s):\n\n- `Cache-Control`\n- `Content-Disposition`\n- `Content-Encoding`\n- `Content-Language`\n- `Content-Type`\n- [user-provided metadata](https://cloud.google.com/storage/docs/metadata#custom-metadata)\n - If the original image contains a download token (publicly accessible via a unique download URL), a new download token is generated for the resized image(s). \n - If the original image does not contain a download token, resized image(s) will not be created with unique tokens. To make a resized image publicly accessible, call the [`getDownloadURL`](https://firebase.google.com/docs/reference/js/firebase.storage.Reference#getdownloadurl) method.\n\nBe aware of the following when using this extension:\n\n- Each original image must have a valid [image MIME type](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types#Image_types) specified in its [`Content-Type` metadata](https://developer.mozilla.org/docs/Web/HTTP/Headers/Content-Type) (for example, `image/png`). Below is a list of the content types supported by this extension:\n  * image/jpeg\n  * image/png\n  * image/tiff\n  * image/webp\n  * image/gif\n\nIf you are using raw image data in your application, you need to ensure you set the correct content type when uploading to the Firebase Storage bucket to trigger the extension image resize. Below is an example of how to set the content type:\n\n```js\nconst admin = require(\"firebase-admin\");\nconst serviceAccount = require(\"../path-to-service-account.json\");\n\nadmin.initializeApp({\n  credential: admin.credential.cert(serviceAccount),\n});\n\nconst storage = admin.storage();\n\n// rawImage param is the binary data read from the file system or downloaded from URL\nfunction uploadImageToStorage(rawImage){\n  const bucket = storage.bucket(\"YOUR FIREBASE STORAGE BUCKET URL\");\n  const file = bucket.file(\"filename.jpeg\");\n\n  file.save(\n    rawImage,\n    {\n      // set the content type to ensure the extension triggers the image resize(s)\n      metadata: { contentType: \"image/jpeg\" },\n    },\n    (error) => {\n      if (error) {\n        throw error;\n      }\n      console.log(\"Successfully uploaded image\");\n    }\n  );\n}\n```\n\n- If you configured the `Cache-Control header for resized images` parameter, your specified value will overwrite the value copied from the original image. Learn more about image metadata in the [Cloud Storage documentation](https://firebase.google.com/docs/storage/).\n\n- If you would like to optionally configure `Output options for selected formats` you can create an JSON stringified object where you can provide file [Sharp Output Options](https://sharp.pixelplumbing.com/api-output#jpeg). Please use file formats as object keys and pass correct options. Incorrect options parameters or not selected formats will be ignored. Provide it as stringified JSON object without outer quote signs and indentation:\n\n```js\n{\"jpeg\": {\"quality\": 5,\"chromaSubsampling\": '4:4:4'}, \"png\": { \"pallete\": true}}\n```\n\n### Monitoring\n\nAs a best practice, you can [monitor the activity](https://firebase.google.com/docs/extensions/manage-installed-extensions#monitor) of your installed extension, including checks on its health, usage, and logs.\n\n### Further reading & resources\n\nYou can find more information about this extension in the following articles:\n\n- [Image Optimization With Firebase Extensions](https://invertase.link/ext-resize-images-tutorial)","readmeContent":"# Resize Images\n\n**Author**: Firebase (**[https://firebase.google.com](https://firebase.google.com)**)\n\n**Description**: Resizes images uploaded to Cloud Storage to a specified size, and optionally keeps or deletes the original image.\n\n\n\n**Details**: Use this extension to create resized versions of an image uploaded to a Cloud Storage bucket.\n\nWhen you upload a file to your specified Cloud Storage bucket, this extension:\n\n- Detects if the file is an image. If it is, then:\n  - Creates a resized image with your specified dimensions.\n  - Names the resized image using the same name as the original uploaded image, but suffixed with your specified width and height.\n  - Stores the resized image in the same Storage bucket as the original uploaded image.\n\nYou can even configure the extension to create resized images of different dimensions for each original image upload. For example, you might want images that are 200x200, 400x400, and 680x680 - this extension can create these three resized images then store them in your bucket.\n\nThe extension automatically copies the following metadata, if present, from the original image to the resized image(s): `Cache-Control`, `Content-Disposition`, `Content-Encoding`, `Content-Language`, `Content-Type`, and user-provided metadata (a new Firebase storage download token will be generated on the resized image(s) if the original metadata contains a token). Note that you can optionally configure the extension to overwrite the [`Cache-Control`](https://developer.mozilla.org/docs/Web/HTTP/Headers/Cache-Control) value for the resized image(s).\n\nThe extension supports resizing images in `JPEG`, `PNG`, `WebP`, `GIF`, `AVIF` and `TIFF` formats, and the output can be in one or more of these formats.\n\nThe extension can publish a resize completion event, which you can optionally enable when you install the extension. If you enable events, you can write custom event handlers that respond to these events. You can always enable or disable events later. Events will be emitted via Eventarc.\n\nFurthermore, you can choose if you want to receive events upon the successful completion of the image resizing. Hence, you can do anything based on the event you will receive. For example, you can use [EventArc gen2 functions](https://firebase.google.com/docs/functions/custom-events#handle-events) to be triggered on events published by the extension.\n\n#### Detailed configuration information\n\nTo configure this extension, you specify a maximum width and a maximum height (in pixels, px). This extension keeps the aspect ratio of uploaded images constant and shrinks the image until the resized image's dimensions are at or under your specified max width and height.\n\nFor example, say that you specify a max width of 200px and a max height of 100px. You upload an image that is 480px wide by 640px high, which means a 0.75 aspect ratio. The final resized image will be 75px wide by 100px high to maintain the aspect ratio while also being at or under both of your maximum specified dimensions.\n\n#### Content Filtering\n\nThis extension includes an optional content filtering system to automatically detect and block inappropriate images before resizing them. This feature leverages Google's AI models to analyze uploaded images and take action based on your specified filtering level.\n\n##### Content Filter Levels\n\nYou can configure the strictness of content filtering according to your needs:\n\n- **Off**: No content filtering is applied; all images will be processed.\n- **Low strictness**: Blocks only high-severity inappropriate content.\n- **Medium strictness**: Blocks medium and high severity inappropriate content.\n- **High strictness**: Blocks all low, medium, and high severity inappropriate content.\n\n##### Custom Filter Prompts\n\nBeyond the standard content filtering categories, you can define custom filtering criteria by providing a yes/no question as a prompt. For example:\n\n- \"Does this image contain a company logo?\"\n- \"Does this image show violent or threatening content?\"\n- \"Is this image inappropriate for children?\"\n\nThe AI model will evaluate each image against your custom prompt, and only images that meet the criteria will be processed. This provides an additional layer of filtering beyond the standard content categories.\n\n##### Placeholder Images\n\nWhen an image is blocked by content filtering, the extension will automatically replace it with a placeholder image before processing. You have two options:\n\n1. **Default placeholder**: If no custom placeholder is specified, the extension will use a built-in default placeholder image.\n\n2. **Custom placeholder**: You can provide a path to your own placeholder image within your storage bucket. This lets you use a branded or contextually appropriate image when content is blocked.\n\n##### Implementation Details\n\nWhen an image fails content filtering:\n\n1. The original image is not resized.\n2. The placeholder image (default or custom) is used for generating all configured resized versions.\n3. If you've configured a failed images path, the original image is moved to that location with metadata indicating it was blocked by content filtering.\n4. If events are enabled, an event is emitted with information about the content filtering result.\n\n##### Benefits of Content Filtering\n\n- **Brand protection**: Prevents inappropriate content from being associated with your application.\n- **User safety**: Creates a safer environment for your users by filtering harmful content.\n- **Compliance**: Helps meet regulatory requirements for content moderation.\n- **Resource optimization**: Saves processing resources by not resizing inappropriate content.\n\n##### Considerations\n\n- Content filtering adds processing overhead to the image resizing workflow.\n- AI-based filtering is not flawless, and may occasionally produce false positives or negatives.\n- For sensitive applications, consider implementing additional review processes for edge cases.\n\n#### Additional setup\n\nBefore installing this extension, make sure that you've [set up a Cloud Storage bucket](https://firebase.google.com/docs/storage) in your Firebase project.\n\n> **NOTE**: As mentioned above, this extension listens for all changes made to the specified Cloud Storage bucket. This may cause unnecessary function calls. It is recommended to create a separate Cloud Storage bucket, especially for images you want to resize, and set up this extension to listen to that bucket.\n\n#### Multiple instances of this extension\n\nYou can install multiple instances of this extension for the same project to configure different resizing options for different paths. However, as mentioned before this extension listens for all changes made to the specified Cloud Storage bucket. That means all instances will be triggered every time a file is uploaded to the bucket. Therefore, it is recommended to use different buckets instead of different paths to prevent unnecessary function calls.\n\n#### Troubleshooting\n\nIf events are enabled, and you want to create custom event handlers to respond to the events published by the extension, you must ensure that you have the appropriate [role/permissions](https://cloud.google.com/pubsub/docs/access-control#permissions_and_roles) to subscribe to Pub/Sub events.\n\n#### Example Event Handler for Successful Resize Operation\nHere is a an example of a custom event handler for events you can choose to emit from this extension:\n```typescript\nimport * as functions from 'firebase-functions';\nimport { onCustomEventPublished } from 'firebase-functions/v2/eventarc';\n\nexport const onImageResized = onCustomEventPublished(\n    \"firebase.extensions.storage-resize-images.v1.onSuccess\",\n    (event) => {\n        functions.logger.info(\"Resize Image is successful\", event);\n        // Additional operations based on the event data can be performed here\n        return Promise.resolve();\n    }\n);\n```\n\n#### AI-powered image moderation with Genkit\n\nThis extension uses the [Genkit SDK](https://genkit.dev/) to power AI-based content filtering for uploaded images. \n\nFor more information about Genkit, visit the Genkit documentation at [genkit.dev](http://genkit.dev/).\n\n#### Billing\nTo install an extension, your project must be on the [Blaze (pay as you go) plan](https://firebase.google.com/pricing)\n\n- This extension uses other Firebase and Google Cloud Platform services, which have associated charges if you exceed the service’s no-cost tier:\n - Cloud Storage\n - Cloud Functions (Node.js 10+ runtime. [See FAQs](https://firebase.google.com/support/faq#extensions-pricing))\n- If you enable events [Eventarc fees apply](https://cloud.google.com/eventarc/pricing).\n\n#### Further reading & resources\n\nYou can find more information about this extension in the following articles:\n\n- [Image Optimization With Firebase Extensions](https://invertase.link/ext-resize-images-tutorial)\n\n\n\n**Configuration Parameters:**\n\n* Cloud Storage bucket for images: To which Cloud Storage bucket will you upload images that you want to resize? Resized images will be stored in this bucket. Depending on your extension configuration, original images are either kept or deleted. It is recommended to create a separate bucket for this extension. For more information, refer to the [pre-installation guide](https://firebase.google.com/products/extensions/storage-resize-images).\n\n\n* Sizes of resized images: What sizes of images would you like (in pixels)? Enter the sizes as a comma-separated list of WIDTHxHEIGHT values. Learn more about [how this parameter works](https://firebase.google.com/products/extensions/storage-resize-images).\n\n\n* Deletion of original file: Do you want to automatically delete the original file from the Cloud Storage bucket? Warning: these deletions cannot be undone.\n\n* Make resized images public: Do you want to make the resized images public automatically? So you can access them by URL. For example: https://storage.googleapis.com/{bucket}/{path}\n\n* Cloud Storage path for resized images: A relative path in which to store resized images. For example, if you specify a path here of `thumbs` and you upload an image to `/images/original.jpg`, then the resized image is stored at `/images/thumbs/original_200x200.jpg`. If you prefer to store resized images at the root of your bucket, leave this field empty.\n\n\n* Paths that contain images you want to resize: Restrict storage-resize-images to only resize images in specific locations in your Storage bucket by  supplying a comma-separated list of absolute paths. For example, specifying the paths `/users/pictures,/restaurants/menuItems` will resize any images found in any subdirectories of `/users/pictures` and `/restaurants/menuItems`.\nYou may also use wildcard notation for directories in the path. For example, `/users/*/pictures` would include any images in any subdirectories of `/users/foo/pictures` as well as any images in subdirectories of `/users/bar/pictures`, but also any images in subdirectories of `/users/any/level/of/subdirectories/pictures`. \nIf you prefer not to explicitly restrict to certain directories of your Storage bucket, leave this field empty.\n\n\n* List of absolute paths not included for resized images: Ensure storage-resize-images does *not* resize images in _specific locations_ in your Storage bucket by  supplying a comma-separated list of absolute paths. For example, to *exclude* the images  stored in the `/foo/alpha` and its subdirectories and `/bar/beta` and its subdirectories, specify the paths `/foo/alpha,/bar/beta`.\nYou may also use wildcard notation for directories in the path. For example, `/users/*/pictures` would exclude any images in any subdirectories of `/users/foo/pictures` as well as any images in subdirectories of `/users/bar/pictures`, but also any images in subdirectories of `/users/any/level/of/subdirectories/pictures`.\nIf you prefer to resize every image uploaded to your Storage bucket, leave this field empty.\n\n\n* Cloud Storage path for failed images: A relative path in which to store failed images. For example, if you specify a path here of `failed` and you upload an image to `/images/original.jpg`, then resizing failed, the image will be stored at `/images/failed/original.jpg`.\nLeave this field empty if you do not want to store failed images in a separate directory.\n\n\n* Cache-Control header for resized images: This extension automatically copies any `Cache-Control` metadata from the original image to the resized images. For the resized images, do you want to overwrite this copied `Cache-Control` metadata or add `Cache-Control` metadata? Learn more about [`Cache-Control` headers](https://developer.mozilla.org/docs/Web/HTTP/Headers/Cache-Control). If you prefer not to overwrite or add `Cache-Control` metadata, leave this field empty.\n\n\n* Convert image to preferred types: The image types you'd like your source image to convert to.  The default for this option will be to keep the original file type as the destination file type.\n\n\n* Output options for selected formats: Provide an optional output option as a stringified object containing Sharp Output Options for selected image types conversion. eg. `{\"jpeg\": { \"quality\": 5, \"chromaSubsampling\": \"4:4:4\" }, \"png\": { \"palette\": true }}` and `{\"png\":{\"compressionLevel\":9}}`. The `\"compressionLevel\": 9` specifies the level of compression for PNG images. Higher numbers here indicate greater compression, leading to smaller file sizes at the cost of potentially increased processing time and possible loss of image quality.\n\n\n* Sharp constructor options for resizing images: Provide an optional stringified Sharp ResizeOptions object to customize resizing behavior, eg. `{ \"fastShrinkOnLoad\": false, \"position\": “centre”, \"fit\": \"inside\" }` The `\"fit\": \"inside\"` option ensures the image fits within given dimensions, maintaining aspect ratio, scaling down as needed without cropping or distortion. Learn more about [`Sharp constructor options`](https://sharp.pixelplumbing.com/api-resize#resize).\n\n\n* GIF and WEBP animated option: Keep animation of GIF and WEBP formats.\n\n\n* Cloud Function memory: Memory of the function responsible of resizing images.  Choose how much memory to give to the function that resize images. (For animated GIF => GIF we recommend using a minimum of 2GB).\n\n* Assign new access token: Should resized images have a new access token assigned to them,  different from the original image?\n\n\n* Content filter level: Set the level of content filtering to apply to uploaded images. Choose 'OFF' to disable content filtering entirely, 'BLOCK_ONLY_HIGH' to block only high-severity inappropriate content, 'BLOCK_MEDIUM_AND_ABOVE' for medium and high severity content, or 'BLOCK_LOW_AND_ABOVE' for the strictest filtering (blocks low, medium, and high severity content).\n\n\n* Custom content filter prompt: Optionally, provide a custom prompt for content filtering. This allows you to define specific criteria for filtering beyond the standard categories. Note that this prompt should be a yes/no question. For example, \"Does this image contain a cat?\" will filter out images that Gemini thinks contain a cat. This is additional filtering on top of whichever content filtering level you choose. Leave empty to use just your selected built-in content filtering configuration.\n\n\n* Path to placeholder image: Optionally, specify a path to a placeholder image to use when an uploaded image is blocked by content filtering. This should be a relative path within your storage bucket. If not provided, a default placeholder image is used.\n\n\n\n\n**Cloud Functions:**\n\n* **generateResizedImage:** Listens for new images uploaded to your specified Cloud Storage bucket, resizes the images, then stores the resized images in the same bucket. Optionally keeps or deletes the original images.\n\n\n\n**APIs Used**:\n\n* storage-component.googleapis.com (Reason: Needed to use Cloud Storage)\n\n\n\n**Access Required**:\n\n\n\nThis extension will operate with the following project IAM roles:\n\n* storage.admin (Reason: Allows the extension to store resized images in Cloud Storage)\n\n* aiplatform.user (Reason: Allows use of Gemini models for AI content filtering, if enabled.)\n","displayName":"Resize Images","events":[{"type":"firebase.extensions.storage-resize-images.v1.onStart","description":"Occurs when a trigger has been called within the Extension, and will include data such as the context of the trigger request."},{"type":"firebase.extensions.storage-resize-images.v1.onSuccess","description":"Occurs when image resizing completes successfully. The event will contain further details about specific formats and sizes."},{"type":"firebase.extensions.storage-resize-images.v1.onError","description":"Occurs when an issue has been experienced in the Extension. This will include any error data that has been included within the Error Exception."},{"type":"firebase.extensions.storage-resize-images.v1.onCompletion","description":"Occurs when the function is settled. Provides no customized data other than the context."},{"type":"firebase.extensions.storage-resize-images.v1.onStartResize","description":"Occurs when an image resize operation completes successfully. This event is only triggered when shouldResize returns true and the resize operation succeeds."}]},"fetchTime":"2026-04-20T15:54:22.268218Z","lastOperationName":"projects/firebaseextensions/operations/de945908-fae1-42c5-af3a-f1dbd0dcac5f","state":"ACTIVE"},"params":{"IMAGE_TYPE":"false","REGENERATE_TOKEN":"true","CONTENT_FILTER_LEVEL":"OFF","FUNCTION_MEMORY":"1024","MAKE_PUBLIC":"false","IS_ANIMATED":"true","IMG_BUCKET":"gcf-v2-sources-46792735306-asia-east1","DELETE_ORIGINAL_FILE":"on_success","IMG_SIZES":"200x200"},"populatedPostinstallContent":"### See it in action\n\nYou can test out this extension right away!\n\n1.  Go to your [Storage dashboard](https://console.firebase.google.com/project/suratdigitalv2/storage) in the Firebase console.\n\n1.  Upload an image file to the bucket: `gcf-v2-sources-46792735306-asia-east1`\n\n1.  In a few seconds, the resized image(s) appear in the same bucket.\n\n    Note that you might need to refresh the page to see changes.\n\n### Using the extension\n\nYou can upload images using the [Cloud Storage for Firebase SDK](https://firebase.google.com/docs/storage/) for your platform (iOS, Android, or Web). Alternatively, you can upload images directly in the Firebase console's Storage dashboard.\n\nWhenever you upload an image file to `gcf-v2-sources-46792735306-asia-east1`, this extension does the following:\n\n- Creates resized image(s) with your specified dimensions.\n- Names resized image(s) using the same name as the original uploaded image, but suffixed with the specified width and height.\n- Stores the resized image(s) in the bucket `gcf-v2-sources-46792735306-asia-east1` (and, if configured, under the path `{ unspecified parameter }`).\n\nThe extension also copies the following [metadata](https://cloud.google.com/storage/docs/metadata#mutable), if present, from the original image to the resized image(s):\n\n- `Cache-Control`\n- `Content-Disposition`\n- `Content-Encoding`\n- `Content-Language`\n- `Content-Type`\n- [user-provided metadata](https://cloud.google.com/storage/docs/metadata#custom-metadata)\n - If the original image contains a download token (publicly accessible via a unique download URL), a new download token is generated for the resized image(s). \n - If the original image does not contain a download token, resized image(s) will not be created with unique tokens. To make a resized image publicly accessible, call the [`getDownloadURL`](https://firebase.google.com/docs/reference/js/firebase.storage.Reference#getdownloadurl) method.\n\nBe aware of the following when using this extension:\n\n- Each original image must have a valid [image MIME type](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types#Image_types) specified in its [`Content-Type` metadata](https://developer.mozilla.org/docs/Web/HTTP/Headers/Content-Type) (for example, `image/png`). Below is a list of the content types supported by this extension:\n  * image/jpeg\n  * image/png\n  * image/tiff\n  * image/webp\n  * image/gif\n\nIf you are using raw image data in your application, you need to ensure you set the correct content type when uploading to the Firebase Storage bucket to trigger the extension image resize. Below is an example of how to set the content type:\n\n```js\nconst admin = require(\"firebase-admin\");\nconst serviceAccount = require(\"../path-to-service-account.json\");\n\nadmin.initializeApp({\n  credential: admin.credential.cert(serviceAccount),\n});\n\nconst storage = admin.storage();\n\n// rawImage param is the binary data read from the file system or downloaded from URL\nfunction uploadImageToStorage(rawImage){\n  const bucket = storage.bucket(\"YOUR FIREBASE STORAGE BUCKET URL\");\n  const file = bucket.file(\"filename.jpeg\");\n\n  file.save(\n    rawImage,\n    {\n      // set the content type to ensure the extension triggers the image resize(s)\n      metadata: { contentType: \"image/jpeg\" },\n    },\n    (error) => {\n      if (error) {\n        throw error;\n      }\n      console.log(\"Successfully uploaded image\");\n    }\n  );\n}\n```\n\n- If you configured the `Cache-Control header for resized images` parameter, your specified value will overwrite the value copied from the original image. Learn more about image metadata in the [Cloud Storage documentation](https://firebase.google.com/docs/storage/).\n\n- If you would like to optionally configure `Output options for selected formats` you can create an JSON stringified object where you can provide file [Sharp Output Options](https://sharp.pixelplumbing.com/api-output#jpeg). Please use file formats as object keys and pass correct options. Incorrect options parameters or not selected formats will be ignored. Provide it as stringified JSON object without outer quote signs and indentation:\n\n```js\n{\"jpeg\": {\"quality\": 5,\"chromaSubsampling\": '4:4:4'}, \"png\": { \"pallete\": true}}\n```\n\n### Monitoring\n\nAs a best practice, you can [monitor the activity](https://firebase.google.com/docs/extensions/manage-installed-extensions#monitor) of your installed extension, including checks on its health, usage, and logs.\n\n### Further reading & resources\n\nYou can find more information about this extension in the following articles:\n\n- [Image Optimization With Firebase Extensions](https://invertase.link/ext-resize-images-tutorial)","extensionRef":"firebase/storage-resize-images","extensionVersion":"0.3.3","systemParams":{"firebaseextensions.v1beta.function/vpcConnectorEgressSettings":"VPC_CONNECTOR_EGRESS_SETTINGS_UNSPECIFIED","firebaseextensions.v1beta.function/minInstances":"0","firebaseextensions.v1beta.function/location":"asia-southeast2"}},"errorStatus":{"code":13,"message":"; RESOURCE_ERROR at /deployments/firebase-ext-storage-resize-images/resources/generateResizedImage: {\"ResourceType\":\"gcp-types/cloudfunctions-v1:projects.locations.functions\",\"ResourceErrorCode\":\"500\",\"ResourceErrorMessage\":\"Gen1 operation for function projects/suratdigitalv2/locations/asia-southeast2/functions/ext-storage-resize-images-generateResizedImage failed: Failed to configure trigger providers/cloud.storage/eventTypes/object.change.\"}"},"lastOperationName":"projects/suratdigitalv2/operations/204e38e7-6664-48a1-8913-9dde23f47647","serviceAccountEmail":"ext-storage-resize-images@suratdigitalv2.iam.gserviceaccount.com","lastOperationType":"CREATE","etag":"d0741c90f3aedc10222ebb7a63267c6c7a08b8ce294d869792521bbd78818c45"}]}
+[info] i  functions: Loaded environment variables from .firebase\dpw-ikadiy\functions\.env 
+[debug] [2026-09-27T04:18:21.815Z] Attempting to merge .env secret bindings {} into declared secrets...)}
+[debug] [2026-09-27T04:18:21.815Z] ssrdpwikadiy declared secrets: undefined
+[info] i  functions: preparing .firebase\dpw-ikadiy\functions directory for uploading... 

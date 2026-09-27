@@ -395,13 +395,7 @@ export default function ParticipantDashboard() {
         throw new Error(err.error || "Gagal menyimpan ke server");
       }
 
-      // Trigger Email ke Admin
-      sendEmailAction({
-          type: "admin_notif_run",
-          email: "236102601@uii.ac.id", // Ganti dengan email asli admin
-          nama: participant.nama,
-          detail: { jarakKm: uploadData.km },
-        }).catch((e) => console.log(e));
+      // Notifikasi ke Admin dialihkan sepenuhnya via Bot Telegram (Email notifikasi admin dinonaktifkan)
 
       setPopup({
         type: "success",
@@ -477,13 +471,7 @@ export default function ParticipantDashboard() {
             });
             const verifyData = await verifyRes.json();
 
-            // Trigger Email ke Admin
-            sendEmailAction({
-                type: "admin_notif_payment",
-                email: "236102601@uii.ac.id", // Email Admin
-                nama: participant.nama,
-                detail: {},
-              }).catch((e) => console.log(e));
+            // Notifikasi pembayaran ke Admin dialihkan sepenuhnya via Bot Telegram (Email admin dinonaktifkan)
 
             if (verifyRes.ok && verifyData?.success) {
               setPopup({
@@ -706,6 +694,74 @@ export default function ParticipantDashboard() {
   const isSubmissionEnded = vrSettings?.periodeLariEnd ? currentTime > new Date(vrSettings.periodeLariEnd) : false;
   const isSubmissionOpen = isSubmissionStarted && !isSubmissionEnded;
   const totalAktivitas = approvedSubmissions.length;
+  const eventTitle = vrSettings?.eventName || vrSettings?.landingTitle || vrSettings?.offlineJudul || "SEMBADA RUN 2026";
+
+  // --- 🔥 LOGIKA COUNTDOWN TIMER PERIODE SUBMIT LARI 🔥 ---
+  const [submissionTimeLeft, setSubmissionTimeLeft] = useState<{
+    status: "waiting" | "running" | "ended" | "none";
+    hari: number;
+    jam: number;
+    menit: number;
+    detik: number;
+    targetDateStr: string;
+  }>({ status: "none", hari: 0, jam: 0, menit: 0, detik: 0, targetDateStr: "" });
+
+  useEffect(() => {
+    if (!vrSettings) return;
+
+    const startDate = vrSettings.periodeLariStart ? new Date(vrSettings.periodeLariStart) : null;
+    const endDate = vrSettings.periodeLariEnd ? new Date(vrSettings.periodeLariEnd) : null;
+
+    const updateCountdown = () => {
+      const now = new Date();
+      let target: Date | null = null;
+      let status: "waiting" | "running" | "ended" | "none" = "none";
+      let targetDateStr = "";
+
+      if (startDate && now < startDate) {
+        target = startDate;
+        status = "waiting";
+        targetDateStr = startDate.toLocaleDateString("id-ID", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      } else if (endDate && now < endDate) {
+        target = endDate;
+        status = "running";
+        targetDateStr = endDate.toLocaleDateString("id-ID", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      } else if (endDate && now >= endDate) {
+        status = "ended";
+      }
+
+      if (!target || status === "ended") {
+        setSubmissionTimeLeft({ status, hari: 0, jam: 0, menit: 0, detik: 0, targetDateStr });
+        return;
+      }
+
+      const diff = Math.max(0, +target - +now);
+      setSubmissionTimeLeft({
+        status,
+        targetDateStr,
+        hari: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        jam: Math.floor((diff / (1000 * 60 * 60)) % 24),
+        menit: Math.floor((diff / (1000 * 60)) % 60),
+        detik: Math.floor((diff / 1000) % 60),
+      });
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [vrSettings]);
 
   const hitungTotalDurasi = () => {
     let totalSeconds = 0;
@@ -1478,27 +1534,103 @@ export default function ParticipantDashboard() {
           ctx.drawImage(img, 0, 0);
 
         ctx.textAlign = "center";
-        ctx.fillStyle = "#1e3a8a";
 
         if (type === "bib") {
-          ctx.font = "bold 80px Arial";
-          const namaCetakBib = participant.namaBib || participant.nama;
-          ctx.fillText(
-            namaCetakBib.toUpperCase(),
-            canvas.width / 2,
-            canvas.height / 2 + 50,
-          );
-          ctx.font = "bold 50px Arial";
-          ctx.fillText(
-            `KATEGORI: ${participant.jarak}`,
-            canvas.width / 2,
-            canvas.height / 2 + 150,
-          );
-          // 🔥 TAMBAHAN UNTUK CUSTOM TEMPLATE 🔥
-          const bibNum = participant.nomorBibLengkap || "0000";
-          ctx.font = "bold 120px Arial";
-          ctx.fillText(bibNum, canvas.width / 2, canvas.height / 2 - 80);
+          // 🔥 1. NOMOR BIB (BESAR, BOLD, MAKSIMAL & PRESISI DI TENGAH) 🔥
+          const bibNum = (participant.nomorBibLengkap || participant.nomorBIB || participant.bibNumber || "0000").toString();
+          const namaCetakBib = (participant.namaBib || participant.nama || "RUNNER").toString().toUpperCase();
+          
+          // Format Kategori: Bersih "10 KM" (atau sesuai jarak peserta)
+          let kategoriDisplay = "10 KM";
+          if (participant.jarak) {
+            const rawJarak = participant.jarak.toString().toUpperCase().trim();
+            if (rawJarak.includes("KM")) {
+              kategoriDisplay = rawJarak;
+            } else if (rawJarak.endsWith("K")) {
+              kategoriDisplay = `${rawJarak.slice(0, -1)} KM`;
+            } else {
+              kategoriDisplay = `${rawJarak} KM`;
+            }
+          }
+
+          // 1. NOMOR BIB (SUPER BOLD & EXTRA BESAR DI TENGAH)
+          const numFontSize = Math.round(canvas.width * 0.175); // ~435px di 2480px
+          ctx.font = `900 ${numFontSize}px Arial, "Helvetica Neue", Impact, sans-serif`;
+          ctx.fillStyle = "#FFFFFF";
+          ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+          ctx.shadowBlur = Math.round(canvas.width * 0.01);
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = Math.round(canvas.width * 0.005);
+          ctx.fillText(bibNum, canvas.width / 2, canvas.height * 0.48);
+
+          // 2. NAMA BIB (DI BAWAH NOMOR - AUTO UPPERCASE)
+          const nameFontSize = Math.round(canvas.width * 0.052); // ~130px di 2480px
+          ctx.font = `bold ${nameFontSize}px Arial, "Helvetica Neue", sans-serif`;
+          ctx.fillStyle = "#FFFFFF";
+          ctx.shadowBlur = Math.round(canvas.width * 0.006);
+          ctx.shadowOffsetY = Math.round(canvas.width * 0.003);
+          ctx.fillText(namaCetakBib, canvas.width / 2, canvas.height * 0.65);
+
+          // 3. KATEGORI (CLEAN "10 KM" WARNA KUNING GOLD)
+          const catFontSize = Math.round(canvas.width * 0.034); // ~85px di 2480px
+          ctx.font = `bold ${catFontSize}px Arial, "Helvetica Neue", sans-serif`;
+          ctx.fillStyle = "#FCD116"; // Gold Kuning Sembada
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetY = 0;
+          ctx.fillText(kategoriDisplay, canvas.width / 2, canvas.height * 0.77);
+
+          // 4. QR CODE (UNTUK SCAN & MASUK KE PROFIL VERIFIKASI / SHARE)
+          const qrElement = document.getElementById("qr-bib-vr") as HTMLCanvasElement;
+          if (qrElement) {
+            const qrSize = Math.round(canvas.width * 0.082); // ~203px di 2480px
+            const qrPadding = Math.round(canvas.width * 0.008);
+            const qrX = canvas.width - qrSize - Math.round(canvas.width * 0.045);
+            const qrY = Math.round(canvas.height * 0.65);
+
+            // Container Kartu Putih untuk QR Code
+            ctx.shadowColor = "rgba(0, 0, 0, 0.25)";
+            ctx.shadowBlur = Math.round(canvas.width * 0.008);
+            ctx.shadowOffsetY = Math.round(canvas.width * 0.004);
+            ctx.fillStyle = "#FFFFFF";
+            ctx.beginPath();
+            if (typeof ctx.roundRect === "function") {
+              ctx.roundRect(
+                qrX - qrPadding,
+                qrY - qrPadding,
+                qrSize + (qrPadding * 2),
+                qrSize + (qrPadding * 2) + Math.round(canvas.width * 0.016),
+                Math.round(canvas.width * 0.006)
+              );
+            } else {
+              ctx.rect(
+                qrX - qrPadding,
+                qrY - qrPadding,
+                qrSize + (qrPadding * 2),
+                qrSize + (qrPadding * 2) + Math.round(canvas.width * 0.016)
+              );
+            }
+            ctx.fill();
+
+            // Render QR Code dari hidden canvas
+            ctx.shadowColor = "transparent";
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.drawImage(qrElement, qrX, qrY, qrSize, qrSize);
+
+            // Teks Label di bawah QR
+            ctx.font = `bold ${Math.round(canvas.width * 0.010)}px Arial, sans-serif`;
+            ctx.fillStyle = "#0B2239";
+            ctx.textAlign = "center";
+            ctx.fillText("SCAN PROFIL", qrX + (qrSize / 2), qrY + qrSize + Math.round(canvas.width * 0.012));
+          }
+
+          // Reset shadow
+          ctx.shadowColor = "transparent";
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
         } else {
+          ctx.fillStyle = "#1e3a8a";
           ctx.font = "bold 100px Arial";
           ctx.fillText(
             participant.nama.toUpperCase(),
@@ -1552,7 +1684,7 @@ export default function ParticipantDashboard() {
 
   return (
     <div
-      className={`min-h-screen font-sans ${participant ? "pb-20 bg-[#F4F7FB]" : "w-full flex flex-col lg:flex-row bg-white"}`}
+      className={`min-h-screen font-sans flex flex-col ${participant ? "bg-[#F4F7FB]" : "w-full lg:flex-row bg-white"}`}
     >
       {/* 🚀 KOMPONEN QR CODE TERSEMBUNYI UNTUK DISEDOT OLEH CANVAS */}
       {participant && (
@@ -1568,6 +1700,13 @@ export default function ParticipantDashboard() {
             id="qr-sertifikat-vr"
             value={`${baseUrl}/virtual-run/verify/${participant.id}`}
             size={300}
+            level={"H"}
+            includeMargin={true}
+          />
+          <QRCodeCanvas
+            id="qr-bib-vr"
+            value={`${baseUrl}/virtual-run/verify/${participant.id}`}
+            size={400}
             level={"H"}
             includeMargin={true}
           />
@@ -1633,8 +1772,8 @@ export default function ParticipantDashboard() {
               </div>
     
               <h1 className="text-4xl lg:text-5xl font-black text-white tracking-tight mb-4 leading-tight">
-                Virtual Run <br />
-                <span className="text-yellow-400">IKA UII DIY</span>
+                {eventTitle} <br />
+                <span className="text-yellow-400">VIRTUAL RUN</span>
               </h1>
     
               <div className="w-12 h-1.5 bg-yellow-500 rounded-full mb-8"></div>
@@ -1665,11 +1804,11 @@ export default function ParticipantDashboard() {
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <h1 className="text-3xl font-black text-blue-950 tracking-tight leading-none mb-1.5">
-                  Virtual Run
+                <h1 className="text-2xl font-black text-blue-950 tracking-tight leading-none mb-1.5">
+                  {eventTitle}
                 </h1>
                 <p className="text-xs font-bold text-yellow-600 tracking-[0.2em] uppercase">
-                  IKA UII DIY
+                  VIRTUAL RUN
                 </p>
               </div>
     
@@ -1839,7 +1978,7 @@ export default function ParticipantDashboard() {
                 {activeView === "dashboard" ? (
                   <div className="font-black text-xl tracking-tight flex items-center gap-2">
                     <Activity className="w-6 h-6 text-blue-300" />
-                    IKA UII DIY <span className="text-yellow-400">RUN</span>
+                    {eventTitle} <span className="text-yellow-400">VIRTUAL</span>
                   </div>
                 ) : (
                   <button
@@ -1973,7 +2112,7 @@ export default function ParticipantDashboard() {
                       </div>
 
                       <h1 className="text-3xl md:text-5xl font-black mb-3 tracking-tight drop-shadow-md">
-                        Virtual Run IKA UII
+                        {eventTitle}
                       </h1>
                       <div className="flex flex-wrap items-center gap-3">
                         <p className="text-blue-200 text-sm font-bold flex items-center gap-1.5 bg-black/20 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-md">
@@ -2121,7 +2260,7 @@ export default function ParticipantDashboard() {
           </div>
 
           {/* MAIN CONTENT AREA */}
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 -mt-8 relative z-10">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 -mt-8 mb-24 sm:mb-32 relative z-10 flex-grow w-full">
             {/* CONTENT: DASHBOARD VIEW */}
             {activeView === "dashboard" && (
               <div className="grid lg:grid-cols-12 gap-6 items-start animate-in fade-in slide-in-from-bottom-4">
@@ -2697,13 +2836,54 @@ export default function ParticipantDashboard() {
                           </p>
                         </div>
                       ) : !isSubmissionOpen ? (
-                        <div className="text-center py-10 bg-slate-50 border border-slate-100 rounded-2xl">
-                          <div className="w-14 h-14 bg-white border border-slate-200 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-slate-400">
-                            <Clock className="w-6 h-6" />
+                        <div className="text-center py-8 px-4 bg-slate-50 border border-slate-200/80 rounded-2xl">
+                          <div className="w-12 h-12 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-center mx-auto mb-3 text-blue-600 shadow-sm">
+                            <Clock className="w-6 h-6 text-blue-600" />
                           </div>
-                          <p className="text-sm font-bold text-slate-600 px-4">
-                            {!isSubmissionStarted ? "Periode submit bukti lari belum dimulai. Pemanasan dulu ya!" : "Waktu submit bukti lari telah berakhir."}
+                          <h4 className="text-sm font-bold text-slate-800 mb-1">
+                            {!isSubmissionStarted ? "Periode Submit Belum Dimulai" : "Waktu Submit Telah Berakhir"}
+                          </h4>
+                          <p className="text-xs text-slate-500 max-w-sm mx-auto mb-5">
+                            {!isSubmissionStarted
+                              ? "Simpan bukti larimu dari Strava atau Garmin. Formulir upload akan terbuka otomatis dalam:"
+                              : "Periode pengunggahan bukti lari resmi telah ditutup. Terima kasih atas partisipasi Anda."}
                           </p>
+                          {!isSubmissionStarted && submissionTimeLeft.status === "waiting" && (
+                            <div className="flex items-center justify-center gap-2 max-w-xs mx-auto">
+                              <div className="bg-white border border-slate-200 rounded-xl p-2.5 flex-1 shadow-sm text-center">
+                                <span className="block text-base font-black text-blue-600 font-mono">
+                                  {String(submissionTimeLeft.hari).padStart(2, "0")}
+                                </span>
+                                <span className="block text-[9px] font-bold text-slate-400 uppercase">Hari</span>
+                              </div>
+                              <span className="font-bold text-slate-300">:</span>
+                              <div className="bg-white border border-slate-200 rounded-xl p-2.5 flex-1 shadow-sm text-center">
+                                <span className="block text-base font-black text-slate-700 font-mono">
+                                  {String(submissionTimeLeft.jam).padStart(2, "0")}
+                                </span>
+                                <span className="block text-[9px] font-bold text-slate-400 uppercase">Jam</span>
+                              </div>
+                              <span className="font-bold text-slate-300">:</span>
+                              <div className="bg-white border border-slate-200 rounded-xl p-2.5 flex-1 shadow-sm text-center">
+                                <span className="block text-base font-black text-slate-700 font-mono">
+                                  {String(submissionTimeLeft.menit).padStart(2, "0")}
+                                </span>
+                                <span className="block text-[9px] font-bold text-slate-400 uppercase">Menit</span>
+                              </div>
+                              <span className="font-bold text-slate-300">:</span>
+                              <div className="bg-white border border-slate-200 rounded-xl p-2.5 flex-1 shadow-sm text-center">
+                                <span className="block text-base font-black text-slate-700 font-mono">
+                                  {String(submissionTimeLeft.detik).padStart(2, "0")}
+                                </span>
+                                <span className="block text-[9px] font-bold text-slate-400 uppercase">Detik</span>
+                              </div>
+                            </div>
+                          )}
+                          {!isSubmissionStarted && submissionTimeLeft.targetDateStr && (
+                            <p className="text-[10px] font-bold text-slate-500 mt-4 uppercase tracking-wider">
+                              Dibuka: {submissionTimeLeft.targetDateStr} WIB
+                            </p>
+                          )}
                         </div>
                       ) : (
                         <>
@@ -3066,7 +3246,7 @@ export default function ParticipantDashboard() {
                         <button
                           onClick={() =>
                             window.open(
-                              `https://wa.me/?text=Halo! Lihat progress lari saya di Virtual Run IKA UII DIY: ${baseUrl}/u/${participant.slug || participant.id}`,
+                              `https://wa.me/?text=${encodeURIComponent(`Halo! Lihat progress lari saya di ${eventTitle}: ${baseUrl}/u/${participant.slug || participant.id}`)}`,
                               "_blank",
                             )
                           }
@@ -3135,7 +3315,7 @@ export default function ParticipantDashboard() {
                             </div>
                             <div>
                               <h3 className="font-black text-base sm:text-lg text-slate-900 mb-1">
-                                Virtual Run IKA UII
+                                {ev.eventName || eventTitle}
                               </h3>
                               <p className="text-xs font-bold text-slate-500">
                                 {ev.jarak} • Paket {ev.paket.toUpperCase()}
@@ -3210,7 +3390,7 @@ export default function ParticipantDashboard() {
               </div>
             )}
           </div>
-          <VirtualRunFooter sosmeds={vrSettings?.sosmeds} />
+          <VirtualRunFooter eventName={eventTitle} sosmeds={vrSettings?.sosmeds} />
         </>
       )}
     </div>

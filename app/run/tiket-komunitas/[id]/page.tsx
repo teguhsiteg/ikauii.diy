@@ -43,6 +43,8 @@ export default function ETicketKomunitasPage() {
     };
   }, []);
 
+  const [isNotFound, setIsNotFound] = useState(false);
+
   // =================================================================
   // 🔥 FETCH DATA KOMUNITAS
   // =================================================================
@@ -55,15 +57,9 @@ export default function ETicketKomunitasPage() {
 
         if (pSnap.exists()) {
           const data = pSnap.data();
-          if (data.statusPembayaran !== "Lunas") {
-            // Paksa kembali jika belum lunas
-            router.push(`/run/checkout-komunitas/${id}`);
-            return;
-          }
           setGroupData({ id: pSnap.id, ...data });
         } else {
-          router.push("/run");
-          return;
+          setIsNotFound(true);
         }
 
         const sRef = doc(db, "settings", "virtual_run");
@@ -73,13 +69,14 @@ export default function ETicketKomunitasPage() {
         }
       } catch (error) {
         console.error("Error fetching ticket:", error);
+        setIsNotFound(true);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchData();
-  }, [id, router]);
+  }, [id]);
 
   const downloadTicket = async () => {
     const element = document.getElementById("e-ticket-komunitas");
@@ -91,7 +88,7 @@ export default function ETicketKomunitasPage() {
       });
       const dataUrl = canvas.toDataURL("image/png");
       const link = document.createElement("a");
-      link.download = `E-Ticket-${groupData.kapten?.komunitas || "Komunitas"}.png`;
+      link.download = `E-Ticket-${groupData?.kapten?.komunitas || "Komunitas"}.png`;
       link.href = dataUrl;
       link.click();
     } catch {
@@ -107,39 +104,108 @@ export default function ETicketKomunitasPage() {
     );
   }
 
-  if (!groupData) return null;
+  if (isNotFound || !groupData) {
+    return (
+      <div className="min-h-screen bg-[#F4F7FB] font-sans flex flex-col justify-between">
+        <RunNavbar eventName={settings?.offlineJudul} />
+        <main className="flex-grow flex items-center justify-center px-4 pt-28 pb-16">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-lg border border-slate-100">
+            <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-100">
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-black text-[#0B2239] mb-2">Data Tidak Ditemukan</h2>
+            <p className="text-slate-500 text-sm mb-6">
+              Pendaftaran komunitas dengan ID tersebut tidak ditemukan di sistem.
+            </p>
+            <button
+              onClick={() => router.push("/run")}
+              className="w-full bg-[#0B2239] hover:bg-slate-800 text-[#FCD116] font-bold py-3 px-6 rounded-xl transition-colors text-sm"
+            >
+              Kembali ke Beranda Run
+            </button>
+          </div>
+        </main>
+        <RunFooter eventName={settings?.offlineJudul} waChannelUrl={settings?.waGroupUrl} sosmeds={settings?.sosmeds} />
+      </div>
+    );
+  }
+
+  const isLunas = groupData.statusPembayaran === "Lunas";
 
   return (
     <div className="min-h-screen bg-[#F4F7FB] font-sans flex flex-col relative">
       <RunNavbar eventName={settings?.offlineJudul} />
 
       <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-[120px] md:pt-[160px] pb-20 w-full relative z-10 flex flex-col items-center animate-in zoom-in-95 duration-500">
-        <div className="text-center mb-8 w-full max-w-2xl">
-          <div className="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg border-4 border-emerald-200">
-            <svg
-              className="w-8 h-8"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2.5}
+        {!isLunas ? (
+          <div className="w-full max-w-2xl bg-white rounded-3xl p-8 shadow-xl border border-amber-200 text-center mb-8">
+            <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-200">
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <span className="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+              Status: Menunggu Pembayaran
+            </span>
+            <h1 className="text-2xl font-black text-[#0B2239] mt-3 mb-2">
+              Invoice Komunitas: {groupData.kapten?.komunitas || "Grup"}
+            </h1>
+            <p className="text-slate-500 text-sm max-w-md mx-auto mb-6">
+              Pendaftaran telah tercatat. Silakan lakukan pembayaran dan konfirmasi/unggah bukti bayar untuk menerbitkan E-Ticket resmi.
+            </p>
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-6 text-left space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Kapten Tim</span>
+                <span className="font-bold text-slate-800">{groupData.kapten?.nama || "-"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Total Anggota</span>
+                <span className="font-bold text-slate-800">{groupData.participants?.length || 0} Orang</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Total Tagihan</span>
+                <span className="font-black text-[#1A73E8] text-base">
+                  Rp {(groupData.totalBiaya || 0).toLocaleString("id-ID")}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => router.push(`/run/checkout-komunitas/${id}`)}
+              className="w-full bg-[#1A73E8] hover:bg-blue-700 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-md text-sm"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
+              Lanjutkan Pembayaran / Upload Bukti Transfer &rarr;
+            </button>
           </div>
-          <h1 className="text-2xl md:text-3xl font-black text-[#0B2239] mb-2 uppercase tracking-tight">
-            Pembayaran Diterima!
-          </h1>
-          <p className="text-slate-500 font-medium max-w-lg mx-auto text-sm leading-relaxed">
-            Status pembayaran komunitas{" "}
-            <strong>{groupData.kapten?.komunitas}</strong> sudah LUNAS. Berikut
-            adalah E-Ticket resmi grup Anda. Silakan unduh atau simpan bukti
-            tiket ini.
-          </p>
-        </div>
+        ) : (
+          <>
+            <div className="text-center mb-8 w-full max-w-2xl">
+              <div className="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg border-4 border-emerald-200">
+                <svg
+                  className="w-8 h-8"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+              <h1 className="text-2xl md:text-3xl font-black text-[#0B2239] mb-2 uppercase tracking-tight">
+                Pembayaran Diterima!
+              </h1>
+              <p className="text-slate-500 font-medium max-w-lg mx-auto text-sm leading-relaxed">
+                Status pembayaran komunitas{" "}
+                <strong>{groupData.kapten?.komunitas}</strong> sudah LUNAS. Berikut
+                adalah E-Ticket resmi grup Anda. Silakan unduh atau simpan bukti
+                tiket ini.
+              </p>
+            </div>
 
         {/* DESAIN KARTU E-TIKET */}
         <div className="w-full max-w-2xl">
@@ -267,6 +333,8 @@ export default function ETicketKomunitasPage() {
             Hubungi Admin (WhatsApp)
           </button>
         </div>
+        </>
+        )}
       </main>
 
       <RunFooter eventName={settings?.offlineJudul} waChannelUrl={settings?.waGroupUrl} sosmeds={settings?.sosmeds} />

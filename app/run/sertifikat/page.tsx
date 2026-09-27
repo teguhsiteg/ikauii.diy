@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import RunNavbar from "@/components/run/RunNavbar";
 import RunFooter from "@/components/run/RunFooter";
+import { Search, Award, CheckCircle2, Download, AlertCircle, HelpCircle, FileText, ArrowRight } from "lucide-react";
 
 export default function DownloadSertifikatPage() {
   const [settings, setSettings] = useState<any>(null);
@@ -46,7 +47,7 @@ export default function DownloadSertifikatPage() {
     fetchSettings();
   }, []);
 
-  // --- 🔥 LOGIKA PENCARIAN PESERTA (INDIVIDU & KOMUNITAS) 🔥 ---
+  // --- LOGIKA PENCARIAN PESERTA (INDIVIDU & KOMUNITAS) ---
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -61,7 +62,7 @@ export default function DownloadSertifikatPage() {
     try {
       let foundUser = null;
 
-      // 1. CARI DI DATA INDIVIDU DULU (Cari berdasarkan NIK atau BIB)
+      // 1. CARI DI DATA INDIVIDU (Berdasarkan NIK atau BIB)
       const individuRef = collection(db, "offline_participants");
       const qIndividuNik = query(
         individuRef,
@@ -105,7 +106,7 @@ export default function DownloadSertifikatPage() {
           );
           if (match) {
             foundUser = match;
-            break; // Stop looping kalau sudah ketemu
+            break;
           }
         }
       }
@@ -119,29 +120,28 @@ export default function DownloadSertifikatPage() {
         });
       } else {
         setErrorMsg(
-          "Data peserta tidak ditemukan. Pastikan Anda memasukkan NIK atau Nomor BIB yang benar  .",
+          "Data peserta tidak ditemukan. Pastikan Anda memasukkan Nomor BIB atau NIK yang terdaftar dan lunas.",
         );
       }
     } catch (error) {
       console.error(error);
       setErrorMsg(
-        "Terjadi kesalahan pada sistem. Silakan coba beberapa saat lagi.",
+        "Terjadi kesalahan saat mencari data. Silakan coba beberapa saat lagi.",
       );
     } finally {
       setIsSearching(false);
     }
   };
 
-  // --- 🔥 LOGIKA GENERATE SERTIFIKAT HTML CANVAS 🔥 ---
+  // --- LOGIKA GENERATE SERTIFIKAT CANVAS ---
   const generateCertificate = () => {
     if (!participant || !settings) return;
 
-    // Ambil URL template sertifikat dari Admin (Fallback ke logo/default jika kosong)
     const templateUrl =
       settings.urlSertifikatOffline || settings.urlSertifikatVirtual;
 
     if (!templateUrl) {
-      setErrorMsg("Admin belum mengunggah template sertifikat.");
+      setErrorMsg("Admin belum mengunggah template sertifikat pada pengaturan event.");
       return;
     }
 
@@ -153,54 +153,46 @@ export default function DownloadSertifikatPage() {
     if (!ctx) return;
 
     const img = new Image();
-    img.crossOrigin = "Anonymous"; // Sangat penting agar tidak error CORS
+    img.crossOrigin = "Anonymous";
     img.src = templateUrl;
 
     img.onload = () => {
-      // Set ukuran canvas sesuai resolusi gambar template asli
       canvas.width = img.width;
       canvas.height = img.height;
 
       // 1. Gambar Template Dasar
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-      // 2. Setting Style Font
+      // 2. Tulis Data Peserta
       ctx.textAlign = "center";
-
-      // ========================================================
-      // 💡 PENTING: BAGIAN KOORDINAT X dan Y DI BAWAH INI
-      // NANTI BISA DISESUAIKAN DENGAN DESAIN TEMPLATE JENENGAN
-      // ========================================================
-
       const centerX = canvas.width / 2;
-      const centerY = canvas.height / 2; // Posisi Y (Tengah)
+      const centerY = canvas.height / 2;
 
-      // Menulis Nama Peserta
-      ctx.font = "bold 80px Arial"; // Ukuran font
-      ctx.fillStyle = "#0B2239"; // Warna teks (Dongker UII)
+      ctx.font = "bold 80px Arial";
+      ctx.fillStyle = "#0B2239";
       ctx.fillText(
         participant.namaLengkap.toUpperCase(),
         centerX,
         centerY + 20,
       );
 
-      // Menulis Nomor BIB dan Kategori
       ctx.font = "bold 40px Arial";
-      ctx.fillStyle = "#F9AB00"; // Warna kuning/emas
+      ctx.fillStyle = "#F9AB00";
       ctx.fillText(
         `BIB: ${participant.nomorBIB}  |  KATEGORI: ${participant.jarak}`,
         centerX,
         centerY + 100,
       );
 
-      // 3. Konversi Canvas ke URL Gambar
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+      // 3. Konversi ke Gambar
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
       setCertImageBase64(dataUrl);
       setIsGenerating(false);
 
       // 4. Otomatis Download
+      const evName = (settings?.offlineJudul || "Sertifikat").replace(/\s+/g, "_");
       const link = document.createElement("a");
-      link.download = `E-Sertifikat_${participant.namaLengkap.replace(/\s+/g, "_")}.jpg`;
+      link.download = `E-Sertifikat_${evName}_${participant.namaLengkap.replace(/\s+/g, "_")}.jpg`;
       link.href = dataUrl;
       link.click();
     };
@@ -208,220 +200,204 @@ export default function DownloadSertifikatPage() {
     img.onerror = () => {
       setIsGenerating(false);
       setErrorMsg(
-        "Gagal memuat template sertifikat. Pastikan link gambar valid dan dapat diakses.",
+        "Gagal memuat file template sertifikat. Pastikan file gambar dapat diakses.",
       );
     };
   };
 
+  const eventTitle = settings?.offlineJudul || "SEMBADA RUN 2026";
+
   if (isPageLoading) {
     return (
       <div className="min-h-screen bg-[#F4F7FB] flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-blue-200 border-t-[#152B5B] rounded-full animate-spin"></div>
+        <div className="w-10 h-10 border-4 border-slate-200 border-t-[#0B2239] rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#F4F7FB] font-sans flex flex-col selection:bg-[#FCD116] selection:text-[#0B2239]">
-      <RunNavbar eventName={settings?.offlineJudul} />
+      <RunNavbar eventName={eventTitle} />
 
-      <main className="flex-grow w-full relative z-20 pt-45 pb-20">
-        {/* Latar Belakang UII */}
-        <div
-          className="absolute top-0 left-0 w-full h-[40vh] bg-cover bg-center bg-no-repeat grayscale-[20%]"
-          style={{
-            backgroundImage:
-              "url('https://www.uii.ac.id/wp-content/uploads/2025/03/Gerbang-UII.jpg')",
-          }}
-        >
-          <div className="absolute inset-0 bg-[#0B2239]/90"></div>
+      {/* --- HERO HEADER SECTION --- */}
+      <section className="bg-[#0B2239] text-white pt-32 pb-16 px-4 md:px-8 relative overflow-hidden border-b border-slate-800">
+        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#FCD116_1px,transparent_1px)] [background-size:24px_24px]"></div>
+        
+        <div className="max-w-5xl mx-auto relative z-10 text-center">
+          <div className="inline-flex items-center gap-2 bg-white/10 border border-white/15 px-4 py-1.5 rounded-full text-xs font-bold text-[#FCD116] uppercase tracking-wider mb-4">
+            <Award className="w-4 h-4" />
+            Official Finisher Certificate
+          </div>
+          <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-4 text-white">
+            Unduh E-Sertifikat Finisher
+          </h1>
+          <p className="text-slate-300 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
+            Selamat atas keberhasilan Anda menyelesaikan rute lari di <span className="font-bold text-[#FCD116]">{eventTitle}</span>. Dapatkan sertifikat digital resmi beresolusi tinggi di bawah ini.
+          </p>
         </div>
+      </section>
 
-        <div className="max-w-3xl mx-auto px-5 sm:px-6 lg:px-8 relative z-30">
-          <div className="text-center mb-10 text-white">
-            <span className="bg-white/20 text-[#FCD116] px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest backdrop-blur-sm border border-white/10 mb-4 inline-block">
-              E-Certificate Portal
-            </span>
-            <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
-              Unduh Sertifikat Finisher
-            </h1>
-            <p className="text-slate-300 font-medium text-sm md:text-base max-w-xl mx-auto">
-              Selamat atas pencapaian Anda! Masukkan NIK atau Nomor BIB untuk
-              mencari dan mengunduh E-Sertifikat resmi Anda.
-            </p>
+      {/* --- MAIN CONTENT (2-COLUMN INTEGRATED PORTAL) --- */}
+      <main className="flex-grow max-w-5xl mx-auto w-full px-4 sm:px-6 py-10 md:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* KOLOM KIRI: PANDUAN & INFORMASI */}
+          <div className="lg:col-span-5 space-y-6">
+            <div className="bg-white rounded-2xl p-6 md:p-7 border border-slate-200/80 shadow-sm">
+              <h2 className="text-base font-bold text-[#0B2239] mb-4 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-[#1A73E8]" />
+                Cara Mengunduh Sertifikat
+              </h2>
+              <ol className="space-y-4 text-xs sm:text-sm text-slate-600">
+                <li className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-blue-50 text-[#1A73E8] font-bold flex items-center justify-center shrink-0 text-xs border border-blue-100">
+                    1
+                  </span>
+                  <span>Masukkan <strong>Nomor BIB</strong> (contoh: <code>3501</code>) atau <strong>NIK KTP</strong> yang didaftarkan.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-blue-50 text-[#1A73E8] font-bold flex items-center justify-center shrink-0 text-xs border border-blue-100">
+                    2
+                  </span>
+                  <span>Klik tombol <strong>"Cari Data Peserta"</strong> untuk memvalidasi status kelulusan Anda.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-blue-50 text-[#1A73E8] font-bold flex items-center justify-center shrink-0 text-xs border border-blue-100">
+                    3
+                  </span>
+                  <span>Tekan tombol <strong>"Unduh E-Sertifikat (HD)"</strong> untuk menyimpan gambar sertifikat ke perangkat Anda.</span>
+                </li>
+              </ol>
+            </div>
+
+            <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-5 text-xs text-amber-900 leading-relaxed space-y-2">
+              <div className="font-bold flex items-center gap-1.5 text-amber-800">
+                <HelpCircle className="w-4 h-4" /> Butuh Bantuan?
+              </div>
+              <p>
+                Jika data Anda tidak ditemukan, pastikan pendaftaran Anda telah berstatus lunas atau hubungi panitia melalui kanal resmi info acara.
+              </p>
+              <div className="pt-2">
+                <Link
+                  href="/leaderboard-offline"
+                  className="inline-flex items-center gap-1 font-bold text-[#0B2239] hover:underline"
+                >
+                  Cek Klasemen di Leaderboard <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
           </div>
 
-          <div className="bg-white rounded-[2rem] shadow-2xl border border-slate-200 overflow-hidden">
-            {/* FORM PENCARIAN */}
-            <div className="p-8 md:p-10 border-b border-slate-100">
-              <form
-                onSubmit={handleSearch}
-                className="flex flex-col sm:flex-row gap-4"
-              >
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Masukkan NIK atau Nomor BIB..."
-                  className="flex-grow px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#152B5B] outline-none text-base transition-all text-slate-800 font-bold placeholder:font-medium uppercase"
-                  required
-                />
+          {/* KOLOM KANAN: FORM PENCARIAN & KARTU HASIL */}
+          <div className="lg:col-span-7 space-y-6">
+            <div className="bg-white rounded-2xl p-6 md:p-8 border border-slate-200/80 shadow-sm">
+              <h2 className="text-lg font-black text-[#0B2239] mb-1">
+                Pencarian Data Finisher
+              </h2>
+              <p className="text-xs text-slate-500 mb-6 font-medium">
+                Ketik Nomor BIB atau NIK Anda untuk memuat sertifikat
+              </p>
+
+              <form onSubmit={handleSearch} className="space-y-4">
+                <div className="relative">
+                  <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Masukkan Nomor BIB atau NIK..."
+                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#0B2239] focus:ring-2 focus:ring-[#0B2239]/10 outline-none text-sm font-bold text-slate-800 transition-all uppercase placeholder:normal-case placeholder:font-normal placeholder:text-slate-400"
+                    required
+                  />
+                </div>
+
                 <button
                   type="submit"
                   disabled={isSearching}
-                  className="bg-[#152B5B] hover:bg-[#0D1B3E] text-white font-bold py-4 px-8 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 shrink-0"
+                  className="w-full bg-[#0B2239] hover:bg-[#152B5B] text-[#FCD116] font-bold py-3.5 px-6 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-sm disabled:opacity-50 cursor-pointer"
                 >
                   {isSearching ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <div className="w-5 h-5 border-2 border-[#FCD116]/30 border-t-[#FCD116] rounded-full animate-spin"></div>
                   ) : (
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2.5}
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
-                    </svg>
+                    <Search className="w-4 h-4" />
                   )}
-                  Cari Data
+                  Cari Data Peserta
                 </button>
               </form>
 
+              {/* Error Alert */}
               {errorMsg && (
-                <div className="mt-5 p-4 bg-rose-50 text-rose-600 rounded-xl text-sm font-semibold border border-rose-100 flex items-start gap-3">
-                  <svg
-                    className="w-5 h-5 shrink-0 mt-0.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                  {errorMsg}
+                <div className="mt-5 p-4 bg-rose-50 text-rose-700 rounded-xl text-xs font-medium border border-rose-100 flex items-start gap-2.5 animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                  <span>{errorMsg}</span>
                 </div>
               )}
-            </div>
 
-            {/* HASIL PENCARIAN & TOMBOL DOWNLOAD */}
-            {participant && (
-              <div className="p-8 md:p-10 bg-slate-50 flex flex-col items-center text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="w-20 h-20 bg-[#E6F4EA] text-[#1E8E3E] rounded-full flex items-center justify-center mb-5 shadow-inner">
-                  <svg
-                    className="w-10 h-10"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2.5}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-2xl font-black text-slate-800 mb-1">
-                  {participant.namaLengkap}
-                </h3>
-                <p className="text-slate-500 font-bold text-sm mb-6 bg-white px-4 py-1.5 rounded-full border border-slate-200 inline-block shadow-sm">
-                  BIB:{" "}
-                  <span className="text-[#1A73E8]">{participant.nomorBIB}</span>{" "}
-                  • Kategori: {participant.jarak}
-                </p>
-
-                {/* Canvas disembunyikan secara visual, hanya dipakai engine untuk menggambar */}
-                <canvas ref={canvasRef} style={{ display: "none" }}></canvas>
-
-                {certImageBase64 ? (
-                  <div className="w-full">
-                    <p className="text-xs text-emerald-600 font-bold mb-3 uppercase tracking-widest">
-                      Preview Sertifikat Anda
-                    </p>
-                    <div className="border-[6px] border-white shadow-xl rounded-xl overflow-hidden mb-6">
-                      <img
-                        src={certImageBase64}
-                        alt="E-Certificate"
-                        className="w-full h-auto"
-                      />
+              {/* HASIL PENCARIAN & DOWNLOAD */}
+              {participant && (
+                <div className="mt-6 pt-6 border-t border-slate-100 animate-in fade-in slide-in-from-bottom-3 duration-300">
+                  <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-5 mb-5">
+                    <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs uppercase tracking-wider mb-3">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      Data Finisher Terverifikasi
                     </div>
-                    <a
-                      href={certImageBase64}
-                      download={`E-Sertifikat_${participant.namaLengkap.replace(/\s+/g, "_")}.jpg`}
-                      className="bg-[#1E8E3E] hover:bg-[#188038] text-white font-black py-4 px-8 rounded-xl shadow-lg transition-all w-full flex items-center justify-center gap-2"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2.5}
-                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                        />
-                      </svg>
-                      Unduh Ulang Sertifikat
-                    </a>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <span className="text-slate-500 block text-[10px] uppercase font-bold">Nama Lengkap</span>
+                        <span className="font-bold text-slate-800 text-sm">{participant.namaLengkap}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[10px] uppercase font-bold">Nomor BIB</span>
+                        <span className="font-bold text-[#1A73E8] font-mono text-sm">{participant.nomorBIB}</span>
+                      </div>
+                      <div className="col-span-2 pt-1">
+                        <span className="text-slate-500 block text-[10px] uppercase font-bold">Kategori Jarak</span>
+                        <span className="font-bold text-slate-700">{participant.jarak}</span>
+                      </div>
+                    </div>
                   </div>
-                ) : (
+
                   <button
                     onClick={generateCertificate}
                     disabled={isGenerating}
-                    className="bg-[#FCD116] hover:bg-yellow-500 text-[#0B2239] font-black py-4 px-8 rounded-xl shadow-lg transition-all w-full sm:w-auto flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full bg-[#1A73E8] hover:bg-[#1557B0] text-white font-bold py-4 px-6 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-sm disabled:opacity-50 cursor-pointer"
                   >
                     {isGenerating ? (
                       <>
-                        <span className="w-5 h-5 border-2 border-[#0B2239] border-t-transparent rounded-full animate-spin"></span>
-                        Memproses Desain...
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        Memproses Sertifikat HD...
                       </>
                     ) : (
                       <>
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2.5}
-                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                          />
-                        </svg>
-                        Generate & Unduh PDF/JPG
+                        <Download className="w-5 h-5" />
+                        Unduh E-Sertifikat (HD JPG)
                       </>
                     )}
                   </button>
-                )}
-              </div>
-            )}
-          </div>
 
-          <div className="text-center mt-8">
-            <Link
-              href="/run"
-              className="text-slate-400 font-semibold text-sm hover:text-[#152B5B] transition-colors"
-            >
-              &larr; Kembali ke Beranda
-            </Link>
+                  {certImageBase64 && (
+                    <div className="mt-6 border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                      <div className="p-3 bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        Pratinjau Sertifikat
+                      </div>
+                      <img
+                        src={certImageBase64}
+                        alt="E-Sertifikat"
+                        className="w-full h-auto object-contain bg-slate-100"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>
 
-      <RunFooter eventName={settings?.offlineJudul} waChannelUrl={settings?.waGroupUrl} sosmeds={settings?.sosmeds} />
+      {/* Hidden Canvas untuk Rendering */}
+      <canvas ref={canvasRef} className="hidden" />
+
+      <RunFooter eventName={eventTitle} />
     </div>
   );
 }

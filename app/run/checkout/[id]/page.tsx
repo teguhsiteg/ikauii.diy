@@ -186,6 +186,27 @@ export default function OfflineRunCheckoutPage() {
         statusPembayaran: "Pending",
       }));
 
+      // Kirim notifikasi Telegram ke Admin
+      try {
+        await fetch("/api/telegram/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "offline_indiv",
+            id: participant.id,
+            nama: participant.namaLengkap,
+            email: participant.email,
+            wa: participant.noWA,
+            kategori: `${participant.jarak || "5K"} (Size: ${participant.ukuranJersey || "-"})`,
+            totalBayar: participant.totalTagihan || 0,
+            charity: participant.donasi || 0,
+            buktiBayarUrl: data.secure_url,
+          }),
+        });
+      } catch (e) {
+        console.error("Gagal mengirim notifikasi telegram", e);
+      }
+
       // Kirim email notifikasi bahwa bukti telah disubmit
       try {
         await fetch("/api/notify-upload", {
@@ -473,10 +494,10 @@ export default function OfflineRunCheckoutPage() {
                       </div>
                     )}
 
-                    {participant.donasiCharity > 0 && (
+                    {(participant.donasiCharity > 0 || participant.charity > 0 || participant.donasi > 0) && (
                       <div className="flex justify-between text-blue-600">
                         <span>Donasi Charity</span>
-                        <span className="font-medium">Rp {participant.donasiCharity?.toLocaleString("id-ID")}</span>
+                        <span className="font-medium">Rp {Number(participant.donasiCharity || participant.charity || participant.donasi).toLocaleString("id-ID")}</span>
                       </div>
                     )}
 

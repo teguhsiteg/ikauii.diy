@@ -1,18 +1,53 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+import RunNavbar from "@/components/run/RunNavbar";
+import RunFooter from "@/components/run/RunFooter";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Activity, ShieldCheck, CheckCircle2, ArrowRight, AlertCircle, Trophy, Sparkles } from "lucide-react";
 
-export default function StravaConnectPage() {
+function StravaConnectContent() {
+  const searchParams = useSearchParams();
+  const urlStatus = searchParams.get("status");
+  const urlMsg = searchParams.get("msg");
+
+  const [settings, setSettings] = useState<any>(null);
   const [formData, setFormData] = useState({ bib: "", nik: "" });
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const docSnap = await getDoc(doc(db, "settings", "virtual_run"));
+        if (docSnap.exists()) {
+          setSettings(docSnap.data());
+        }
+      } catch (error) {
+        console.error("Gagal memuat pengaturan:", error);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  useEffect(() => {
+    if (urlStatus === "access_denied") {
+      setErrorMsg("Otorisasi Strava dibatalkan oleh pengguna.");
+    } else if (urlStatus === "server_error") {
+      setErrorMsg(urlMsg ? `Kendala Server: ${decodeURIComponent(urlMsg)}` : "Terjadi kendala server saat menghubungkan Strava.");
+    } else if (urlStatus === "token_error") {
+      setErrorMsg(urlMsg ? `Strava Error: ${decodeURIComponent(urlMsg)}` : "Gagal memproses otorisasi token dari Strava.");
+    } else if (urlStatus === "participant_not_found") {
+      setErrorMsg("Data peserta tidak ditemukan saat menghubungkan Strava.");
+    }
+  }, [urlStatus, urlMsg]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    // BIB bisa angka/huruf, NIK hanya angka
     const finalValue = name === "nik" ? value.replace(/\D/g, "") : value;
     setFormData({ ...formData, [name]: finalValue.toUpperCase() });
   };
@@ -23,54 +58,94 @@ export default function StravaConnectPage() {
     setErrorMsg("");
     setSuccessMsg("");
 
-    if (!formData.bib || !formData.nik) {
+    const inputBib = formData.bib.trim().toUpperCase();
+    const inputNik = formData.nik.trim();
+
+    if (!inputBib || !inputNik) {
       setErrorMsg("Mohon lengkapi Nomor BIB dan NIK Anda.");
       setIsLoading(false);
       return;
     }
 
     try {
-      // 1. CARI BERDASARKAN NOMOR BIB DULU
+      let foundUser: any = null;
+      let participantId: string = "";
+
+      // 1. CARI BERDASARKAN NOMOR BIB DI OFFLINE PARTICIPANTS
       const qBib = query(
         collection(db, "offline_participants"),
-        where("nomorBIB", "==", formData.bib),
+        where("nomorBIB", "==", inputBib),
       );
-
       const snapBib = await getDocs(qBib);
 
-      // JIKA BIB TIDAK DITEMUKAN
-      if (snapBib.empty) {
+      if (!snapBib.empty) {
+        foundUser = snapBib.docs[0].data();
+        participantId = snapBib.docs[0].id;
+      } else {
+        // Coba cari juga dengan field bib
+        const qBibAlt = query(
+          collection(db, "offline_participants"),
+          where("bib", "==", inputBib),
+        );
+        const snapBibAlt = await getDocs(qBibAlt);
+        if (!snapBibAlt.empty) {
+          foundUser = snapBibAlt.docs[0].data();
+          participantId = snapBibAlt.docs[0].id;
+        }
+      }
+
+      // 2. JIKA TIDAK KETEMU DI INDIVIDU, CARI DI PENDAFTARAN KOMUNITAS
+      if (!foundUser) {
+        const qKomunitas = query(
+          collection(db, "pendaftaran_komunitas"),
+          where("statusPembayaran", "==", "Lunas"),
+        );
+        const snapKomunitas = await getDocs(qKomunitas);
+
+        for (const dSnap of snapKomunitas.docs) {
+          const groupData = dSnap.data();
+          const members = groupData.participants || [];
+          const matchIndex = members.findIndex(
+            (m: any) => (m.nomorBIB === inputBib || m.bib === inputBib),
+          );
+
+          if (matchIndex !== -1) {
+            foundUser = members[matchIndex];
+            participantId = `${dSnap.id}_m_${matchIndex}`;
+            break;
+          }
+        }
+      }
+
+      if (!foundUser) {
         setErrorMsg(
-          `Nomor BIB "${formData.bib}" tidak ditemukan di sistem. Pastikan Panitia sudah terdaftar.`,
+          `Nomor BIB "${inputBib}" tidak ditemukan di sistem. Pastikan Nomor BIB sudah sesuai.`,
         );
         setIsLoading(false);
         return;
       }
 
-      const participantData = snapBib.docs[0].data();
-      const participantId = snapBib.docs[0].id;
-
-      // 2. COCOKKAN NIK UNTUK KEAMANAN
-      if (participantData.nik !== formData.nik) {
+      // 3. COCOKKAN NIK UNTUK KEAMANAN
+      if (foundUser.nik !== inputNik) {
         setErrorMsg(
-          `NIK yang Anda masukkan tidak cocok dengan data pendaftaran Nomor BIB ${formData.bib}.`,
+          `NIK yang Anda masukkan tidak cocok dengan data Nomor BIB ${inputBib}.`,
         );
         setIsLoading(false);
         return;
       }
 
-      // 3. CEK STATUS PEMBAYARAN
-      if (participantData.statusPembayaran !== "Lunas") {
+      // 4. CEK STATUS PEMBAYARAN
+      if (foundUser.statusPembayaran && foundUser.statusPembayaran !== "Lunas") {
         setErrorMsg(
-          `Status pendaftaran Anda saat ini: ${participantData.statusPembayaran}. Selesaikan pembayaran untuk menghubungkan Strava.`,
+          `Status pendaftaran Anda saat ini: ${foundUser.statusPembayaran}. Selesaikan pembayaran terlebih dahulu.`,
         );
         setIsLoading(false);
         return;
       }
 
-      // 4. SEMUA VALIDASI LOLOS -> REDIRECT KE STRAVA
+      // 5. SEMUA VALIDASI LOLOS -> REDIRECT KE STRAVA
       setSuccessMsg(
-        "Verifikasi Berhasil! Mengalihkan ke halaman login Strava...",
+        "Verifikasi Berhasil! Mengalihkan ke halaman otorisasi Strava...",
       );
 
       const clientId = process.env.NEXT_PUBLIC_STRAVA_CLIENT_ID || "175689";
@@ -82,174 +157,229 @@ export default function StravaConnectPage() {
       const scope = "read,activity:read_all";
       const state = participantId;
 
-      const stravaAuthUrl = `https://www.strava.com/oauth/mobile/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&approval_prompt=auto&scope=${scope}&state=${state}`;
+      const stravaAuthUrl = `https://www.strava.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&approval_prompt=auto&scope=${scope}&state=${state}`;
 
-      // Jeda 1 detik agar user sempat membaca pesan sukses
       setTimeout(() => {
         window.location.href = stravaAuthUrl;
-      }, 1000);
-    } catch (error) {
+      }, 800);
+    } catch (error: any) {
       console.error("Verification error:", error);
-      setErrorMsg("Terjadi kesalahan koneksi ke database. Silakan coba lagi.");
+      setErrorMsg(`Terjadi kesalahan sistem: ${error.message || "Gagal menghubungkan ke database."}`);
       setIsLoading(false);
     }
   };
 
+  const eventTitle = settings?.offlineJudul || "SEMBADA RUN 2026";
+
   return (
-    <div className="min-h-screen bg-[#F4F7FB] font-sans flex flex-col relative selection:bg-[#FC4C02] selection:text-white overflow-hidden">
-      {/* Background Decoration */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#FC4C02]/15 blur-[100px] rounded-full"></div>
-        <div className="absolute -bottom-32 -right-32 w-[30rem] h-[30rem] bg-[#1A73E8]/10 blur-[100px] rounded-full"></div>
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: "radial-gradient(#152B5B 1px, transparent 1px)",
-            backgroundSize: "32px 32px",
-          }}
-        ></div>
-      </div>
+    <div className="min-h-screen bg-[#F4F7FB] font-sans flex flex-col selection:bg-[#FC4C02] selection:text-white">
+      <RunNavbar eventName={eventTitle} />
 
-      <main className="flex-grow w-full relative z-10 flex flex-col items-center justify-center px-4 py-12">
-        <div className="mb-10 animate-in fade-in slide-in-from-top-8 duration-700">
-          <img
-            src="/logo-dpp-ika.png"
-            alt="Logo IKA UII DIY"
-            className="h-16 md:h-20 object-contain drop-shadow-md"
-            onError={(e) => (e.currentTarget.style.display = "none")}
-          />
+      {/* --- HERO HEADER SECTION --- */}
+      <section className="bg-[#0B2239] text-white pt-32 pb-16 px-4 md:px-8 relative overflow-hidden border-b border-slate-800">
+        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#FC4C02_1px,transparent_1px)] [background-size:24px_24px]"></div>
+
+        <div className="max-w-5xl mx-auto relative z-10 text-center">
+          <div className="inline-flex items-center gap-2 bg-[#FC4C02]/20 border border-[#FC4C02]/40 px-4 py-1.5 rounded-full text-xs font-bold text-[#FC4C02] uppercase tracking-wider mb-4 backdrop-blur-sm">
+            <Activity className="w-4 h-4" />
+            Official Strava Sync Portal
+          </div>
+          <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-4 text-white">
+            Sinkronisasi Catatan Waktu Strava
+          </h1>
+          <p className="text-slate-300 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
+            Hubungkan akun Strava Anda untuk otomatis menyetor hasil lari ke Leaderboard resmi <span className="font-bold text-[#FCD116]">{eventTitle}</span> dan membuat poster rute GPS.
+          </p>
         </div>
+      </section>
 
-        <div className="bg-white rounded-[2rem] shadow-2xl border border-slate-100 w-full max-w-[420px] overflow-hidden animate-in fade-in zoom-in-95 duration-500">
-          <div className="p-8 sm:p-10 border-b border-slate-100 bg-[#FAFCFF] relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#FC4C02] to-[#FF8C00]"></div>
-            <div className="text-center relative z-10">
-              <div className="w-20 h-20 bg-white rounded-[1.25rem] flex items-center justify-center mx-auto mb-5 border border-slate-100 shadow-sm rotate-3 hover:rotate-0 transition-transform">
-                <svg
-                  className="w-10 h-10 text-[#FC4C02]"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
-                </svg>
+      {/* --- MAIN CONTENT (2-COLUMN INTEGRATED PORTAL) --- */}
+      <main className="flex-grow max-w-5xl mx-auto w-full px-4 sm:px-6 py-10 md:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* KOLOM KIRI: PANDUAN & KEUNGGULAN SINKRONISASI */}
+          <div className="lg:col-span-5 space-y-6">
+            <div className="bg-white rounded-2xl p-6 md:p-7 border border-slate-200/80 shadow-sm">
+              <h2 className="text-base font-bold text-[#0B2239] mb-4 flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-[#FC4C02]" />
+                Alur Sinkronisasi Mandiri
+              </h2>
+              <ol className="space-y-4 text-xs sm:text-sm text-slate-600">
+                <li className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-orange-50 text-[#FC4C02] font-bold flex items-center justify-center shrink-0 text-xs border border-orange-200">
+                    1
+                  </span>
+                  <span>Verifikasi data Anda dengan memasukkan <strong>Nomor BIB</strong> dan <strong>NIK KTP</strong>.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-orange-50 text-[#FC4C02] font-bold flex items-center justify-center shrink-0 text-xs border border-orange-200">
+                    2
+                  </span>
+                  <span>Otorisasikan akun <strong>Strava</strong> Anda untuk memberikan izin pembacaan data aktivitas lari.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-orange-50 text-[#FC4C02] font-bold flex items-center justify-center shrink-0 text-xs border border-orange-200">
+                    3
+                  </span>
+                  <span>Pilih aktivitas lari hari-H di halaman <strong>Run Studio</strong> lalu tekan <strong>"Setor Waktu"</strong>.</span>
+                </li>
+              </ol>
+            </div>
+
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50/50 border border-blue-100 rounded-2xl p-5 text-xs text-slate-700 leading-relaxed space-y-3">
+              <div className="font-bold text-[#0B2239] flex items-center gap-2 text-sm">
+                <Sparkles className="w-4 h-4 text-[#1A73E8]" /> Fitur Run Studio
               </div>
-              <h1 className="text-2xl sm:text-[26px] font-black text-[#0B2239] tracking-tight mb-2">
-                UII Sehat Run Studio
-              </h1>
-              <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                Sinkronisasikan data lari Anda, masuk ke Leaderboard, dan buat
-                IG Story eksklusif!
-              </p>
+              <ul className="space-y-2 text-slate-600">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Catatan waktu otomatis terverifikasi (<strong>Verified by Strava</strong>)</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Download poster rute peta GPS & pace untuk Instagram Story</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Masuk klasemen Top Finisher Leaderboard secara realtime</span>
+                </li>
+              </ul>
             </div>
           </div>
 
-          <form onSubmit={handleVerify} className="p-8 sm:p-10 space-y-6">
-            {/* PESAN ERROR SPESIFIK */}
-            {errorMsg && (
-              <div className="bg-rose-50 text-rose-600 text-xs font-bold p-4 rounded-xl border border-rose-100 flex items-start gap-2 animate-in slide-in-from-top-2">
-                <svg
-                  className="w-4 h-4 shrink-0 mt-0.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
-                {errorMsg}
-              </div>
-            )}
-
-            {/* PESAN SUKSES REDIRECT */}
-            {successMsg && (
-              <div className="bg-emerald-50 text-emerald-600 text-xs font-bold p-4 rounded-xl border border-emerald-100 flex items-center gap-2 animate-in slide-in-from-top-2">
-                <svg
-                  className="w-4 h-4 shrink-0 animate-spin"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-                {successMsg}
-              </div>
-            )}
-
-            <div className="space-y-5">
-              <div>
-                <label className="block text-xs font-black text-[#0B2239] uppercase tracking-widest mb-2 ml-1">
-                  Nomor BIB Lari
-                </label>
-                <input
-                  type="text"
-                  name="bib"
-                  value={formData.bib}
-                  onChange={handleChange}
-                  placeholder="Contoh: 5012"
-                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#FC4C02] focus:ring-4 focus:ring-orange-500/10 outline-none text-base font-black tracking-widest text-slate-800 transition-all text-center uppercase placeholder:text-slate-300 placeholder:font-medium"
-                  required
-                />
+          {/* KOLOM KANAN: FORM VERIFIKASI & TOMBOL OAUTH */}
+          <div className="lg:col-span-7 space-y-6">
+            <div className="bg-white rounded-2xl p-6 md:p-8 border border-slate-200/80 shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-5 mb-6">
+                <div>
+                  <h2 className="text-lg font-black text-[#0B2239]">
+                    Sinkronisasi Data Strava
+                  </h2>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Masukkan data yang sesuai dengan pendaftaran Anda
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-orange-50 border border-orange-100 rounded-xl flex items-center justify-center shrink-0">
+                  <svg
+                    className="w-6 h-6 text-[#FC4C02]"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
+                  </svg>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-black text-[#0B2239] uppercase tracking-widest mb-2 ml-1 flex justify-between items-center">
-                  <span>Nomor Identitas (NIK)</span>
-                  <span className="text-[9px] bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full font-bold">
-                    Verifikasi
-                  </span>
-                </label>
-                <input
-                  type="text"
-                  name="nik"
-                  value={formData.nik}
-                  onChange={handleChange}
-                  placeholder="Masukkan 16 digit NIK"
-                  maxLength={16}
-                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#FC4C02] focus:ring-4 focus:ring-orange-500/10 outline-none text-base font-black tracking-widest text-slate-800 transition-all text-center placeholder:text-slate-300 placeholder:font-medium"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={isLoading || successMsg !== ""}
-                className="w-full bg-[#FC4C02] hover:bg-[#E34402] text-white font-black py-4 px-6 rounded-xl shadow-lg shadow-orange-500/25 transition-all flex items-center justify-center gap-3 disabled:opacity-50 hover:-translate-y-0.5 active:translate-y-0"
-              >
-                {isLoading && !successMsg ? (
-                  <>
-                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                    Mencari Data...
-                  </>
-                ) : (
-                  "Connect with Strava"
+              <form onSubmit={handleVerify} className="space-y-5">
+                {/* Error Message */}
+                {errorMsg && (
+                  <div className="p-4 bg-rose-50 text-rose-700 rounded-xl text-xs font-medium border border-rose-100 flex items-start gap-2.5 animate-in fade-in">
+                    <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                    <span>{errorMsg}</span>
+                  </div>
                 )}
-              </button>
+
+                {/* Success Message */}
+                {successMsg && (
+                  <div className="p-4 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-medium border border-emerald-100 flex items-center gap-2.5 animate-in fade-in">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{successMsg}</span>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-[#0B2239] uppercase tracking-wider mb-2">
+                      No BIB
+                    </label>
+                    <input
+                      type="text"
+                      name="bib"
+                      value={formData.bib}
+                      onChange={handleChange}
+                      placeholder="Contoh: 3501 / 5012"
+                      className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#FC4C02] focus:ring-2 focus:ring-orange-500/10 outline-none text-sm font-bold text-slate-800 transition-all uppercase placeholder:normal-case placeholder:font-normal placeholder:text-slate-400"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#0B2239] uppercase tracking-wider mb-2 flex justify-between items-center">
+                      <span>Nomor Identitas (NIK)</span>
+                      <span className="text-[10px] text-slate-400 font-normal">
+                        16 Digit KTP
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      name="nik"
+                      value={formData.nik}
+                      onChange={handleChange}
+                      placeholder="Masukkan 16 digit NIK"
+                      maxLength={16}
+                      className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#FC4C02] focus:ring-2 focus:ring-orange-500/10 outline-none text-sm font-bold text-slate-800 transition-all placeholder:font-normal placeholder:text-slate-400"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={isLoading || successMsg !== ""}
+                    className="w-full bg-[#FC4C02] hover:bg-[#E34402] text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-orange-500/20 transition-all flex items-center justify-center gap-2.5 text-sm sm:text-base disabled:opacity-50 cursor-pointer"
+                  >
+                    {isLoading && !successMsg ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        Memverifikasi Data...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                          <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
+                        </svg>
+                        Hubungkan dengan Strava
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="pt-4 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100">
+                  <Link
+                    href="/leaderboard-offline"
+                    className="text-[#1A73E8] hover:underline font-bold inline-flex items-center gap-1"
+                  >
+                    <Trophy className="w-3.5 h-3.5" /> Lihat Leaderboard
+                  </Link>
+                  <Link
+                    href="/run/sertifikat"
+                    className="text-[#1A73E8] hover:underline font-bold inline-flex items-center gap-1"
+                  >
+                    Unduh Sertifikat <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </form>
             </div>
-
-            <p className="text-[10px] text-slate-400 text-center font-medium px-4 leading-relaxed">
-              Data aktivitas Anda hanya akan digunakan untuk keperluan
-              Leaderboard dan E-Certificate UII Sehat 2026.
-            </p>
-          </form>
-        </div>
-
-        <div className="mt-12 text-center animate-in fade-in duration-1000">
-          <p className="text-xs font-bold text-slate-400">
-            &copy; {new Date().getFullYear()} DPW IKA UII DIY.
-          </p>
+          </div>
         </div>
       </main>
+
+      <RunFooter eventName={eventTitle} />
     </div>
+  );
+}
+
+export default function StravaConnectPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#F4F7FB] flex items-center justify-center">
+          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#0B2239] rounded-full animate-spin"></div>
+        </div>
+      }
+    >
+      <StravaConnectContent />
+    </Suspense>
   );
 }

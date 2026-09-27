@@ -641,7 +641,7 @@ export async function POST(request: Request) {
           
           <div style="background-color: #FEF7E0; border-left: 4px solid #F9AB00; padding: 15px 20px; margin: 25px 0;">
             <p style="margin: 0; font-size: 14px; color: #202124; line-height: 1.6;">
-              <strong>Pembayaran diterima. Menunggu verifikasi admin max 1x24 jam.</strong>
+              <strong>Pembayaran diterima. Menunggu verifikasi admin.</strong>
             </p>
           </div>
 
@@ -963,6 +963,55 @@ export async function POST(request: Request) {
           </div>
         `,
           "PENGINGAT PENGAMBILAN RACE PACK",
+        );
+        break;
+
+      case "info_upgrade_kategori":
+        subject = `Informasi E-Ticket & Penawaran Upgrade Kategori | ${eventName} | ${nama}`;
+
+        htmlContent = generateHtml(
+          `
+          <h2 style="color: #1A73E8; margin-top: 0; font-size: 20px; font-weight: 500;">Pemberitahuan E-Ticket & Layanan Upgrade Kategori</h2>
+          ${salamPembuka}
+          <p>Yth. <strong>${nama}</strong>,</p>
+          <p>Terima kasih telah bergabung dalam <strong>${eventName}</strong>. Kami menginformasikan bahwa data kepesertaan Anda telah aktif dan terdaftar secara resmi di sistem kami.</p>
+          
+          <div style="background-color: #F8F9FA; padding: 20px; border: 1px solid #DADCE0; border-radius: 12px; margin: 25px 0;">
+            <p style="margin: 0 0 15px 0; font-size: 13px; color: #5F6368; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Data Kepesertaan Saat Ini:</p>
+            <table style="width: 100%; text-align: left; font-size: 14px; color: #202124; border-collapse: collapse; background-color: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+              <tr>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #F1F3F4; color: #5F6368; width: 40%;"><strong>Nama Peserta</strong></td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #F1F3F4; font-weight: bold;">: ${nama}</td>
+              </tr>
+              <tr>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #F1F3F4; color: #5F6368;"><strong>Kategori Jarak</strong></td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #F1F3F4; font-weight: bold;">: ${detail?.jarak || "-"}</td>
+              </tr>
+              <tr>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #F1F3F4; color: #5F6368;"><strong>Ukuran Jersey</strong></td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #F1F3F4; font-weight: bold;">: ${detail?.ukuranJersey || "-"}</td>
+              </tr>
+              <tr>
+                <td style="padding: 12px 15px; color: #5F6368;"><strong>Nomor BIB</strong></td>
+                <td style="padding: 12px 15px; font-weight: 900; color: #1A73E8; font-size: 16px;">: ${detail?.bib || "-"}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="background-color: #E8F0FE; border-left: 4px solid #1A73E8; padding: 15px 20px; margin: 25px 0;">
+            <p style="margin: 0 0 5px 0; font-size: 13px; color: #1557B0; font-weight: 700; text-transform: uppercase;">Ingin Meningkatkan Kategori Jarak?</p>
+            <p style="margin: 0; font-size: 13px; color: #202124; line-height: 1.5;">
+              Bagi Anda yang ingin mengganti/meningkatkan tantangan lari (contoh: dari 5K ke 10K atau 21K), layanan <strong>Upgrade Kategori</strong> kini dapat dilakukan secara mandiri melalui halaman E-Ticket Anda di bawah ini.
+            </p>
+          </div>
+
+          <p>Klik tombol di bawah ini untuk mengakses E-Ticket resmi Anda dan melakukan upgrade kategori jika diinginkan:</p>
+
+          <div style="margin: 30px 0; text-align: center;">
+            ${generateButton("Buka E-Ticket & Upgrade Kategori", `${baseUrl}/run/tiket/${pId}`, true)}
+          </div>
+        `,
+          "PEMBERITAHUAN E-TICKET & UPGRADE",
         );
         break;
 

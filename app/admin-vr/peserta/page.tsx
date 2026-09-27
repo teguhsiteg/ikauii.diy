@@ -192,8 +192,20 @@ export default function DataPesertaPage() {
   // --- 🔥 LOGIKA SORTING & PAGINATION 🔥 ---
   const sortedParticipants = useMemo(() => {
     return [...filteredParticipants].sort((a, b) => {
-      let valA = a[sortConfig.key] || "";
-      let valB = b[sortConfig.key] || "";
+      let valA = a[sortConfig.key];
+      let valB = b[sortConfig.key];
+
+      if (sortConfig.key === "waktuDaftar") {
+        const timeA = new Date(valA || 0).getTime() || 0;
+        const timeB = new Date(valB || 0).getTime() || 0;
+        return sortConfig.direction === "asc" ? timeA - timeB : timeB - timeA;
+      }
+
+      if (sortConfig.key === "nomorBIB" || sortConfig.key === "bib") {
+        const numA = parseInt(String(valA || "").replace(/\D/g, ""), 10) || 0;
+        const numB = parseInt(String(valB || "").replace(/\D/g, ""), 10) || 0;
+        return sortConfig.direction === "asc" ? numA - numB : numB - numA;
+      }
 
       if (typeof valA === "string") valA = valA.toLowerCase();
       if (typeof valB === "string") valB = valB.toLowerCase();
@@ -1170,13 +1182,57 @@ export default function DataPesertaPage() {
                     )}
                   </div>
                 </th>
-                <th className="px-4 py-3 border-r border-slate-200 w-36">
-                  Paket Lari
+                <th
+                  className="px-4 py-3 border-r border-slate-200 cursor-pointer hover:bg-slate-200 transition-colors select-none w-36"
+                  onClick={() => handleSort("jarak")}
+                >
+                  <div className="flex items-center justify-between">
+                    Paket Lari
+                    {sortConfig.key === "jarak" && (
+                      <svg
+                        className={`w-4 h-4 text-[#1A73E8] transform ${sortConfig.direction === "desc" ? "rotate-180" : ""}`}
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M7 14l5-5 5 5z" />
+                      </svg>
+                    )}
+                  </div>
                 </th>
-                <th className="px-4 py-3 text-center border-r border-slate-200 w-32">
-                  Status Bayar
+                <th
+                  className="px-4 py-3 text-center border-r border-slate-200 cursor-pointer hover:bg-slate-200 transition-colors select-none w-32"
+                  onClick={() => handleSort("statusPembayaran")}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Status Bayar
+                    {sortConfig.key === "statusPembayaran" && (
+                      <svg
+                        className={`w-4 h-4 text-[#1A73E8] transform ${sortConfig.direction === "desc" ? "rotate-180" : ""}`}
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M7 14l5-5 5 5z" />
+                      </svg>
+                    )}
+                  </div>
                 </th>
-                <th className="px-4 py-3 w-48">Pengiriman (Resi)</th>
+                <th
+                  className="px-4 py-3 cursor-pointer hover:bg-slate-200 transition-colors select-none w-48"
+                  onClick={() => handleSort("nomorResi")}
+                >
+                  <div className="flex items-center justify-between">
+                    Pengiriman (Resi)
+                    {sortConfig.key === "nomorResi" && (
+                      <svg
+                        className={`w-4 h-4 text-[#1A73E8] transform ${sortConfig.direction === "desc" ? "rotate-180" : ""}`}
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M7 14l5-5 5 5z" />
+                      </svg>
+                    )}
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
@@ -1410,7 +1466,9 @@ export default function DataPesertaPage() {
                             <div className="flex-grow">
                               {p.resiPengiriman ? (
                                 <div className="bg-green-50 px-2 py-1.5 rounded border border-green-200">
-                                  <p className="text-[9px] text-green-600 font-bold uppercase mb-0.5">✓ Resi:</p>
+                                  <p className="text-[9px] text-green-700 font-bold uppercase mb-0.5 flex items-center gap-1">
+                                    <CheckCircle2 className="w-2.5 h-2.5" /> Resi:
+                                  </p>
                                   <p
                                     className="text-[10px] font-mono font-bold text-slate-800 uppercase truncate"
                                     title={p.resiPengiriman}

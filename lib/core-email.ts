@@ -200,6 +200,46 @@ export async function executeSendEmail(body: any) {
         );
         break;
 
+      case "undangan_khusus":
+        subject = `Undangan Khusus: ${eventName}`;
+        const regLink = `${baseUrl}/run/daftar`;
+        htmlContent = generateHtml(
+          `
+          <h2 style="color: #1A73E8; margin-top: 0; font-size: 20px; font-weight: 500;">Undangan Khusus Resmi</h2>
+          ${salamPembuka}
+          <p>Yth. <strong>${nama}</strong>${detail?.instansi ? ` (${detail.instansi})` : ""},</p>
+          <p>Panitia <strong>${eventName}</strong> dengan hormat mengundang Bapak/Ibu untuk hadir dan berpartisipasi sebagai <strong>Undangan Khusus</strong> dalam gelaran lari kami.</p>
+          
+          <div style="background-color: #F8F9FA; border: 1px solid #DADCE0; border-radius: 12px; padding: 25px 20px; margin: 25px 0; text-align: center;">
+            <p style="margin: 0 0 8px 0; font-size: 11px; color: #5F6368; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;">KODE VOUCHER ANDA</p>
+            <div style="display: inline-block; background-color: #0B2239; color: #FCD116; font-size: 24px; font-weight: 900; font-family: monospace; letter-spacing: 3px; padding: 12px 28px; border-radius: 8px; border: 2px solid #FCD116; margin-bottom: 15px;">
+              ${detail?.kodeVoucher || "-"}
+            </div>
+            <p style="margin: 0; font-size: 13px; color: #3C4043; line-height: 1.5;">
+              Voucher ini memberikan akses pendaftaran gratis 100% dan bebas memilih kategori lari (5K, 10K, 21K).
+              ${detail?.kuota ? `<br><span style="font-size: 12px; color: #5F6368;">Kuota: ${detail.kuota} Tiket</span>` : ""}
+            </p>
+          </div>
+
+          <div style="background-color: #E8F0FE; border-left: 4px solid #1A73E8; padding: 15px 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
+            <p style="margin: 0 0 8px 0; font-size: 13px; color: #174EA6; font-weight: 700; text-transform: uppercase;">Petunjuk Pendaftaran:</p>
+            <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #202124; line-height: 1.6;">
+              <li>Klik tombol <strong>"Daftar Undangan Khusus"</strong> di bawah.</li>
+              <li>Masukkan kode voucher <strong>${detail?.kodeVoucher || "-"}</strong> pada kolom Akses Undangan Khusus.</li>
+              <li>Pilih kategori jarak lari yang diinginkan.</li>
+              <li>Lengkapi data diri (Jersey, Nama BIB, Kontak).</li>
+              <li>Setelah disubmit, E-Ticket dan Nomor BIB resmi (U-xxx) akan langsung terbit.</li>
+            </ol>
+          </div>
+
+          <div style="margin: 35px 0 0 0; text-align: center;">
+            ${generateButton("Daftar Undangan Khusus Sekarang", regLink)}
+          </div>
+          `,
+          "UNDANGAN KHUSUS OFFICIAL",
+        );
+        break;
+
       case "crew_rejected":
         subject = `Hasil Seleksi - ${detail?.event || "Kepanitiaan"}`;
         htmlContent = generateHtml(
@@ -615,7 +655,7 @@ export async function executeSendEmail(body: any) {
           
           <div style="background-color: #FEF7E0; border-left: 4px solid #F9AB00; padding: 15px 20px; margin: 25px 0;">
             <p style="margin: 0; font-size: 14px; color: #202124; line-height: 1.6;">
-              <strong>Pembayaran diterima. Menunggu verifikasi admin max 1x24 jam.</strong>
+              <strong>Pembayaran diterima. Menunggu verifikasi admin.</strong>
             </p>
           </div>
 
@@ -658,6 +698,12 @@ export async function executeSendEmail(body: any) {
                 <td style="padding: 12px 15px; border-bottom: 1px solid #F1F3F4; color: #5F6368;"><strong>Kategori (Jarak)</strong></td>
                 <td style="padding: 12px 15px; border-bottom: 1px solid #F1F3F4; font-weight: bold;">: ${detail?.jarak || "-"}</td>
               </tr>
+              ${(detail?.isUndanganKhusus || detail?.tipePeserta === "Undangan Khusus") ? `
+              <tr>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #F1F3F4; color: #5F6368;"><strong>Jenis Tiket</strong></td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #F1F3F4; font-weight: bold; color: #B8960C;">: UNDANGAN KHUSUS ${detail?.kodePromoDipakai ? `(${detail?.kodePromoDipakai})` : ""}</td>
+              </tr>
+              ` : ''}
               <tr>
                 <td style="padding: 12px 15px; border-bottom: 1px solid #F1F3F4; color: #5F6368;"><strong>Ukuran Jersey</strong></td>
                 <td style="padding: 12px 15px; border-bottom: 1px solid #F1F3F4; font-weight: bold;">: ${detail?.ukuranJersey || "-"}</td>
@@ -977,6 +1023,55 @@ export async function executeSendEmail(body: any) {
           </div>
         `,
           "PENGINGAT PENGAMBILAN RACE PACK",
+        );
+        break;
+
+      case "info_upgrade_kategori":
+        subject = `Informasi E-Ticket & Penawaran Upgrade Kategori | ${eventName} | ${nama}`;
+
+        htmlContent = generateHtml(
+          `
+          <h2 style="color: #1A73E8; margin-top: 0; font-size: 20px; font-weight: 500;">Pemberitahuan E-Ticket & Layanan Upgrade Kategori</h2>
+          ${salamPembuka}
+          <p>Yth. <strong>${nama}</strong>,</p>
+          <p>Terima kasih telah bergabung dalam <strong>${eventName}</strong>. Kami menginformasikan bahwa data kepesertaan Anda telah aktif dan terdaftar secara resmi di sistem kami.</p>
+          
+          <div style="background-color: #F8F9FA; padding: 20px; border: 1px solid #DADCE0; border-radius: 12px; margin: 25px 0;">
+            <p style="margin: 0 0 15px 0; font-size: 13px; color: #5F6368; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Data Kepesertaan Saat Ini:</p>
+            <table style="width: 100%; text-align: left; font-size: 14px; color: #202124; border-collapse: collapse; background-color: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+              <tr>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #F1F3F4; color: #5F6368; width: 40%;"><strong>Nama Peserta</strong></td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #F1F3F4; font-weight: bold;">: ${nama}</td>
+              </tr>
+              <tr>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #F1F3F4; color: #5F6368;"><strong>Kategori Jarak</strong></td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #F1F3F4; font-weight: bold;">: ${detail?.jarak || "-"}</td>
+              </tr>
+              <tr>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #F1F3F4; color: #5F6368;"><strong>Ukuran Jersey</strong></td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #F1F3F4; font-weight: bold;">: ${detail?.ukuranJersey || "-"}</td>
+              </tr>
+              <tr>
+                <td style="padding: 12px 15px; color: #5F6368;"><strong>Nomor BIB</strong></td>
+                <td style="padding: 12px 15px; font-weight: 900; color: #1A73E8; font-size: 16px;">: ${detail?.bib || "-"}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="background-color: #E8F0FE; border-left: 4px solid #1A73E8; padding: 15px 20px; margin: 25px 0;">
+            <p style="margin: 0 0 5px 0; font-size: 13px; color: #1557B0; font-weight: 700; text-transform: uppercase;">Ingin Meningkatkan Kategori Jarak?</p>
+            <p style="margin: 0; font-size: 13px; color: #202124; line-height: 1.5;">
+              Bagi Anda yang ingin mengganti/meningkatkan tantangan lari (contoh: dari 5K ke 10K atau 21K), layanan <strong>Upgrade Kategori</strong> kini dapat dilakukan secara mandiri melalui halaman E-Ticket Anda di bawah ini.
+            </p>
+          </div>
+
+          <p>Klik tombol di bawah ini untuk mengakses E-Ticket resmi Anda dan melakukan upgrade kategori jika diinginkan:</p>
+
+          <div style="margin: 30px 0; text-align: center;">
+            ${generateButton("Buka E-Ticket & Upgrade Kategori", `${baseUrl}/run/tiket/${pId}`, true)}
+          </div>
+        `,
+          "PEMBERITAHUAN E-TICKET & UPGRADE",
         );
         break;
 

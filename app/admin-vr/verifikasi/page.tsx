@@ -1,10 +1,6 @@
 "use client";
 
-import { confirmAlert, errorAlert } from "@/lib/sweetalert";
-
-
-
-
+import { confirmAlert } from "@/lib/sweetalert";
 import { useState, useEffect } from "react";
 import { toast } from "@/lib/toast";
 import { db, auth } from "@/lib/firebase";
@@ -19,6 +15,20 @@ import {
   addDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
+import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Search,
+  Users,
+  Trash2,
+  Eye,
+  Check,
+  X,
+  Calendar,
+  Timer,
+  ChevronDown,
+} from "lucide-react";
 
 export default function VerifikasiLariPage() {
   const [submissions, setSubmissions] = useState<any[]>([]);
@@ -26,15 +36,17 @@ export default function VerifikasiLariPage() {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [adminUser, setAdminUser] = useState<any>(null);
 
-  // Filter State
-  const [filter, setFilter] = useState<
-    "Pending" | "Approved" | "Rejected" | "All"
-  >("Pending");
+  // Filter & Search State
+  const [filter, setFilter] = useState<"Pending" | "Approved" | "Rejected" | "All">("Pending");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number | "All">(15);
 
-  // Modal State untuk Image Fullscreen
+  // Modal State untuk Image Fullscreen & Detail
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedDetail, setSelectedDetail] = useState<any | null>(null);
 
-  // 1. Ambil Data Admin (Untuk keperluan Log Aktivitas)
+  // 1. Ambil Data Admin
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setAdminUser(user);
@@ -55,7 +67,7 @@ export default function VerifikasiLariPage() {
     return () => unsubscribe();
   }, []);
 
-  // 3. Fungsi Approve / Reject Lari (Dengan Injeksi Log Realtime)
+  // 3. Fungsi Approve / Reject Lari (Dengan Log Realtime)
   const handleVerifikasiLari = async (
     id: string,
     action: "Approved" | "Rejected",
@@ -81,6 +93,10 @@ export default function VerifikasiLariPage() {
         timestamp: Date.now(),
       };
       await addDoc(collection(db, "vr_logs"), logData);
+      toast.success(action === "Approved" ? "Bukti lari disetujui." : "Bukti lari ditolak.");
+      if (selectedDetail?.id === id) {
+        setSelectedDetail(null);
+      }
     } catch (error) {
       toast.error("Gagal memverifikasi data.");
       console.error(error);
@@ -89,7 +105,7 @@ export default function VerifikasiLariPage() {
     }
   };
 
-  // 4. Fitur Bulk Delete (Hapus Banyak)
+  // 4. Fitur Bulk Selection & Delete
   const toggleSelectSubmission = (id: string) => {
     if (selectedSubmissions.includes(id)) {
       setSelectedSubmissions(selectedSubmissions.filter((sid) => sid !== id));
@@ -98,25 +114,43 @@ export default function VerifikasiLariPage() {
     }
   };
 
-  const filteredSubmissions = submissions.filter(
-    (s) => filter === "All" || s.status === filter,
-  );
+  const filteredSubmissions = submissions.filter((s) => {
+    const matchFilter = filter === "All" || s.status === filter;
+    const matchSearch =
+      !searchQuery ||
+      (s.nama || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (s.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      String(s.jarakKm || "").includes(searchQuery);
 
-  const handleSelectAll = () => {
+    return matchFilter && matchSearch;
+  });
+
+  const totalPages =
+    itemsPerPage === "All" ? 1 : Math.ceil(filteredSubmissions.length / itemsPerPage);
+
+  const paginatedData =
+    itemsPerPage === "All"
+      ? filteredSubmissions
+      : filteredSubmissions.slice(
+          (currentPage - 1) * (itemsPerPage as number),
+          currentPage * (itemsPerPage as number),
+        );
+
+  const handleSelectAllVisible = () => {
     if (
-      selectedSubmissions.length === filteredSubmissions.length &&
-      filteredSubmissions.length > 0
+      selectedSubmissions.length === paginatedData.length &&
+      paginatedData.length > 0
     ) {
       setSelectedSubmissions([]);
     } else {
-      setSelectedSubmissions(filteredSubmissions.map((s) => s.id));
+      setSelectedSubmissions(paginatedData.map((s) => s.id));
     }
   };
 
   const deleteSelected = async () => {
     if (
       !await confirmAlert(
-        `Yakin ingin menghapus ${selectedSubmissions.length} bukti lari secara permanen? Data yang dihapus tidak dapat dikembalikan.`,
+        `Yakin ingin menghapus ${selectedSubmissions.length} data bukti lari ini secara permanen?`,
       )
     )
       return;
@@ -129,6 +163,7 @@ export default function VerifikasiLariPage() {
       );
       await batch.commit();
       setSelectedSubmissions([]);
+      toast.success("Data terpilih berhasil dihapus.");
     } catch {
       toast.error("Gagal menghapus data.");
     } finally {
@@ -137,310 +172,431 @@ export default function VerifikasiLariPage() {
   };
 
   const pendingCount = submissions.filter((s) => s.status === "Pending").length;
+  const approvedCount = submissions.filter((s) => s.status === "Approved").length;
+  const rejectedCount = submissions.filter((s) => s.status === "Rejected").length;
 
   return (
-    <div className="animate-in fade-in duration-300 max-w-7xl mx-auto pb-10 font-sans">
-      {/* MODAL PREVIEW GAMBAR */}
+    <div className="animate-in fade-in duration-300 flex flex-col h-[calc(100vh-2rem)] max-w-7xl mx-auto font-sans">
+      {/* MODAL PREVIEW GAMBAR ZOOM */}
       {previewImage && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 md:p-10 animate-in zoom-in-95 duration-200"
+          className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 md:p-10 animate-in fade-in duration-200"
           onClick={() => setPreviewImage(null)}
         >
-          <div className="relative w-full max-w-4xl flex flex-col items-center justify-center">
+          <div className="relative w-full max-w-3xl flex flex-col items-center justify-center">
             <button
-              className="absolute -top-4 -right-4 md:-top-6 md:-right-6 bg-white text-slate-500 hover:text-slate-900 w-10 h-10 md:w-12 md:h-12 rounded-full font-bold text-xl z-50 shadow-xl transition-colors flex items-center justify-center"
+              className="absolute -top-4 -right-4 bg-white text-slate-700 hover:text-black w-10 h-10 rounded-full font-bold text-sm z-50 shadow-xl flex items-center justify-center border border-slate-200"
               onClick={() => setPreviewImage(null)}
             >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-              </svg>
+              <X className="w-5 h-5" />
             </button>
             <img
               src={previewImage}
-              alt="Preview Bukti"
-              className="max-w-full max-h-[85vh] rounded-xl shadow-2xl object-contain bg-slate-900 border border-slate-700"
+              alt="Preview Bukti Lari"
+              className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain bg-black border border-slate-700"
               onClick={(e) => e.stopPropagation()}
             />
           </div>
         </div>
       )}
 
-      {/* HEADER HALAMAN (GOOGLE STYLE) */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8 bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-sm">
-        <div>
-          <div className="inline-flex items-center gap-2 bg-[#E8F0FE] text-[#1A73E8] px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest mb-3">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-            </svg>
-            Validasi Data
-          </div>
-          <h1 className="text-[28px] font-bold text-slate-800 tracking-tight flex items-center gap-3">
-            Verifikasi Aktivitas Lari
-            {pendingCount > 0 && (
-              <span className="bg-[#D93025] text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-sm">
-                {pendingCount} Menunggu
-              </span>
-            )}
-          </h1>
-          <p className="text-sm text-slate-500 mt-2 font-medium max-w-2xl">
-            Periksa tangkapan layar aplikasi lari peserta (Strava, Garmin, dll).
-            Setujui data yang valid agar masuk ke total pencapaian kilometer
-            mereka.
-          </p>
-        </div>
-
-        {/* TOMBOL BULK ACTION */}
-        <div className="flex flex-wrap gap-3 shrink-0">
-          <button
-            onClick={handleSelectAll}
-            className="text-sm font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 px-5 py-2.5 rounded-lg transition-colors shadow-sm flex items-center gap-2"
-          >
-            <div
-              className={`w-4 h-4 rounded border flex items-center justify-center ${selectedSubmissions.length === filteredSubmissions.length && filteredSubmissions.length > 0 ? "bg-[#1A73E8] border-[#1A73E8]" : "border-slate-400"}`}
-            >
-              {selectedSubmissions.length === filteredSubmissions.length &&
-                filteredSubmissions.length > 0 && (
-                  <svg
-                    className="w-3 h-3 text-white"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={3}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                )}
-            </div>
-            Pilih Semua
-          </button>
-
-          {selectedSubmissions.length > 0 && (
-            <button
-              onClick={deleteSelected}
-              disabled={loadingAction === "deleteBulk"}
-              className="text-sm font-bold text-[#D93025] bg-white border border-rose-200 hover:bg-[#FCE8E6] px-5 py-2.5 rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M15 4V3H9v1H4v2h1v13c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V6h1V4h-5zm2 15H7V6h10v13zM9 8h2v9H9zm4 0h2v9h-2z" />
-              </svg>
-              {loadingAction === "deleteBulk"
-                ? "Menghapus..."
-                : `Hapus (${selectedSubmissions.length})`}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* FILTER TABS (GOOGLE MATERIAL STYLE) */}
-      <div className="flex overflow-x-auto gap-2 mb-6 border-b border-slate-200 pb-px hide-scrollbar">
-        {["Pending", "Approved", "Rejected", "All"].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => {
-              setFilter(tab as any);
-              setSelectedSubmissions([]); // Reset pilihan saat pindah tab
-            }}
-            className={`px-5 py-3 text-sm font-bold whitespace-nowrap transition-colors border-b-2 ${
-              filter === tab
-                ? "border-[#1A73E8] text-[#1A73E8]"
-                : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50"
-            }`}
-          >
-            {tab === "Pending" && `Menunggu (${pendingCount})`}
-            {tab === "Approved" && "Disetujui"}
-            {tab === "Rejected" && "Ditolak"}
-            {tab === "All" && "Semua Data"}
-          </button>
-        ))}
-      </div>
-
-      {/* AREA DATA */}
-      {filteredSubmissions.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-xl p-16 text-center shadow-sm flex flex-col items-center">
-          <svg
-            className="w-16 h-16 text-slate-300 mb-4"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path d="M19 3H4.99c-1.11 0-1.98.89-1.98 2L3 19c0 1.1.88 2 1.99 2H19c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 12h-4c0 1.66-1.35 3-3 3s-3-1.34-3-3H4.99V5H19v10z" />
-          </svg>
-          <p className="text-lg font-bold text-slate-800">Tidak ada data</p>
-          <p className="text-sm text-slate-500 mt-2 max-w-sm mx-auto">
-            Belum ada bukti lari dengan status{" "}
-            <b>
-              {filter === "Pending"
-                ? "Menunggu"
-                : filter === "Approved"
-                  ? "Disetujui"
-                  : filter === "Rejected"
-                    ? "Ditolak"
-                    : "Semua"}
-            </b>{" "}
-            saat ini.
-          </p>
-        </div>
-      ) : (
-        /* GRID DATA LARI */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredSubmissions.map((sub) => (
-            <div
-              key={sub.id}
-              className={`bg-white rounded-xl overflow-hidden shadow-sm border flex flex-col relative transition-all duration-300 hover:shadow-md ${
-                selectedSubmissions.includes(sub.id)
-                  ? "border-[#1A73E8] bg-[#E8F0FE]/30"
-                  : "border-slate-200"
-              }`}
-            >
-              {/* Checkbox Overlay */}
-              <div className="absolute top-4 left-4 z-20">
-                <div
-                  onClick={() => toggleSelectSubmission(sub.id)}
-                  className={`w-5 h-5 rounded border flex items-center justify-center cursor-pointer transition-colors shadow-sm ${selectedSubmissions.includes(sub.id) ? "bg-[#1A73E8] border-[#1A73E8]" : "bg-white border-slate-400"}`}
-                >
-                  {selectedSubmissions.includes(sub.id) && (
-                    <svg
-                      className="w-3.5 h-3.5 text-white"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={3}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  )}
-                </div>
+      {/* MODAL DETAIL BUKTI LARI */}
+      {selectedDetail && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <div>
+                <h3 className="text-base font-bold text-slate-800">Detail Bukti Lari Peserta</h3>
+                <p className="text-xs text-slate-500 font-mono">ID: {selectedDetail.id}</p>
               </div>
-
-              {/* Status Lencana Kanan Atas */}
-              <div className="absolute top-4 right-4 z-10">
-                {sub.status === "Pending" && (
-                  <span className="bg-[#FEF7E0]/90 text-[#B08D00] text-[10px] font-bold px-2.5 py-1 rounded shadow-sm uppercase tracking-wider backdrop-blur-sm border border-[#F9AB00]/20">
-                    Menunggu
-                  </span>
-                )}
-                {sub.status === "Approved" && (
-                  <span className="bg-[#E6F4EA]/90 text-[#1E8E3E] text-[10px] font-bold px-2.5 py-1 rounded shadow-sm uppercase tracking-wider backdrop-blur-sm border border-[#1E8E3E]/20">
-                    Disetujui
-                  </span>
-                )}
-                {sub.status === "Rejected" && (
-                  <span className="bg-[#FCE8E6]/90 text-[#D93025] text-[10px] font-bold px-2.5 py-1 rounded shadow-sm uppercase tracking-wider backdrop-blur-sm border border-[#D93025]/20">
-                    Ditolak
-                  </span>
-                )}
-              </div>
-
-              {/* Gambar / Bukti Lari */}
-              <div
-                className="w-full h-48 sm:h-52 bg-slate-100 cursor-pointer overflow-hidden relative group"
-                onClick={() => setPreviewImage(sub.imgUrl)}
+              <button
+                onClick={() => setSelectedDetail(null)}
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg"
               >
-                <div className="absolute inset-0 bg-slate-900/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 backdrop-blur-[1px]">
-                  <span className="text-white text-xs font-bold bg-slate-900/60 px-3 py-1.5 rounded-lg flex items-center gap-2">
-                    <svg
-                      className="w-4 h-4"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
-                    </svg>
-                    Perbesar
-                  </span>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto flex flex-col md:flex-row gap-6">
+              <div className="w-full md:w-1/2 flex flex-col">
+                <div
+                  className="w-full h-56 bg-slate-100 rounded-2xl overflow-hidden cursor-zoom-in relative group border border-slate-200 flex items-center justify-center"
+                  onClick={() => setPreviewImage(selectedDetail.imgUrl)}
+                >
+                  <img
+                    src={selectedDetail.imgUrl}
+                    alt="Bukti Lari"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5">
+                    <Search className="w-4 h-4" /> Perbesar Gambar
+                  </div>
                 </div>
-                <img
-                  src={sub.imgUrl}
-                  alt="Bukti Lari"
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
               </div>
 
-              {/* Detail Konten */}
-              <div className="p-4 flex-grow flex flex-col">
-                <div className="mb-3">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
-                    Nama Peserta
-                  </p>
-                  <p className="font-bold text-slate-800 text-[15px] line-clamp-1">
-                    {sub.nama}
-                  </p>
+              <div className="w-full md:w-1/2 space-y-4 text-sm">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Nama Peserta</span>
+                  <p className="font-bold text-slate-800 text-base">{selectedDetail.nama}</p>
+                  <p className="text-xs text-slate-500">{selectedDetail.email || "-"}</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 mb-4 mt-auto">
-                  <div className="bg-[#E8F0FE] p-2.5 rounded-lg border border-blue-100">
-                    <p className="text-[9px] text-[#1A73E8] font-bold uppercase tracking-wider mb-0.5">
-                      Jarak
-                    </p>
-                    <p className="text-lg font-bold text-[#1A73E8]">
-                      {sub.jarakKm} <span className="text-xs">KM</span>
-                    </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl">
+                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block mb-0.5">Jarak Tempuh</span>
+                    <p className="text-xl font-black text-blue-700">{selectedDetail.jarakKm} <span className="text-xs">KM</span></p>
                   </div>
-                  <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-lg">
-                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">
-                      Durasi
-                    </p>
-                    <p className="text-base font-bold text-slate-700">
-                      {sub.durasi}
-                    </p>
+                  <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">Durasi Lari</span>
+                    <p className="text-base font-bold text-slate-700">{selectedDetail.durasi || "-"}</p>
                   </div>
                 </div>
 
-                <p className="text-[10px] text-slate-500 font-medium flex items-center gap-1.5 mb-4">
-                  <svg
-                    className="w-3.5 h-3.5"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Tanggal Lari</span>
+                  <p className="font-semibold text-slate-700">
+                    {selectedDetail.tanggalLari
+                      ? new Date(selectedDetail.tanggalLari).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+                      : "-"}
+                  </p>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Status Saat Ini</span>
+                  <span
+                    className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
+                      selectedDetail.status === "Approved"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : selectedDetail.status === "Rejected"
+                          ? "bg-rose-50 text-rose-700 border-rose-200"
+                          : "bg-amber-50 text-amber-700 border-amber-200"
+                    }`}
                   >
-                    <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
-                  </svg>
-                  {new Date(sub.tanggalLari).toLocaleDateString("id-ID", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </p>
+                    {selectedDetail.status || "Pending"}
+                  </span>
+                </div>
+              </div>
+            </div>
 
-                {/* Tombol Aksi CRUD (Hanya Aktif jika Pending) */}
-                <div className="flex gap-2 pt-3 border-t border-slate-100">
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-2.5">
+              <button
+                onClick={() => setSelectedDetail(null)}
+                className="px-4 py-2 border border-slate-200 bg-white text-slate-600 rounded-xl font-bold text-xs hover:bg-slate-100 transition-colors"
+              >
+                Tutup
+              </button>
+              {selectedDetail.status === "Pending" && (
+                <>
                   <button
-                    onClick={() =>
-                      handleVerifikasiLari(sub.id, "Rejected", sub.nama)
-                    }
-                    disabled={
-                      loadingAction === sub.id || sub.status !== "Pending"
-                    }
-                    className={`flex-1 font-bold py-2 rounded-lg text-xs transition-colors flex justify-center items-center gap-1.5 ${sub.status === "Pending" ? "bg-white border border-slate-200 text-[#D93025] hover:bg-[#FCE8E6] hover:border-[#D93025]" : "bg-slate-50 text-slate-300 border border-slate-100 cursor-not-allowed"}`}
+                    onClick={() => handleVerifikasiLari(selectedDetail.id, "Rejected", selectedDetail.nama)}
+                    disabled={loadingAction === selectedDetail.id}
+                    className="px-4 py-2 border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-xl font-bold text-xs transition-colors"
                   >
                     Tolak
                   </button>
                   <button
-                    onClick={() =>
-                      handleVerifikasiLari(sub.id, "Approved", sub.nama)
-                    }
-                    disabled={
-                      loadingAction === sub.id || sub.status !== "Pending"
-                    }
-                    className={`flex-1 font-bold py-2 rounded-lg text-xs transition-colors shadow-sm flex justify-center items-center gap-1.5 ${sub.status === "Pending" ? "bg-[#1A73E8] text-white hover:bg-[#1557B0]" : "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"}`}
+                    onClick={() => handleVerifikasiLari(selectedDetail.id, "Approved", selectedDetail.nama)}
+                    disabled={loadingAction === selectedDetail.id}
+                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-sm transition-colors"
                   >
-                    {loadingAction === sub.id ? (
-                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                    ) : (
-                      "Setujui"
-                    )}
+                    Setujui (+{selectedDetail.jarakKm} KM)
                   </button>
-                </div>
-              </div>
+                </>
+              )}
             </div>
-          ))}
+          </div>
         </div>
       )}
+
+      {/* HEADER RINGKAS & STATS CARD (SENADA DENGAN OFFLINE RUN) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 shrink-0">
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+          <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">
+            Total Masuk
+          </p>
+          <p className="text-2xl font-black text-slate-800">
+            {submissions.length}
+          </p>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+          <p className="text-xs font-bold text-amber-600 mb-1 uppercase tracking-wider">
+            Menunggu Verifikasi
+          </p>
+          <p className="text-2xl font-black text-[#F9AB00]">
+            {pendingCount}
+          </p>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+          <p className="text-xs font-bold text-emerald-600 mb-1 uppercase tracking-wider">
+            Disetujui
+          </p>
+          <p className="text-2xl font-black text-[#1E8E3E]">
+            {approvedCount}
+          </p>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+          <p className="text-xs font-bold text-rose-600 mb-1 uppercase tracking-wider">
+            Ditolak
+          </p>
+          <p className="text-2xl font-black text-[#D93025]">
+            {rejectedCount}
+          </p>
+        </div>
+      </div>
+
+      {/* TOOLBAR FILTER, SEARCH & BULK ACTION */}
+      <div className="bg-white p-4 rounded-t-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 shrink-0">
+        {/* TAB FILTER STATUS */}
+        <div className="flex bg-slate-100 p-1 rounded-xl overflow-x-auto gap-1">
+          {(["Pending", "Approved", "Rejected", "All"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => {
+                setFilter(tab);
+                setCurrentPage(1);
+                setSelectedSubmissions([]);
+              }}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                filter === tab
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              {tab === "Pending" && `Menunggu (${pendingCount})`}
+              {tab === "Approved" && `Disetujui (${approvedCount})`}
+              {tab === "Rejected" && `Ditolak (${rejectedCount})`}
+              {tab === "All" && `Semua (${submissions.length})`}
+            </button>
+          ))}
+        </div>
+
+        {/* SEARCH & BULK DELETE */}
+        <div className="flex items-center gap-2">
+          {selectedSubmissions.length > 0 && (
+            <button
+              onClick={deleteSelected}
+              disabled={loadingAction === "deleteBulk"}
+              className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Hapus ({selectedSubmissions.length})
+            </button>
+          )}
+
+          <div className="relative flex-1 md:w-64">
+            <input
+              type="text"
+              placeholder="Cari nama peserta / KM..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full bg-slate-50 border border-slate-200 pl-8 pr-3 py-2 rounded-xl text-xs outline-none focus:border-blue-500 focus:bg-white transition-all font-medium text-slate-800"
+            />
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
+          </div>
+
+          <select
+            value={itemsPerPage}
+            onChange={(e) => {
+              setItemsPerPage(e.target.value === "All" ? "All" : Number(e.target.value));
+              setCurrentPage(1);
+            }}
+            className="bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 outline-none"
+          >
+            <option value={15}>15 baris</option>
+            <option value={30}>30 baris</option>
+            <option value={50}>50 baris</option>
+            <option value="All">Semua</option>
+          </select>
+        </div>
+      </div>
+
+      {/* TABEL DATA VERIFIKASI (SENADA DENGAN TABEL ADMIN OFFLINE) */}
+      <div className="bg-white border-x border-slate-100 flex-grow overflow-auto relative min-h-0">
+        <table className="w-full text-left border-collapse text-sm whitespace-nowrap">
+          <thead className="bg-slate-50 text-slate-500 sticky top-0 z-10 shadow-sm text-xs font-bold uppercase tracking-wider">
+            <tr>
+              <th className="p-4 border-b border-slate-200 w-10 text-center">
+                <input
+                  type="checkbox"
+                  checked={selectedSubmissions.length === paginatedData.length && paginatedData.length > 0}
+                  onChange={handleSelectAllVisible}
+                  className="rounded text-[#1A73E8] focus:ring-[#1A73E8] w-4 h-4 cursor-pointer"
+                />
+              </th>
+              <th className="p-4 border-b border-slate-200 w-16 text-center">Bukti</th>
+              <th className="p-4 border-b border-slate-200">Nama Peserta</th>
+              <th className="p-4 border-b border-slate-200 text-center">Jarak (KM)</th>
+              <th className="p-4 border-b border-slate-200">Durasi & Tanggal</th>
+              <th className="p-4 border-b border-slate-200">Waktu Submit</th>
+              <th className="p-4 border-b border-slate-200 text-center">Status</th>
+              <th className="p-4 border-b border-slate-200 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {paginatedData.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="p-8 text-center text-slate-400 font-medium">
+                  Tidak ada bukti lari yang sesuai dengan kriteria filter atau pencarian.
+                </td>
+              </tr>
+            ) : (
+              paginatedData.map((sub) => {
+                const isSelected = selectedSubmissions.includes(sub.id);
+                return (
+                  <tr
+                    key={sub.id}
+                    className={`hover:bg-blue-50/50 transition-colors ${
+                      isSelected ? "bg-blue-50/60" : sub.status === "Pending" ? "bg-amber-50/30" : ""
+                    }`}
+                  >
+                    {/* Checkbox */}
+                    <td className="p-4 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectSubmission(sub.id)}
+                        className="rounded text-[#1A73E8] focus:ring-[#1A73E8] w-4 h-4 cursor-pointer"
+                      />
+                    </td>
+
+                    {/* Thumbnail Bukti */}
+                    <td className="p-4 text-center">
+                      <div
+                        onClick={() => setPreviewImage(sub.imgUrl)}
+                        className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden cursor-zoom-in relative group mx-auto shrink-0"
+                        title="Klik untuk perbesar gambar"
+                      >
+                        <img
+                          src={sub.imgUrl}
+                          alt="Thumb"
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                        />
+                      </div>
+                    </td>
+
+                    {/* Peserta */}
+                    <td className="p-4">
+                      <p className="font-bold text-slate-800">{sub.nama || "Peserta"}</p>
+                      <p className="text-xs text-slate-500 mt-0.5 truncate max-w-[200px]">
+                        {sub.email || sub.participantId || "-"}
+                      </p>
+                    </td>
+
+                    {/* Jarak */}
+                    <td className="p-4 text-center">
+                      <span className="font-mono font-black text-[#1A73E8] bg-blue-50 px-2.5 py-1 rounded text-sm">
+                        {sub.jarakKm} KM
+                      </span>
+                    </td>
+
+                    {/* Durasi & Tanggal Lari */}
+                    <td className="p-4">
+                      <p className="font-bold text-slate-700">{sub.durasi || "-"}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {sub.tanggalLari ? new Date(sub.tanggalLari).toLocaleDateString("id-ID") : "-"}
+                      </p>
+                    </td>
+
+                    {/* Waktu Submit */}
+                    <td className="p-4 text-slate-500 text-xs">
+                      {sub.createdAt ? new Date(sub.createdAt).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" }) : "-"}
+                    </td>
+
+                    {/* Status */}
+                    <td className="p-4 text-center">
+                      <span
+                        className={`px-3 py-1 text-[10px] uppercase tracking-wider font-bold rounded-full border ${
+                          sub.status === "Approved"
+                            ? "bg-[#E6F4EA] text-[#1E8E3E] border-[#1E8E3E]/20"
+                            : sub.status === "Rejected"
+                              ? "bg-[#FCE8E6] text-[#D93025] border-[#D93025]/20"
+                              : "bg-[#FEF7E0] text-[#B08D00] border-[#F9AB00]/20"
+                        }`}
+                      >
+                        {sub.status || "Pending"}
+                      </span>
+                    </td>
+
+                    {/* Aksi */}
+                    <td className="p-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => setSelectedDetail(sub)}
+                          className="bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-slate-50 transition-colors"
+                          title="Lihat Detail"
+                        >
+                          Detail
+                        </button>
+
+                        {sub.status === "Pending" && (
+                          <>
+                            <button
+                              onClick={() => handleVerifikasiLari(sub.id, "Approved", sub.nama)}
+                              disabled={loadingAction === sub.id}
+                              className="bg-[#1A73E8] hover:bg-[#1557B0] text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-colors"
+                              title="Setujui Bukti Lari Ini"
+                            >
+                              Setujui
+                            </button>
+                            <button
+                              onClick={() => handleVerifikasiLari(sub.id, "Rejected", sub.nama)}
+                              disabled={loadingAction === sub.id}
+                              className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                              title="Tolak Bukti Lari Ini"
+                            >
+                              Tolak
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* PAGINATION BAWAH */}
+      <div className="bg-white p-4 rounded-b-2xl shadow-sm border border-slate-100 flex justify-between items-center shrink-0">
+        <p className="text-sm text-slate-500 font-medium">
+          Menampilkan baris{" "}
+          <span className="font-bold text-slate-800">
+            {filteredSubmissions.length === 0 ? 0 : (currentPage - 1) * (itemsPerPage === "All" ? filteredSubmissions.length : itemsPerPage) + 1}
+          </span>{" "}
+          -{" "}
+          <span className="font-bold text-slate-800">
+            {Math.min(
+              currentPage * (itemsPerPage === "All" ? filteredSubmissions.length : itemsPerPage),
+              filteredSubmissions.length,
+            )}
+          </span>{" "}
+          dari <span className="font-bold text-slate-800">{filteredSubmissions.length}</span> data
+        </p>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
+          >
+            Sebelumnya
+          </button>
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages || totalPages === 0}
+            className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
+          >
+            Selanjutnya
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

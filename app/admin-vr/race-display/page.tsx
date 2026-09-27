@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { db, auth } from "@/lib/firebase";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
-import { Tv, Image as ImageIcon, Video, Play, Pause, RefreshCw, XCircle, LogOut, RotateCw } from "lucide-react";
+import { Tv, Image as ImageIcon, Video, Play, Pause, RefreshCw, XCircle, LogOut, RotateCw, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function RaceDisplayControlPage() {
   const [settings, setSettings] = useState<any>({});
@@ -13,7 +13,7 @@ export default function RaceDisplayControlPage() {
   const [localType, setLocalType] = useState<"image" | "video">("image");
   const [localLoop, setLocalLoop] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<{ text: string; type: "success" | "error" | "info" } | null>(null);
   const [isRotated, setIsRotated] = useState(false);
 
   const handleLogout = async () => {
@@ -46,18 +46,18 @@ export default function RaceDisplayControlPage() {
     return () => unsub();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const showMessage = (text: string) => {
-    setMessage(text);
-    setTimeout(() => setMessage(""), 3000);
+  const showMessage = (text: string, type: "success" | "error" | "info" = "info") => {
+    setMessage({ text, type });
+    setTimeout(() => setMessage(null), 3500);
   };
 
   const handleApplySettings = async () => {
     if (localType === "image" && !localImageUrl) {
-      showMessage("URL Foto tidak boleh kosong!");
+      showMessage("URL Foto tidak boleh kosong!", "error");
       return;
     }
     if (localType === "video" && !localVideoUrl) {
-      showMessage("URL Video tidak boleh kosong!");
+      showMessage("URL Video tidak boleh kosong!", "error");
       return;
     }
     setIsProcessing(true);
@@ -69,10 +69,10 @@ export default function RaceDisplayControlPage() {
         mediaType: localType,
         mediaLoop: localLoop,
       });
-      showMessage("Pengaturan Media Berhasil Diterapkan!");
+      showMessage("Pengaturan Media Berhasil Diterapkan!", "success");
     } catch (err: any) {
       console.error(err);
-      showMessage("❌ Gagal menyimpan pengaturan: " + err.message);
+      showMessage("Gagal menyimpan pengaturan: " + err.message, "error");
     } finally {
       setIsProcessing(false);
     }
@@ -88,7 +88,7 @@ export default function RaceDisplayControlPage() {
       });
     } catch (err: any) {
       console.error(err);
-      showMessage("❌ Gagal merubah mode layar.");
+      showMessage("Gagal merubah mode layar.", "error");
     } finally {
       setIsProcessing(false);
     }
@@ -101,7 +101,7 @@ export default function RaceDisplayControlPage() {
       });
     } catch (err: any) {
       console.error(err);
-      showMessage("❌ Gagal mengontrol pemutaran.");
+      showMessage("Gagal mengontrol pemutaran.", "error");
     }
   };
 
@@ -112,7 +112,7 @@ export default function RaceDisplayControlPage() {
       });
     } catch (err: any) {
       console.error(err);
-      showMessage("❌ Gagal mengubah orientasi layar.");
+      showMessage("Gagal mengubah orientasi layar.", "error");
     }
   };
 
@@ -182,8 +182,23 @@ export default function RaceDisplayControlPage() {
 
         {/* NOTIFIKASI */}
         {message && (
-          <div className={`p-4 rounded-xl text-sm font-medium animate-in fade-in slide-in-from-top-4 ${message.includes('✅') ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : message.includes('❌') ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
-            {message}
+          <div
+            className={`p-4 rounded-xl text-sm font-medium flex items-center gap-2.5 animate-in fade-in slide-in-from-top-4 ${
+              message.type === "success"
+                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                : message.type === "error"
+                ? "bg-red-50 text-red-700 border border-red-200"
+                : "bg-blue-50 text-blue-700 border border-blue-200"
+            }`}
+          >
+            {message.type === "success" ? (
+              <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600" />
+            ) : message.type === "error" ? (
+              <AlertCircle className="w-5 h-5 shrink-0 text-red-600" />
+            ) : (
+              <AlertCircle className="w-5 h-5 shrink-0 text-blue-600" />
+            )}
+            <span>{message.text}</span>
           </div>
         )}
 

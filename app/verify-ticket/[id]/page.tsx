@@ -197,7 +197,12 @@ export default function VerifyTicketPage() {
               {participant.namaBib || participant.namaLengkap}
             </h3>
 
-            <div className="flex justify-center relative z-10">
+            <div className="flex flex-wrap justify-center items-center gap-2 relative z-10">
+              {Boolean(participant.isUndanganKhusus || participant.tipePeserta === "Undangan Khusus") && (
+                <span className="bg-amber-100 text-amber-900 border border-amber-300 text-xs md:text-sm font-black px-4 py-2 rounded-xl uppercase tracking-widest shadow-sm">
+                  Undangan Khusus {participant.kodePromoDipakai ? `(${participant.kodePromoDipakai})` : ""}
+                </span>
+              )}
               <span className="bg-[#FCD116] text-[#0B2239] text-sm md:text-base font-black px-6 py-2 rounded-xl uppercase tracking-widest shadow-md border border-yellow-400">
                 {participant.kategoriPeserta === "SMA/Pelajar"
                   ? "Pelajar"
@@ -251,6 +256,16 @@ export default function VerifyTicketPage() {
                   Data Administratif
                 </h3>
                 <div className="grid grid-cols-2 gap-y-4 gap-x-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                  {Boolean(participant.isUndanganKhusus || participant.tipePeserta === "Undangan Khusus") && (
+                    <div className="col-span-2 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                      <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">
+                        Jenis Pendaftaran
+                      </p>
+                      <p className="text-sm font-black text-amber-900">
+                        Undangan Khusus {participant.kodePromoDipakai ? `(Kode Voucher: ${participant.kodePromoDipakai})` : ""}
+                      </p>
+                    </div>
+                  )}
                   <div className="col-span-2">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                       Nama Lengkap

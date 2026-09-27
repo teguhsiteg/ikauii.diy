@@ -28,6 +28,24 @@ export async function POST(request: Request) {
       statusPembayaran: "Pending", // 🔒 DIKUNCI DI BACKEND
     });
 
+    // 3. Kirim Notifikasi Telegram ke Admin
+    try {
+      const { sendTelegramPaymentNotification } = await import("@/lib/telegram");
+      await sendTelegramPaymentNotification({
+        type: "vr_indiv",
+        id: participantId,
+        nama: participantData?.nama || "-",
+        email: participantData?.email || "-",
+        wa: participantData?.wa || "-",
+        kategori: `${participantData?.jarak || "Virtual Run"} (Size: ${participantData?.ukuranJersey || "-"})`,
+        totalBayar: participantData?.totalBayar || 0,
+        ongkir: participantData?.ongkir || 0,
+        buktiBayarUrl: imgUrl,
+      });
+    } catch (tgErr) {
+      console.error("Gagal kirim notif telegram VR:", tgErr);
+    }
+
     return NextResponse.json({ success: true, message: "Bukti bayar berhasil diunggah" }, { status: 200 });
   } catch (error: any) {
     console.error("API Error (vr-upload-payment):", error);

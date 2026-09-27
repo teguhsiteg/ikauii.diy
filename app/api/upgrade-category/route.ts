@@ -47,31 +47,39 @@ export async function POST(request: Request) {
 
     // Validasi paket lama vs baru
     const currentPaketId = participantData.paketId;
-    const oldPaket = packages.find((p: any) => p.id === currentPaketId);
+    let oldPaket = packages.find((p: any) => p.id === currentPaketId);
+    if (!oldPaket) {
+      const pJarak = (participantData.jarak || participantData.kategori || "").toUpperCase();
+      const pNama = (participantData.paketNama || "").toLowerCase();
+      oldPaket = packages.find((p: any) => 
+        (p.jarak && p.jarak.toUpperCase() === pJarak) ||
+        (p.nama && pNama.includes(p.nama.toLowerCase()))
+      );
+    }
+
     const newPaket = packages.find((p: any) => p.id === newPaketId);
 
-    if (!oldPaket || !newPaket) {
-        return NextResponse.json(
-            { error: "Paket lama atau baru tidak valid." },
-            { status: 400 },
-          );
+    if (!newPaket) {
+      return NextResponse.json(
+        { error: "Kategori tujuan upgrade tidak ditemukan." },
+        { status: 400 },
+      );
     }
 
     // Hitung selisih
-    // Pakai harga awal (bukan early bird jika tidak relevan, tapi lebih aman gunakan selisih harga saat ini)
-    const currentPrice = Number(oldPaket.harga) || 0;
+    let currentPrice = Number(participantData.hargaAsli || participantData.totalTagihan || 0);
+    if (currentPrice === 0 && oldPaket) {
+      currentPrice = Number(oldPaket.harga) || 0;
+    }
     const newPrice = Number(newPaket.harga) || 0;
     
-    // Namun, idealnya kita cek harga dari participantData.hargaAsli
-    // Jika peserta dapat diskon early bird/promo, harga aslinya lebih murah. 
-    // Upgrade berarti mereka harus bayar selisih dari HARGA ASLI BARU (tanpa diskon) dengan apa yang sudah mereka bayar.
-    const selisih = newPrice - Number(participantData.hargaAsli || currentPrice);
+    const selisih = newPrice - currentPrice;
 
     if (selisih <= 0) {
-        return NextResponse.json(
-            { error: "Hanya bisa upgrade ke kategori dengan harga lebih tinggi." },
-            { status: 400 },
-          );
+      return NextResponse.json(
+        { error: "Hanya bisa upgrade ke kategori dengan harga lebih tinggi." },
+        { status: 400 },
+      );
     }
 
     const orderId = `UPG-${id}-${Date.now()}`;

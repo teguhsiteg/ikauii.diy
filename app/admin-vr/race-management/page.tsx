@@ -168,6 +168,38 @@ const IconTrash = () => (
   </svg>
 );
 
+const IconFlag = ({ className = "w-6 h-6 text-blue-600" }: { className?: string }) => (
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
+    />
+  </svg>
+);
+
+const IconAlertTriangle = ({ className = "w-4 h-4 text-rose-600" }: { className?: string }) => (
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+    />
+  </svg>
+);
+
 const colorThemes = [
   {
     border: "border-blue-200",
@@ -1222,8 +1254,8 @@ export default function RaceManagementPage() {
             <div className="flex-grow grid grid-cols-1 xl:grid-cols-3 gap-8 min-h-0">
               {/* KOLOM LOGGING SCANNER */}
               <div className="xl:col-span-1 bg-white border border-slate-200 rounded-2xl p-8 flex flex-col shadow-sm text-center">
-                <div className="w-16 h-16 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
-                  🏁
+                <div className="w-16 h-16 bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <IconFlag className="w-8 h-8 text-blue-600" />
                 </div>
                 <h2 className="text-base font-black text-[#152B5B] mb-2 uppercase tracking-widest">
                   Scanner Finish
@@ -1678,7 +1710,8 @@ export default function RaceManagementPage() {
             {/* ========================================================= */}
             <div className="bg-rose-50/50 border border-rose-200 rounded-2xl p-6 shadow-sm mt-4">
               <h2 className="text-xs font-black text-rose-800 uppercase tracking-widest mb-2 flex items-center gap-2">
-                ⚠️ Danger Zone (Area Krusial)
+                <IconAlertTriangle className="w-4 h-4 text-rose-600" />
+                Area Krusial (Danger Zone)
               </h2>
               <p className="text-[11px] text-slate-500 leading-relaxed mb-4 font-medium">
                 Gunakan fitur ini hanya saat ingin melakukan simulasi ulang

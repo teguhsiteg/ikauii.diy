@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { db } from "@/lib/firebase";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 
 export default function Sidebar({
   isOpen,
@@ -15,6 +17,47 @@ export default function Sidebar({
 
   // State untuk Minimize Sidebar di Desktop
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // State pending counters
+  const [pendingOfflineBayar, setPendingOfflineBayar] = useState(0);
+  const [pendingVRBayar, setPendingVRBayar] = useState(0);
+  const [pendingVRLari, setPendingVRLari] = useState(0);
+
+  // Listener realtime untuk bukti bayar & bukti lari yang perlu diverifikasi
+  useEffect(() => {
+    // 1. Pending Bukti Bayar Offline
+    const qOffline = query(
+      collection(db, "offline_participants"),
+      where("statusPembayaran", "==", "Pending"),
+    );
+    const unsubOffline = onSnapshot(qOffline, (snap) => {
+      setPendingOfflineBayar(snap.docs.length);
+    });
+
+    // 2. Pending Bukti Bayar VR
+    const qVR = query(
+      collection(db, "vr_participants"),
+      where("statusPembayaran", "==", "Pending"),
+    );
+    const unsubVR = onSnapshot(qVR, (snap) => {
+      setPendingVRBayar(snap.docs.length);
+    });
+
+    // 3. Pending Bukti Lari VR
+    const qLari = query(
+      collection(db, "vr_submissions"),
+      where("status", "==", "Pending"),
+    );
+    const unsubLari = onSnapshot(qLari, (snap) => {
+      setPendingVRLari(snap.docs.length);
+    });
+
+    return () => {
+      unsubOffline();
+      unsubVR();
+      unsubLari();
+    };
+  }, []);
 
   // State untuk melacak Dropdown mana yang terbuka
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
@@ -62,6 +105,7 @@ export default function Sidebar({
       ),
       subItems: [
         { name: "Peserta Offline", path: "/admin-vr/offline" },
+        { name: "Undangan Khusus", path: "/admin-vr/offline?tab=undangan" },
         { name: "Peserta Virtual Run", path: "/admin-vr/peserta" },
         { name: "Verifikasi Lari (VR)", path: "/admin-vr/verifikasi" },
         { name: "Data Crew & Relawan", path: "/admin-vr/crew" },
@@ -292,6 +336,21 @@ export default function Sidebar({
                       const isSubActive =
                         pathname === sub.path ||
                         pathname.startsWith(`${sub.path}/`);
+
+                      // Ambil badge pending berdasarkan path
+                      let pendingBadge = 0;
+                      let badgeTooltip = "";
+                      if (sub.path === "/admin-vr/offline" && pendingOfflineBayar > 0) {
+                        pendingBadge = pendingOfflineBayar;
+                        badgeTooltip = `${pendingOfflineBayar} Bukti Bayar Offline Menunggu Verifikasi`;
+                      } else if (sub.path === "/admin-vr/peserta" && pendingVRBayar > 0) {
+                        pendingBadge = pendingVRBayar;
+                        badgeTooltip = `${pendingVRBayar} Bukti Bayar VR Menunggu Verifikasi`;
+                      } else if (sub.path === "/admin-vr/verifikasi" && pendingVRLari > 0) {
+                        pendingBadge = pendingVRLari;
+                        badgeTooltip = `${pendingVRLari} Bukti Lari (KM) Menunggu Verifikasi`;
+                      }
+
                       return (
                         <Link
                           key={subIdx}
@@ -301,32 +360,49 @@ export default function Sidebar({
                           onClick={() => {
                             if (!sub.isExternal) setIsOpen(false);
                           }}
-                          className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-xs transition-colors ${
+                          title={badgeTooltip || sub.name}
+                          className={`flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs transition-colors group/item relative ${
                             isSubActive
                               ? "bg-blue-500 text-white font-bold shadow-md"
-                              : "text-slate-500 hover:bg-slate-100 hover:text-slate-900 font-medium"
+                              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium"
                           }`}
                         >
-                          <span className="whitespace-nowrap truncate">
+                          <span className="whitespace-nowrap truncate pr-1">
                             {sub.name}
                           </span>
 
-                          {/* Indikator External Link */}
-                          {sub.isExternal && (
-                            <svg
-                              className={`w-3 h-3 shrink-0 ${isSubActive ? "text-blue-200" : "text-slate-300"}`}
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                              />
-                            </svg>
-                          )}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {/* Badge Pending Counter + Tooltip */}
+                            {pendingBadge > 0 && (
+                              <span
+                                className={`px-2 py-0.5 text-[10px] font-black rounded-full shadow-sm animate-pulse flex items-center gap-1 ${
+                                  isSubActive
+                                    ? "bg-white text-blue-600"
+                                    : "bg-amber-500 text-white"
+                                }`}
+                                title={badgeTooltip}
+                              >
+                                {pendingBadge}
+                              </span>
+                            )}
+
+                            {/* Indikator External Link */}
+                            {sub.isExternal && (
+                              <svg
+                                className={`w-3 h-3 shrink-0 ${isSubActive ? "text-blue-200" : "text-slate-300"}`}
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                />
+                              </svg>
+                            )}
+                          </div>
                         </Link>
                       );
                     })}

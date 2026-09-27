@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, collection, addDoc, query, where, getCountFromServer } from "firebase/firestore";
+import { doc, getDoc, getDocs, collection, addDoc, query, where, getCountFromServer, runTransaction } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
@@ -131,6 +131,8 @@ function PendaftaranOfflineInner() {
   const [isLoading, setIsLoading] = useState(true);
   const [isEventClosed, setIsEventClosed] = useState(false);
   const [eventClosedReason, setEventClosedReason] = useState("");
+  const [isUndanganUnlocked, setIsUndanganUnlocked] = useState(false);
+  const [kodeUndanganInput, setKodeUndanganInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState(1);
   const [packages, setPackages] = useState<any[]>([]);
@@ -200,13 +202,50 @@ function PendaftaranOfflineInner() {
           if (data.offlinePackages) {
             setPackages(data.offlinePackages);
             const counts: Record<string, number> = {};
-            await Promise.all(
-              data.offlinePackages.map(async (pkg: any) => {
-                const q = query(collection(db, "offline_participants"), where("paketId", "==", pkg.id), where("statusPembayaran", "==", "Lunas"));
-                const snapshot = await getCountFromServer(q);
-                counts[pkg.id] = snapshot.data().count;
-              })
-            );
+            
+            try {
+              const offlineSnap = await getDocs(query(collection(db, "offline_participants"), where("statusPembayaran", "==", "Lunas")));
+              const communitySnap = await getDocs(query(collection(db, "pendaftaran_komunitas"), where("statusPembayaran", "==", "Lunas")));
+
+              data.offlinePackages.forEach((pkg: any) => {
+                let count = 0;
+                
+                // Count matching offline participants
+                offlineSnap.docs.forEach((d) => {
+                  const p = d.data();
+                  if (p.paketId === pkg.id) {
+                    count++;
+                  } else {
+                    const pJarak = (p.jarak || p.kategori || "").toUpperCase();
+                    const pkgJarak = (pkg.jarak || "").toUpperCase();
+                    const pNama = (p.paketNama || "").toLowerCase();
+                    const pkgNama = (pkg.nama || pkg.name || "").toLowerCase();
+                    if ((pkgJarak && pJarak === pkgJarak) || (pkgNama && pNama && pNama.includes(pkgNama))) {
+                      count++;
+                    }
+                  }
+                });
+
+                // Count matching community members
+                communitySnap.docs.forEach((d) => {
+                  const g = d.data();
+                  if (Array.isArray(g.participants)) {
+                    g.participants.forEach((cp: any) => {
+                      const cpJarak = (cp.kategori || cp.jarak || "").toUpperCase();
+                      const pkgJarak = (pkg.jarak || "").toUpperCase();
+                      if (pkgJarak && cpJarak === pkgJarak) {
+                        count++;
+                      }
+                    });
+                  }
+                });
+
+                counts[pkg.id] = count;
+              });
+            } catch (countErr) {
+              console.warn("Error counting quota:", countErr);
+            }
+
             setPackageCounts(counts);
 
             if (defaultPaketId && Object.keys(selectedTickets).length === 0) {
@@ -282,6 +321,103 @@ function PendaftaranOfflineInner() {
     return total;
   };
 
+  const handleUnlockUndangan = (customCode?: string) => {
+    const codeToTest = (customCode || kodeUndanganInput).trim().toUpperCase();
+    if (!codeToTest) {
+      setModal({
+        isOpen: true,
+        type: "warning",
+        title: "Masukkan Kode Voucher",
+        message: "Silakan masukkan kode voucher / undangan khusus Anda terlebih dahulu.",
+      });
+      return;
+    }
+
+    let matchedPromo: any = null;
+    let matchedPkg: any = null;
+
+    for (const pkg of packages) {
+      if (pkg.promos && Array.isArray(pkg.promos)) {
+        const found = pkg.promos.find(
+          (p: any) => p.kode && p.kode.trim().toUpperCase() === codeToTest && p.isActive
+        );
+        if (found) {
+          if (found.tanggalKedaluwarsa && new Date(found.tanggalKedaluwarsa) < new Date()) {
+            setModal({
+              isOpen: true,
+              type: "error",
+              title: "Kode Kadaluarsa",
+              message: "Kode undangan khusus ini sudah kadaluarsa.",
+            });
+            return;
+          }
+          if (found.kuotaMaksimal > 0 && (found.kuotaTerpakai || 0) >= found.kuotaMaksimal) {
+            setModal({
+              isOpen: true,
+              type: "error",
+              title: "Kuota Habis",
+              message: "Kuota untuk kode undangan khusus ini sudah habis.",
+            });
+            return;
+          }
+          matchedPromo = found;
+          matchedPkg = pkg;
+          break;
+        }
+      }
+    }
+
+    if (matchedPromo) {
+      setIsUndanganUnlocked(true);
+      setIsEventClosed(false);
+      setPromoCode(codeToTest);
+
+      // Auto select 1 ticket if none selected
+      const currentSelectedCount = Object.values(selectedTickets).reduce((a, b) => a + b, 0);
+      let newTickets = { ...selectedTickets };
+      if (currentSelectedCount === 0 && matchedPkg) {
+        newTickets = { [matchedPkg.id]: 1 };
+        setSelectedTickets(newTickets);
+      }
+
+      // Hitung discount
+      let discount = 0;
+      Object.entries(newTickets).forEach(([pkgId, qty]) => {
+        if (qty === 0) return;
+        const pkg = packages.find((p) => p.id === pkgId);
+        if (!pkg) return;
+        let harga = Number(pkg.harga || 0);
+        if (pkg.isEarlyBird) {
+          const terisi = packageCounts[pkgId] || 0;
+          const target = Number(pkg.earlyBirdTarget);
+          if (target > 0 && terisi < target) {
+            harga = Number(pkg.earlyBirdHarga || pkg.harga);
+          }
+        }
+        if (matchedPromo.jenisDiskon === "persen") {
+          discount += ((harga * Number(matchedPromo.nilaiDiskon)) / 100) * qty;
+        } else {
+          discount += Number(matchedPromo.nilaiDiskon) * qty;
+        }
+      });
+
+      setPromoDiscount(discount);
+      setModal({
+        isOpen: true,
+        type: "success",
+        title: "Akses Undangan Khusus Aktif",
+        message: "Kode undangan khusus berhasil diverifikasi. Anda dapat bebas memilih kategori lari.",
+      });
+    } else {
+      setModal({
+        isOpen: true,
+        type: "error",
+        title: "Kode Tidak Valid",
+        message: "Kode undangan khusus tidak ditemukan atau tidak aktif. Mohon periksa kembali kode Anda.",
+      });
+    }
+  };
+
   const handleApplyPromo = () => {
     if (!promoCode) {
       setPromoDiscount(0);
@@ -298,7 +434,7 @@ function PendaftaranOfflineInner() {
       const pkg = packages.find((p) => p.id === pkgId);
       if (!pkg || !pkg.promos) return;
 
-      const promo = pkg.promos.find((p: any) => p.kode === promoCode && p.isActive);
+      const promo = pkg.promos.find((p: any) => p.kode?.trim().toUpperCase() === promoCode.trim().toUpperCase() && p.isActive);
       if (promo) {
         isFound = true;
         
@@ -329,9 +465,10 @@ function PendaftaranOfflineInner() {
       }
     });
 
-    if (totalDiscount > 0) {
+    if (totalDiscount > 0 || isFound) {
       setPromoDiscount(totalDiscount);
-      setModal({ isOpen: true, type: "success", title: "Promo Berhasil", message: `Selamat! Anda mendapatkan potongan Rp ${totalDiscount.toLocaleString("id-ID")}` });
+      setIsUndanganUnlocked(true);
+      setModal({ isOpen: true, type: "success", title: "Promo / Undangan Berhasil", message: `Selamat! Voucher berhasil diterapkan. Potongan: Rp ${totalDiscount.toLocaleString("id-ID")}` });
     } else if (isExpired) {
       setPromoDiscount(0);
       setModal({ isOpen: true, type: "error", title: "Promo Kadaluarsa", message: "Kode promo ini sudah kadaluarsa." });
@@ -476,10 +613,122 @@ function PendaftaranOfflineInner() {
       const orderId = "ORD-" + Date.now() + Math.random().toString(36).substring(2, 6).toUpperCase();
       const subtotal = calculateSubtotal();
       const adminFeePerTicket = Number(settings?.offlineAdminFee) || 0;
-      const adminFee = adminFeePerTicket * participants.length;
-      const totalSemuaTagihan = subtotal - promoDiscount + (Number(donasi) || 0) + adminFee;
+      const isFreeUndangan = (subtotal - promoDiscount <= 0 && (!donasi || Number(donasi) === 0));
+      const adminFee = isFreeUndangan ? 0 : adminFeePerTicket * participants.length;
+      const totalSemuaTagihan = Math.max(0, subtotal - promoDiscount + (Number(donasi) || 0) + adminFee);
       
       let masterDocId = "";
+
+      if (isFreeUndangan || totalSemuaTagihan === 0) {
+        // --- TRANSAKSI AUTO-BIB & INSTANT LUNAS UNTUK UNDANGAN KHUSUS ---
+        await runTransaction(db, async (transaction) => {
+          const counterDocRef = doc(db, "pengaturan", "counter_bib_offline");
+          const counterDoc = await transaction.get(counterDocRef);
+          const counterData = counterDoc.exists() ? counterDoc.data() : {};
+          const updatedCounters: Record<string, number> = { ...counterData };
+
+          for (let i = 0; i < participants.length; i++) {
+            const isUtama = i === 0;
+            const p = participants[i];
+            const jarakAngka = (p.jarak || "5").replace(/\D/g, "") || "5";
+            const counterField = `lastBib${jarakAngka}K`;
+            const currentVal = Number(updatedCounters[counterField]) || 0;
+            const nextVal = currentVal + 1;
+            updatedCounters[counterField] = nextVal;
+            const generatedBib = `U-${jarakAngka}${String(nextVal).padStart(3, "0")}`;
+
+            const newDocRef = doc(collection(db, "offline_participants"));
+            if (isUtama) masterDocId = newDocRef.id;
+
+            const finalData = {
+              ...p,
+              noWA: `${p.noWACode}${p.noWA}`,
+              waDarurat: `${p.waDaruratCode}${p.waDarurat}`,
+              isUtama,
+              orderIdGroup: orderId,
+              totalTagihan: 0,
+              statusPembayaran: "Lunas",
+              waktuDaftar: new Date().toISOString(),
+              waktuLunas: new Date().toISOString(),
+              nomorBIB: generatedBib,
+              bib: generatedBib,
+              tipePeserta: "Undangan Khusus",
+              isUndanganKhusus: true,
+              kodePromoDipakai: promoCode,
+              ...(isUtama ? {
+                pemesan_namaDepan: pemesan.namaDepan,
+                pemesan_namaBelakang: pemesan.namaBelakang,
+                pemesan_email: pemesan.email,
+                pemesan_noWA: `${pemesan.noWACode}${pemesan.noWA}`,
+                subtotalPesanan: subtotal,
+                totalDiskon: promoDiscount || subtotal,
+                adminFeeWeb: 0,
+                donasiCharity: 0,
+              } : {})
+            };
+
+            transaction.set(newDocRef, finalData);
+          }
+
+          transaction.set(counterDocRef, updatedCounters, { merge: true });
+
+          // Update kuota promo terpakai jika ada promoCode
+          if (promoCode && settings?.offlinePackages) {
+            const settingsRef = doc(db, "settings", "virtual_run");
+            const sDoc = await transaction.get(settingsRef);
+            if (sDoc.exists()) {
+              const sData = sDoc.data();
+              const pkgs = sData.offlinePackages || [];
+              const updatedPkgs = pkgs.map((pkg: any) => {
+                if (pkg.promos && Array.isArray(pkg.promos)) {
+                  return {
+                    ...pkg,
+                    promos: pkg.promos.map((promo: any) => {
+                      if (promo.kode?.trim().toUpperCase() === promoCode.trim().toUpperCase()) {
+                        return {
+                          ...promo,
+                          kuotaTerpakai: (promo.kuotaTerpakai || 0) + participants.length,
+                        };
+                      }
+                      return promo;
+                    }),
+                  };
+                }
+                return pkg;
+              });
+              transaction.update(settingsRef, { offlinePackages: updatedPkgs });
+            }
+          }
+        });
+
+        // Kirim email payment_success_offline
+        for (let i = 0; i < participants.length; i++) {
+          const p = participants[i];
+          const isUtama = i === 0;
+          sendEmailAction({
+            type: "payment_success_offline",
+            email: p.email || pemesan.email,
+            nama: p.namaLengkap || `${pemesan.namaDepan} ${pemesan.namaBelakang}`.trim(),
+            detail: {
+              id: isUtama ? masterDocId : p.id || masterDocId,
+              totalTagihan: 0,
+              jarak: p.jarak || "5K",
+              ukuranJersey: p.ukuranJersey || "-",
+              namaBib: p.namaBib || p.namaLengkap,
+              bib: p.nomorBIB || "",
+              nik: p.nik || "-",
+              isUndanganKhusus: true,
+              tipePeserta: "Undangan Khusus",
+              kodePromoDipakai: promoCode,
+              isUtama,
+            },
+          }).catch(console.error);
+        }
+
+        localStorage.removeItem("ikadiy_run_form");
+        router.push(`/run/tiket/${masterDocId}`);
+        return;
+      }
 
       for (let i = 0; i < participants.length; i++) {
         const isUtama = i === 0;
@@ -495,13 +744,15 @@ function PendaftaranOfflineInner() {
           statusPembayaran: "Pending",
           waktuDaftar: new Date().toISOString(),
           nomorBIB: "",
+          isUndanganKhusus: isUndanganUnlocked,
+          tipePeserta: isUndanganUnlocked ? "Undangan Khusus" : "Umum",
+          kodePromoDipakai: promoDiscount > 0 ? promoCode : "",
           ...(isUtama ? {
             pemesan_namaDepan: pemesan.namaDepan,
             pemesan_namaBelakang: pemesan.namaBelakang,
             pemesan_email: pemesan.email,
             pemesan_noWA: `${pemesan.noWACode}${pemesan.noWA}`,
             subtotalPesanan: subtotal,
-            kodePromoDipakai: promoDiscount > 0 ? promoCode : "",
             totalDiskon: promoDiscount,
             adminFeeWeb: adminFee,
             donasiCharity: Number(donasi) || 0
@@ -545,16 +796,24 @@ function PendaftaranOfflineInner() {
     );
   }
 
+  const isAllPackagesSoldOut = packages.length > 0 && packages.every((pkg) => {
+    const batasKuota = Number(pkg.kuota) || 0;
+    const terisi = packageCounts[pkg.id] || 0;
+    return batasKuota >= 0 && (batasKuota - terisi) <= 0;
+  });
+
+  const showClosedOrSoldOutView = (isEventClosed || (isAllPackagesSoldOut && !isUndanganUnlocked));
+
   return (
     <div className="min-h-screen bg-[#F4F7FB] font-sans relative selection:bg-[#FCD116] selection:text-[#0B2239]">
       <RunNavbar eventName={settings?.offlineJudul} solid={true} />
 
       <div className="pt-24 pb-20">
-        {!isEventClosed && <Stepper currentStep={step} />}
+        {!showClosedOrSoldOutView && <Stepper currentStep={step} />}
 
         <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          <div className={`lg:col-span-${isEventClosed ? '12' : '8'} space-y-6`}>
+          <div className={`lg:col-span-${showClosedOrSoldOutView ? '12' : '8'} space-y-6`}>
             
             <div className="bg-white rounded-[8px] p-5 shadow-sm border border-slate-100 flex items-center gap-5">
               <div className="w-16 h-16 bg-slate-50 rounded-lg border border-slate-100 overflow-hidden flex-shrink-0 flex items-center justify-center p-2">
@@ -575,33 +834,84 @@ function PendaftaranOfflineInner() {
               </div>
             </div>
 
-            {isEventClosed ? (
+            {showClosedOrSoldOutView ? (
               <div className="bg-white rounded-[8px] p-8 md:p-12 text-center shadow-sm border border-slate-100 animate-in zoom-in-95 mt-6">
                 <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-200">
                   <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-black text-[#0B2239] mb-2">Pendaftaran Sedang Ditutup</h2>
-                <p className="text-slate-600 max-w-md mx-auto mb-6 text-sm">{eventClosedReason}</p>
+                <h2 className="text-2xl font-black text-[#0B2239] mb-2">
+                  {isEventClosed ? "Pendaftaran Sedang Ditutup" : "Kuota Pendaftaran Habis"}
+                </h2>
+                <p className="text-slate-600 max-w-md mx-auto mb-6 text-sm">
+                  {isEventClosed ? eventClosedReason : "Seluruh kuota pendaftaran publik reguler telah habis terjual."}
+                </p>
+
+                {/* KHUSUS PENERIMA UNDANGAN KHUSUS */}
+                <div className="max-w-md mx-auto bg-slate-50 border border-slate-200 rounded-xl p-5 text-left shadow-sm mb-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                    <h3 className="text-[13px] font-bold text-[#0B2239] uppercase tracking-wider">Akses Undangan Khusus</h3>
+                  </div>
+                  <p className="text-[12px] text-slate-500 mb-4 leading-relaxed">
+                    Penerima <strong>Undangan Khusus</strong> dapat memasukkan kode voucher yang diterima untuk membuka pendaftaran dan memilih kategori lari.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={kodeUndanganInput}
+                      onChange={(e) => setKodeUndanganInput(e.target.value.toUpperCase())}
+                      placeholder="KODE UNDANGAN"
+                      className="flex-1 bg-white border border-slate-300 rounded px-3 py-2 text-[13px] font-mono uppercase tracking-wider focus:ring-1 focus:ring-[#1A73E8] focus:border-[#1A73E8] outline-none"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleUnlockUndangan();
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleUnlockUndangan()}
+                      className="bg-[#0B2239] hover:bg-slate-800 text-[#FCD116] font-bold px-5 py-2 rounded text-[13px] transition-colors shrink-0"
+                    >
+                      Buka Akses
+                    </button>
+                  </div>
+                </div>
+
                 <Link
                   href="/run"
-                  className="inline-flex items-center gap-2 bg-[#0B2239] hover:bg-slate-800 text-[#FCD116] font-bold px-6 py-3 rounded-xl transition-colors text-sm shadow-md"
+                  className="inline-flex items-center gap-2 text-slate-500 hover:text-[#0B2239] text-xs font-bold transition-colors underline"
                 >
-                  Kembali ke Beranda Run
+                  &larr; Kembali ke Beranda Run
                 </Link>
               </div>
             ) : (
               <>
                 {step === 1 && (
-              <div className="animate-in fade-in duration-500">
+              <div className="animate-in fade-in duration-500 space-y-4">
+                {isUndanganUnlocked && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-[8px] p-4 flex items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></div>
+                      <div>
+                        <p className="text-[13px] font-bold text-amber-900 uppercase tracking-wider">Akses Undangan Khusus Aktif</p>
+                        <p className="text-[11px] text-amber-700">Kode Voucher: <strong className="font-mono">{promoCode}</strong>. Anda bebas memilih kategori lari di bawah.</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold bg-amber-200/70 text-amber-900 px-2.5 py-1 rounded-md uppercase tracking-wider">Undangan Khusus</span>
+                  </div>
+                )}
+
                 <div className="bg-white rounded-[8px] shadow-sm border border-slate-100 divide-y divide-slate-100">
                   {packages.map((pkg: any) => {
                     const qty = selectedTickets[pkg.id] || 0;
                     const batasKuota = Number(pkg.kuota) || 0;
                     const terisi = packageCounts[pkg.id] || 0;
                     const sisa = batasKuota < 0 ? "Unlimited" : Math.max(0, batasKuota - terisi);
-                    const isHabis = batasKuota >= 0 && sisa === 0;
+                    const isHabis = !isUndanganUnlocked && batasKuota >= 0 && sisa === 0;
 
                     let harga = Number(pkg.harga || 0);
                     if (pkg.isEarlyBird && (Number(pkg.earlyBirdTarget) === 0 || terisi < Number(pkg.earlyBirdTarget))) {
@@ -615,7 +925,10 @@ function PendaftaranOfflineInner() {
                             <h3 className="text-[16px] font-bold text-[#0B2239]">{pkg.nama}</h3>
                             <p className="text-[12px] font-medium text-slate-500 mt-0.5">{pkg.jarak}</p>
                           </div>
-                          {pkg.isEarlyBird && <span className="bg-[#FCD116]/20 text-[#B8960C] text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">Early Bird</span>}
+                          <div className="flex items-center gap-2">
+                            {isUndanganUnlocked && <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Undangan</span>}
+                            {pkg.isEarlyBird && <span className="bg-[#FCD116]/20 text-[#B8960C] text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">Early Bird</span>}
+                          </div>
                         </div>
                         
                         <div className="flex items-center justify-between mt-6">
@@ -624,7 +937,7 @@ function PendaftaranOfflineInner() {
                               Rp {harga.toLocaleString("id-ID")}
                             </p>
                             <div className="flex items-center gap-1.5 mt-1 text-[11px] font-medium text-emerald-600">
-                              Sisa {sisa} tiket
+                              {isUndanganUnlocked ? "Akses Terbuka (Undangan Khusus)" : `Sisa ${sisa} tiket`}
                             </div>
                           </div>
                           
@@ -636,7 +949,7 @@ function PendaftaranOfflineInner() {
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 12H4"/></svg>
                               </button>
                               <span className="w-4 text-center font-bold text-[15px] text-[#0B2239]">{qty}</span>
-                              <button onClick={() => handleTicketChange(pkg.id, 1)} disabled={batasKuota >= 0 && typeof sisa === "number" && qty >= sisa} className="w-8 h-8 rounded bg-[#1A73E8] text-white flex items-center justify-center disabled:opacity-50 hover:bg-blue-700 transition-colors shadow-sm">
+                              <button onClick={() => handleTicketChange(pkg.id, 1)} disabled={!isUndanganUnlocked && batasKuota >= 0 && typeof sisa === "number" && qty >= sisa} className="w-8 h-8 rounded bg-[#1A73E8] text-white flex items-center justify-center disabled:opacity-50 hover:bg-blue-700 transition-colors shadow-sm">
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4"/></svg>
                               </button>
                             </div>
@@ -953,7 +1266,7 @@ function PendaftaranOfflineInner() {
             )}
           </div>
 
-          {!isEventClosed && (
+          {!showClosedOrSoldOutView && (
             <div className="lg:col-span-4 mt-8 lg:mt-0 relative">
             <div className="bg-white rounded-[8px] shadow-sm border border-slate-100 p-5 sticky top-24">
               <h2 className="text-[14px] font-bold text-[#0B2239] mb-4 flex items-center gap-2">

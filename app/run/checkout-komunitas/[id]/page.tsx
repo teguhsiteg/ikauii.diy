@@ -133,6 +133,28 @@ export default function CheckoutKomunitasPage() {
         statusPembayaran: "Menunggu Verifikasi",
       }));
 
+      // Kirim notifikasi Telegram ke Admin
+      try {
+        await fetch("/api/telegram/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "offline_komunitas",
+            id: groupData.id,
+            nama: groupData.kapten?.nama || "Kapten Komunitas",
+            email: groupData.kapten?.email || "-",
+            wa: groupData.kapten?.wa || "-",
+            komunitas: groupData.kapten?.komunitas || "-",
+            jumlahPeserta: (groupData.participants || []).length,
+            kategori: "Komunitas / Grup Run",
+            totalBayar: groupData.totalBiaya || 0,
+            buktiBayarUrl: data.secure_url,
+          }),
+        });
+      } catch (e) {
+        console.error("Gagal mengirim notifikasi telegram", e);
+      }
+
       setModal({
         isOpen: true,
         type: "success",
